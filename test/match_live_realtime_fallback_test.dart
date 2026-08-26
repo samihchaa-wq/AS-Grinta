@@ -7,49 +7,51 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('a Realtime error enables fallback and triggers a server resync',
-      () async {
-    final repository = _RealtimeFallbackRepository(_bundle());
-    final container = ProviderContainer(
-      overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
-    );
-    addTearDown(container.dispose);
-    addTearDown(repository.dispose);
+  test(
+    'a Realtime error enables fallback and triggers a server resync',
+    () async {
+      final repository = _RealtimeFallbackRepository(_bundle());
+      final container = ProviderContainer(
+        overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      addTearDown(repository.dispose);
 
-    final provider = matchLiveStateProvider('match-1');
-    final subscription = container.listen(
-      provider,
-      (_, __) {},
-      fireImmediately: true,
-    );
-    addTearDown(subscription.close);
-    final degradedSubscription = container.listen(
-      matchLiveRealtimeDegradedProvider('match-1'),
-      (_, __) {},
-      fireImmediately: true,
-    );
-    addTearDown(degradedSubscription.close);
+      final provider = matchLiveStateProvider('match-1');
+      final subscription = container.listen(
+        provider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      final degradedSubscription = container.listen(
+        matchLiveRealtimeDegradedProvider('match-1'),
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(degradedSubscription.close);
 
-    await container.read(provider.future);
-    await _flush();
-    final fetchesBeforeError = repository.fetchCount;
+      await container.read(provider.future);
+      await _flush();
+      final fetchesBeforeError = repository.fetchCount;
 
-    repository.emitError(StateError('realtime disconnected'));
-    await _waitUntil(
-      () => container.read(matchLiveRealtimeDegradedProvider('match-1')),
-    );
-    await _waitUntil(() => repository.fetchCount > fetchesBeforeError);
+      repository.emitError(StateError('realtime disconnected'));
+      await _waitUntil(
+        () => container.read(matchLiveRealtimeDegradedProvider('match-1')),
+      );
+      await _waitUntil(() => repository.fetchCount > fetchesBeforeError);
 
-    expect(
-      container.read(matchLiveRealtimeDegradedProvider('match-1')),
-      isTrue,
-    );
+      expect(
+        container.read(matchLiveRealtimeDegradedProvider('match-1')),
+        isTrue,
+      );
 
-    repository.emitChange();
-    await _waitUntil(
-      () => !container.read(matchLiveRealtimeDegradedProvider('match-1')),
-    );
-  });
+      repository.emitChange();
+      await _waitUntil(
+        () => !container.read(matchLiveRealtimeDegradedProvider('match-1')),
+      );
+    },
+  );
 
   test('the fallback polling interval stays bounded', () {
     expect(matchLiveFallbackPollInterval, const Duration(seconds: 30));

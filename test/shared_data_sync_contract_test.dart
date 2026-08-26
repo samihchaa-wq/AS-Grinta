@@ -7,8 +7,8 @@ void main() {
   test(
     'shared data sync reconnects and refreshes the main cached modules',
     () async {
-      final sync =
-          await File('lib/core/sync/shared_data_sync.dart').readAsString();
+      final sync = await File('lib/core/sync/shared_data_sync.dart')
+          .readAsString();
       final app = await File('lib/app/app.dart').readAsString();
 
       expect(sync, contains("from('shared_data_change_signals')"));
@@ -17,10 +17,7 @@ void main() {
       expect(sync, contains('profileRevision'));
       expect(sync, contains('sportsRevision'));
       expect(sync, contains('SharedDataRefreshScope.sports'));
-      expect(
-        sync,
-        contains('refreshProfile: shouldRefreshProfile'),
-      );
+      expect(sync, contains('refreshProfile: shouldRefreshProfile'));
 
       for (final provider in <String>[
         'matchDetailsProvider',
@@ -49,10 +46,7 @@ void main() {
 
       expect(sync, contains('matchesControllerProvider.notifier).load'));
       expect(sync, contains('predictionsControllerProvider.notifier).load'));
-      expect(
-        sync,
-        contains('authControllerProvider.notifier).refreshProfile'),
-      );
+      expect(sync, contains('authControllerProvider.notifier).refreshProfile'));
 
       expect(app, contains('ref.watch(sharedDataSyncListenerProvider);'));
       expect(app, contains('ref.invalidate(sharedDataSignalProvider);'));

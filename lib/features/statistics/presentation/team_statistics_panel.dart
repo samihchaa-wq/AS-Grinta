@@ -27,10 +27,8 @@ class TeamStatisticsPanel extends ConsumerWidget {
 
     return dataAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
-      error: (error, _) => _ScrollableMessage(
-        message: humanizeError(error),
-        onRefresh: refresh,
-      ),
+      error: (error, _) =>
+          _ScrollableMessage(message: humanizeError(error), onRefresh: refresh),
       data: (statistics) => RefreshIndicator(
         onRefresh: refresh,
         child: ListView(
@@ -66,9 +64,9 @@ class TeamStatisticsPanel extends ConsumerWidget {
               Text(
                 'Répartition des matchs selon le score final',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 10),
               _ScoreMarginCard(
@@ -95,9 +93,8 @@ class _TeamSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+      style: Theme.of(context).textTheme.titleLarge
+          ?.copyWith(fontWeight: FontWeight.w900),
     );
   }
 }
@@ -143,10 +140,7 @@ class _TeamResultsCard extends StatelessWidget {
                 const gap = 16.0;
                 final ringSize = math.min(
                   96.0,
-                  math.max(
-                    0.0,
-                    (constraints.maxWidth - gap * 2) / 3,
-                  ),
+                  math.max(0.0, (constraints.maxWidth - gap * 2) / 3),
                 );
 
                 return Row(
@@ -227,8 +221,9 @@ class _ResultRing extends StatelessWidget {
                 strokeWidth: strokeWidth,
                 strokeCap: StrokeCap.butt,
                 color: color,
-                backgroundColor:
-                    theme.colorScheme.onSurface.withValues(alpha: .12),
+                backgroundColor: theme.colorScheme.onSurface.withValues(
+                  alpha: .12,
+                ),
               ),
               Center(
                 child: Padding(
@@ -309,8 +304,9 @@ class _TeamGoalsCard extends StatelessWidget {
                   child: CustomPaint(
                     painter: _GoalsDonutPainter(
                       scoredRatio: scoredRatio,
-                      backgroundColor:
-                          theme.colorScheme.onSurface.withValues(alpha: .1),
+                      backgroundColor: theme.colorScheme.onSurface.withValues(
+                        alpha: .1,
+                      ),
                     ),
                   ),
                 ),
@@ -395,8 +391,12 @@ class _GoalsDonutPainter extends CustomPainter {
     final side = math.min(size.width, size.height);
     final left = (size.width - side) / 2;
     final top = (size.height - side) / 2;
-    final arcRect =
-        Rect.fromLTWH(left, top, side, side).deflate(strokeWidth / 2);
+    final arcRect = Rect.fromLTWH(
+      left,
+      top,
+      side,
+      side,
+    ).deflate(strokeWidth / 2);
 
     final basePaint = Paint()
       ..style = PaintingStyle.stroke
@@ -466,10 +466,7 @@ class _RecentResultsCard extends StatelessWidget {
               runSpacing: gap,
               children: [
                 for (final result in results)
-                  _ResultBubble(
-                    result: result,
-                    dimension: bubbleSize,
-                  ),
+                  _ResultBubble(result: result, dimension: bubbleSize),
               ],
             );
           },
@@ -480,10 +477,7 @@ class _RecentResultsCard extends StatelessWidget {
 }
 
 class _ResultBubble extends StatelessWidget {
-  const _ResultBubble({
-    required this.result,
-    required this.dimension,
-  });
+  const _ResultBubble({required this.result, required this.dimension});
 
   final String result;
   final double dimension;
@@ -499,10 +493,7 @@ class _ResultBubble extends StatelessWidget {
     return SizedBox.square(
       dimension: dimension,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         child: Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -552,9 +543,7 @@ class _AverageScoreCard extends StatelessWidget {
             Container(
               width: 1,
               height: 58,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
+              color: Theme.of(context).colorScheme.onSurface
                   .withValues(alpha: .12),
             ),
             Expanded(
@@ -590,18 +579,15 @@ class _AverageValue extends StatelessWidget {
         Text(
           value,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(context).textTheme.headlineMedium
+              ?.copyWith(color: color, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: AppSpacing.microGap),
         Text(
           label,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -650,26 +636,16 @@ class _ScoreMarginCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         child: Column(
           children: [
-            _MarginSummaryRow(
-              losses: losses,
-              draws: draws,
-              wins: wins,
-            ),
+            _MarginSummaryRow(losses: losses, draws: draws, wins: wins),
             const SizedBox(height: 18),
             const Row(
               children: [
                 Expanded(
                   flex: 4,
-                  child: _MarginGroupLabel(
-                    label: 'DÉFAITES',
-                    color: _teamRed,
-                  ),
+                  child: _MarginGroupLabel(label: 'DÉFAITES', color: _teamRed),
                 ),
                 Expanded(
-                  child: _MarginGroupLabel(
-                    label: 'NUL',
-                    color: _teamYellow,
-                  ),
+                  child: _MarginGroupLabel(label: 'NUL', color: _teamYellow),
                 ),
                 Expanded(
                   flex: 4,
@@ -688,10 +664,7 @@ class _ScoreMarginCard extends StatelessWidget {
                 children: [
                   for (final bucket in buckets)
                     Expanded(
-                      child: _MarginBar(
-                        bucket: bucket,
-                        maxCount: maxCount,
-                      ),
+                      child: _MarginBar(bucket: bucket, maxCount: maxCount),
                     ),
                 ],
               ),
@@ -817,19 +790,16 @@ class _MarginGroupLabel extends StatelessWidget {
       maxLines: 1,
       textAlign: TextAlign.center,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w900,
-            letterSpacing: .5,
-          ),
+        color: color,
+        fontWeight: FontWeight.w900,
+        letterSpacing: .5,
+      ),
     );
   }
 }
 
 class _MarginBar extends StatelessWidget {
-  const _MarginBar({
-    required this.bucket,
-    required this.maxCount,
-  });
+  const _MarginBar({required this.bucket, required this.maxCount});
 
   final _MarginBucket bucket;
   final int maxCount;
@@ -909,10 +879,7 @@ class _TeamStreaksSection extends StatelessWidget {
       statistics.bestUnbeatenStreak.length,
       statistics.worstLossStreak.length,
       statistics.worstWinlessStreak.length,
-    ].fold<int>(
-      1,
-      (maximum, value) => math.max(maximum, value),
-    );
+    ].fold<int>(1, (maximum, value) => math.max(maximum, value));
     final scale = statistics.period == StatisticsPeriod.allTime
         ? math.max(1, statistics.matchesPlayed)
         : periodMaximum;
@@ -962,10 +929,7 @@ class _TeamStreaksSection extends StatelessWidget {
 }
 
 class _StreakGroupCard extends StatelessWidget {
-  const _StreakGroupCard({
-    required this.title,
-    required this.children,
-  });
+  const _StreakGroupCard({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -986,9 +950,8 @@ class _StreakGroupCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 18),
             ...children,
@@ -1035,8 +998,9 @@ class _StreakRow extends StatelessWidget {
                 minHeight: 10,
                 borderRadius: BorderRadius.circular(99),
                 color: color,
-                backgroundColor:
-                    theme.colorScheme.onSurface.withValues(alpha: .13),
+                backgroundColor: theme.colorScheme.onSurface.withValues(
+                  alpha: .13,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sectionGap),
@@ -1071,10 +1035,7 @@ String _formatDate(String value) {
 }
 
 class _ScrollableMessage extends StatelessWidget {
-  const _ScrollableMessage({
-    required this.message,
-    required this.onRefresh,
-  });
+  const _ScrollableMessage({required this.message, required this.onRefresh});
 
   final String message;
   final Future<void> Function() onRefresh;

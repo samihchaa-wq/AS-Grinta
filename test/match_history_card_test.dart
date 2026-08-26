@@ -6,17 +6,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   MatchModel finishedMatch({required String matchType}) => MatchModel(
-        id: 'match',
-        seasonId: 'season',
-        opponentId: matchType == 'entre_nous' ? '' : 'opponent',
-        kickoffAt: DateTime.utc(2026, 8, 10, 17),
-        isHome: true,
-        plannedDurationMinutes: 90,
-        status: 'termine',
-        grintaScore: null,
-        opponentScore: null,
-        matchType: matchType,
-      );
+    id: 'match',
+    seasonId: 'season',
+    opponentId: matchType == 'entre_nous' ? '' : 'opponent',
+    kickoffAt: DateTime.utc(2026, 8, 10, 17),
+    isHome: true,
+    plannedDurationMinutes: 90,
+    status: 'termine',
+    grintaScore: null,
+    opponentScore: null,
+    matchType: matchType,
+  );
 
   Future<void> pumpCard(WidgetTester tester, MatchModel match) async {
     await tester.pumpWidget(
@@ -39,12 +39,11 @@ void main() {
     },
   );
 
-  testWidgets(
-    'un match classique terminé conserve sa navigation',
-    (tester) async {
-      await pumpCard(tester, finishedMatch(matchType: 'championnat'));
+  testWidgets('un match classique terminé conserve sa navigation', (
+    tester,
+  ) async {
+    await pumpCard(tester, finishedMatch(matchType: 'championnat'));
 
-      expect(find.byType(InkWell), findsOneWidget);
-    },
-  );
+    expect(find.byType(InkWell), findsOneWidget);
+  });
 }

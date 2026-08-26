@@ -156,10 +156,7 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
     await bucket.uploadBinary(
       path,
       bytes,
-      fileOptions: FileOptions(
-        contentType: image.mimeType,
-        upsert: false,
-      ),
+      fileOptions: FileOptions(contentType: image.mimeType, upsert: false),
     );
     try {
       // L'ancienne photo est supprimée du stockage côté serveur (trigger sur

@@ -43,8 +43,8 @@ class GuestCatalog {
     return GuestCatalog(
       guests: rows is List
           ? rows
-              .map((row) => GuestPlayer.fromJson(_map(row)))
-              .toList(growable: false)
+                .map((row) => GuestPlayer.fromJson(_map(row)))
+                .toList(growable: false)
           : const [],
     );
   }
@@ -106,8 +106,8 @@ class MatchGuests {
       matchId: (json['match_id'] ?? '').toString(),
       guests: rows is List
           ? rows
-              .map((row) => MatchGuestParticipant.fromJson(_map(row)))
-              .toList(growable: false)
+                .map((row) => MatchGuestParticipant.fromJson(_map(row)))
+                .toList(growable: false)
           : const [],
     );
   }

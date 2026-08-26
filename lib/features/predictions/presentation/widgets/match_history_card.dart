@@ -51,11 +51,11 @@ class MatchHistoryCard extends ConsumerWidget {
                       'Match entre nous',
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontSize: 16,
-                            height: 1.1,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.textPrimary,
-                          ),
+                        fontSize: 16,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
                     )
                   else
                     MatchFixture(
@@ -67,12 +67,12 @@ class MatchHistoryCard extends ConsumerWidget {
                       finished: match.isFinished,
                       // Les scores conservent le code résultat du composant :
                       // vert victoire, orange nul, rouge défaite.
-                      nameStyle:
-                          Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontSize: 16,
-                                height: 1.1,
-                                fontWeight: FontWeight.w800,
-                              ),
+                      nameStyle: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(
+                            fontSize: 16,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                          ),
                       textAlign: TextAlign.start,
                     ),
                   if (!match.isInternal) ...[
@@ -80,9 +80,9 @@ class MatchHistoryCard extends ConsumerWidget {
                     Text(
                       match.calendarTypeLabel,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: border,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: border,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ],

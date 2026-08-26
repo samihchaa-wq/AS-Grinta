@@ -186,9 +186,7 @@ class AuthRepository {
     final existing = _profileFetchesInFlight[retryAfterSignIn];
     if (existing != null) return existing;
 
-    final request = _fetchProfileFromServer(
-      retryAfterSignIn: retryAfterSignIn,
-    );
+    final request = _fetchProfileFromServer(retryAfterSignIn: retryAfterSignIn);
     _profileFetchesInFlight[retryAfterSignIn] = request;
     return request.whenComplete(() {
       if (identical(_profileFetchesInFlight[retryAfterSignIn], request)) {
@@ -208,9 +206,7 @@ class AuthRepository {
             .rpc('get_my_profile')
             .timeout(const Duration(seconds: 12));
         if (response == null) return null;
-        return AuthProfile.fromJson(
-          Map<String, dynamic>.from(response as Map),
-        );
+        return AuthProfile.fromJson(Map<String, dynamic>.from(response as Map));
       } catch (error) {
         lastError = error;
         if (attempt + 1 < attempts) {
@@ -276,10 +272,7 @@ class AuthRepository {
         await bucket.uploadBinary(
           path,
           bytes,
-          fileOptions: FileOptions(
-            contentType: image.mimeType,
-            upsert: true,
-          ),
+          fileOptions: FileOptions(contentType: image.mimeType, upsert: true),
         );
       },
     );

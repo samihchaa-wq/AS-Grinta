@@ -105,21 +105,23 @@ void main() {
       expect(merged[romainSpigolon]!.mainSlotLabel, 'MDC');
     });
 
-    test('un changement de poste durable finit par faire basculer le profil',
-        () {
-      final merged = mergePlayerPositionProfiles(
-        history: [
-          ...repeated(romainSpigolon, 'DCD', times: 20, year: 2026),
-          ...repeated(romainSpigolon, 'DCD', times: 20, year: 2027),
-        ],
-      );
+    test(
+      'un changement de poste durable finit par faire basculer le profil',
+      () {
+        final merged = mergePlayerPositionProfiles(
+          history: [
+            ...repeated(romainSpigolon, 'DCD', times: 20, year: 2026),
+            ...repeated(romainSpigolon, 'DCD', times: 20, year: 2027),
+          ],
+        );
 
-      expect(merged[romainSpigolon]!.mainSlotLabel, 'DCD');
-      expect(
-        merged[romainSpigolon]!.secondarySlotLabel,
-        kPlayerPositionProfiles[romainSpigolon]!.mainSlotLabel,
-      );
-    });
+        expect(merged[romainSpigolon]!.mainSlotLabel, 'DCD');
+        expect(
+          merged[romainSpigolon]!.secondarySlotLabel,
+          kPlayerPositionProfiles[romainSpigolon]!.mainSlotLabel,
+        );
+      },
+    );
 
     test('les matchs joués s’ajoutent au compteur de titularisations', () {
       final avant = kPlayerPositionProfiles[romainSpigolon]!.appearances;

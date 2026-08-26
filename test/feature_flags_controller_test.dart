@@ -227,20 +227,14 @@ class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
     publishSignal(revision: revision, updatedAt: updatedAt);
   }
 
-  void publishSignal({
-    required int revision,
-    required DateTime updatedAt,
-  }) {
+  void publishSignal({required int revision, required DateTime updatedAt}) {
     _changes.add(
       FeatureFlagChangeSignal(revision: revision, updatedAt: updatedAt),
     );
   }
 
   void publishWatchError() {
-    _changes.addError(
-      StateError('realtime unavailable'),
-      StackTrace.current,
-    );
+    _changes.addError(StateError('realtime unavailable'), StackTrace.current);
   }
 
   @override

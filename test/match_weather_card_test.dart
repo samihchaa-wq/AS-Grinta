@@ -43,7 +43,8 @@ MatchWeather _weather({
     windSpeed: wind,
     windGusts: gusts,
     humidity: humidity,
-    hourlyForecast: hours ??
+    hourlyForecast:
+        hours ??
         [
           MatchWeatherHour(
             forecastAt: kickoff.subtract(const Duration(hours: 1)),

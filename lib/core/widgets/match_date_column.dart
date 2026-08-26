@@ -29,15 +29,15 @@ class MatchDateColumn extends StatelessWidget {
     final soft = secondary ?? theme.hintColor;
 
     Widget line(String text, {bool bold = false, Color? color}) => Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: color ?? (bold ? main : soft),
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
-            fontSize: 14,
-            height: 1.15,
-          ),
-        );
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: color ?? (bold ? main : soft),
+        fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+        fontSize: 14,
+        height: 1.15,
+      ),
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,

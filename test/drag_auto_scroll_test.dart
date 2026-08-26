@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('auto-scrolls from the visible top edge of a Scrollable',
-      (tester) async {
+  testWidgets('auto-scrolls from the visible top edge of a Scrollable', (
+    tester,
+  ) async {
     final controller = ScrollController();
     late BuildContext itemContext;
 

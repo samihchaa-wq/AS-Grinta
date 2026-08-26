@@ -64,10 +64,12 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     if (dragged.seasonPlayerId == target.seasonPlayerId) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries);
-      final fromIndex =
-          entries.indexWhere((e) => e.seasonPlayerId == dragged.seasonPlayerId);
-      final toIndex =
-          entries.indexWhere((e) => e.seasonPlayerId == target.seasonPlayerId);
+      final fromIndex = entries.indexWhere(
+        (e) => e.seasonPlayerId == dragged.seasonPlayerId,
+      );
+      final toIndex = entries.indexWhere(
+        (e) => e.seasonPlayerId == target.seasonPlayerId,
+      );
       if (fromIndex == -1 || toIndex == -1) return;
       final item = entries.removeAt(fromIndex);
       entries.insert(toIndex, item);
@@ -80,7 +82,9 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     final newCount = entry.currentSeasonWaitlistCount + delta;
     if (newCount < 0) return;
     try {
-      await ref.read(sportWaitlistRepositoryProvider).setWaitlistManualCount(
+      await ref
+          .read(sportWaitlistRepositoryProvider)
+          .setWaitlistManualCount(
             seasonPlayerId: entry.seasonPlayerId,
             count: newCount,
           );
@@ -96,9 +100,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
   }
 
@@ -109,11 +112,13 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries)
         ..sort((a, b) {
-          final byWaitlistCount = a.currentSeasonWaitlistCount
-              .compareTo(b.currentSeasonWaitlistCount);
+          final byWaitlistCount = a.currentSeasonWaitlistCount.compareTo(
+            b.currentSeasonWaitlistCount,
+          );
           if (byWaitlistCount != 0) return byWaitlistCount;
-          return a.previousSeasonAttendanceCount
-              .compareTo(b.previousSeasonAttendanceCount);
+          return a.previousSeasonAttendanceCount.compareTo(
+            b.previousSeasonAttendanceCount,
+          );
         });
       _entries = entries;
       _dirty = true;
@@ -125,13 +130,15 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     if (waitlist == null || !_dirty) return;
     setState(() => _saving = true);
     try {
-      final saved =
-          await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
-                seasonId: waitlist.seasonId,
-                orderedPlayerIds:
-                    _entries.map((entry) => entry.seasonPlayerId).toList(),
-                reason: 'Ordre modifié depuis les paramètres',
-              );
+      final saved = await ref
+          .read(sportWaitlistRepositoryProvider)
+          .reorderWaitlist(
+            seasonId: waitlist.seasonId,
+            orderedPlayerIds: _entries
+                .map((entry) => entry.seasonPlayerId)
+                .toList(),
+            reason: 'Ordre modifié depuis les paramètres',
+          );
       if (!mounted) return;
       setState(() {
         _waitlist = saved;
@@ -143,9 +150,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -206,7 +212,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         child: GrintaEmptyState(
           icon: Icons.format_list_numbered_rounded,
           title: 'Aucun joueur dans la saison',
-          message: 'Ajoute des joueurs à l’effectif pour construire l’ordre '
+          message:
+              'Ajoute des joueurs à l’effectif pour construire l’ordre '
               'de la liste d’attente.',
         ),
       );
@@ -223,9 +230,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
               children: [
                 Text(
                   'Saison ${waitlist.seasonName}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -300,8 +306,9 @@ class _WaitlistTile extends StatelessWidget {
     final attendance = entry.previousSeasonAttendanceCount;
     final previousSeasonPresence = total > 0 ? '$attendance' : 'Aucune donnée';
     final waitlistCount = entry.currentSeasonWaitlistCount;
-    final waitlistCountText =
-        Text('Liste d’attente cette saison : $waitlistCount fois');
+    final waitlistCountText = Text(
+      'Liste d’attente cette saison : $waitlistCount fois',
+    );
     final card = Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(

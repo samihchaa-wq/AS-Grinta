@@ -45,10 +45,7 @@ class PredictionsController extends StateNotifier<PredictionsState> {
       state = state.copyWith(items: items, isLoading: false, clearError: true);
     } catch (error, stackTrace) {
       AppLogger.error('predictions.load', error, stackTrace);
-      state = state.copyWith(
-        isLoading: false,
-        error: humanizeError(error),
-      );
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
 
@@ -59,15 +56,13 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   }) {
     final items = state.items.map((item) {
       if (item.matchId != matchId || !item.canEdit) return item;
-      final nextGrinta =
-          grinta ? (item.scoreGrinta + delta).clamp(0, 99) : item.scoreGrinta;
+      final nextGrinta = grinta
+          ? (item.scoreGrinta + delta).clamp(0, 99)
+          : item.scoreGrinta;
       final nextOpponent = grinta
           ? item.scoreOpponent
           : (item.scoreOpponent + delta).clamp(0, 99);
-      return item.updated(
-        scoreGrinta: nextGrinta,
-        scoreOpponent: nextOpponent,
-      );
+      return item.updated(scoreGrinta: nextGrinta, scoreOpponent: nextOpponent);
     }).toList();
     state = state.copyWith(items: items, clearError: true);
   }
@@ -75,8 +70,9 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   Future<void> save(String matchId) async {
     if (state.savingMatchId != null) return;
 
-    final item =
-        state.items.where((value) => value.matchId == matchId).firstOrNull;
+    final item = state.items
+        .where((value) => value.matchId == matchId)
+        .firstOrNull;
     if (item == null || !item.canEdit) return;
 
     state = state.copyWith(savingMatchId: matchId, clearError: true);
@@ -98,23 +94,21 @@ class PredictionsController extends StateNotifier<PredictionsState> {
       AppLogger.error('predictions.save_outcome_unknown', error, stackTrace);
       state = state.copyWith(
         clearSaving: true,
-        error: 'Connexion interrompue : ton pronostic a peut-être été '
+        error:
+            'Connexion interrompue : ton pronostic a peut-être été '
             'enregistré. Actualise la page avant de réessayer.',
       );
     } catch (error, stackTrace) {
       AppLogger.error('predictions.save', error, stackTrace);
-      state = state.copyWith(
-        clearSaving: true,
-        error: humanizeError(error),
-      );
+      state = state.copyWith(clearSaving: true, error: humanizeError(error));
     }
   }
 }
 
 final predictionsControllerProvider =
     StateNotifierProvider<PredictionsController, PredictionsState>((ref) {
-  return PredictionsController(ref.watch(predictionsRepositoryProvider));
-});
+      return PredictionsController(ref.watch(predictionsRepositoryProvider));
+    });
 
 extension MatchPredictionItemUpdate on MatchPredictionItem {
   MatchPredictionItem updated({

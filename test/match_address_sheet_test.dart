@@ -5,26 +5,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('GPS choices follow the target platform', () {
-    expect(
-      matchGpsAppsForPlatform(TargetPlatform.iOS),
-      const [
-        MatchGpsApp.plans,
-        MatchGpsApp.googleMaps,
-        MatchGpsApp.waze,
-      ],
-    );
-    expect(
-      matchGpsAppsForPlatform(TargetPlatform.macOS),
-      const [
-        MatchGpsApp.plans,
-        MatchGpsApp.googleMaps,
-        MatchGpsApp.waze,
-      ],
-    );
-    expect(
-      matchGpsAppsForPlatform(TargetPlatform.android),
-      const [MatchGpsApp.googleMaps, MatchGpsApp.waze],
-    );
+    expect(matchGpsAppsForPlatform(TargetPlatform.iOS), const [
+      MatchGpsApp.plans,
+      MatchGpsApp.googleMaps,
+      MatchGpsApp.waze,
+    ]);
+    expect(matchGpsAppsForPlatform(TargetPlatform.macOS), const [
+      MatchGpsApp.plans,
+      MatchGpsApp.googleMaps,
+      MatchGpsApp.waze,
+    ]);
+    expect(matchGpsAppsForPlatform(TargetPlatform.android), const [
+      MatchGpsApp.googleMaps,
+      MatchGpsApp.waze,
+    ]);
   });
 
   test('GPS URLs open navigation to the trimmed match address', () {
@@ -40,26 +34,17 @@ void main() {
     expect(google.scheme, 'https');
     expect(google.host, 'www.google.com');
     expect(google.path, '/maps/dir/');
-    expect(
-      google.queryParameters,
-      {
-        'api': '1',
-        'destination': address,
-        'dir_action': 'navigate',
-      },
-    );
+    expect(google.queryParameters, {
+      'api': '1',
+      'destination': address,
+      'dir_action': 'navigate',
+    });
 
     final waze = matchGpsUri(MatchGpsApp.waze, '  $address  ');
     expect(waze.scheme, 'https');
     expect(waze.host, 'www.waze.com');
     expect(waze.path, '/ul');
-    expect(
-      waze.queryParameters,
-      {
-        'q': address,
-        'navigate': 'yes',
-      },
-    );
+    expect(waze.queryParameters, {'q': address, 'navigate': 'yes'});
   });
 
   testWidgets('Apple platforms offer Plans, Google Maps and Waze', (
@@ -84,9 +69,7 @@ void main() {
     }
   });
 
-  testWidgets('non-Apple platforms offer Google Maps and Waze', (
-    tester,
-  ) async {
+  testWidgets('non-Apple platforms offer Google Maps and Waze', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     try {
       await tester.pumpWidget(_harness());

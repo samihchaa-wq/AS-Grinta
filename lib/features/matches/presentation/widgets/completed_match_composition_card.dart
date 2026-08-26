@@ -97,9 +97,8 @@ class CompletedCompositionCard extends StatelessWidget {
               fallbackPlayers.isEmpty
                   ? 'Joueurs'
                   : 'Joueurs (${fallbackPlayers.length})',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             if (fallbackPlayers.isEmpty)
@@ -135,26 +134,23 @@ class _MpgCompletedCard extends StatelessWidget {
           children: [
             Text(
               'Composition et résumé',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
               'Les buts ⚽ et l’homme du match 👑 sont affichés directement '
               'sur les joueurs.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppTheme.textSecondary),
             ),
             if (hasVacantSlots) ...[
               const SizedBox(height: 4),
               Text(
                 'Les emplacements grisés — sont des postes dont la feuille '
                 'de match n’a pas gardé le nom du joueur.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppTheme.textSecondary),
               ),
             ],
             const SizedBox(height: 16),
@@ -168,9 +164,8 @@ class _MpgCompletedCard extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Remplaçants (${bench.length})',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -204,7 +199,7 @@ class CompletedPlayersList extends StatelessWidget {
             label: players[index].goals == 0
                 ? players[index].name
                 : '${players[index].name}, ${players[index].goals} '
-                    '${players[index].goals == 1 ? 'but' : 'buts'}',
+                      '${players[index].goals == 1 ? 'but' : 'buts'}',
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
@@ -212,9 +207,8 @@ class CompletedPlayersList extends StatelessWidget {
                   Expanded(
                     child: Text(
                       players[index].name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                   if (players[index].goals > 0) ...[
@@ -223,9 +217,8 @@ class CompletedPlayersList extends StatelessWidget {
                       players[index].goals == 1
                           ? '⚽'
                           : '⚽ ×${players[index].goals}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style: Theme.of(context).textTheme.bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ],
                 ],

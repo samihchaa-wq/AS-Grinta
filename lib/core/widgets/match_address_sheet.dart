@@ -4,11 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-enum MatchGpsApp {
-  plans,
-  googleMaps,
-  waze,
-}
+enum MatchGpsApp { plans, googleMaps, waze }
 
 List<MatchGpsApp> matchGpsAppsForPlatform(TargetPlatform platform) {
   final isApple =
@@ -25,28 +21,18 @@ Uri matchGpsUri(MatchGpsApp app, String address) {
   final destination = address.trim();
 
   return switch (app) {
-    MatchGpsApp.plans => Uri.https(
-        'maps.apple.com',
-        '/',
-        {'daddr': destination},
-      ),
-    MatchGpsApp.googleMaps => Uri.https(
-        'www.google.com',
-        '/maps/dir/',
-        {
-          'api': '1',
-          'destination': destination,
-          'dir_action': 'navigate',
-        },
-      ),
-    MatchGpsApp.waze => Uri.https(
-        'www.waze.com',
-        '/ul',
-        {
-          'q': destination,
-          'navigate': 'yes',
-        },
-      ),
+    MatchGpsApp.plans => Uri.https('maps.apple.com', '/', {
+      'daddr': destination,
+    }),
+    MatchGpsApp.googleMaps => Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': destination,
+      'dir_action': 'navigate',
+    }),
+    MatchGpsApp.waze => Uri.https('www.waze.com', '/ul', {
+      'q': destination,
+      'navigate': 'yes',
+    }),
   };
 }
 
@@ -86,9 +72,7 @@ Future<MatchGpsApp?> _showGpsPicker(BuildContext context) {
                 Expanded(
                   child: Text(
                     'Choisir le GPS',
-                    style: Theme.of(pickerContext)
-                        .textTheme
-                        .titleLarge
+                    style: Theme.of(pickerContext).textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -165,19 +149,14 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
                 Expanded(
                   child: Text(
                     'Adresse du match',
-                    style: Theme.of(sheetContext)
-                        .textTheme
-                        .titleLarge
+                    style: Theme.of(sheetContext).textTheme.titleLarge
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              trimmed,
-              style: Theme.of(sheetContext).textTheme.bodyLarge,
-            ),
+            Text(trimmed, style: Theme.of(sheetContext).textTheme.bodyLarge),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: () => openMaps(sheetContext),

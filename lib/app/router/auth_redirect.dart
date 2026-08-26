@@ -28,7 +28,8 @@ String? resolveAuthRedirect({
 
   // Une session encore valide ne doit jamais être présentée comme une vraie
   // déconnexion simplement parce que le profil ne répond pas momentanément.
-  final profileUnavailable = authState.hasSession &&
+  final profileUnavailable =
+      authState.hasSession &&
       authState.profile == null &&
       authState.error != null;
   if (profileUnavailable) {
@@ -86,8 +87,9 @@ String? resolveAuthRedirect({
   }
 
   if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
-    final segments =
-        uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    final segments = uri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .toList();
     if (segments.length == 3 &&
         segments[0] == 'matches' &&
         segments[2] == 'lineup') {
@@ -98,12 +100,14 @@ String? resolveAuthRedirect({
 
   final role = authState.profile?.role;
   final isAdmin = role?.isAdmin == true;
-  final segments =
-      uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+  final segments = uri.pathSegments
+      .where((segment) => segment.isNotEmpty)
+      .toList();
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
-  final isMatchAdminRoute = segments.length == 3 &&
+  final isMatchAdminRoute =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(segments.last);
   final isPlayersRoute = location == '/players';
@@ -133,7 +137,8 @@ String? _preservableDestination(Uri uri, String location) {
     return null;
   }
 
-  final isRecoveryRoute = location == '/auth/new-password' &&
+  final isRecoveryRoute =
+      location == '/auth/new-password' &&
       uri.queryParameters['recovery'] == '1';
   final isSignedOutAuthRoute = location == '/auth/register';
   if (location.startsWith('/auth') &&
@@ -168,10 +173,12 @@ bool _isSignedOutAuthDestination(String value) {
 }
 
 bool _isSportsManagementRoute(Uri uri) {
-  final segments =
-      uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+  final segments = uri.pathSegments
+      .where((segment) => segment.isNotEmpty)
+      .toList();
 
-  final isPlayerMatchRoute = segments.length == 3 &&
+  final isPlayerMatchRoute =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {
         'availability',
@@ -180,11 +187,13 @@ bool _isSportsManagementRoute(Uri uri) {
         'composition',
         'guests',
       }.contains(segments.last);
-  final isAdminMatchRoute = segments.length == 4 &&
+  final isAdminMatchRoute =
+      segments.length == 4 &&
       segments[0] == 'admin' &&
       segments[1] == 'matches' &&
       segments[3] == 'sport-management';
-  final isAdminRotationRoute = segments.length == 2 &&
+  final isAdminRotationRoute =
+      segments.length == 2 &&
       segments.first == 'admin' &&
       const {
         'composition',

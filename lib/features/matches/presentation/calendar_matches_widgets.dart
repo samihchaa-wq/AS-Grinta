@@ -197,9 +197,8 @@ class _MonthNavigator extends StatelessWidget {
             child: Text(
               _monthLabel(month),
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context).textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
           ),
           IconButton(
@@ -272,18 +271,18 @@ class _ModernMonthView extends ConsumerWidget {
             padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
             child: match != null
                 ? match.isFinished
-                    ? MatchHistoryCard(
-                        match: match,
-                        adminActions: isAdmin
-                            ? AdminMatchOptionsButton(match: match)
-                            : null,
-                      )
-                    : _MonthlyMatchCard(
-                        match: match,
-                        adminActions: isAdmin
-                            ? AdminMatchOptionsButton(match: match)
-                            : null,
-                      )
+                      ? MatchHistoryCard(
+                          match: match,
+                          adminActions: isAdmin
+                              ? AdminMatchOptionsButton(match: match)
+                              : null,
+                        )
+                      : _MonthlyMatchCard(
+                          match: match,
+                          adminActions: isAdmin
+                              ? AdminMatchOptionsButton(match: match)
+                              : null,
+                        )
                 : ClubEventCard(event: entry.event!, isAdmin: isAdmin),
           );
         },
@@ -460,10 +459,10 @@ class ClubEventCard extends ConsumerWidget {
                       event.title,
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                            height: 1.1,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontSize: 17,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 7),
                     Row(
@@ -481,9 +480,7 @@ class ClubEventCard extends ConsumerWidget {
                             textAlign: TextAlign.start,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
+                            style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(
                                   color: AppTheme.textSecondary,
                                   fontWeight: FontWeight.w700,
@@ -497,9 +494,9 @@ class ClubEventCard extends ConsumerWidget {
                       'Événement',
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: CalendarCardPalette.eventBorder,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: CalendarCardPalette.eventBorder,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -579,13 +576,13 @@ class _MonthlyMatchCard extends StatelessWidget {
                         Text(
                           'Match entre nous',
                           textAlign: TextAlign.start,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontSize: 17,
-                                    height: 1.1,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.textPrimary,
-                                  ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontSize: 17,
+                                height: 1.1,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
                         )
                       else
                         MatchFixture(
@@ -596,9 +593,7 @@ class _MonthlyMatchCard extends StatelessWidget {
                           foreground: match.isCancelled
                               ? AppTheme.textFaint
                               : AppTheme.textPrimary,
-                          nameStyle: Theme.of(context)
-                              .textTheme
-                              .titleMedium
+                          nameStyle: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontSize: 17, height: 1.1),
                           textAlign: TextAlign.start,
                         ),
@@ -606,11 +601,11 @@ class _MonthlyMatchCard extends StatelessWidget {
                       Text(
                         '${match.statusLabel} · ${match.calendarTypeLabel}',
                         textAlign: TextAlign.start,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: statusColor,
+                              fontWeight: FontWeight.w900,
+                            ),
                       ),
                     ],
                   ),
@@ -633,20 +628,20 @@ class _MonthlyMatchCard extends StatelessWidget {
         return () => context.push('/matches/${match.id}');
       case MatchDisplayPhase.upcoming:
         return () => context.push(
-              '/matches/${match.id}/lineup?section=info&infoOnly=true',
-            );
+          '/matches/${match.id}/lineup?section=info&infoOnly=true',
+        );
       case MatchDisplayPhase.next:
         return () => context.push('/matches/${match.id}/lineup?section=info');
       case MatchDisplayPhase.live:
         return () => context.push(
-              '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
-            );
+          '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
+        );
       case MatchDisplayPhase.awaitingValidation:
         final section = match.liveState == null
             ? 'info'
             : match.isInternal
-                ? 'composition'
-                : 'live';
+            ? 'composition'
+            : 'live';
         return () =>
             context.push('/matches/${match.id}/lineup?section=$section');
       case MatchDisplayPhase.cancelled:

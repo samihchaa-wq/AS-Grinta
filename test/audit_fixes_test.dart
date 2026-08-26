@@ -62,17 +62,19 @@ void main() {
   });
 
   group('humanizeError', () {
-    test('traduit les deux messages métier qui tombaient dans le générique',
-        () {
-      expect(
-        humanizeError('No published composition to start from'),
-        contains('Publie'),
-      );
-      expect(
-        humanizeError('Player is not waiting for an availability response'),
-        contains('disponibilité'),
-      );
-    });
+    test(
+      'traduit les deux messages métier qui tombaient dans le générique',
+      () {
+        expect(
+          humanizeError('No published composition to start from'),
+          contains('Publie'),
+        );
+        expect(
+          humanizeError('Player is not waiting for an availability response'),
+          contains('disponibilité'),
+        );
+      },
+    );
 
     test('signale un conflit de concurrence sur le code 40001', () {
       final message = humanizeError(
@@ -84,7 +86,9 @@ void main() {
 
       expect(message, contains('Recharge'));
       expect(
-          message, isNot('Une erreur est survenue. Réessaie dans un instant.'));
+        message,
+        isNot('Une erreur est survenue. Réessaie dans un instant.'),
+      );
     });
 
     test('laisse passer un message serveur déjà rédigé en français', () {
@@ -127,9 +131,8 @@ void main() {
 
   group('contrats de gestion des erreurs', () {
     test('le fallback des cotes automatiques reste observable', () {
-      final source = File(
-        'lib/features/matches/data/matches_repository.dart',
-      ).readAsStringSync();
+      final source = File('lib/features/matches/data/matches_repository.dart')
+          .readAsStringSync();
 
       expect(
         source,
@@ -138,9 +141,8 @@ void main() {
     });
 
     test('la modification du profil garde une seule source de vérité', () {
-      final source = File(
-        'lib/features/auth/data/auth_repository.dart',
-      ).readAsStringSync();
+      final source = File('lib/features/auth/data/auth_repository.dart')
+          .readAsStringSync();
       final start = source.indexOf('Future<AuthProfile> updateProfile');
       final end = source.indexOf('Future<AuthProfile> uploadProfilePhoto');
 

@@ -115,7 +115,8 @@ void main() {
           expect(
             observed,
             expected,
-            reason: 'scenario=${scenario.name} route=${route.uri} '
+            reason:
+                'scenario=${scenario.name} route=${route.uri} '
                 'matched=${route.matchedLocation} sports=$sportsEnabled',
           );
         }
@@ -183,7 +184,8 @@ String? _expectedRedirect({
 
   final segments = uri.pathSegments.where((value) => value.isNotEmpty).toList();
   final suffix = segments.isEmpty ? '' : segments.last;
-  final playerSportRoute = segments.length == 3 &&
+  final playerSportRoute =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {
         'availability',
@@ -192,11 +194,13 @@ String? _expectedRedirect({
         'composition',
         'guests',
       }.contains(suffix);
-  final adminSportMatchRoute = segments.length == 4 &&
+  final adminSportMatchRoute =
+      segments.length == 4 &&
       segments[0] == 'admin' &&
       segments[1] == 'matches' &&
       suffix == 'sport-management';
-  final adminSportRootRoute = segments.length == 2 &&
+  final adminSportRootRoute =
+      segments.length == 2 &&
       segments.first == 'admin' &&
       const {'composition', 'guests', 'motm', 'waitlist'}.contains(suffix);
   final sportRoute =
@@ -212,11 +216,13 @@ String? _expectedRedirect({
   }
 
   final admin = authState.profile?.role == AuthRole.admin;
-  final finalization = matchedLocation.startsWith('/matches/') &&
+  final finalization =
+      matchedLocation.startsWith('/matches/') &&
       matchedLocation.endsWith('/finalize');
   final adminRoot =
       matchedLocation == '/admin' || matchedLocation.startsWith('/admin/');
-  final matchAdmin = segments.length == 3 &&
+  final matchAdmin =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(suffix);
 

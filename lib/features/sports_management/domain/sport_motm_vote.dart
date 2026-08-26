@@ -39,8 +39,9 @@ class SportMotmCandidate {
       isSelf: json['is_self'] == true,
       canChoose: json['can_choose'] == true,
       goals: (json['goals'] as num?)?.toInt() ?? 0,
-      cleanSheet:
-          json['clean_sheet'] is bool ? json['clean_sheet'] as bool : null,
+      cleanSheet: json['clean_sheet'] is bool
+          ? json['clean_sheet'] as bool
+          : null,
       votesCount: (json['votes_count'] as num?)?.toInt(),
       isWinner: json['is_winner'] == true,
     );

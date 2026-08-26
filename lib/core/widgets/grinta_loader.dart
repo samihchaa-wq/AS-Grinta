@@ -54,11 +54,9 @@ class GrintaLoader extends StatelessWidget {
     this.semanticLabel = 'Chargement en cours',
   }) : size = 58;
 
-  const GrintaLoader.button({
-    super.key,
-    this.semanticLabel = 'Action en cours',
-  })  : size = 32,
-        message = null;
+  const GrintaLoader.button({super.key, this.semanticLabel = 'Action en cours'})
+    : size = 32,
+      message = null;
 
   final double size;
   final String? message;

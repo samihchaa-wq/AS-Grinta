@@ -16,7 +16,7 @@ class GrintaSkeleton extends StatelessWidget {
   }) : child = const SizedBox.shrink();
 
   const GrintaSkeleton.rows({super.key, int itemCount = 6})
-      : child = const SizedBox.shrink();
+    : child = const SizedBox.shrink();
 
   final Widget child;
 

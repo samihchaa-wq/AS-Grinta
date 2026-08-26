@@ -170,7 +170,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
     final historicalMatches =
         ref.watch(allHistoricalMatchesProvider).valueOrNull ??
-            const <HistoricalMatchResult>[];
+        const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
     final upcomingEvents = events
@@ -294,8 +294,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     children: [
                       _MessageCard(
                         title: 'Aucun match',
-                        message:
-                            'Le premier match apparaîtra ici dès qu’il sera créé.',
+                        message: 'Le premier match apparaîtra ici dès qu’il sera créé.',
                       ),
                     ],
                   ),
@@ -336,7 +335,8 @@ Widget _buildFeedSection({
   required DateTime now,
 }) {
   final title = section.showPhaseTitle ? section.title : null;
-  final headerIsFocus = title != null &&
+  final headerIsFocus =
+      title != null &&
       focusKey != null &&
       _entryKey(section.entries.first) == focusKey;
 
@@ -404,9 +404,9 @@ class _SeasonDivider extends StatelessWidget {
             child: Text(
               'Saison $seasonName',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           Expanded(
@@ -456,9 +456,7 @@ class _FeedSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
           alignment: Alignment.centerLeft,
           child: Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
+            style: Theme.of(context).textTheme.titleSmall
                 ?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
           ),
         ),
@@ -493,8 +491,8 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
         initialSection: match.liveState == null
             ? 'info'
             : match.isInternal
-                ? 'composition'
-                : 'live',
+            ? 'composition'
+            : 'live',
         showAvailability: false,
       );
     case _FeedKind.pastMatch:
@@ -525,7 +523,8 @@ class _UpcomingMatchCard extends ConsumerWidget {
     final availability = ref.watch(myMatchAvailabilityProvider(match.id));
     final serverAvailability = availability.valueOrNull;
     final fallbackOpensAt = matchFeaturesOpenAt(match.kickoffAt);
-    final availabilityIsOpen = !match.isCancelled &&
+    final availabilityIsOpen =
+        !match.isCancelled &&
         now.isBefore(match.kickoffAt) &&
         (serverAvailability?.canRespond == true ||
             (serverAvailability == null && !now.isBefore(fallbackOpensAt)));
@@ -548,20 +547,20 @@ class _UpcomingMatchCard extends ConsumerWidget {
                   'Match entre nous',
                   textAlign: TextAlign.start,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
                 )
               : MatchFixture(
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: match.isHome,
                   nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 16,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                  ),
                   foreground: AppTheme.textPrimary,
                   textAlign: TextAlign.start,
                 ),
@@ -580,9 +579,9 @@ class _UpcomingMatchCard extends ConsumerWidget {
           Text(
             'Annulé',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: CalendarCardPalette.cancelledBorder,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: CalendarCardPalette.cancelledBorder,
+              fontWeight: FontWeight.w800,
+            ),
           )
         else
           const Icon(
@@ -613,10 +612,8 @@ class _UpcomingMatchCard extends ConsumerWidget {
           const SizedBox(height: 7),
           Text(
             match.calendarTypeLabel,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cardBorder,
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(context).textTheme.labelMedium
+                ?.copyWith(color: cardBorder, fontWeight: FontWeight.w900),
           ),
           if (match.address case final address?) ...[
             const SizedBox(height: AppSpacing.contentGap),
@@ -636,9 +633,9 @@ class _UpcomingMatchCard extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],

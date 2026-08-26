@@ -219,9 +219,8 @@ class _MatchLivePreKickoffPageState
                 children: [
                   Text(
                     'Banc (${bench.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)

@@ -33,9 +33,9 @@ void main() {
       // La définition centrale du rôle doit naturellement comparer l'enum afin
       // d'implémenter isAdmin. Partout ailleurs, le code passe par les
       // capacités isAdmin/isStaff pour éviter les divergences.
-      if (entity.path.replaceAll('\\', '/').endsWith(
-            'features/auth/domain/auth_profile.dart',
-          )) {
+      if (entity.path
+          .replaceAll('\\', '/')
+          .endsWith('features/auth/domain/auth_profile.dart')) {
         continue;
       }
       final source = await entity.readAsString();
@@ -45,7 +45,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Utiliser role.isAdmin/isStaff au lieu de comparer directement '
+      reason:
+          'Utiliser role.isAdmin/isStaff au lieu de comparer directement '
           'AuthRole.admin : ${offenders.join(', ')}',
     );
   });

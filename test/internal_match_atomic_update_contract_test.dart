@@ -6,8 +6,11 @@ String _methodBlock(String source, String startMarker, String endMarker) {
   final start = source.indexOf(startMarker);
   final end = source.indexOf(endMarker, start);
   expect(start, isNonNegative, reason: 'Méthode attendue introuvable.');
-  expect(end, greaterThan(start),
-      reason: 'Fin de méthode attendue introuvable.');
+  expect(
+    end,
+    greaterThan(start),
+    reason: 'Fin de méthode attendue introuvable.',
+  );
   return source.substring(start, end);
 }
 

@@ -72,8 +72,7 @@ String _fromMessage(String raw) {
     'historical import actor': 'Ce compte technique ne peut pas être supprimé.',
     'target account not found': 'Ce compte est introuvable.',
     'only upcoming or finished matches': 'Ce match ne peut plus être modifié.',
-    'cannot be finalized before kickoff':
-        'Démarre puis termine le match dans le Tableau Blanc avant de le valider.',
+    'cannot be finalized before kickoff': 'Démarre puis termine le match dans le Tableau Blanc avant de le valider.',
     'end the match before exporting':
         'Termine le match avant d’exporter le compte rendu.',
     'already been exported': 'Ce match a déjà été exporté.',
@@ -93,10 +92,8 @@ String _fromMessage(String raw) {
     'player is not waiting for an availability response':
         'Ce joueur n’attend pas de réponse de disponibilité pour ce match.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',
-    'valeur de pronostic hors limites':
-        'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
-    'prediction value out of range':
-        'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
+    'valeur de pronostic hors limites': 'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
+    'prediction value out of range': 'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
     'only a goalkeeper': 'Seul un gardien peut avoir un clean sheet.',
     'clean sheet is impossible':
         'Un clean sheet est impossible si l’adversaire a marqué.',

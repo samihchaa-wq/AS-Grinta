@@ -25,7 +25,7 @@ class MatchFinalizationState {
 class MatchFinalizationController
     extends StateNotifier<MatchFinalizationState> {
   MatchFinalizationController(this._repository, this._ref)
-      : super(const MatchFinalizationState());
+    : super(const MatchFinalizationState());
 
   final MatchesRepository _repository;
   final Ref _ref;
@@ -97,7 +97,8 @@ class MatchFinalizationController
     );
     if (attributed > grintaScore) {
       state = state.copyWith(
-        error: 'Tu as attribué plus de buts ($attributed) que le score '
+        error:
+            'Tu as attribué plus de buts ($attributed) que le score '
             'd’AS Grinta ($grintaScore).',
       );
       return false;
@@ -125,10 +126,10 @@ class MatchFinalizationController
 
 final matchFinalizationControllerProvider =
     StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>((
-  ref,
-) {
-  return MatchFinalizationController(
-    ref.watch(matchesRepositoryProvider),
-    ref,
-  );
-});
+      ref,
+    ) {
+      return MatchFinalizationController(
+        ref.watch(matchesRepositoryProvider),
+        ref,
+      );
+    });

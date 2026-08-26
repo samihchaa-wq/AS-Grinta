@@ -3,10 +3,7 @@ import 'dart:typed_data';
 const int maxImageUploadBytes = 5 * 1024 * 1024;
 
 class ValidatedImageUpload {
-  const ValidatedImageUpload({
-    required this.extension,
-    required this.mimeType,
-  });
+  const ValidatedImageUpload({required this.extension, required this.mimeType});
 
   final String extension;
   final String mimeType;
@@ -28,10 +25,7 @@ String imageMimeForExt(String? fileExt) {
 /// preuve du format. Le nom et le type MIME envoyés à Supabase sont dérivés
 /// de la signature du fichier, ce qui évite les extensions falsifiées et les
 /// formats non acceptés par le bucket.
-ValidatedImageUpload validateImageUpload(
-  Uint8List bytes, {
-  String? fileExt,
-}) {
+ValidatedImageUpload validateImageUpload(Uint8List bytes, {String? fileExt}) {
   if (bytes.isEmpty) {
     throw const FormatException('La photo sélectionnée est vide.');
   }
@@ -42,10 +36,7 @@ ValidatedImageUpload validateImageUpload(
   }
 
   if (_hasPrefix(bytes, const [0xFF, 0xD8, 0xFF])) {
-    return const ValidatedImageUpload(
-      extension: 'jpg',
-      mimeType: 'image/jpeg',
-    );
+    return const ValidatedImageUpload(extension: 'jpg', mimeType: 'image/jpeg');
   }
   if (_hasPrefix(bytes, const [
     0x89,
@@ -57,10 +48,7 @@ ValidatedImageUpload validateImageUpload(
     0x1A,
     0x0A,
   ])) {
-    return const ValidatedImageUpload(
-      extension: 'png',
-      mimeType: 'image/png',
-    );
+    return const ValidatedImageUpload(extension: 'png', mimeType: 'image/png');
   }
   if (bytes.lengthInBytes >= 12 &&
       _asciiAt(bytes, 0, 'RIFF') &&

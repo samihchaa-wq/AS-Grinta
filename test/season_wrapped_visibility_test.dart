@@ -8,33 +8,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets(
-    'un admin ne voit plus Wrapped pendant une saison ouverte',
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            seasonWrappedStateProvider.overrideWith(
-              (ref) async => const SeasonWrappedState.unavailable(),
-            ),
-            isAdminViewProvider.overrideWithValue(true),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(body: SeasonWrappedEntryButton()),
+  testWidgets('un admin ne voit plus Wrapped pendant une saison ouverte', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          seasonWrappedStateProvider.overrideWith(
+            (ref) async => const SeasonWrappedState.unavailable(),
           ),
+          isAdminViewProvider.overrideWithValue(true),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: SeasonWrappedEntryButton()),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('season-wrapped-button')),
-        findsNothing,
-      );
-    },
-  );
+    expect(find.byKey(const ValueKey('season-wrapped-button')), findsNothing);
+  });
 
-  testWidgets('Wrapped réapparaît lorsqu’un vrai bilan est disponible',
-      (tester) async {
+  testWidgets('Wrapped réapparaît lorsqu’un vrai bilan est disponible', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -53,10 +50,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('season-wrapped-button')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('season-wrapped-button')), findsOneWidget);
   });
 
   test('le lien d’aperçu Wrapped est bloqué même pour un admin', () {

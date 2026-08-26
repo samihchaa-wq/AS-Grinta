@@ -90,7 +90,8 @@ class AuthController extends StateNotifier<AuthState> {
 
       _authGeneration += 1;
       if (event.event == supabase.AuthChangeEvent.signedOut) {
-        final preservedError = _signedOutErrorToPreserve ??
+        final preservedError =
+            _signedOutErrorToPreserve ??
             (state.error == _inactiveAccountMessage
                 ? _inactiveAccountMessage
                 : null);
@@ -113,8 +114,7 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           hasSession: true,
           isAuthenticated: state.profile?.isActive == true,
-          error:
-              'Connexion temporairement indisponible. Réessaie dans un instant.',
+          error: 'Connexion temporairement indisponible. Réessaie dans un instant.',
         );
       } else {
         state = const AuthState(isLoading: false);
@@ -179,8 +179,7 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           hasSession: true,
           isAuthenticated: state.profile?.isActive == true,
-          error:
-              'Connexion temporairement indisponible. Réessaie dans un instant.',
+          error: 'Connexion temporairement indisponible. Réessaie dans un instant.',
         );
         return;
       }
@@ -229,8 +228,7 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           hasSession: true,
           isAuthenticated: state.profile?.isActive == true,
-          error:
-              'Connexion temporairement indisponible. Réessaie dans un instant.',
+          error: 'Connexion temporairement indisponible. Réessaie dans un instant.',
         );
       } else {
         state = state.copyWith(
@@ -251,10 +249,7 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository
-          .signInWithUsername(
-            username: username,
-            password: password,
-          )
+          .signInWithUsername(username: username, password: password)
           .timeout(_signInTimeout);
       await _refreshProfile(retryAfterSignIn: true);
     } catch (error) {
@@ -345,19 +340,22 @@ class AuthController extends StateNotifier<AuthState> {
     } on ProfilePhotoWriteConfirmedButRefreshFailed {
       state = state.copyWith(
         isSaving: false,
-        error: 'Photo enregistrée, mais le profil n’a pas pu être actualisé. '
+        error:
+            'Photo enregistrée, mais le profil n’a pas pu être actualisé. '
             'Actualise la page.',
       );
     } on ProfilePhotoUploadOutcomeUnknown {
       state = state.copyWith(
         isSaving: false,
-        error: 'Connexion interrompue pendant l’envoi de la photo. '
+        error:
+            'Connexion interrompue pendant l’envoi de la photo. '
             'Actualise le profil avant de réessayer.',
       );
     } on ProfilePhotoWriteOutcomeUnknown {
       state = state.copyWith(
         isSaving: false,
-        error: 'Connexion interrompue : la photo a peut-être été enregistrée. '
+        error:
+            'Connexion interrompue : la photo a peut-être été enregistrée. '
             'Actualise le profil avant de réessayer.',
       );
     } catch (_) {
@@ -376,11 +374,12 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, AuthState>((ref) {
-  final repository = ref.watch(authRepositoryProvider);
-  return AuthController(repository);
-});
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) {
+    final repository = ref.watch(authRepositoryProvider);
+    return AuthController(repository);
+  },
+);
 
 const _viewAsUserPreferenceKey = 'as_grinta.view_as_user';
 

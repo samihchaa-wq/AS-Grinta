@@ -9,9 +9,6 @@ class GrintaBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppTheme.background,
-      child: child,
-    );
+    return ColoredBox(color: AppTheme.background, child: child);
   }
 }

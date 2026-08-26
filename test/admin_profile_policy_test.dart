@@ -12,10 +12,10 @@ void main() {
       ]);
 
       expect(groups.pending.map((profile) => profile.id), ['pending']);
-      expect(
-        groups.validated.map((profile) => profile.id),
-        ['active', 'archived'],
-      );
+      expect(groups.validated.map((profile) => profile.id), [
+        'active',
+        'archived',
+      ]);
     });
 
     test('returns immutable result lists', () {
@@ -88,10 +88,7 @@ void main() {
   });
 }
 
-AdminProfileItem _profile({
-  required String id,
-  required String status,
-}) {
+AdminProfileItem _profile({required String id, required String status}) {
   return AdminProfileItem(
     id: id,
     firstName: id,

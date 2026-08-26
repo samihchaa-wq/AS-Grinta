@@ -128,9 +128,9 @@ class _MatchLiveAddPlayerSheetState
               onSelectionChanged: _busy
                   ? null
                   : (values) => setState(() {
-                        _tab = values.first;
-                        _error = null;
-                      }),
+                      _tab = values.first;
+                      _error = null;
+                    }),
             ),
             const SizedBox(height: 10),
             Flexible(
@@ -257,9 +257,11 @@ class _MatchLiveAddPlayerSheetState
     }
 
     if (requests.isEmpty) {
-      setState(() => _error = _tab == 0
-          ? 'Sélectionne au moins un joueur de l’effectif.'
-          : 'Sélectionne un invité ou renseigne son prénom.');
+      setState(
+        () => _error = _tab == 0
+            ? 'Sélectionne au moins un joueur de l’effectif.'
+            : 'Sélectionne un invité ou renseigne son prénom.',
+      );
       return;
     }
 

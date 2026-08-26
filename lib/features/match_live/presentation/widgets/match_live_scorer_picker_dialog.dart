@@ -17,9 +17,10 @@ Future<String?> pickMatchLiveScorer(
   IconData extraChoiceIcon = Icons.help_outline,
 }) {
   final sorted = [...candidates]
-    ..sort((a, b) => a.displayName.toLowerCase().compareTo(
-          b.displayName.toLowerCase(),
-        ));
+    ..sort(
+      (a, b) =>
+          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+    );
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,

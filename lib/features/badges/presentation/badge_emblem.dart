@@ -92,16 +92,16 @@ class BadgeEmblem extends StatelessWidget {
             errorBuilder: (_, __, ___) => fallback,
           )
         : sourceUrl == null || sourceUrl.isEmpty
-            ? fallback
-            : Image.network(
-                badgeImageDeliveryUrl(sourceUrl),
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                cacheWidth: decodedWidth,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => fallback,
-              );
+        ? fallback
+        : Image.network(
+            badgeImageDeliveryUrl(sourceUrl),
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+            cacheWidth: decodedWidth,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (_, __, ___) => fallback,
+          );
 
     final body = BadgeEmblemBody(
       size: size,
@@ -119,7 +119,10 @@ class BadgeEmblem extends StatelessWidget {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
-        Padding(padding: EdgeInsets.only(top: overhang), child: body),
+        Padding(
+          padding: EdgeInsets.only(top: overhang),
+          child: body,
+        ),
         // Une rangée fournie se réduit plutôt que d'élargir l'emblème.
         SizedBox(
           width: size,
@@ -152,10 +155,7 @@ class _StarRow extends StatelessWidget {
             size: size * kBadgeEmblemStarRatio,
             color: const Color(0xFFFCC21B),
             shadows: [
-              Shadow(
-                color: const Color(0x8C000000),
-                blurRadius: size * 0.03,
-              ),
+              Shadow(color: const Color(0x8C000000), blurRadius: size * 0.03),
             ],
           ),
       ],

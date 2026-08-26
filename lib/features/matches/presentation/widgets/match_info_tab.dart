@@ -219,9 +219,7 @@ class MatchInfoTab extends ConsumerWidget {
                     encounters.length > 1
                         ? '5 dernières rencontres'
                         : 'Dernière rencontre',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
+                    style: Theme.of(context).textTheme.titleSmall
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 if (!info.isInternal)
@@ -238,9 +236,11 @@ class MatchInfoTab extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (var index = 0;
-                          index < encounters.length;
-                          index++) ...[
+                      for (
+                        var index = 0;
+                        index < encounters.length;
+                        index++
+                      ) ...[
                         if (index > 0)
                           const SizedBox(width: AppSpacing.microGap),
                         Expanded(

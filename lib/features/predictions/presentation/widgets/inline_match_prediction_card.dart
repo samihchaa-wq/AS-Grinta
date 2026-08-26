@@ -12,8 +12,10 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
-});
+      return ref
+          .watch(predictionsRepositoryProvider)
+          .fetchMatchPrediction(matchId);
+    });
 
 class InlineMatchPredictionCard extends ConsumerStatefulWidget {
   const InlineMatchPredictionCard({super.key, required this.matchId});
@@ -130,9 +132,7 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Score à modifier',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
+                style: Theme.of(context).textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
@@ -148,9 +148,7 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Les cotes',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
+                style: Theme.of(context).textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
@@ -162,8 +160,9 @@ class _InlineMatchPredictionCardState
                       value: AppFormats.odds(
                         item.isHome ? item.oddsWin : item.oddsLoss,
                       ),
-                      selected:
-                          item.isHome ? grinta > opponent : opponent > grinta,
+                      selected: item.isHome
+                          ? grinta > opponent
+                          : opponent > grinta,
                       accent: const Color(0xFF39E784),
                     ),
                   ),
@@ -183,8 +182,9 @@ class _InlineMatchPredictionCardState
                       value: AppFormats.odds(
                         item.isHome ? item.oddsLoss : item.oddsWin,
                       ),
-                      selected:
-                          item.isHome ? grinta < opponent : opponent < grinta,
+                      selected: item.isHome
+                          ? grinta < opponent
+                          : opponent < grinta,
                       accent: const Color(0xFFFF6B6B),
                     ),
                   ),
@@ -214,8 +214,8 @@ class _InlineMatchPredictionCardState
                 notOpenYet
                     ? 'Disponible à partir de J−6 à 12 h, heure de Paris.'
                     : closed
-                        ? 'Pronostic fermé : le Live est désormais ouvert.'
-                        : 'Modifiable jusqu’à 15 minutes avant le coup d’envoi.',
+                    ? 'Pronostic fermé : le Live est désormais ouvert.'
+                    : 'Modifiable jusqu’à 15 minutes avant le coup d’envoi.',
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
@@ -231,7 +231,9 @@ class _InlineMatchPredictionCardState
   Future<void> _save(MatchPredictionItem item) async {
     setState(() => _saving = true);
     try {
-      await ref.read(predictionsRepositoryProvider).savePrediction(
+      await ref
+          .read(predictionsRepositoryProvider)
+          .savePrediction(
             matchId: item.matchId,
             scoreGrinta: _scoreGrinta ?? item.scoreGrinta,
             scoreOpponent: _scoreOpponent ?? item.scoreOpponent,
@@ -273,10 +275,10 @@ class _StatusChip extends StatelessWidget {
     final label = notOpenYet
         ? 'Pas encore ouvert'
         : closed
-            ? 'Fermé'
-            : saved
-                ? 'Enregistré'
-                : 'À saisir';
+        ? 'Fermé'
+        : saved
+        ? 'Enregistré'
+        : 'À saisir';
     final highlighted = saved && !notOpenYet && !closed;
 
     return Container(
@@ -382,9 +384,7 @@ class _ScorePicker extends StatelessWidget {
             ),
             Text(
               '$value',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
+              style: Theme.of(context).textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             IconButton(

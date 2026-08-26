@@ -56,7 +56,8 @@ void main() {
           exported: false,
           lineupRevision: 0,
         );
-        final expected = state == MatchLiveState.running ||
+        final expected =
+            state == MatchLiveState.running ||
             state == MatchLiveState.paused ||
             state == MatchLiveState.halftime;
         expect(session.isLive, expected, reason: 'state=$state');

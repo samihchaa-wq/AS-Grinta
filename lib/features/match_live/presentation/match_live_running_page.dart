@@ -56,7 +56,8 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     if (bundle.session.state == MatchLiveState.finished) {
       if (!canEdit) {
         return const _Message(
-          message: 'Le match est terminé. En attente de la publication du '
+          message:
+              'Le match est terminé. En attente de la publication du '
               'compte rendu par le coach.',
         );
       }
@@ -237,9 +238,8 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
   }
 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _explainHowToSubstitute(BuildContext context) {
@@ -319,13 +319,15 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     MatchLiveEvent event,
   ) async {
     final description = switch (event.type) {
-      MatchLiveEventType.goalUs => event.isOpponentOwnGoal
-          ? "But AS Grinta (CSC adverse) · ${event.minute}'"
-          : "But AS Grinta · ${event.scorerName ?? 'buteur à désigner'} · "
-              "${event.minute}'",
+      MatchLiveEventType.goalUs =>
+        event.isOpponentOwnGoal
+            ? "But AS Grinta (CSC adverse) · ${event.minute}'"
+            : "But AS Grinta · ${event.scorerName ?? 'buteur à désigner'} · "
+                  "${event.minute}'",
       MatchLiveEventType.goalThem => "But adverse · ${event.minute}'",
-      MatchLiveEventType.substitution => '${event.playerInName ?? '?'} entre · '
-          '${event.playerOutName ?? '?'} sort · ${event.minute}\'',
+      MatchLiveEventType.substitution =>
+        '${event.playerInName ?? '?'} entre · '
+            '${event.playerOutName ?? '?'} sort · ${event.minute}\'',
     };
     final title = event.type == MatchLiveEventType.substitution
         ? 'Retirer ce remplacement ?'
@@ -433,13 +435,13 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
         content: Text(
           details.isEmpty
               ? 'Le chronomètre et le score repartent à zéro, et la '
-                  'composition redevient celle du coup d’envoi.\n\n'
-                  'Cette action est définitive.'
+                    'composition redevient celle du coup d’envoi.\n\n'
+                    'Cette action est définitive.'
               : 'Tout ce qui a été saisi sera effacé : ${details.join(' et ')}, '
-                  'le chronomètre et le score.\n\n'
-                  'La composition redevient celle du coup d’envoi et tu '
-                  'reviens à l’écran de préparation.\n\n'
-                  'Cette action est définitive.',
+                    'le chronomètre et le score.\n\n'
+                    'La composition redevient celle du coup d’envoi et tu '
+                    'reviens à l’écran de préparation.\n\n'
+                    'Cette action est définitive.',
         ),
         actions: [
           TextButton(

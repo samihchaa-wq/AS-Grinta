@@ -15,18 +15,18 @@ enum MatchAvailabilityStatus {
   }
 
   String get wireValue => switch (this) {
-        MatchAvailabilityStatus.noResponse => 'no_response',
-        MatchAvailabilityStatus.available => 'available',
-        MatchAvailabilityStatus.absent => 'absent',
-        MatchAvailabilityStatus.notApplicable => 'not_applicable',
-      };
+    MatchAvailabilityStatus.noResponse => 'no_response',
+    MatchAvailabilityStatus.available => 'available',
+    MatchAvailabilityStatus.absent => 'absent',
+    MatchAvailabilityStatus.notApplicable => 'not_applicable',
+  };
 
   String get label => switch (this) {
-        MatchAvailabilityStatus.noResponse => 'Sans réponse',
-        MatchAvailabilityStatus.available => 'Disponible',
-        MatchAvailabilityStatus.absent => 'Absent',
-        MatchAvailabilityStatus.notApplicable => 'Non concerné',
-      };
+    MatchAvailabilityStatus.noResponse => 'Sans réponse',
+    MatchAvailabilityStatus.available => 'Disponible',
+    MatchAvailabilityStatus.absent => 'Absent',
+    MatchAvailabilityStatus.notApplicable => 'Non concerné',
+  };
 }
 
 class MatchAvailability {

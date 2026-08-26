@@ -62,8 +62,9 @@ class AuthProfile {
   }
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
-    final roleValue =
-        (json['role'] ?? 'pronostiqueur').toString().toLowerCase();
+    final roleValue = (json['role'] ?? 'pronostiqueur')
+        .toString()
+        .toLowerCase();
     // Compatibilité de transition : un ancien profil « moderateur » est traité
     // comme admin côté client jusqu'à la migration de production.
     final role = switch (roleValue) {

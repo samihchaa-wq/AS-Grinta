@@ -183,11 +183,7 @@ class _BandText extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
-          Text(
-            text,
-            maxLines: 1,
-            style: _style(foreground: outline),
-          ),
+          Text(text, maxLines: 1, style: _style(foreground: outline)),
           Text(text, maxLines: 1, style: _style(fill: color)),
         ],
       ),

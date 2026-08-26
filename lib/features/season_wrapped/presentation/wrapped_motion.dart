@@ -119,7 +119,8 @@ class _WrappedDelayCountUpState extends State<WrappedDelayCountUp>
   );
 
   /// La part du temps total consacrée aux heures.
-  late final double _bascule = widget.hoursDuration.inMilliseconds /
+  late final double _bascule =
+      widget.hoursDuration.inMilliseconds /
       (widget.hoursDuration + widget.minutesDuration).inMilliseconds;
 
   @override
@@ -241,10 +242,8 @@ class _WrappedCountUpState extends State<WrappedCountUp>
 
     return AnimatedBuilder(
       animation: curve,
-      builder: (context, _) => Text(
-        _format(widget.value * curve.value),
-        style: widget.style,
-      ),
+      builder: (context, _) =>
+          Text(_format(widget.value * curve.value), style: widget.style),
     );
   }
 }

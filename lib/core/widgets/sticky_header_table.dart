@@ -79,12 +79,8 @@ double grintaTablePinnedWidthForNames(
   // DefaultTextStyle du contexte. Le TextPainter utilisé pour mesurer la
   // colonne doit faire exactement la même chose, sinon la largeur peut être
   // sous-estimée sur iOS/Web (notamment à cause de la police/letter-spacing).
-  final style = DefaultTextStyle.of(context).style.merge(
-        grintaTableCellTextStyle(
-          context,
-          fontWeight: FontWeight.w800,
-        ),
-      );
+  final style = DefaultTextStyle.of(context).style
+      .merge(grintaTableCellTextStyle(context, fontWeight: FontWeight.w800));
   final textDirection = Directionality.of(context);
   final textScaler = MediaQuery.textScalerOf(context);
   final locale = Localizations.maybeLocaleOf(context);
@@ -102,7 +98,8 @@ double grintaTablePinnedWidthForNames(
   }
 
   final trailing = trailingWidth == 0 ? 0.0 : trailingGap + trailingWidth;
-  final required = grintaTablePinnedRowPadding.left +
+  final required =
+      grintaTablePinnedRowPadding.left +
       grintaTableRankWidth +
       grintaTableRankGap +
       widestName +

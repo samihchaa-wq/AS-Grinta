@@ -7,12 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// joueur : ces tests verrouillent le fait qu'il reste un trou.
 void main() {
   Map<String, dynamic> vacantSlot(String name) => {
-        'name': name,
-        'position_label': 'Arrière latéral',
-        'x_pct': 10.0,
-        'y_pct': 68.5,
-        'is_gk': false,
-      };
+    'name': name,
+    'position_label': 'Arrière latéral',
+    'x_pct': 10.0,
+    'y_pct': 68.5,
+    'is_gk': false,
+  };
 
   test('un emplacement vide ne devient pas un joueur nommé « Poste »', () {
     final detail = historicalMatchDetailFromRow({
@@ -53,32 +53,34 @@ void main() {
     expect(detail.hasComposition, isTrue);
   });
 
-  test('le faux nom est reconnu quels que soient accents, casse et espaces',
-      () {
-    for (final variant in [
-      'Poste laissé vide',
-      'poste laisse vide',
-      '  POSTE  LAISSÉ  VIDE ',
-    ]) {
-      final detail = historicalMatchDetailFromRow({
-        'field_players': [
-          vacantSlot(variant),
-          {
-            'name': 'Milan Couzin',
-            'position_label': 'Avant-centre',
-            'x_pct': 50.0,
-            'y_pct': 5.0,
-            'is_gk': false,
-          },
-        ],
-      });
-      expect(
-        detail.fieldPlayers.first.isVacant,
-        isTrue,
-        reason: 'variante « $variant » non reconnue',
-      );
-    }
-  });
+  test(
+    'le faux nom est reconnu quels que soient accents, casse et espaces',
+    () {
+      for (final variant in [
+        'Poste laissé vide',
+        'poste laisse vide',
+        '  POSTE  LAISSÉ  VIDE ',
+      ]) {
+        final detail = historicalMatchDetailFromRow({
+          'field_players': [
+            vacantSlot(variant),
+            {
+              'name': 'Milan Couzin',
+              'position_label': 'Avant-centre',
+              'x_pct': 50.0,
+              'y_pct': 5.0,
+              'is_gk': false,
+            },
+          ],
+        });
+        expect(
+          detail.fieldPlayers.first.isVacant,
+          isTrue,
+          reason: 'variante « $variant » non reconnue',
+        );
+      }
+    },
+  );
 
   test("un vrai joueur dont le prénom est Poste n'est pas confondu", () {
     final detail = historicalMatchDetailFromRow({
@@ -111,10 +113,12 @@ void main() {
       ],
     });
 
-    expect(
-      detail.fieldPlayers.map((p) => p.name),
-      ['', '', 'Xavier G.', 'Xavier P.'],
-    );
+    expect(detail.fieldPlayers.map((p) => p.name), [
+      '',
+      '',
+      'Xavier G.',
+      'Xavier P.',
+    ]);
   });
 
   test('un terrain fait uniquement de trous bascule sur la liste simple', () {

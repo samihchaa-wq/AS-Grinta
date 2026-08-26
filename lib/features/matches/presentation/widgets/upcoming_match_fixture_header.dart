@@ -23,18 +23,18 @@ class UpcomingMatchFixtureData {
 
 final upcomingMatchFixtureProvider =
     FutureProvider.family<UpcomingMatchFixtureData?, String>((
-  ref,
-  matchId,
-) async {
-  final core = await ref.watch(matchCoreProvider(matchId).future);
-  if (core == null) return null;
-  return UpcomingMatchFixtureData(
-    status: core.status,
-    location: core.location,
-    opponentName: core.opponentName,
-    isInternal: core.isInternal,
-  );
-});
+      ref,
+      matchId,
+    ) async {
+      final core = await ref.watch(matchCoreProvider(matchId).future);
+      if (core == null) return null;
+      return UpcomingMatchFixtureData(
+        status: core.status,
+        location: core.location,
+        opponentName: core.opponentName,
+        isInternal: core.isInternal,
+      );
+    });
 
 /// Affiche les équipes d'un match à venir au-dessus des onglets de sa fiche.
 /// Les matchs terminés ou archivés ne rendent rien.
@@ -60,14 +60,15 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
             child: Card(
               margin: EdgeInsets.zero,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 15,
+                ),
                 child: Center(
                   child: Text(
                     '⚽ Match entre nous',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
@@ -81,7 +82,8 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               child: Semantics(
-                label: '${data.homeName}, domicile, contre '
+                label:
+                    '${data.homeName}, domicile, contre '
                     '${data.awayName}, extérieur',
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -98,9 +100,9 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                       child: Text(
                         'VS',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                          fontWeight: FontWeight.w900,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ),
                     Expanded(

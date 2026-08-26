@@ -19,7 +19,8 @@ class CompositionPitch extends StatefulWidget {
     MatchCompositionEntry entry,
     MatchCompositionZone zone,
     Offset? normalizedPosition,
-  )? onMoved;
+  )?
+  onMoved;
   final ValueChanged<MatchCompositionEntry>? onPlayerTap;
 
   @override
@@ -125,8 +126,9 @@ class _CompositionPitchState extends State<CompositionPitch> {
 
     final marker = CompositionPlayerTile(
       entry: entry,
-      onTap:
-          widget.onPlayerTap == null ? null : () => widget.onPlayerTap!(entry),
+      onTap: widget.onPlayerTap == null
+          ? null
+          : () => widget.onPlayerTap!(entry),
     );
 
     return Positioned(
@@ -220,7 +222,8 @@ class CompositionDropZone extends StatelessWidget {
     MatchCompositionEntry entry,
     MatchCompositionZone zone,
     Offset? normalizedPosition,
-  ) onMoved;
+  )
+  onMoved;
   final ValueChanged<MatchCompositionEntry> onPlayerTap;
   final bool acceptDrops;
 
@@ -253,9 +256,8 @@ class CompositionDropZone extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '$title (${entries.length})',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ],

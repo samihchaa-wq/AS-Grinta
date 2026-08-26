@@ -58,15 +58,17 @@ void main() {
 void _installIncidentSink() {
   AppLogger.sink = (incident) {
     unawaited(
-      Supabase.instance.client.rpc(
-        'log_client_incident',
-        params: {
-          'p_reference': incident.reference,
-          'p_operation': incident.operation,
-          'p_error_type': incident.errorType,
-          'p_app_version': incident.appVersion,
-        },
-      ).catchError((Object _) => null),
+      Supabase.instance.client
+          .rpc(
+            'log_client_incident',
+            params: {
+              'p_reference': incident.reference,
+              'p_operation': incident.operation,
+              'p_error_type': incident.errorType,
+              'p_app_version': incident.appVersion,
+            },
+          )
+          .catchError((Object _) => null),
     );
   };
 }
@@ -131,7 +133,8 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           home: snapshot.hasError
               ? IncidentErrorView(
                   title: 'Impossible de démarrer ASG',
-                  message: 'La configuration ou le service est momentanément '
+                  message:
+                      'La configuration ou le service est momentanément '
                       'indisponible. Réessaie dans un instant.',
                   incidentReference:
                       _incidentReference ?? AppLogger.createIncidentReference(),
@@ -165,9 +168,8 @@ class _BootstrapShell extends StatelessWidget {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.transparent,
       ),
-      builder: (context, child) => GrintaBackground(
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) =>
+          GrintaBackground(child: child ?? const SizedBox.shrink()),
       home: home,
     );
   }

@@ -70,23 +70,26 @@ void main() {
     );
   }
 
-  testWidgets('un nom très long + son badge ne débordent pas (colonne étroite)',
-      (tester) async {
-    await tester.pumpWidget(
-      harness(
-        width: 110,
-        name: 'Jean-Christophe de la Villardière-Montmorency',
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'un nom très long + son badge ne débordent pas (colonne étroite)',
+    (tester) async {
+      await tester.pumpWidget(
+        harness(
+          width: 110,
+          name: 'Jean-Christophe de la Villardière-Montmorency',
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    // Le badge arboré reste visible à droite du nom tronqué.
-    expect(find.text('🔥'), findsOneWidget);
-  });
+      expect(tester.takeException(), isNull);
+      // Le badge arboré reste visible à droite du nom tronqué.
+      expect(find.text('🔥'), findsOneWidget);
+    },
+  );
 
-  testWidgets('un seul badge est arboré, même si le profil en a plusieurs',
-      (tester) async {
+  testWidgets('un seul badge est arboré, même si le profil en a plusieurs', (
+    tester,
+  ) async {
     await tester.pumpWidget(harness(width: 240, name: 'Karim'));
     await tester.pumpAndSettle();
 
@@ -105,8 +108,9 @@ void main() {
     expect(find.text('Karim'), findsOneWidget);
   });
 
-  testWidgets('un prénom court reste entier à côté de son badge',
-      (tester) async {
+  testWidgets('un prénom court reste entier à côté de son badge', (
+    tester,
+  ) async {
     // Largeur représentative de la colonne « Joueurs » d'un classement sur
     // un téléphone : le prénom doit rester lisible en entier.
     await tester.pumpWidget(harness(width: 150, name: 'Samih'));
@@ -119,7 +123,8 @@ void main() {
 
   testWidgets('un emblème de 48 tient dans la colonne figée', (tester) async {
     // Largeur réelle laissée au nom dans Statistiques.
-    final available = grintaTablePinnedWidth -
+    final available =
+        grintaTablePinnedWidth -
         grintaTablePinnedRowPadding.horizontal -
         grintaTableRankWidth -
         grintaTableRankGap;
@@ -183,7 +188,8 @@ void main() {
                       maxLines: 1,
                     )..layout();
                     intrinsicNameWidth = painter.width;
-                    exactRequiredWidth = grintaTablePinnedRowPadding.left +
+                    exactRequiredWidth =
+                        grintaTablePinnedRowPadding.left +
                         grintaTableRankWidth +
                         grintaTableRankGap +
                         painter.width +

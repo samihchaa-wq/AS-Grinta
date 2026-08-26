@@ -48,10 +48,7 @@ void main() {
 
     test('does not retry an explicit storage rejection', () async {
       var attempts = 0;
-      const serverError = StorageException(
-        'Upload refused',
-        statusCode: '403',
-      );
+      const serverError = StorageException('Upload refused', statusCode: '403');
 
       await expectLater(
         uploadProfilePhotoObjectWithRetry(
@@ -67,26 +64,28 @@ void main() {
   });
 
   group('confirmProfilePhotoReferenceWrite', () {
-    test('does not read back or clean up after an acknowledged write',
-        () async {
-      var readBackCalls = 0;
-      var cleanupCalls = 0;
+    test(
+      'does not read back or clean up after an acknowledged write',
+      () async {
+        var readBackCalls = 0;
+        var cleanupCalls = 0;
 
-      await confirmProfilePhotoReferenceWrite(
-        submit: () async {},
-        readBack: () async {
-          readBackCalls += 1;
-          return 'new.jpg';
-        },
-        cleanup: () async {
-          cleanupCalls += 1;
-        },
-        expectedPath: 'new.jpg',
-      );
+        await confirmProfilePhotoReferenceWrite(
+          submit: () async {},
+          readBack: () async {
+            readBackCalls += 1;
+            return 'new.jpg';
+          },
+          cleanup: () async {
+            cleanupCalls += 1;
+          },
+          expectedPath: 'new.jpg',
+        );
 
-      expect(readBackCalls, 0);
-      expect(cleanupCalls, 0);
-    });
+        expect(readBackCalls, 0);
+        expect(cleanupCalls, 0);
+      },
+    );
 
     test('keeps the file when a lost acknowledgement is confirmed', () async {
       var cleanupCalls = 0;
@@ -103,41 +102,45 @@ void main() {
       expect(cleanupCalls, 0);
     });
 
-    test('cleans up when read-back proves the reference was not written',
-        () async {
-      var cleanupCalls = 0;
+    test(
+      'cleans up when read-back proves the reference was not written',
+      () async {
+        var cleanupCalls = 0;
 
-      await expectLater(
-        confirmProfilePhotoReferenceWrite(
-          submit: () async => throw TimeoutException('ack lost'),
-          readBack: () async => 'old.jpg',
-          cleanup: () async {
-            cleanupCalls += 1;
-          },
-          expectedPath: 'new.jpg',
-        ),
-        throwsA(isA<StateError>()),
-      );
-      expect(cleanupCalls, 1);
-    });
+        await expectLater(
+          confirmProfilePhotoReferenceWrite(
+            submit: () async => throw TimeoutException('ack lost'),
+            readBack: () async => 'old.jpg',
+            cleanup: () async {
+              cleanupCalls += 1;
+            },
+            expectedPath: 'new.jpg',
+          ),
+          throwsA(isA<StateError>()),
+        );
+        expect(cleanupCalls, 1);
+      },
+    );
 
-    test('does not delete a possibly referenced file when read-back fails',
-        () async {
-      var cleanupCalls = 0;
+    test(
+      'does not delete a possibly referenced file when read-back fails',
+      () async {
+        var cleanupCalls = 0;
 
-      await expectLater(
-        confirmProfilePhotoReferenceWrite(
-          submit: () async => throw TimeoutException('ack lost'),
-          readBack: () async => throw TimeoutException('read timeout'),
-          cleanup: () async {
-            cleanupCalls += 1;
-          },
-          expectedPath: 'new.jpg',
-        ),
-        throwsA(isA<ProfilePhotoWriteOutcomeUnknown>()),
-      );
-      expect(cleanupCalls, 0);
-    });
+        await expectLater(
+          confirmProfilePhotoReferenceWrite(
+            submit: () async => throw TimeoutException('ack lost'),
+            readBack: () async => throw TimeoutException('read timeout'),
+            cleanup: () async {
+              cleanupCalls += 1;
+            },
+            expectedPath: 'new.jpg',
+          ),
+          throwsA(isA<ProfilePhotoWriteOutcomeUnknown>()),
+        );
+        expect(cleanupCalls, 0);
+      },
+    );
 
     test('cleans up after an explicit database refusal', () async {
       var cleanupCalls = 0;

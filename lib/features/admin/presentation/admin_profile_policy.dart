@@ -1,10 +1,7 @@
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 
 class AdminProfileGroups {
-  const AdminProfileGroups({
-    required this.pending,
-    required this.validated,
-  });
+  const AdminProfileGroups({required this.pending, required this.validated});
 
   final List<AdminProfileItem> pending;
   final List<AdminProfileItem> validated;

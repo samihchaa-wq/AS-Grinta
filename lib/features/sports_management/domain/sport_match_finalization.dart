@@ -12,16 +12,16 @@ enum SportFinalSelectionStatus {
   }
 
   String get wireValue => switch (this) {
-        SportFinalSelectionStatus.starter => 'starter',
-        SportFinalSelectionStatus.substitute => 'substitute',
-        SportFinalSelectionStatus.notSelected => 'not_selected',
-      };
+    SportFinalSelectionStatus.starter => 'starter',
+    SportFinalSelectionStatus.substitute => 'substitute',
+    SportFinalSelectionStatus.notSelected => 'not_selected',
+  };
 
   String get label => switch (this) {
-        SportFinalSelectionStatus.starter => 'Titulaire',
-        SportFinalSelectionStatus.substitute => 'Remplaçant',
-        SportFinalSelectionStatus.notSelected => 'Présent hors composition',
-      };
+    SportFinalSelectionStatus.starter => 'Titulaire',
+    SportFinalSelectionStatus.substitute => 'Remplaçant',
+    SportFinalSelectionStatus.notSelected => 'Présent hors composition',
+  };
 }
 
 class SportFinalParticipant {
@@ -151,8 +151,8 @@ class SportMatchFinalization {
       correctedAt: _dateOrNull(json['corrected_at']),
       participants: participantsRaw is List
           ? participantsRaw
-              .map((row) => SportFinalParticipant.fromJson(_map(row)))
-              .toList()
+                .map((row) => SportFinalParticipant.fromJson(_map(row)))
+                .toList()
           : const [],
     );
   }

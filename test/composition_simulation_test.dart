@@ -67,7 +67,8 @@ void main() {
           expect(
             matchSheetSlotPositions.containsKey(share.slotLabel),
             isTrue,
-            reason: '${profile.displayName} : poste inconnu '
+            reason:
+                '${profile.displayName} : poste inconnu '
                 '${share.slotLabel}',
           );
         }
@@ -139,11 +140,15 @@ void main() {
       );
 
       expect(slotOf(simulation, 'Stéphane'), 'DCD');
-      expect(reasonOf(simulation, 'Stéphane'),
-          SimulatedPlacementReason.mainPosition);
+      expect(
+        reasonOf(simulation, 'Stéphane'),
+        SimulatedPlacementReason.mainPosition,
+      );
       expect(slotOf(simulation, 'Olivier'), 'DCG');
-      expect(reasonOf(simulation, 'Olivier'),
-          SimulatedPlacementReason.secondaryPosition);
+      expect(
+        reasonOf(simulation, 'Olivier'),
+        SimulatedPlacementReason.secondaryPosition,
+      );
     });
 
     test('un couteau suisse comble un poste laissé libre', () {
@@ -212,20 +217,21 @@ void main() {
       );
 
       expect(slotOf(simulation, 'Titulaire'), 'BU');
-      expect(
-        simulation.bench.map((entry) => entry.displayName),
-        ['Beaucoup', 'Moyen', 'Peu'],
-      );
+      expect(simulation.bench.map((entry) => entry.displayName), [
+        'Beaucoup',
+        'Moyen',
+        'Peu',
+      ]);
     });
 
     test('une même convocation redonne toujours la même équipe', () {
       List<SimulationCandidate> squad() => [
-            candidate('Samih', playerId: samihGardien, isGoalkeeper: true),
-            candidate('Aki', benchCount: 2),
-            candidate('Hakim', playerId: hakimCherfi, benchCount: 2),
-            candidate('Simon', playerId: simonReis, benchCount: 2),
-            candidate('Flo', playerId: floArnauduc, benchCount: 2),
-          ];
+        candidate('Samih', playerId: samihGardien, isGoalkeeper: true),
+        candidate('Aki', benchCount: 2),
+        candidate('Hakim', playerId: hakimCherfi, benchCount: 2),
+        candidate('Simon', playerId: simonReis, benchCount: 2),
+        candidate('Flo', playerId: floArnauduc, benchCount: 2),
+      ];
 
       final first = simulateComposition(
         slots: formation.slots,
@@ -237,10 +243,12 @@ void main() {
       );
 
       expect(
-        first.placements
-            .map((p) => '${p.slot.label}:${p.candidate.displayName}'),
-        second.placements
-            .map((p) => '${p.slot.label}:${p.candidate.displayName}'),
+        first.placements.map(
+          (p) => '${p.slot.label}:${p.candidate.displayName}',
+        ),
+        second.placements.map(
+          (p) => '${p.slot.label}:${p.candidate.displayName}',
+        ),
       );
     });
   });

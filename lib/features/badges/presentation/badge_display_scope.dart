@@ -17,8 +17,8 @@ class BadgeDisplayScope extends InheritedWidget {
 
   /// `false` quand aucune portée n'est posée au-dessus du contexte.
   static bool of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<BadgeDisplayScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<BadgeDisplayScope>();
     return scope?.showBadges ?? false;
   }
 

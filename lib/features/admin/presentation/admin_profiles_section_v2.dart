@@ -2,8 +2,8 @@ part of 'admin_page.dart';
 
 final _adminHistoricalPlayersProvider =
     FutureProvider<List<AdminHistoricalPlayer>>((ref) {
-  return ref.watch(adminRepositoryProvider).fetchHistoricalPlayers();
-});
+      return ref.watch(adminRepositoryProvider).fetchHistoricalPlayers();
+    });
 
 class _ProfilesSection extends StatelessWidget {
   const _ProfilesSection({
@@ -184,8 +184,8 @@ class _ProfileCard extends ConsumerWidget {
                 historicalPlayers == null
                     ? 'Rattachement : …'
                     : historicalPlayer == null
-                        ? 'Rattachement : aucun'
-                        : 'Rattachement : ${historicalPlayer.name}',
+                    ? 'Rattachement : aucun'
+                    : 'Rattachement : ${historicalPlayer.name}',
               ),
             if (!policy.isSelf && !policy.isPending) ...[
               const SizedBox(height: 10),
@@ -268,8 +268,9 @@ class _ProfileCard extends ConsumerWidget {
                     ref.invalidate(_adminHistoricalPlayersProvider);
                   },
                   onArchiveToggle: () async {
-                    final nextStatus =
-                        policy.isArchived ? 'active' : 'archived';
+                    final nextStatus = policy.isArchived
+                        ? 'active'
+                        : 'archived';
                     if (!policy.isArchived) {
                       final confirmed = await _confirm(
                         context,

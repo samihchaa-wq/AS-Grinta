@@ -15,8 +15,9 @@ void main() {
     expect(find.text('Rendez-vous à 20:30'), findsOneWidget);
   });
 
-  testWidgets('custom rendez-vous opens the scrolling date/time picker',
-      (tester) async {
+  testWidgets('custom rendez-vous opens the scrolling date/time picker', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _harness(kickoffAt: DateTime(2026, 8, 26, 21), customMeetingAt: null),
     );
@@ -28,8 +29,9 @@ void main() {
     expect(find.text('Valider'), findsOneWidget);
   });
 
-  testWidgets('meeting picker shows an explicit custom date and time',
-      (tester) async {
+  testWidgets('meeting picker shows an explicit custom date and time', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _harness(
         kickoffAt: DateTime(2026, 8, 26, 21),

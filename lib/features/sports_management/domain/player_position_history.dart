@@ -98,7 +98,8 @@ Map<String, PlayerPositionProfile> mergePlayerPositionProfiles({
     // Le total englobe la queue de distribution que l'archive n'a pas
     // détaillée : la retirer du dénominateur gonflerait le poste principal et
     // ferait passer un polyvalent pour un joueur au poste marqué.
-    final total = (base?.totalWeight ?? 0) +
+    final total =
+        (base?.totalWeight ?? 0) +
         added.values.fold<double>(0, (sum, weight) => sum + weight);
     final samples = _rank(combined, total);
     if (samples.isEmpty) continue;

@@ -46,11 +46,7 @@ class MatchWheelPicker {
     required DateTime maximumDate,
     String title = 'Date et heure',
   }) {
-    final initial = _clampDateTime(
-      initialDateTime,
-      minimumDate,
-      maximumDate,
-    );
+    final initial = _clampDateTime(initialDateTime, minimumDate, maximumDate);
     return _showDateTimeSheet(
       context: context,
       title: title,
@@ -73,8 +69,8 @@ class MatchWheelPicker {
     final initial = initialValue < minValue
         ? minValue
         : initialValue > maxValue
-            ? maxValue
-            : initialValue;
+        ? maxValue
+        : initialValue;
     var selected = initial;
     final controller = FixedExtentScrollController(
       initialItem: initial - minValue,
@@ -212,9 +208,7 @@ class _SheetHeader extends StatelessWidget {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),

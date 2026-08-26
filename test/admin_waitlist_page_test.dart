@@ -38,8 +38,9 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Enregistrer l’ordre'),
+      );
       await tester.pumpAndSettle();
 
       expect(repository.savedOrder, ['bruno', 'alice']);
@@ -107,8 +108,9 @@ void main() {
 
       await tester.tap(find.widgetWithText(OutlinedButton, 'Recalculer'));
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, 'Enregistrer l’ordre'),
+      );
       await tester.pumpAndSettle();
 
       expect(repository.savedOrder, ['bruno', 'alice']);
@@ -122,31 +124,31 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   int? lastManualCount;
 
   SportWaitlist get _waitlist => const SportWaitlist(
-        seasonId: 'season',
-        seasonName: '2026-2027',
-        entries: [
-          SportWaitlistEntry(
-            seasonPlayerId: 'alice',
-            firstName: 'Alice',
-            lastName: 'Grinta',
-            position: 1,
-            previousSeasonAttendanceCount: 2,
-            previousSeasonMatchCount: 10,
-            currentSeasonWaitlistCount: 3,
-            source: 'previous_season_attendance',
-          ),
-          SportWaitlistEntry(
-            seasonPlayerId: 'bruno',
-            firstName: 'Bruno',
-            lastName: 'Grinta',
-            position: 2,
-            previousSeasonAttendanceCount: 4,
-            previousSeasonMatchCount: 10,
-            currentSeasonWaitlistCount: 1,
-            source: 'previous_season_attendance',
-          ),
-        ],
-      );
+    seasonId: 'season',
+    seasonName: '2026-2027',
+    entries: [
+      SportWaitlistEntry(
+        seasonPlayerId: 'alice',
+        firstName: 'Alice',
+        lastName: 'Grinta',
+        position: 1,
+        previousSeasonAttendanceCount: 2,
+        previousSeasonMatchCount: 10,
+        currentSeasonWaitlistCount: 3,
+        source: 'previous_season_attendance',
+      ),
+      SportWaitlistEntry(
+        seasonPlayerId: 'bruno',
+        firstName: 'Bruno',
+        lastName: 'Grinta',
+        position: 2,
+        previousSeasonAttendanceCount: 4,
+        previousSeasonMatchCount: 10,
+        currentSeasonWaitlistCount: 1,
+        source: 'previous_season_attendance',
+      ),
+    ],
+  );
 
   @override
   Future<SportWaitlist> fetchWaitlist({String? seasonId}) async => _waitlist;

@@ -173,7 +173,7 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
       children: [
         if (showEffectif) ...[
           const SizedBox(height: 16),
-          CompletedMatchEffectifCard(effectif: effectif),
+          CompletedMatchEffectifCard(effectif: effectif!),
         ],
         if (composition != null) ...[
           const SizedBox(height: 16),

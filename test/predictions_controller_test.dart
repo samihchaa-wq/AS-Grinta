@@ -102,9 +102,7 @@ void main() {
 
     test('saves the current values and marks the prediction filled', () async {
       final repository = _FakePredictionsRepository(
-        fetchResult: [
-          _editableItem(scoreGrinta: 3, scoreOpponent: 1),
-        ],
+        fetchResult: [_editableItem(scoreGrinta: 3, scoreOpponent: 1)],
       );
       final controller = PredictionsController(repository);
       addTearDown(controller.dispose);
@@ -142,9 +140,7 @@ void main() {
     test('does not call the repository for a closed prediction', () async {
       final repository = _FakePredictionsRepository(
         fetchResult: [
-          _item(
-            kickoffAt: DateTime.now().subtract(const Duration(hours: 1)),
-          ),
+          _item(kickoffAt: DateTime.now().subtract(const Duration(hours: 1))),
         ],
       );
       final controller = PredictionsController(repository);

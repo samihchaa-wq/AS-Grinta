@@ -22,7 +22,8 @@ class PlayerPredictionsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = gaugeAccentFor(gauge.playerId);
     final median = gauge.predictions.isEmpty ? null : gauge.median.round();
-    final predictions = [...gauge.predictions]..sort((a, b) {
+    final predictions = [...gauge.predictions]
+      ..sort((a, b) {
         final aDistance = (a.value - gauge.actual).abs();
         final bDistance = (b.value - gauge.actual).abs();
         final byDistance = aDistance.compareTo(bDistance);
@@ -31,8 +32,8 @@ class PlayerPredictionsSheet extends StatelessWidget {
         final byValue = a.value.compareTo(b.value);
         if (byValue != 0) return byValue;
         return a.predictorName.toLowerCase().compareTo(
-              b.predictorName.toLowerCase(),
-            );
+          b.predictorName.toLowerCase(),
+        );
       });
 
     return Container(
@@ -68,10 +69,8 @@ class PlayerPredictionsSheet extends StatelessWidget {
                   children: [
                     Text(
                       gauge.playerName,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     Text(
                       gauge.isGoalkeeper
@@ -108,15 +107,18 @@ class PlayerPredictionsSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.timeline,
-                      color: Color(0xFFC58BFF), size: 20),
+                  const Icon(
+                    Icons.timeline,
+                    color: Color(0xFFC58BFF),
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Text(
                     'Médiane des pronos',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   Text(
@@ -154,11 +156,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
     );
   }
 
-  int _rankFor(
-    List<GaugePrediction> predictions,
-    int index,
-    int actual,
-  ) {
+  int _rankFor(List<GaugePrediction> predictions, int index, int actual) {
     if (index == 0) return 1;
     final currentDistance = (predictions[index].value - actual).abs();
     final previousDistance = (predictions[index - 1].value - actual).abs();

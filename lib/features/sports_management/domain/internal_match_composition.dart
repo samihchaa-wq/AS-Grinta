@@ -52,10 +52,10 @@ class InternalCompositionEntry {
   }
 
   Map<String, dynamic> toRpcJson() => {
-        'participant_id': participantId,
-        'team_no': teamNo,
-        'sort_order': sortOrder,
-      };
+    'participant_id': participantId,
+    'team_no': teamNo,
+    'sort_order': sortOrder,
+  };
 }
 
 class InternalMatchComposition {
@@ -88,12 +88,12 @@ class InternalMatchComposition {
       team2Name: (json['team2_name'] ?? 'Équipe 2').toString(),
       entries: entriesRaw is List
           ? entriesRaw
-              .map(
-                (e) => InternalCompositionEntry.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ),
-              )
-              .toList()
+                .map(
+                  (e) => InternalCompositionEntry.fromJson(
+                    Map<String, dynamic>.from(e as Map),
+                  ),
+                )
+                .toList()
           : const [],
     );
   }

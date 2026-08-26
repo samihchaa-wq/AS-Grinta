@@ -93,8 +93,9 @@ Future<_ProfileValidationChoice?> _askPlayerLink(
             onPressed: () => Navigator.pop(
               dialogContext,
               _ProfileValidationChoice(
-                seasonPlayerId:
-                    selectedPlayerId.isEmpty ? null : selectedPlayerId,
+                seasonPlayerId: selectedPlayerId.isEmpty
+                    ? null
+                    : selectedPlayerId,
                 seasonId: seasonId,
               ),
             ),

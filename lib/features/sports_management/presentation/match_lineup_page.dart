@@ -62,8 +62,8 @@ class MatchLineupPage extends ConsumerWidget {
       final adminSection = section == 'prediction' && predictionClosed
           ? (!isInternal && !liveTooEarly ? 'live' : 'effectif')
           : section == 'live' && (isInternal || liveTooEarly)
-              ? 'effectif'
-              : section;
+          ? 'effectif'
+          : section;
       return AdminSquadPlanPage(
         initialMatchId: matchId,
         initialStep: adminSection,
@@ -77,10 +77,10 @@ class MatchLineupPage extends ConsumerWidget {
     final resolvedSection = tooFarAway
         ? 'info'
         : section == 'live' && (isInternal || liveTooEarly)
-            ? 'effectif'
-            : section == 'prediction' && (isInternal || predictionClosed)
-                ? (!isInternal && !liveTooEarly ? 'live' : 'effectif')
-                : section;
+        ? 'effectif'
+        : section == 'prediction' && (isInternal || predictionClosed)
+        ? (!isInternal && !liveTooEarly ? 'live' : 'effectif')
+        : section;
 
     final showInfo = resolvedSection == 'info';
     final showEffectif = resolvedSection == 'effectif';
@@ -285,8 +285,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               ),
             );
           }
-          final board =
-              ref.watch(matchAvailabilityBoardProvider(matchId)).valueOrNull;
+          final board = ref
+              .watch(matchAvailabilityBoardProvider(matchId))
+              .valueOrNull;
           final beforeKickoff =
               board == null || DateTime.now().isBefore(board.kickoffAt);
           final foreground = embeddedOnDark ? Colors.white : null;
@@ -302,28 +303,26 @@ class PublishedLineupPreview extends ConsumerWidget {
                     child: Text(
                       'Composition',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: foreground,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: foreground,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   if (composition.formationCode != null)
                     Text(
                       composition.formationCode!,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: secondary,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: secondary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                 ],
               ),
               const SizedBox(height: AppSpacing.microGap),
               Text(
                 'Composition publiée',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: secondary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: secondary, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
               Center(
@@ -337,18 +336,15 @@ class PublishedLineupPreview extends ConsumerWidget {
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Remplaçants (${composition.benchCount})',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: foreground,
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(color: foreground, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               if (composition.benchCount == 0)
                 Text(
                   'Aucun remplaçant.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: secondary),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: secondary),
                 )
               else
                 Wrap(

@@ -69,8 +69,10 @@ class DragAutoScroller {
     if (velocity == 0) {
       stop();
     } else {
-      _timer ??=
-          Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
+      _timer ??= Timer.periodic(
+        const Duration(milliseconds: 16),
+        (_) => _tick(),
+      );
     }
   }
 
@@ -92,8 +94,10 @@ class DragAutoScroller {
       stop();
       return;
     }
-    final next = (position.pixels + _velocity)
-        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    final next = (position.pixels + _velocity).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
     if (next == position.pixels) return;
     position.jumpTo(next);
   }

@@ -122,16 +122,18 @@ SimulatedComposition simulateComposition({
   final placed = <String>{};
 
   final goalkeeperSlots = slots.where(_isGoalkeeperSlot).toList();
-  final outfieldSlots =
-      slots.where((slot) => !_isGoalkeeperSlot(slot)).toList();
+  final outfieldSlots = slots
+      .where((slot) => !_isGoalkeeperSlot(slot))
+      .toList();
 
   // Les buts ne reviennent qu'à un gardien déclaré. Faute de gardien
   // convoqué, le poste reste vide et l'alerte existante prend le relais :
   // désigner d'office un joueur de champ serait un choix d'entraîneur.
-  final goalkeepers = candidates
-      .where((candidate) => candidate.isGoalkeeper && !candidate.isGuest)
-      .toList()
-    ..sort(_byRotationThenName);
+  final goalkeepers =
+      candidates
+          .where((candidate) => candidate.isGoalkeeper && !candidate.isGuest)
+          .toList()
+        ..sort(_byRotationThenName);
   for (final slot in goalkeeperSlots) {
     final keeper = goalkeepers.firstWhere(
       (candidate) => !placed.contains(candidate.participantId),
@@ -161,10 +163,7 @@ SimulatedComposition simulateComposition({
       !placed.contains(candidate.participantId);
   bool open(FootballFormationSlot slot) => !placements.containsKey(slot.label);
 
-  void assign(
-    Iterable<_Pairing> pairings,
-    SimulatedPlacementReason reason,
-  ) {
+  void assign(Iterable<_Pairing> pairings, SimulatedPlacementReason reason) {
     for (final pairing in pairings.toList()..sort(_byPairingRank)) {
       if (!open(pairing.slot) || !free(pairing.candidate)) continue;
       placed.add(pairing.candidate.participantId);
@@ -178,7 +177,7 @@ SimulatedComposition simulateComposition({
 
   Iterable<_Pairing> pairingsWhere(
     bool Function(SimulationCandidate candidate, FootballFormationSlot slot)
-        matches,
+    matches,
   ) sync* {
     for (final slot in outfieldSlots) {
       for (final candidate in outfield) {
@@ -293,8 +292,8 @@ int _byPairingRank(_Pairing a, _Pairing b) {
   final byAffinity = b.affinity.compareTo(a.affinity);
   if (byAffinity != 0) return byAffinity;
   final byName = a.candidate.displayName.toLowerCase().compareTo(
-        b.candidate.displayName.toLowerCase(),
-      );
+    b.candidate.displayName.toLowerCase(),
+  );
   return byName != 0 ? byName : a.slot.label.compareTo(b.slot.label);
 }
 

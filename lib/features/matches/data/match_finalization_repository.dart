@@ -135,8 +135,7 @@ class MatchFinalizationRepository {
     if ((mvpRows as List).isNotEmpty) {
       manOfMatchPlayerId = Map<String, dynamic>.from(
         mvpRows.first,
-      )['season_player_id']
-          .toString();
+      )['season_player_id'].toString();
       inferredPresentPlayerIds.add(manOfMatchPlayerId);
     }
 
@@ -164,10 +163,10 @@ class MatchFinalizationRepository {
 
 final matchFinalizationRepositoryProvider =
     Provider<MatchFinalizationRepository>((ref) {
-  return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
-});
+      return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
+    });
 
 final matchFinalizationContextProvider = FutureProvider.autoDispose
     .family<MatchFinalizationContext, String>((ref, matchId) {
-  return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
-});
+      return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
+    });

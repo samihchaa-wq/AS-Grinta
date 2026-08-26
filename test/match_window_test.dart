@@ -22,14 +22,8 @@ void main() {
 
     test('l’heure du coup d’envoi ne décale pas le midi de J-6', () {
       // 09:00 Paris = 07:00 UTC ; 23:45 Paris = 21:45 UTC en août.
-      expect(
-        matchFeaturesOpenAt(DateTime.utc(2026, 8, 7, 7)),
-        opensAt,
-      );
-      expect(
-        matchFeaturesOpenAt(DateTime.utc(2026, 8, 7, 21, 45)),
-        opensAt,
-      );
+      expect(matchFeaturesOpenAt(DateTime.utc(2026, 8, 7, 7)), opensAt);
+      expect(matchFeaturesOpenAt(DateTime.utc(2026, 8, 7, 21, 45)), opensAt);
     });
 
     test('le fuseau hiver Europe/Paris est pris en compte', () {
@@ -108,28 +102,21 @@ void main() {
       String status = 'a_venir',
       String? liveState,
       int duration = 90,
-    }) =>
-        matchDisplayPhase(
-          kickoffAt: kickoff,
-          status: status,
-          plannedDurationMinutes: duration,
-          liveState: liveState,
-          now: now,
-        );
+    }) => matchDisplayPhase(
+      kickoffAt: kickoff,
+      status: status,
+      plannedDurationMinutes: duration,
+      liveState: liveState,
+      now: now,
+    );
 
     test('enchaîne à venir, prochain, direct et à valider', () {
       expect(
         phaseAt(DateTime.utc(2026, 8, 1, 9, 59, 59)),
         MatchDisplayPhase.upcoming,
       );
-      expect(
-        phaseAt(DateTime.utc(2026, 8, 1, 10)),
-        MatchDisplayPhase.next,
-      );
-      expect(
-        phaseAt(DateTime.utc(2026, 8, 7, 18, 15)),
-        MatchDisplayPhase.live,
-      );
+      expect(phaseAt(DateTime.utc(2026, 8, 1, 10)), MatchDisplayPhase.next);
+      expect(phaseAt(DateTime.utc(2026, 8, 7, 18, 15)), MatchDisplayPhase.live);
       expect(
         phaseAt(DateTime.utc(2026, 8, 7, 20, 15)),
         MatchDisplayPhase.awaitingValidation,
@@ -138,17 +125,11 @@ void main() {
 
     test('une fin Live bascule à valider dès le coup d’envoi', () {
       expect(
-        phaseAt(
-          DateTime.utc(2026, 8, 7, 18, 20),
-          liveState: 'finished',
-        ),
+        phaseAt(DateTime.utc(2026, 8, 7, 18, 20), liveState: 'finished'),
         MatchDisplayPhase.live,
       );
       expect(
-        phaseAt(
-          DateTime.utc(2026, 8, 7, 18, 30),
-          liveState: 'finished',
-        ),
+        phaseAt(DateTime.utc(2026, 8, 7, 18, 30), liveState: 'finished'),
         MatchDisplayPhase.awaitingValidation,
       );
     });
@@ -156,10 +137,7 @@ void main() {
     test('un Live actif reste en direct au-delà de la fin théorique', () {
       for (final state in ['running', 'paused', 'halftime']) {
         expect(
-          phaseAt(
-            DateTime.utc(2026, 8, 7, 21),
-            liveState: state,
-          ),
+          phaseAt(DateTime.utc(2026, 8, 7, 21), liveState: state),
           MatchDisplayPhase.live,
           reason: 'state=$state',
         );
@@ -168,17 +146,11 @@ void main() {
 
     test('la validation serveur l’emporte sur toute temporalité', () {
       expect(
-        phaseAt(
-          DateTime.utc(2026, 8, 7, 18),
-          status: 'termine',
-        ),
+        phaseAt(DateTime.utc(2026, 8, 7, 18), status: 'termine'),
         MatchDisplayPhase.past,
       );
       expect(
-        phaseAt(
-          DateTime.utc(2026, 8, 7, 18),
-          status: 'annule',
-        ),
+        phaseAt(DateTime.utc(2026, 8, 7, 18), status: 'annule'),
         MatchDisplayPhase.cancelled,
       );
     });

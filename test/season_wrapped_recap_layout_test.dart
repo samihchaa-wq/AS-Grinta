@@ -56,10 +56,7 @@ void main() {
       expect(containers, hasLength(1));
 
       final decoration = containers.single.decoration! as BoxDecoration;
-      expect(
-        decoration.color,
-        WrappedSkin.flash.text.withValues(alpha: .055),
-      );
+      expect(decoration.color, WrappedSkin.flash.text.withValues(alpha: .055));
       expect(decoration.borderRadius, BorderRadius.circular(6));
     },
   );

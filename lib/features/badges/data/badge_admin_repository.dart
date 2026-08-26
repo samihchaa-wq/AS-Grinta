@@ -66,7 +66,9 @@ class BadgeAdminRepository {
   Future<String> uploadBadgeImage(Uint8List bytes, String fileExt) async {
     final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
     final path = 'custom/${DateTime.now().millisecondsSinceEpoch}.$ext';
-    await _client.storage.from('badge-images').uploadBinary(
+    await _client.storage
+        .from('badge-images')
+        .uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(
@@ -116,10 +118,10 @@ class BadgeAdminRepository {
     required Uint8List bytes,
   }) async {
     final imageUrl = await uploadBadgeImage(bytes, 'jpg');
-    await _client.rpc('staff_update_badge_image', params: {
-      'p_badge_code': badgeCode,
-      'p_image_url': imageUrl,
-    });
+    await _client.rpc(
+      'staff_update_badge_image',
+      params: {'p_badge_code': badgeCode, 'p_image_url': imageUrl},
+    );
   }
 
   /// Crée un badge manuel directement avec son illustration finale.
@@ -146,14 +148,17 @@ class BadgeAdminRepository {
 
     final imageUrl = await uploadBadgeImage(imageBytes, 'jpg');
     try {
-      await _client.rpc('staff_create_badge', params: {
-        'p_code': code,
-        'p_name': name,
-        'p_emoji': '🏅',
-        'p_description': description,
-        'p_image_url': imageUrl,
-        'p_color': color ?? '#C0455B',
-      });
+      await _client.rpc(
+        'staff_create_badge',
+        params: {
+          'p_code': code,
+          'p_name': name,
+          'p_emoji': '🏅',
+          'p_description': description,
+          'p_image_url': imageUrl,
+          'p_color': color ?? '#C0455B',
+        },
+      );
     } catch (_) {
       try {
         await _removeUploadedBadgeImage(imageUrl);
@@ -166,17 +171,17 @@ class BadgeAdminRepository {
   }
 
   Future<void> awardBadge(String code, String profileId) async {
-    await _client.rpc('staff_award_badge', params: {
-      'p_profile_id': profileId,
-      'p_badge_code': code,
-    });
+    await _client.rpc(
+      'staff_award_badge',
+      params: {'p_profile_id': profileId, 'p_badge_code': code},
+    );
   }
 
   Future<void> revokeBadge(String code, String profileId) async {
-    await _client.rpc('staff_revoke_badge', params: {
-      'p_profile_id': profileId,
-      'p_badge_code': code,
-    });
+    await _client.rpc(
+      'staff_revoke_badge',
+      params: {'p_profile_id': profileId, 'p_badge_code': code},
+    );
   }
 }
 
@@ -184,7 +189,8 @@ final badgeAdminRepositoryProvider = Provider<BadgeAdminRepository>((ref) {
   return BadgeAdminRepository(ref.watch(supabaseClientProvider));
 });
 
-final adminPeopleProvider =
-    FutureProvider.autoDispose<List<AdminPerson>>((ref) async {
+final adminPeopleProvider = FutureProvider.autoDispose<List<AdminPerson>>((
+  ref,
+) async {
   return ref.watch(badgeAdminRepositoryProvider).fetchActiveProfiles();
 });
