@@ -4,6 +4,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/core/widgets/match_scorers_card.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -101,6 +102,17 @@ class MatchDetailsPage extends ConsumerWidget {
                       ? details.scoreOpponent ?? 0
                       : details.scoreGrinta ?? 0,
                   dateLabel: AppFormats.dateTime(details.kickoffAt),
+                  matchTypeLabel: details.matchTypeLabel,
+                  address: details.address,
+                ),
+                const SizedBox(height: 16),
+                MatchScorersCard(
+                  teamGoals: details.scoreGrinta ?? 0,
+                  scorers: [
+                    for (final stat in details.playerStats)
+                      if (stat.goals > 0)
+                        MatchScorerEntry(name: stat.name, goals: stat.goals),
+                  ],
                 ),
                 if (sportsEnabled) ...[
                   const SizedBox(height: 16),
