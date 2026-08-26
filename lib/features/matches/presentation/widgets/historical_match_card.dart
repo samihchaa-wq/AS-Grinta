@@ -98,8 +98,6 @@ class HistoricalMatchCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               cleanAddress,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                               style: Theme.of(context)
                                   .textTheme
                                   .labelMedium

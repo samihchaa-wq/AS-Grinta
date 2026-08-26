@@ -633,8 +633,6 @@ class _UpcomingMatchCard extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         address,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppTheme.textSecondary,
                               fontWeight: FontWeight.w600,
