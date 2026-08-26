@@ -65,10 +65,19 @@ class LiveBenchTile extends StatelessWidget {
         ],
       ),
     );
-    final tappable = onTap == null
+
+    void handleTap() {
+      if (FormationPitchTapSelection.placePlayer(entry)) return;
+      onTap?.call();
+    }
+
+    final tappable = !draggable && onTap == null
         ? box
         : InkWell(
-            borderRadius: BorderRadius.circular(12), onTap: onTap, child: box);
+            borderRadius: BorderRadius.circular(12),
+            onTap: handleTap,
+            child: box,
+          );
     if (!draggable) return tappable;
     final autoScroll = DragAutoScroller(context);
     return LongPressDraggable<MatchCompositionEntry>(
