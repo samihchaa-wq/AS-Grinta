@@ -71,6 +71,7 @@ begin
         '[]'::jsonb
       )
     )
+  end
   into v_result
   from public.matches match
   join public.match_sport_workflows workflow on workflow.match_id = match.id
