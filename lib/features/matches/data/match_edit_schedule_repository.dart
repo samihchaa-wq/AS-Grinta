@@ -36,9 +36,8 @@ class MatchEditScheduleRepository {
 
     return (
       mode: mode,
-      customAt: mode == ConvocationLaunchMode.custom
-          ? opensAt?.toLocal()
-          : null,
+      customAt:
+          mode == ConvocationLaunchMode.custom ? opensAt?.toLocal() : null,
     );
   }
 
@@ -146,5 +145,5 @@ class MatchEditScheduleRepository {
 
 final matchEditScheduleRepositoryProvider =
     Provider<MatchEditScheduleRepository>((ref) {
-      return MatchEditScheduleRepository(ref.watch(supabaseClientProvider));
-    });
+  return MatchEditScheduleRepository(ref.watch(supabaseClientProvider));
+});
