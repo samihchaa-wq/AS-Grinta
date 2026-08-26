@@ -3,18 +3,18 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
-import 'package:as_grinta/core/widgets/match_scorers_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
+import 'package:as_grinta/features/matches/data/completed_match_effectif_repository.dart';
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/completed_match_effectif_card.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Fiche en lecture seule d'un match de l'historique importé : même gabarit
-/// que [MatchDetailsPage] pour un match terminé, rempli avec ce que l'archive
-/// du club sait réellement dire. Les sections sans donnée disponible restent
-/// explicites plutôt que d'inventer une information absente de la source.
+/// modulaire qu'un match courant terminé. Une section n'apparaît que lorsque
+/// la source historique contient réellement les données nécessaires.
 class HistoricalMatchDetailPage extends ConsumerWidget {
   const HistoricalMatchDetailPage({
     required this.matchId,
@@ -28,6 +28,7 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailAsync = ref.watch(historicalMatchDetailProvider(matchId));
+    final loadedDetail = detailAsync.valueOrNull;
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Match archivé')),
@@ -42,35 +43,29 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
             _HistoricalMatchHeaderSection(
               matchId: matchId,
               initialMatch: initialMatch,
+              detail: loadedDetail,
             ),
-            const SizedBox(height: 16),
             detailAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.only(top: 40),
                 child: Center(child: GrintaProgressIndicator()),
               ),
-              error: (error, _) => Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(humanizeError(error)),
+              error: (error, _) => Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(humanizeError(error)),
+                  ),
                 ),
               ),
               data: (detail) {
                 if (detail == null || detail.isEmpty) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        "Aucun détail n'a été retrouvé pour ce match dans "
-                        'les archives du club.',
-                      ),
-                    ),
-                  );
+                  return const SizedBox.shrink();
                 }
                 return _HistoricalMatchDetailBody(
                   matchId: matchId,
                   detail: detail,
-                  teamGoals: initialMatch?.grintaScore,
                 );
               },
             ),
@@ -85,10 +80,12 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
   const _HistoricalMatchHeaderSection({
     required this.matchId,
     required this.initialMatch,
+    required this.detail,
   });
 
   final String matchId;
   final HistoricalMatchResult? initialMatch;
+  final HistoricalMatchDetail? detail;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -123,17 +120,23 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
   }
 
   Widget _historicalHeader(HistoricalMatchResult match) {
+    final scorerLabels = [
+      for (final scorer in detail?.scorers ?? const <HistoricalScorer>[])
+        scorer.goals > 1 ? '${scorer.name} ×${scorer.goals}' : scorer.name,
+    ];
     return MatchDetailHeaderCard(
       homeName: match.isHome ? 'AS Grinta' : match.opponentName,
       awayName: match.isHome ? match.opponentName : 'AS Grinta',
       grintaIsHome: match.isHome,
       homeScore: match.isHome ? match.grintaScore : match.opponentScore,
       awayScore: match.isHome ? match.opponentScore : match.grintaScore,
-      dateLabel: match.hasTime
-          ? AppFormats.dateTime(match.date)
-          : AppFormats.date(match.date),
+      dateLabel: AppFormats.date(match.date),
+      kickoffTimeLabel: match.hasTime ? AppFormats.time(match.date) : null,
       matchTypeLabel: match.matchTypeLabel,
       address: match.address,
+      manOfMatchNames: detail?.motmNames ?? const <String>[],
+      scorerLabels: scorerLabels,
+      teamScoredZero: match.grintaScore == 0,
     );
   }
 }
@@ -142,37 +145,43 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
   const _HistoricalMatchDetailBody({
     required this.matchId,
     required this.detail,
-    required this.teamGoals,
   });
 
   final String matchId;
   final HistoricalMatchDetail detail;
-  final int? teamGoals;
 
   @override
   Widget build(BuildContext context) {
-    final composition = _compositionFromHistorical(matchId, detail);
+    final absentNames = detail.absentNames;
+    final effectif = absentNames == null
+        ? null
+        : CompletedMatchEffectif.fromNames(
+            presentNames: detail.presentNames,
+            absentNames: absentNames,
+          );
+    final showEffectif = effectif != null && !effectif.isEmpty;
+    final showComposition = detail.hasComposition;
+    if (!showEffectif && !showComposition) return const SizedBox.shrink();
+
+    final composition = showComposition
+        ? _compositionFromHistorical(matchId, detail)
+        : null;
     final fallbackPlayers = _fallbackPlayersFromHistorical(detail);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        MatchScorersCard(
-          teamGoals: teamGoals,
-          scorers: [
-            for (final scorer in detail.scorers)
-              MatchScorerEntry(name: scorer.name, goals: scorer.goals),
-          ],
-        ),
-        if (detail.motmNames.isNotEmpty) ...[
+        if (showEffectif) ...[
           const SizedBox(height: 16),
-          _HistoricalMotmCard(names: detail.motmNames),
+          CompletedMatchEffectifCard(effectif: effectif),
         ],
-        const SizedBox(height: 16),
-        CompletedCompositionCard(
-          composition: composition,
-          fallbackPlayers: fallbackPlayers,
-        ),
+        if (composition != null) ...[
+          const SizedBox(height: 16),
+          CompletedCompositionCard(
+            composition: composition,
+            fallbackPlayers: fallbackPlayers,
+          ),
+        ],
       ],
     );
   }
@@ -181,8 +190,7 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
 /// Reconstruit une [MatchComposition] à partir de l'archive historique, afin
 /// que le terrain partagé ([CompletedCompositionCard]) affiche une fiche
 /// archivée exactement comme une fiche de match courant. `null` quand
-/// l'archive ne connaît pas les positions des titulaires : la carte bascule
-/// alors elle-même sur son repli « Joueurs (n) ».
+/// l'archive ne connaît pas les positions des titulaires.
 MatchComposition? _compositionFromHistorical(
   String matchId,
   HistoricalMatchDetail detail,
@@ -242,8 +250,6 @@ MatchCompositionEntry _entryFromHistorical(
     zone: zone,
     sortOrder: sortOrder,
     availabilityStatus: 'available',
-    // Un emplacement vide n'est pas quelqu'un qu'on a convoqué : on le
-    // marque comme tel pour qu'aucun écran ne puisse le traiter en joueur.
     convocationStatus: player.isVacant ? 'not_applicable' : 'convoked',
     selectionStatus: isField ? 'starter' : 'substitute',
     x: isField ? player.xPct / 100 : null,
@@ -255,9 +261,6 @@ MatchCompositionEntry _entryFromHistorical(
   );
 }
 
-/// Repli « Joueurs (n) » quand l'archive ne connaît pas les positions :
-/// fusionne présents et buteurs, comme le fait la fiche d'un match courant
-/// pour un match sans données Live détaillées.
 List<CompletedPlayerSummary> _fallbackPlayersFromHistorical(
   HistoricalMatchDetail detail,
 ) {
@@ -282,27 +285,4 @@ List<CompletedPlayerSummary> _fallbackPlayersFromHistorical(
 
   return playersByName.values.toList()
     ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-}
-
-/// Même habillage que [MatchMotmVoteCard] une fois le vote clos (icône,
-/// titre, sous-titre), mais statique : une archive n'a pas de scrutin à
-/// rouvrir, donc pas de flèche ni d'action au tap.
-class _HistoricalMotmCard extends StatelessWidget {
-  const _HistoricalMotmCard({required this.names});
-
-  final List<String> names;
-
-  @override
-  Widget build(BuildContext context) {
-    if (names.isEmpty) return const SizedBox.shrink();
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.emoji_events_outlined),
-        title: Text(
-          names.length > 1 ? 'Co-Hommes du match' : 'Homme du match',
-        ),
-        subtitle: Text(names.join(' · ')),
-      ),
-    );
-  }
 }
