@@ -79,6 +79,69 @@ class HomeNextMatchCard extends StatelessWidget {
       ],
     );
 
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.cardPadding,
+        12,
+        AppSpacing.cardPadding,
+        13,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MatchDateHeader(
+            kickoffAt: match.kickoffAt,
+            foreground: AppTheme.textPrimary,
+            secondary: AppTheme.textPrimary,
+            dividerColor: cardBorder,
+            child: fixtureRow,
+          ),
+          const SizedBox(height: 7),
+          Text(
+            match.calendarTypeLabel,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: cardBorder,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          if (match.address case final address?) ...[
+            const SizedBox(height: AppSpacing.contentGap),
+            InkWell(
+              onTap: () => showMatchAddressSheet(context, address),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.place_outlined, size: 16, color: cardBorder),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (showAvailability)
+            MatchAvailabilitySelector(
+              matchId: match.id,
+              embeddedOnDark: true,
+              topSpacing: 10,
+            ),
+        ],
+      ),
+    );
+
     return Card(
       color: cardSurface,
       shape: RoundedRectangleBorder(
@@ -90,75 +153,7 @@ class HomeNextMatchCard extends StatelessWidget {
         onTap: () => context.push(
           '/matches/${match.id}/lineup?section=$initialSection',
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.cardPadding,
-            12,
-            AppSpacing.cardPadding,
-            13,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MatchDateHeader(
-                kickoffAt: match.kickoffAt,
-                foreground: AppTheme.textPrimary,
-                secondary: AppTheme.textPrimary,
-                dividerColor: cardBorder,
-                child: fixtureRow,
-              ),
-              const SizedBox(height: 7),
-              Text(
-                match.calendarTypeLabel,
-                textAlign: TextAlign.start,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: cardBorder,
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              if (match.address case final address?) ...[
-                const SizedBox(height: AppSpacing.contentGap),
-                InkWell(
-                  onTap: () => showMatchAddressSheet(context, address),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.place_outlined,
-                          size: 16,
-                          color: cardBorder,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            address,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              if (showAvailability) ...[
-                const SizedBox(height: 8),
-                MatchAvailabilitySelector(
-                  matchId: match.id,
-                  embeddedOnDark: true,
-                  topSpacing: 16,
-                ),
-              ],
-            ],
-          ),
-        ),
+        child: content,
       ),
     );
   }
