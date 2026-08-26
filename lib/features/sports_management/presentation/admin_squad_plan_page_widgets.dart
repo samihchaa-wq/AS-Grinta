@@ -372,7 +372,12 @@ class _BenchBox extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          CompositionPlayerTile(entry: entry),
+          CompositionPlayerTile(
+            entry: entry,
+            onTap: draggable
+                ? () => FormationPitchTapSelection.placePlayer(entry)
+                : null,
+          ),
           if (finishedBenchCount > 0)
             Positioned(
               top: 0,
