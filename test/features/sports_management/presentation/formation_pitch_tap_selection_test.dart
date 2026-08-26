@@ -40,7 +40,7 @@ Widget _harness({
       body: SingleChildScrollView(
         child: Center(
           child: SizedBox(
-            width: 360,
+            width: 300,
             child: Column(
               children: [
                 FormationPitchEditor(
