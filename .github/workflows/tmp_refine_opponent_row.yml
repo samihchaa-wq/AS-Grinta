@@ -1,0 +1,151 @@
+name: Temporary refine opponent row
+
+on:
+  push:
+    branches: [feat/reorganize-match-form-sections]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/reorganize-match-form-sections
+      - name: Refine opponent selector and duplicate warning
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          files = [
+              Path('lib/features/matches/presentation/calendar_entry_form_page.dart'),
+              Path('lib/features/matches/presentation/match_form_page.dart'),
+          ]
+
+          old_button = """                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Ajouter un adversaire',
+                  onPressed: busy ? null : _createOpponent,
+                  icon: const Icon(Icons.add),
+                ),"""
+          new_button = """                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    onPressed: busy ? null : _createOpponent,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text(
+                      'Ajouter un adversaire',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),"""
+
+          old_button_edit = """                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        tooltip: 'Ajouter un adversaire',
+                        onPressed: busy ? null : _createOpponent,
+                        icon: const Icon(Icons.add),
+                      ),"""
+          new_button_edit = """                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                          ),
+                          onPressed: busy ? null : _createOpponent,
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text(
+                            'Ajouter un adversaire',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),"""
+
+          old_create_calendar = """    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+    final id = await ref
+        .read(matchesControllerProvider.notifier)
+        .createOpponent(name.trim());
+    if (!mounted || id == null) return;"""
+          new_create_calendar = """    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+    final trimmedName = name.trim();
+    final alreadyExists = ref.read(matchesControllerProvider).opponents.any(
+          (opponent) => opponent['name']?.toString() == trimmedName,
+        );
+    if (alreadyExists) {
+      final createAnyway = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Adversaire déjà existant'),
+              content: Text(
+                'Une équipe nommée « $trimmedName » existe déjà. '
+                'Tu peux quand même créer un nouvel adversaire avec exactement le même nom.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Annuler'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Créer quand même'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+      if (!createAnyway || !mounted) return;
+    }
+    final id = await ref
+        .read(matchesControllerProvider.notifier)
+        .createOpponent(trimmedName);
+    if (!mounted || id == null) return;"""
+
+          old_create_edit = old_create_calendar
+          new_create_edit = new_create_calendar
+
+          for path in files:
+              text = path.read_text()
+              before = text
+              if path.name == 'calendar_entry_form_page.dart':
+                  if old_button not in text:
+                      raise SystemExit(f'opponent button block not found in {path}')
+                  text = text.replace(old_button, new_button, 1)
+                  if old_create_calendar not in text:
+                      raise SystemExit(f'create opponent block not found in {path}')
+                  text = text.replace(old_create_calendar, new_create_calendar, 1)
+              else:
+                  if old_button_edit not in text:
+                      raise SystemExit(f'opponent button block not found in {path}')
+                  text = text.replace(old_button_edit, new_button_edit, 1)
+                  if old_create_edit not in text:
+                      raise SystemExit(f'create opponent block not found in {path}')
+                  text = text.replace(old_create_edit, new_create_edit, 1)
+              if text == before:
+                  raise SystemExit(f'no changes made in {path}')
+              path.write_text(text)
+          PY
+          dart format lib/features/matches/presentation/calendar_entry_form_page.dart lib/features/matches/presentation/match_form_page.dart
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart lib/features/matches/presentation/match_form_page.dart
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Refine opponent selector and duplicate warning'
+          git push origin HEAD:feat/reorganize-match-form-sections
