@@ -39,6 +39,7 @@ class HistoricalMatchDetail {
     required this.fieldPlayers,
     required this.benchPlayers,
     required this.presentNames,
+    required this.absentNames,
     required this.scorers,
     required this.motmNames,
   });
@@ -47,6 +48,11 @@ class HistoricalMatchDetail {
   final List<HistoricalFieldPlayer> fieldPlayers;
   final List<HistoricalFieldPlayer> benchPlayers;
   final List<String> presentNames;
+
+  /// `null` signifie que la source historique ne permet pas de connaître les
+  /// absents. Une liste vide signifie au contraire « aucun absent » de façon
+  /// explicite. Cette distinction évite d'afficher un faux effectif complet.
+  final List<String>? absentNames;
   final List<HistoricalScorer> scorers;
   final List<String> motmNames;
 
@@ -59,6 +65,7 @@ class HistoricalMatchDetail {
       fieldPlayers.isEmpty &&
       benchPlayers.isEmpty &&
       presentNames.isEmpty &&
+      absentNames?.isNotEmpty != true &&
       scorers.isEmpty &&
       motmNames.isEmpty;
 }
@@ -97,6 +104,9 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
       .toList(growable: false);
   final benchPlayersRaw = stringList(row['bench_players']);
   final presentNamesRaw = stringList(row['present_names']);
+  final absentNamesRaw = row['absent_names'] == null
+      ? null
+      : stringList(row['absent_names']);
   final motmNamesRaw = stringList(row['motm_names']);
   final photoUrlsByName = Map<String, dynamic>.from(
     row['photo_urls'] as Map? ?? const {},
@@ -114,6 +124,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
         .where((name) => !isVacantArchiveSlotName(name)),
     ...benchPlayersRaw,
     ...presentNamesRaw,
+    ...(absentNamesRaw ?? const <String>[]),
   });
 
   final fieldPlayers = fieldPlayersRaw.map(
@@ -166,6 +177,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
     fieldPlayers: fieldPlayers,
     benchPlayers: benchPlayers,
     presentNames: presentNamesRaw.map(shortName).toList(growable: false),
+    absentNames: absentNamesRaw?.map(shortName).toList(growable: false),
     scorers: scorers,
     motmNames: motmNamesRaw.map(shortName).toList(growable: false),
   );
