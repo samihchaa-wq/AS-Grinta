@@ -36,7 +36,9 @@ class MatchEditScheduleRepository {
 
     return (
       mode: mode,
-      customAt: mode == ConvocationLaunchMode.custom ? opensAt?.toLocal() : null,
+      customAt: mode == ConvocationLaunchMode.custom
+          ? opensAt?.toLocal()
+          : null,
     );
   }
 
@@ -61,7 +63,9 @@ class MatchEditScheduleRepository {
     DateTime? customLaunchAt,
   }) async {
     if (expectedUpdatedAt == null) {
-      throw StateError('Le match a changé. Recharge l’écran avant d’enregistrer.');
+      throw StateError(
+        'Le match a changé. Recharge l’écran avant d’enregistrer.',
+      );
     }
     final result = await _client.rpc(
       'admin_update_match_complete_v3',
@@ -84,14 +88,15 @@ class MatchEditScheduleRepository {
         'p_jersey_note': jerseyNote,
         'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
         'p_availability_schedule_mode': launchMode?.apiValue,
-        'p_availability_opens_at':
-            launchMode == ConvocationLaunchMode.custom
-                ? customLaunchAt?.toUtc().toIso8601String()
-                : null,
+        'p_availability_opens_at': launchMode == ConvocationLaunchMode.custom
+            ? customLaunchAt?.toUtc().toIso8601String()
+            : null,
       },
     );
     if (result != true) {
-      throw StateError('Le match et ses convocations n’ont pas pu être enregistrés.');
+      throw StateError(
+        'Le match et ses convocations n’ont pas pu être enregistrés.',
+      );
     }
   }
 
@@ -106,7 +111,9 @@ class MatchEditScheduleRepository {
     DateTime? customLaunchAt,
   }) async {
     if (expectedUpdatedAt == null) {
-      throw StateError('Le match a changé. Recharge l’écran avant d’enregistrer.');
+      throw StateError(
+        'Le match a changé. Recharge l’écran avant d’enregistrer.',
+      );
     }
     final result = await _client.rpc(
       'update_internal_match_v3',
@@ -119,14 +126,15 @@ class MatchEditScheduleRepository {
         'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),
         'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
         'p_availability_schedule_mode': launchMode?.apiValue,
-        'p_availability_opens_at':
-            launchMode == ConvocationLaunchMode.custom
-                ? customLaunchAt?.toUtc().toIso8601String()
-                : null,
+        'p_availability_opens_at': launchMode == ConvocationLaunchMode.custom
+            ? customLaunchAt?.toUtc().toIso8601String()
+            : null,
       },
     );
     if (result != true) {
-      throw StateError('Le match et ses convocations n’ont pas pu être enregistrés.');
+      throw StateError(
+        'Le match et ses convocations n’ont pas pu être enregistrés.',
+      );
     }
   }
 
@@ -138,5 +146,5 @@ class MatchEditScheduleRepository {
 
 final matchEditScheduleRepositoryProvider =
     Provider<MatchEditScheduleRepository>((ref) {
-  return MatchEditScheduleRepository(ref.watch(supabaseClientProvider));
-});
+      return MatchEditScheduleRepository(ref.watch(supabaseClientProvider));
+    });
