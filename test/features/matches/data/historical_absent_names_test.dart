@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// NULL signifie « inconnu » ; une liste vide signifie « aucun absent ».
 void main() {
   test('absence inconnue reste null pour masquer le module Effectif', () {
     final detail = historicalMatchDetailFromRow({
