@@ -1,4 +1,6 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
@@ -8,8 +10,8 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/match_
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Carte forte d'un match actif, réutilisable pour « Prochain », « En direct »
-/// et « À valider ».
+/// Carte d'un match actif, réutilisable pour « Prochain », « En direct »
+/// et « À valider », avec le même rendu que les autres matchs du calendrier.
 class HomeNextMatchCard extends StatelessWidget {
   const HomeNextMatchCard({
     required this.match,
@@ -29,6 +31,8 @@ class HomeNextMatchCard extends StatelessWidget {
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
+    final cardSurface = CalendarCardPalette.matchSurface(match.matchType);
+    final cardBorder = CalendarCardPalette.matchBorder(match.matchType);
 
     final fixtureRow = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -36,8 +40,8 @@ class HomeNextMatchCard extends StatelessWidget {
         Expanded(
           child: match.isInternal
               ? Text(
-                  '⚽ Match entre nous',
-                  textAlign: TextAlign.center,
+                  'Match entre nous',
+                  textAlign: TextAlign.start,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -54,128 +58,102 @@ class HomeNextMatchCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                   foreground: AppTheme.textPrimary,
-                  textAlign: TextAlign.center,
+                  textAlign: TextAlign.start,
                 ),
         ),
         if (isAdmin) ...[
-          const SizedBox(width: 4),
-          SizedBox(width: 48, child: AdminMatchOptionsButton(match: match)),
+          const SizedBox(width: AppSpacing.microGap),
+          SizedBox(
+            width: 48,
+            child: IconTheme(
+              data: IconThemeData(color: cardBorder),
+              child: AdminMatchOptionsButton(match: match),
+            ),
+          ),
         ],
-        const SizedBox(width: 2),
-        Icon(
+        const Icon(
           Icons.arrow_forward_ios_rounded,
           size: 14,
-          color: AppTheme.textFaint.withValues(alpha: .72),
+          color: AppTheme.textFaint,
         ),
       ],
     );
 
-    return Card(
-      color: Colors.transparent,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: .18),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        side: BorderSide(color: AppTheme.primaryBright.withValues(alpha: .3)),
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.cardPadding,
+        12,
+        AppSpacing.cardPadding,
+        13,
       ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.surfaceHero,
-              AppTheme.surface,
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MatchDateHeader(
+            kickoffAt: match.kickoffAt,
+            foreground: AppTheme.textPrimary,
+            secondary: AppTheme.textPrimary,
+            dividerColor: cardBorder,
+            child: fixtureRow,
           ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Align(
-                  alignment: const Alignment(0, -.08),
-                  child: Container(
-                    width: 190,
-                    height: 190,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppTheme.primary.withValues(alpha: .16),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
+          const SizedBox(height: 7),
+          Text(
+            match.calendarTypeLabel,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: cardBorder,
+                  fontWeight: FontWeight.w900,
                 ),
-              ),
-            ),
+          ),
+          if (match.address case final address?) ...[
+            const SizedBox(height: AppSpacing.contentGap),
             InkWell(
-              onTap: () => context.push(
-                '/matches/${match.id}/lineup?section=$initialSection',
-              ),
+              onTap: () => showMatchAddressSheet(context, address),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                child: Column(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MatchDateHeader(
-                      kickoffAt: match.kickoffAt,
-                      foreground: AppTheme.textPrimary,
-                      secondary: AppTheme.textSecondary,
-                      dividerColor: AppTheme.outline.withValues(alpha: .5),
-                      child: fixtureRow,
+                    Icon(Icons.place_outlined, size: 16, color: cardBorder),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
                     ),
-                    if (match.address case final address?) ...[
-                      const SizedBox(height: 16),
-                      InkWell(
-                        onTap: () => showMatchAddressSheet(context, address),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Icon(
-                                Icons.place_outlined,
-                                size: 17,
-                                color: AppTheme.textFaint,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  address,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppTheme.textFaint,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (showAvailability) ...[
-                      const SizedBox(height: 8),
-                      MatchAvailabilitySelector(
-                        matchId: match.id,
-                        embeddedOnDark: true,
-                        topSpacing: 16,
-                      ),
-                    ],
                   ],
                 ),
               ),
             ),
           ],
+          if (showAvailability)
+            MatchAvailabilitySelector(
+              matchId: match.id,
+              embeddedOnDark: true,
+              topSpacing: 10,
+            ),
+        ],
+      ),
+    );
+
+    return Card(
+      color: cardSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        side: BorderSide(color: cardBorder, width: 1.2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(
+          '/matches/${match.id}/lineup?section=$initialSection',
         ),
+        child: content,
       ),
     );
   }
