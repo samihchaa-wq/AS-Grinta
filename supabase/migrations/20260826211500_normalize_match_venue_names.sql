@@ -5,6 +5,10 @@
 -- have been verified. Ambiguous historical locations (Pibrac boulevard des
 -- Ecoles, 110 avenue du Marquisat, 17 chemin de la Saudrune) are intentionally
 -- left untouched.
+--
+-- Current match rows are lifecycle-protected after full time. Historical rows
+-- carry the archived venue data, while only upcoming current matches may have
+-- their address normalized here.
 
 create temporary table venue_address_map (
   old_address text primary key,
@@ -62,10 +66,13 @@ set address = m.new_address
 from venue_address_map m
 where h.address = m.old_address;
 
+-- Past/finished match rows are immutable by lifecycle guard. Only future rows
+-- are updated; finished venue history lives in historical_match_scores.
 update public.matches mt
 set address = m.new_address
 from venue_address_map m
-where mt.address = m.old_address;
+where mt.address = m.old_address
+  and mt.status = 'a_venir';
 
 update public.opponents o
 set address = m.new_address
