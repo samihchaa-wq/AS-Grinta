@@ -9,10 +9,8 @@ import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
-import 'package:as_grinta/features/matches/data/completed_match_effectif_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
-import 'package:as_grinta/features/matches/presentation/widgets/completed_match_effectif_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -42,7 +40,6 @@ class MatchDetailsPage extends ConsumerWidget {
           await ref.read(featureFlagsControllerProvider.notifier).refresh();
           ref
             ..invalidate(matchDetailsProvider(matchId))
-            ..invalidate(completedMatchEffectifProvider(matchId))
             ..invalidate(publishedMatchCompositionProvider(matchId))
             ..invalidate(matchLiveTimelineProvider(matchId))
             ..invalidate(sportMotmVoteProvider(matchId));
@@ -139,10 +136,6 @@ class MatchDetailsPage extends ConsumerWidget {
                       : () => context.push('/matches/$matchId/vote'),
                   scorerLabels: scorerLabels,
                   teamScoredZero: details.scoreGrinta == 0,
-                ),
-                _CompletedEffectifSection(
-                  matchId: matchId,
-                  sportsEnabled: sportsEnabled,
                 ),
                 _CompletedCompositionCard(
                   details: details,
@@ -445,28 +438,6 @@ class _MatchModule extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CompletedEffectifSection extends ConsumerWidget {
-  const _CompletedEffectifSection({
-    required this.matchId,
-    required this.sportsEnabled,
-  });
-
-  final String matchId;
-  final bool sportsEnabled;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!sportsEnabled) return const SizedBox.shrink();
-    final effectif =
-        ref.watch(completedMatchEffectifProvider(matchId)).valueOrNull;
-    if (effectif == null || effectif.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: CompletedMatchEffectifCard(effectif: effectif),
     );
   }
 }

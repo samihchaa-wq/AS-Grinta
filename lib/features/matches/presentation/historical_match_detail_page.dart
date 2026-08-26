@@ -4,10 +4,8 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
-import 'package:as_grinta/features/matches/data/completed_match_effectif_repository.dart';
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
-import 'package:as_grinta/features/matches/presentation/widgets/completed_match_effectif_card.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -152,28 +150,15 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final absentNames = detail.absentNames;
-    final effectif = absentNames == null
-        ? null
-        : CompletedMatchEffectif.fromNames(
-            presentNames: detail.presentNames,
-            absentNames: absentNames,
-          );
-    final showEffectif = effectif != null && !effectif.isEmpty;
     final showComposition = detail.hasComposition;
-    if (!showEffectif && !showComposition) return const SizedBox.shrink();
+    if (!showComposition) return const SizedBox.shrink();
 
-    final composition =
-        showComposition ? _compositionFromHistorical(matchId, detail) : null;
+    final composition = _compositionFromHistorical(matchId, detail);
     final fallbackPlayers = _fallbackPlayersFromHistorical(detail);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (showEffectif) ...[
-          const SizedBox(height: 16),
-          CompletedMatchEffectifCard(effectif: effectif!),
-        ],
         if (composition != null) ...[
           const SizedBox(height: 16),
           CompletedCompositionCard(
