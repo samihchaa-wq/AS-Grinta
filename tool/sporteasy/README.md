@@ -42,13 +42,28 @@ Aucun identifiant n'est écrit sur disque en dehors du cookie de session
 
 Les 114 matchs annulés sont conservés dans le fichier, marqués `annule`.
 
+## Heures : +30 minutes obligatoires
+
+**Le champ `heure` de ce relevé est l'heure de rendez-vous du club, pas le coup
+d'envoi.** Les événements SportEasy étaient créés à l'heure de convocation. Le
+coup d'envoi réel a lieu **30 minutes plus tard**.
+
+L'import en production applique donc un décalage de +30 minutes (migration
+`20260826163813`). Toute reprise de ce relevé doit faire de même, sinon les
+heures affichées reculent d'une demi-heure.
+
+Le champ `meeting_at` de l'API SportEasy, lui, n'a pas été retenu : il porte
+un rendez-vous calculé automatiquement (15 ou 30 minutes avant l'événement)
+qui ne reflète pas la pratique du club.
+
 ## Limites connues, à trancher avant tout import
 
 - **147 joueurs différents** apparaissent, alors que l'application n'en connaît
   que 42. Parmi les 105 autres, 43 sont des invités d'un soir (leur nom
   contient « Pote »). Un import direct créerait une fiche pour chacun.
 - **74 matchs joués sans score.** `historical_match_scores` exige un score, et
-  `HistoricalMatchResult` le déclare non nul côté Flutter.
+  `HistoricalMatchResult` le déclare non nul côté Flutter. Décision du club au
+  2026-08-26 : ces matchs restent hors de l'application.
 - **27 matchs** où la somme des buts attribués ne correspond pas au score. Écart
   de saisie d'origine, assumé par le club.
 - **38 matchs comptent plusieurs Hommes du match** : égalité au vote, tous les
