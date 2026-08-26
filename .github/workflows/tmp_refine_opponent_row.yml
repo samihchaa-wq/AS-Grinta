@@ -2,7 +2,8 @@ name: Temporary refine opponent row
 
 on:
   push:
-    branches: [feat/reorganize-match-form-sections]
+    branches:
+      - feat/reorganize-match-form-sections
   workflow_dispatch:
 
 permissions:
@@ -10,10 +11,11 @@ permissions:
 
 jobs:
   refine:
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: feat/reorganize-match-form-sections
       - name: Refine opponent selector and duplicate warning
@@ -71,13 +73,13 @@ jobs:
                         ),
                       ),"""
 
-          old_create_calendar = """    controller.dispose();
+          old_create = """    controller.dispose();
     if (name == null || name.trim().isEmpty) return;
     final id = await ref
         .read(matchesControllerProvider.notifier)
         .createOpponent(name.trim());
     if (!mounted || id == null) return;"""
-          new_create_calendar = """    controller.dispose();
+          new_create = """    controller.dispose();
     if (name == null || name.trim().isEmpty) return;
     final trimmedName = name.trim();
     final alreadyExists = ref.read(matchesControllerProvider).opponents.any(
@@ -112,28 +114,19 @@ jobs:
         .createOpponent(trimmedName);
     if (!mounted || id == null) return;"""
 
-          old_create_edit = old_create_calendar
-          new_create_edit = new_create_calendar
-
           for path in files:
               text = path.read_text()
-              before = text
               if path.name == 'calendar_entry_form_page.dart':
                   if old_button not in text:
                       raise SystemExit(f'opponent button block not found in {path}')
                   text = text.replace(old_button, new_button, 1)
-                  if old_create_calendar not in text:
-                      raise SystemExit(f'create opponent block not found in {path}')
-                  text = text.replace(old_create_calendar, new_create_calendar, 1)
               else:
                   if old_button_edit not in text:
                       raise SystemExit(f'opponent button block not found in {path}')
                   text = text.replace(old_button_edit, new_button_edit, 1)
-                  if old_create_edit not in text:
-                      raise SystemExit(f'create opponent block not found in {path}')
-                  text = text.replace(old_create_edit, new_create_edit, 1)
-              if text == before:
-                  raise SystemExit(f'no changes made in {path}')
+              if old_create not in text:
+                  raise SystemExit(f'create opponent block not found in {path}')
+              text = text.replace(old_create, new_create, 1)
               path.write_text(text)
           PY
           dart format lib/features/matches/presentation/calendar_entry_form_page.dart lib/features/matches/presentation/match_form_page.dart
