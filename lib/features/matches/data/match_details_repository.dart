@@ -80,6 +80,9 @@ class MatchDetailsData {
     required this.status,
     required this.resultValidatedAt,
     required this.location,
+    required this.address,
+    required this.matchType,
+    required this.championshipRound,
     required this.scoreGrinta,
     required this.scoreOpponent,
     required this.oddsWin,
@@ -108,6 +111,9 @@ class MatchDetailsData {
   /// corrections ultérieures de déplacer cette ancre.
   final DateTime? resultValidatedAt;
   final String location;
+  final String? address;
+  final String matchType;
+  final int? championshipRound;
   final int? scoreGrinta;
   final int? scoreOpponent;
   final double? oddsWin;
@@ -120,6 +126,14 @@ class MatchDetailsData {
   final List<MatchPredictionResult> predictions;
 
   bool get isValidated => status == 'termine' || status == 'archive';
+  bool get isFriendly => matchType == 'amical';
+
+  String get matchTypeLabel {
+    if (isInternal) return 'Match entre nous';
+    if (isFriendly) return 'Match amical';
+    final round = championshipRound;
+    return round == null ? 'Championnat' : 'Championnat · J$round';
+  }
 }
 
 class MatchDetailsRepository {
@@ -130,8 +144,8 @@ class MatchDetailsRepository {
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client.from('matches').select('''
       id, opponent_id, match_date, match_time, kickoff_at, status, location,
-      match_type, score_as_grinta, score_adverse, result_validated_at,
-      opponents(name),
+      address, match_type, championship_round, score_as_grinta, score_adverse,
+      result_validated_at, opponents(name, address),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
     ''').eq('id', matchId).maybeSingle();
     if (match == null) {
@@ -139,14 +153,14 @@ class MatchDetailsRepository {
     }
     // Un match entre nous n'a pas d'adversaire réel : ni opponent_id, ni
     // ligne opponents jointe.
-    final isInternal = match['match_type']?.toString() == 'entre_nous';
+    final matchType = match['match_type']?.toString() ?? 'championnat';
+    final isInternal = matchType == 'entre_nous';
     final opponentId = match['opponent_id']?.toString();
     final opponent = match['opponents'] is Map
         ? Map<String, dynamic>.from(match['opponents'] as Map)
         : const <String, dynamic>{};
-    final serverKickoff = DateTime.tryParse(
-      '${match['kickoff_at'] ?? ''}',
-    )?.toLocal();
+    final serverKickoff =
+        DateTime.tryParse('${match['kickoff_at'] ?? ''}')?.toLocal();
     final kickoffAt = serverKickoff ??
         DateTime.tryParse('${match['match_date']}T${match['match_time']}') ??
         DateTime(1970);
@@ -306,6 +320,10 @@ class MatchDetailsRepository {
         ..sort((a, b) => b.points.compareTo(a.points));
     }
 
+    final directAddress = _clean(match['address']);
+    final opponentAddress = _clean(opponent['address']);
+    final location = (match['location'] ?? 'domicile').toString();
+
     return MatchDetailsData(
       matchId: matchId,
       opponentId: opponentId,
@@ -318,7 +336,11 @@ class MatchDetailsRepository {
       resultValidatedAt: DateTime.tryParse(
         '${match['result_validated_at'] ?? ''}',
       )?.toLocal(),
-      location: (match['location'] ?? 'domicile').toString(),
+      location: location,
+      address:
+          directAddress ?? (location == 'exterieur' ? opponentAddress : null),
+      matchType: matchType,
+      championshipRound: (match['championship_round'] as num?)?.toInt(),
       scoreGrinta: match['score_as_grinta'] == null
           ? null
           : int.tryParse('${match['score_as_grinta']}'),
@@ -349,6 +371,11 @@ class MatchDetailsRepository {
     if (first.isNotEmpty) return first;
     final full = '${firstName ?? ''} ${lastName ?? ''}'.trim();
     return full.isEmpty ? 'Joueur' : full;
+  }
+
+  static String? _clean(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   Future<void> reportMatch({

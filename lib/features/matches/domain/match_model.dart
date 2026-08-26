@@ -28,6 +28,7 @@ class MatchModel {
     this.address,
     this.meetingAt,
     this.matchType = 'championnat',
+    this.championshipRound,
     this.jerseyNote,
   });
 
@@ -66,8 +67,12 @@ class MatchModel {
   DateTime get effectiveMeetingAt =>
       resolvedMatchMeetingAt(kickoffAt: kickoffAt, customMeetingAt: meetingAt);
 
-  /// « amical » ou « championnat », à titre informatif (onglet Info).
+  /// « amical », « championnat » ou « entre_nous ».
   final String matchType;
+
+  /// Numéro persistant du match de championnat (J1, J2, ...).
+  /// Nul pour les autres types de rencontre.
+  final int? championshipRound;
 
   /// Commentaire libre sur le maillot à porter, à titre informatif.
   final String? jerseyNote;
@@ -94,7 +99,17 @@ class MatchModel {
 
   String get matchTypeLabel {
     if (isInternal) return 'Match entre nous';
-    return isFriendly ? 'Match amical' : 'Championnat';
+    if (isFriendly) return 'Match amical';
+    final round = championshipRound;
+    return round == null ? 'Championnat' : 'Championnat · J$round';
+  }
+
+  /// Libellé court destiné aux cartes du calendrier.
+  String get calendarTypeLabel {
+    if (isInternal) return 'Match entre nous';
+    if (isFriendly) return 'Amical';
+    final round = championshipRound;
+    return round == null ? 'Championnat' : 'Championnat · J$round';
   }
 
   /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
@@ -195,6 +210,7 @@ class MatchModel {
           : null,
       meetingAt: DateTime.tryParse('${json['meeting_at'] ?? ''}')?.toLocal(),
       matchType: (json['match_type'] ?? 'championnat').toString(),
+      championshipRound: (json['championship_round'] as num?)?.toInt(),
       jerseyNote: (json['jersey_note']?.toString().trim().isNotEmpty ?? false)
           ? json['jersey_note'].toString()
           : null,

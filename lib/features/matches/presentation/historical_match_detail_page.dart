@@ -3,6 +3,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
+import 'package:as_grinta/core/widgets/match_scorers_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
@@ -11,18 +12,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Fiche en lecture seule d'un match de l'historique importé : même gabarit
-/// que [MatchDetailsPage] pour un match terminé (en-tête, composition,
-/// homme du match), rempli avec ce que l'archive du club sait réellement
-/// dire. Contrairement à [MatchDetailsPage], il n'y a ici ni pronostics, ni
-/// vote, ni action d'administration : tout est figé, importé depuis les
-/// archives du club — les sections sans donnée disponible sont simplement
-/// masquées plutôt que de simuler une fonctionnalité qui n'existe pas pour
-/// un match archivé.
-///
-/// [initialMatch] évite un aller-retour réseau quand on arrive depuis une
-/// carte du calendrier qui l'a déjà chargé ; sans lui (arrivée directe sur
-/// l'URL, ex. rechargement de page), l'en-tête est retrouvé via [matchId]
-/// dans la liste complète de l'historique.
+/// que [MatchDetailsPage] pour un match terminé, rempli avec ce que l'archive
+/// du club sait réellement dire. Les sections sans donnée disponible restent
+/// explicites plutôt que d'inventer une information absente de la source.
 class HistoricalMatchDetailPage extends ConsumerWidget {
   const HistoricalMatchDetailPage({
     required this.matchId,
@@ -78,6 +70,7 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
                 return _HistoricalMatchDetailBody(
                   matchId: matchId,
                   detail: detail,
+                  teamGoals: initialMatch?.grintaScore,
                 );
               },
             ),
@@ -136,7 +129,11 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
       grintaIsHome: match.isHome,
       homeScore: match.isHome ? match.grintaScore : match.opponentScore,
       awayScore: match.isHome ? match.opponentScore : match.grintaScore,
-      dateLabel: AppFormats.date(match.date),
+      dateLabel: match.hasTime
+          ? AppFormats.dateTime(match.date)
+          : AppFormats.date(match.date),
+      matchTypeLabel: match.matchTypeLabel,
+      address: match.address,
     );
   }
 }
@@ -145,10 +142,12 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
   const _HistoricalMatchDetailBody({
     required this.matchId,
     required this.detail,
+    required this.teamGoals,
   });
 
   final String matchId;
   final HistoricalMatchDetail detail;
+  final int? teamGoals;
 
   @override
   Widget build(BuildContext context) {
@@ -158,13 +157,18 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Même ordre qu'une fiche Live terminée (MatchDetailsPage) :
-        // en-tête → HDM → composition, pour que les deux fiches se
-        // lisent exactement de la même manière.
+        MatchScorersCard(
+          teamGoals: teamGoals,
+          scorers: [
+            for (final scorer in detail.scorers)
+              MatchScorerEntry(name: scorer.name, goals: scorer.goals),
+          ],
+        ),
         if (detail.motmNames.isNotEmpty) ...[
-          _HistoricalMotmCard(names: detail.motmNames),
           const SizedBox(height: 16),
+          _HistoricalMotmCard(names: detail.motmNames),
         ],
+        const SizedBox(height: 16),
         CompletedCompositionCard(
           composition: composition,
           fallbackPlayers: fallbackPlayers,
