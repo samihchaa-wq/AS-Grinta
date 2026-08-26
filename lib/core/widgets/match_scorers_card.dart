@@ -20,7 +20,9 @@ class MatchScorersCard extends StatelessWidget {
     required this.scorers,
   });
 
-  final int teamGoals;
+  /// Nul uniquement lorsqu'une ancienne source ne permet pas de connaître le
+  /// total au moment où la fiche est reconstruite.
+  final int? teamGoals;
   final List<MatchScorerEntry> scorers;
 
   @override
