@@ -21,3 +21,7 @@ ios/.symlinks/
 ios/Flutter/ephemeral/
 ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
+
+# Extraction SportEasy (outil local)
+tool/sporteasy/cookies.txt
+tool/sporteasy/events.json
