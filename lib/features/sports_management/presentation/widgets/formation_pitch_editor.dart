@@ -113,7 +113,7 @@ class FormationPitchEditor extends StatefulWidget {
   final List<FootballFormationSlot> slots;
   final List<MatchCompositionEntry> entries;
   final void Function(MatchCompositionEntry entry, FootballFormationSlot slot)
-      onDroppedOnSlot;
+  onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
   final bool editable;
 
@@ -179,7 +179,10 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
 
   bool _placeSelectedPlayer(MatchCompositionEntry entry) {
     final target = _selectedSlot;
-    if (!mounted || !widget.editable || target == null || !entry.canBeSelected) {
+    if (!mounted ||
+        !widget.editable ||
+        target == null ||
+        !entry.canBeSelected) {
       return false;
     }
     _clearSelection();
@@ -296,8 +299,9 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
         : _displayPosition(entry, legacyFlat442: legacyFlat442);
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
-    final left =
-        (x * size.width - width / 2).clamp(0.0, size.width - width).toDouble();
+    final left = (x * size.width - width / 2)
+        .clamp(0.0, size.width - width)
+        .toDouble();
     final top = (y * size.height - height / 2)
         .clamp(0.0, size.height - height)
         .toDouble();
@@ -379,7 +383,9 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
           final marker = Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: widget.editable ? () => _tapOccupiedSlot(slot, entry) : null,
+              onTap: widget.editable
+                  ? () => _tapOccupiedSlot(slot, entry)
+                  : null,
               onDoubleTap: widget.editable
                   ? () {
                       _clearSelection();
