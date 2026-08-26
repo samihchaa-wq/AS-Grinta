@@ -2,6 +2,9 @@ begin;
 
 -- Opponent names are labels, not identifiers. Staff may intentionally create
 -- two distinct opponent records with the exact same display name.
+alter table public.opponents
+  drop constraint if exists opponents_name_key;
+
 drop index if exists public.opponents_normalized_name_idx;
 create index if not exists opponents_normalized_name_idx
   on public.opponents (lower(btrim(name)));
