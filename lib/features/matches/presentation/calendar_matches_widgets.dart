@@ -129,10 +129,6 @@ class _CalendarToolbar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Une seule rangée : 2/3 pour le sélecteur Défilé/Par mois,
-              // 1/3 pour les deux actions en icônes (ajouter un événement +
-              // ajouter au calendrier ics). Même agencement en compact et
-              // en large — on gagne une ligne d'écran sur mobile.
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -542,14 +538,10 @@ class _MonthlyMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final surface = match.isCancelled
         ? CalendarCardPalette.cancelledSurface
-        : match.isInternal
-            ? CalendarCardPalette.internalSurface
-            : CalendarCardPalette.upcomingSurface;
+        : CalendarCardPalette.matchSurface(match.matchType);
     final border = match.isCancelled
         ? CalendarCardPalette.cancelledBorder
-        : match.isInternal
-            ? CalendarCardPalette.internalBorder
-            : CalendarCardPalette.upcomingBorder;
+        : CalendarCardPalette.matchBorder(match.matchType);
     final statusColor = switch (phase) {
       MatchDisplayPhase.live => AppTheme.error,
       MatchDisplayPhase.awaitingValidation => AppTheme.reward,
@@ -612,7 +604,7 @@ class _MonthlyMatchCard extends StatelessWidget {
                         ),
                       const SizedBox(height: 8),
                       Text(
-                        match.statusLabel,
+                        '${match.statusLabel} · ${match.calendarTypeLabel}',
                         textAlign: TextAlign.start,
                         style:
                             Theme.of(context).textTheme.labelMedium?.copyWith(
