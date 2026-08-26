@@ -486,8 +486,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           customAt: _customLaunchAt,
           enabled: !busy,
           onModeChanged: (mode) => setState(() => _launchMode = mode),
-          onCustomAtChanged: (value) =>
-              setState(() => _customLaunchAt = value),
+          onCustomAtChanged: (value) => setState(() => _customLaunchAt = value),
         ),
       );
     }
