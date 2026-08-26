@@ -54,11 +54,12 @@ class CompletedMatchEffectif {
     CompletedMatchEffectifPlayer player(
       String name,
       CompletedMatchPresenceStatus status,
-    ) => CompletedMatchEffectifPlayer(
-      displayName: name.trim(),
-      status: status,
-      isGuest: false,
-    );
+    ) =>
+        CompletedMatchEffectifPlayer(
+          displayName: name.trim(),
+          status: status,
+          isGuest: false,
+        );
 
     return CompletedMatchEffectif(
       players: [
@@ -109,13 +110,13 @@ class CompletedMatchEffectifRepository {
 
 final completedMatchEffectifRepositoryProvider =
     Provider<CompletedMatchEffectifRepository>((ref) {
-      return CompletedMatchEffectifRepository(
-        ref.watch(supabaseClientProvider),
-      );
-    });
+  return CompletedMatchEffectifRepository(
+    ref.watch(supabaseClientProvider),
+  );
+});
 
 final completedMatchEffectifProvider = FutureProvider.autoDispose
     .family<CompletedMatchEffectif?, String>((ref, matchId) async {
-      if (!ref.watch(sportsManagementEnabledProvider)) return null;
-      return ref.watch(completedMatchEffectifRepositoryProvider).fetch(matchId);
-    });
+  if (!ref.watch(sportsManagementEnabledProvider)) return null;
+  return ref.watch(completedMatchEffectifRepositoryProvider).fetch(matchId);
+});

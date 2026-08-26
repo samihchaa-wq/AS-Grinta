@@ -95,16 +95,16 @@ class MatchDetailsPage extends ConsumerWidget {
                 .toList(growable: false);
             final motmNames =
                 vote != null && vote.isClosed && vote.winners.isNotEmpty
-                ? vote.winners
-                      .map((winner) => winner.displayName)
-                      .toList(growable: false)
-                : fallbackMotmNames;
+                    ? vote.winners
+                        .map((winner) => winner.displayName)
+                        .toList(growable: false)
+                    : fallbackMotmNames;
             final motmActionLabel =
                 vote != null && vote.isOpen && vote.isEligibleVoter
-                ? (vote.hasVoted
-                      ? 'Vote HDM enregistré'
-                      : 'Voter pour l’Homme du match')
-                : null;
+                    ? (vote.hasVoted
+                        ? 'Vote HDM enregistré'
+                        : 'Voter pour l’Homme du match')
+                    : null;
             final scorerLabels = [
               for (final stat in details.playerStats)
                 if (stat.goals > 0)
@@ -246,9 +246,7 @@ class _PostgameAdminActions extends ConsumerWidget {
 
     if (!sportsEnabled) return _actions(context, anchor);
 
-    return ref
-        .watch(sportMotmVoteProvider(matchId))
-        .when(
+    return ref.watch(sportMotmVoteProvider(matchId)).when(
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
           data: (vote) {
@@ -425,13 +423,17 @@ class _MatchModule extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
               Text(
                 subtitle,
-                style: Theme.of(context).textTheme.bodyMedium
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
                     ?.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 12),
@@ -459,9 +461,8 @@ class _CompletedEffectifSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!sportsEnabled) return const SizedBox.shrink();
-    final effectif = ref
-        .watch(completedMatchEffectifProvider(matchId))
-        .valueOrNull;
+    final effectif =
+        ref.watch(completedMatchEffectifProvider(matchId)).valueOrNull;
     if (effectif == null || effectif.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
@@ -531,9 +532,8 @@ class _CompletedCompositionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!sportsEnabled) return const SizedBox.shrink();
-    final composition = ref
-        .watch(publishedMatchCompositionProvider(matchId))
-        .valueOrNull;
+    final composition =
+        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
     if (composition == null) return const SizedBox.shrink();
 
     return Padding(
@@ -565,13 +565,12 @@ class _PredictionsTable extends StatelessWidget {
 
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
-    final exact =
-        prediction.scoreGrinta == actualGrinta &&
+    final exact = prediction.scoreGrinta == actualGrinta &&
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
     final correctWinner =
         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
-        _result(actualGrinta, actualOpponent);
+            _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
     return const Color(0xFF39E784);
   }
