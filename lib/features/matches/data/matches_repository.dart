@@ -27,6 +27,7 @@ class MatchesRepository {
       result_validated_at,
       address,
       match_type,
+      championship_round,
       jersey_note,
       created_by,
       created_at,
