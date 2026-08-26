@@ -596,7 +596,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       ),
     );
     controller.dispose();
-    if (name == null || name.trim().isEmpty) return;
+    if (name == null || name.trim().isEmpty || !mounted) return;
     final trimmedName = name.trim();
     final alreadyExists = ref.read(matchesControllerProvider).opponents.any(
           (opponent) => opponent['name']?.toString() == trimmedName,
