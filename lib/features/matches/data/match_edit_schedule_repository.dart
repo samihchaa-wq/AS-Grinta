@@ -50,7 +50,7 @@ class MatchEditScheduleRepository {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
-    required DateTime expectedUpdatedAt,
+    required DateTime? expectedUpdatedAt,
     int? squadSizeLimit,
     String? address,
     bool rememberAddressAsDefault = false,
@@ -60,6 +60,9 @@ class MatchEditScheduleRepository {
     ConvocationLaunchMode? launchMode,
     DateTime? customLaunchAt,
   }) async {
+    if (expectedUpdatedAt == null) {
+      throw StateError('Le match a changé. Recharge l’écran avant d’enregistrer.');
+    }
     final result = await _client.rpc(
       'admin_update_match_complete_v3',
       params: {
@@ -96,12 +99,15 @@ class MatchEditScheduleRepository {
     required String id,
     required String seasonId,
     required DateTime kickoffAt,
-    required DateTime expectedUpdatedAt,
+    required DateTime? expectedUpdatedAt,
     String? address,
     DateTime? meetingAt,
     ConvocationLaunchMode? launchMode,
     DateTime? customLaunchAt,
   }) async {
+    if (expectedUpdatedAt == null) {
+      throw StateError('Le match a changé. Recharge l’écran avant d’enregistrer.');
+    }
     final result = await _client.rpc(
       'update_internal_match_v3',
       params: {
