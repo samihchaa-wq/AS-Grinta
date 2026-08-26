@@ -53,24 +53,27 @@ void main() {
     expect(internal.calendarTypeLabel, 'Match entre nous');
   });
 
-  test('historical metadata derives season and keeps unknown fields nullable', () {
-    final historical = HistoricalMatchResult(
-      id: 'history-1',
-      date: DateTime(2025, 10, 6, 20, 30),
-      hasTime: true,
-      opponentName: 'Ancien adversaire',
-      grintaScore: 3,
-      opponentScore: 1,
-      isHome: false,
-      matchType: 'championnat',
-      championshipRound: 7,
-      address: '1 rue du Stade',
-    );
+  test(
+    'historical metadata derives season and keeps unknown fields nullable',
+    () {
+      final historical = HistoricalMatchResult(
+        id: 'history-1',
+        date: DateTime(2025, 10, 6, 20, 30),
+        hasTime: true,
+        opponentName: 'Ancien adversaire',
+        grintaScore: 3,
+        opponentScore: 1,
+        isHome: false,
+        matchType: 'championnat',
+        championshipRound: 7,
+        address: '1 rue du Stade',
+      );
 
-    expect(historical.seasonName, '2025-2026');
-    expect(historical.matchTypeLabel, 'Championnat · J7');
-    expect(historical.calendarTypeLabel, 'Championnat · J7');
-    expect(historical.hasTime, isTrue);
-    expect(historical.address, '1 rue du Stade');
-  });
+      expect(historical.seasonName, '2025-2026');
+      expect(historical.matchTypeLabel, 'Championnat · J7');
+      expect(historical.calendarTypeLabel, 'Championnat · J7');
+      expect(historical.hasTime, isTrue);
+      expect(historical.address, '1 rue du Stade');
+    },
+  );
 }
