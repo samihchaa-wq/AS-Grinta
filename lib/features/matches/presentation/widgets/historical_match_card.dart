@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
+import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
@@ -21,6 +22,7 @@ class HistoricalMatchCard extends StatelessWidget {
     final awayName = isHome ? match.opponentName : 'AS Grinta';
     final homeScore = isHome ? match.grintaScore : match.opponentScore;
     final awayScore = isHome ? match.opponentScore : match.grintaScore;
+    final cleanAddress = match.address?.trim();
     final surface = CalendarCardPalette.matchSurface(
       match.matchType,
       unknownAsFinished: true,
@@ -75,6 +77,47 @@ class HistoricalMatchCard extends StatelessWidget {
                           color: border,
                           fontWeight: FontWeight.w900,
                         ),
+                  ),
+                ],
+                if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  InkWell(
+                    onTap: () => showMatchAddressSheet(context, cleanAddress),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 16,
+                            color: border,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              cleanAddress,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelMedium
+                                  ?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 17,
+                            color: border,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ],
