@@ -10,64 +10,37 @@
 -- (dates, scores, domicile, effectif present, buteurs, hommes du match,
 -- compositions et formations : zero ecart sur les 313 rencontres).
 --
--- Les 313 rencontres se repartissent en 157 championnats et 156 amicaux.
--- Aucune n'est de type inconnu, aucune n'est un match entre nous : les
--- 4 rencontres internes avec score restent hors de l'archive tant que
--- historical_match_scores exige un adversaire.
+-- Appliquee en production le 2026-08-26 sous la version 20260826131231.
+-- Comptes verifies apres coup : 313 heures, 313 adresses, 157 championnats,
+-- 156 amicaux, 157 journees. Les scores, les 3953 lignes de joueurs, les
+-- 1196 buts, les 114 classements et les 42 adversaires sont inchanges.
 --
 -- Saison 2022-2023 : la numerotation des journees repart a J1 en mars 2023.
 -- C'est la source qui le dit, le championnat ayant eu deux phases cette
 -- saison-la. Les numeros sont repris tels quels plutot que renumerotes en
 -- continu, pour ne pas inventer une numerotation que le club n'a pas utilisee.
 --
--- Appliquee en production le 2026-08-26 sous la version 20260826131231.
--- Comptes verifies apres coup : 313 heures, 313 adresses, 157 championnats,
--- 156 amicaux, 157 journees. Les scores, les 3953 lignes de joueurs, les
--- 1196 buts, les 114 classements et les 42 adversaires sont inchanges.
---
--- Le rapprochement se fait par date : les 313 rencontres archivees ont
--- 313 dates distinctes, ce que le garde-fou ci-dessous revalide avant toute
--- ecriture.
+-- Le rapprochement se fait par date. Les controles portent sur les seules
+-- rencontres effectivement presentes : une base neuve, ou l'archive n'a pas
+-- encore ete chargee, traverse cette migration sans rien faire au lieu
+-- d'echouer.
 
-do $prealable$
-declare
-  v_lignes integer;
-  v_dates integer;
-begin
-  select count(*), count(distinct match_date) into v_lignes, v_dates
-  from public.historical_match_scores;
-  if v_lignes <> v_dates then
-    raise exception 'Lot 1 : % rencontres pour % dates, le rapprochement par date n''est pas fiable', v_lignes, v_dates;
-  end if;
-end;
-$prealable$;
+create temporary table tmp_sporteasy_lot1 (
+  match_date date primary key,
+  match_time time not null,
+  address text not null,
+  match_type text,
+  championship_round integer
+);
 
-with lieu(code, adresse) as (
-  values
-    (1, '20 Chemin de Garric, 31200 Toulouse, France'),
-    (2, 'Chemin des Côtes de Pech David, 31400 Toulouse, France'),
-    (3, 'Rue des Cyclamens, 31700 Blagnac, France'),
-    (4, 'Allée de la Colombe, 31770 Colomiers, France'),
-    (5, 'Chemin des Garrosses, 31180 Rouffiac-Tolosan, France'),
-    (6, '153 Avenue de Lardenne, 31100 Toulouse, France'),
-    (7, 'Impasse Barthe, 31200 Toulouse, France'),
-    (8, 'Chemin de la Cepière, 31100 Toulouse, France'),
-    (9, 'Rte du Stade, 31700 Cornebarrieu, France'),
-    (10, 'Rue de Rabastens, 31500 Toulouse, France'),
-    (11, '8 bis Rue Claudius Rougenet, 31500 Toulouse, France'),
-    (12, 'Avenue Jean Mermoz, 31140 Fonbeauzard, France'),
-    (13, 'Avenue de Lattre de Tassigny, 31400 Toulouse, France'),
-    (14, 'Chemin du Dr Louis Delherm, 31320 Auzeville-Tolosane, France'),
-    (15, '2 Boulevard des Écoles, 31820 Pibrac, France'),
-    (16, '110 Avenue du Marquisat, 31170 Tournefeuille, France'),
-    (17, 'Boulevard Als Cambiots, 31130 Balma, France'),
-    (18, 'Rue du Stade, 31490 Brax, France'),
-    (19, '17 Chemin de la Saudrune, 31100 Toulouse, France'),
-    (20, 'Allée des Sports, 31170 Tournefeuille, France'),
-    (21, '223 Rue des Arts, 31670 Labège, France'),
-    (22, '8 Rue Claudius Rougenet, 31500 Toulouse, France')
-), source(match_date, lieu_code, match_time, match_type, championship_round) as (
-  values
+insert into tmp_sporteasy_lot1
+  (match_date, match_time, address, match_type, championship_round)
+select source.match_date::date,
+       source.match_time::time,
+       lieu.adresse::text,
+       source.match_type::text,
+       source.championship_round::integer
+from (values
     ('2014-04-24', 1, '19:30', 'amical', null),
     ('2014-05-13', 2, '20:00', 'championnat', 21),
     ('2014-05-27', 3, '20:15', 'amical', null),
@@ -381,64 +354,82 @@ with lieu(code, adresse) as (
     ('2026-05-12', 1, '20:30', 'championnat', 22),
     ('2026-05-21', 5, '20:30', 'championnat', 23),
     ('2026-06-15', 21, '20:15', 'championnat', 26)
-)
-update public.historical_match_scores h
-set match_time = source.match_time::time,
-    address = lieu.adresse,
-    match_type = source.match_type,
-    championship_round = source.championship_round
-from source
-left join lieu on lieu.code = source.lieu_code
-where h.match_date = source.match_date::date;
+) as source(match_date, lieu_code, match_time, match_type, championship_round)
+join (values
+    (1, '20 Chemin de Garric, 31200 Toulouse, France'),
+    (2, 'Chemin des Côtes de Pech David, 31400 Toulouse, France'),
+    (3, 'Rue des Cyclamens, 31700 Blagnac, France'),
+    (4, 'Allée de la Colombe, 31770 Colomiers, France'),
+    (5, 'Chemin des Garrosses, 31180 Rouffiac-Tolosan, France'),
+    (6, '153 Avenue de Lardenne, 31100 Toulouse, France'),
+    (7, 'Impasse Barthe, 31200 Toulouse, France'),
+    (8, 'Chemin de la Cepière, 31100 Toulouse, France'),
+    (9, 'Rte du Stade, 31700 Cornebarrieu, France'),
+    (10, 'Rue de Rabastens, 31500 Toulouse, France'),
+    (11, '8 bis Rue Claudius Rougenet, 31500 Toulouse, France'),
+    (12, 'Avenue Jean Mermoz, 31140 Fonbeauzard, France'),
+    (13, 'Avenue de Lattre de Tassigny, 31400 Toulouse, France'),
+    (14, 'Chemin du Dr Louis Delherm, 31320 Auzeville-Tolosane, France'),
+    (15, '2 Boulevard des Écoles, 31820 Pibrac, France'),
+    (16, '110 Avenue du Marquisat, 31170 Tournefeuille, France'),
+    (17, 'Boulevard Als Cambiots, 31130 Balma, France'),
+    (18, 'Rue du Stade, 31490 Brax, France'),
+    (19, '17 Chemin de la Saudrune, 31100 Toulouse, France'),
+    (20, 'Allée des Sports, 31170 Tournefeuille, France'),
+    (21, '223 Rue des Arts, 31670 Labège, France'),
+    (22, '8 Rue Claudius Rougenet, 31500 Toulouse, France')
+) as lieu(code, adresse) on lieu.code = source.lieu_code;
 
--- Controle strict : les comptes doivent tomber juste, sinon la migration
--- echoue et rien n'est conserve.
-do $controle$
+do $prealable$
 declare
-  v_type integer; v_heure integer; v_adresse integer; v_journee integer;
-  v_champ integer; v_amical integer; v_somme_j bigint;
-  v_adr_dist integer; v_minutes bigint;
+  v_lignes integer;
+  v_dates integer;
 begin
-  select count(*) filter (where match_type is not null),
-         count(*) filter (where match_time is not null),
-         count(*) filter (where address is not null),
-         count(*) filter (where championship_round is not null),
-         count(*) filter (where match_type = 'championnat'),
-         count(*) filter (where match_type = 'amical'),
-         coalesce(sum(championship_round), 0),
-         count(distinct address),
-         coalesce(sum(extract(hour from match_time) * 60
-                    + extract(minute from match_time)), 0)
-  into v_type, v_heure, v_adresse, v_journee,
-       v_champ, v_amical, v_somme_j, v_adr_dist, v_minutes
+  select count(*), count(distinct match_date) into v_lignes, v_dates
   from public.historical_match_scores;
-
-  if v_type <> 313 then
-    raise exception 'Lot 1 : % rencontres typées au lieu de 313', v_type;
-  end if;
-  if v_heure <> 313 then
-    raise exception 'Lot 1 : % heures au lieu de 313', v_heure;
-  end if;
-  if v_adresse <> 313 then
-    raise exception 'Lot 1 : % adresses au lieu de 313', v_adresse;
-  end if;
-  if v_journee <> 157 then
-    raise exception 'Lot 1 : % journées au lieu de 157', v_journee;
-  end if;
-
-  -- Sommes de controle : une valeur mal reportee ferait echouer la migration
-  -- meme si les comptes tombaient juste.
-  if v_champ <> 157 or v_amical <> 156 then
-    raise exception 'Lot 1 : % championnats et % amicaux au lieu de 157 et 156', v_champ, v_amical;
-  end if;
-  if v_somme_j <> 1337 then
-    raise exception 'Lot 1 : somme des journées = % au lieu de 1337', v_somme_j;
-  end if;
-  if v_adr_dist <> 22 then
-    raise exception 'Lot 1 : % adresses distinctes au lieu de 22', v_adr_dist;
-  end if;
-  if v_minutes <> 383600 then
-    raise exception 'Lot 1 : somme des heures = % minutes au lieu de 383600', v_minutes;
+  if v_lignes <> v_dates then
+    raise exception
+      'Lot 1 : % rencontres pour % dates, le rapprochement par date n''est pas fiable',
+      v_lignes, v_dates;
   end if;
 end;
+$prealable$;
+
+update public.historical_match_scores h
+set match_time = t.match_time,
+    address = t.address,
+    match_type = t.match_type,
+    championship_round = t.championship_round
+from tmp_sporteasy_lot1 t
+where h.match_date = t.match_date;
+
+-- Controle : chaque rencontre archivee que le releve connait doit porter
+-- exactement les valeurs attendues. Sur une base sans archive, la cible vaut
+-- zero et le controle passe sans rien exiger.
+do $controle$
+declare
+  v_cible integer;
+  v_conformes integer;
+begin
+  select count(*) into v_cible
+  from public.historical_match_scores h
+  join tmp_sporteasy_lot1 t on t.match_date = h.match_date;
+
+  select count(*) into v_conformes
+  from public.historical_match_scores h
+  join tmp_sporteasy_lot1 t on t.match_date = h.match_date
+  where h.match_time is not distinct from t.match_time
+    and h.address is not distinct from t.address
+    and h.match_type is not distinct from t.match_type
+    and h.championship_round is not distinct from t.championship_round;
+
+  if v_conformes <> v_cible then
+    raise exception 'Lot 1 : % rencontres sur % portent les valeurs attendues',
+      v_conformes, v_cible;
+  end if;
+
+  raise notice 'Lot 1 : % rencontres archivees completees.', v_cible;
+end;
 $controle$;
+
+drop table tmp_sporteasy_lot1;
