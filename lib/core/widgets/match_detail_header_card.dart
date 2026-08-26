@@ -8,7 +8,8 @@ import 'package:flutter/material.dart';
 ///
 /// L'affiche et le score restent strictement portés par [MatchFixture]. Les
 /// informations absentes de la source sont simplement omises : aucune valeur
-/// n'est inventée pour remplir la fiche.
+/// n'est inventée pour remplir la fiche. La composition est affichée ensuite
+/// comme premier module de contenu détaillé, sans bloc Effectif intermédiaire.
 class MatchDetailHeaderCard extends StatelessWidget {
   const MatchDetailHeaderCard({
     super.key,
