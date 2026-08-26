@@ -384,12 +384,6 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
             child: InkWell(
               onTap:
                   widget.editable ? () => _tapOccupiedSlot(slot, entry) : null,
-              onDoubleTap: widget.editable
-                  ? () {
-                      _clearSelection();
-                      widget.onRemoveFromField(entry);
-                    }
-                  : null,
               borderRadius: BorderRadius.circular(16),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 140),
