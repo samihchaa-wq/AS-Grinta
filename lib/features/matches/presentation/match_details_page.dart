@@ -4,18 +4,15 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
-import 'package:as_grinta/core/widgets/match_scorers_card.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
-import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
-import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
-import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -42,7 +39,8 @@ class MatchDetailsPage extends ConsumerWidget {
           await ref.read(featureFlagsControllerProvider.notifier).refresh();
           ref
             ..invalidate(matchDetailsProvider(matchId))
-            ..invalidate(matchFinalizationContextProvider(matchId))
+            ..invalidate(publishedMatchCompositionProvider(matchId))
+            ..invalidate(matchLiveTimelineProvider(matchId))
             ..invalidate(sportMotmVoteProvider(matchId));
           await ref.read(matchDetailsProvider(matchId).future);
         },
@@ -84,6 +82,31 @@ class MatchDetailsPage extends ConsumerWidget {
               );
             }
 
+            final vote = sportsEnabled
+                ? ref.watch(sportMotmVoteProvider(matchId)).valueOrNull
+                : null;
+            final fallbackMotmNames = details.startingLineup
+                .where((player) => player.isManOfTheMatch)
+                .map((player) => player.name)
+                .toList(growable: false);
+            final motmNames =
+                vote != null && vote.isClosed && vote.winners.isNotEmpty
+                    ? vote.winners
+                        .map((winner) => winner.displayName)
+                        .toList(growable: false)
+                    : fallbackMotmNames;
+            final motmActionLabel =
+                vote != null && vote.isOpen && vote.isEligibleVoter
+                    ? (vote.hasVoted
+                        ? 'Vote HDM enregistré'
+                        : 'Voter pour l’Homme du match')
+                    : null;
+            final scorerLabels = [
+              for (final stat in details.playerStats)
+                if (stat.goals > 0)
+                  stat.goals > 1 ? '${stat.name} ×${stat.goals}' : stat.name,
+            ];
+
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
@@ -101,33 +124,27 @@ class MatchDetailsPage extends ConsumerWidget {
                   awayScore: details.location == 'domicile'
                       ? details.scoreOpponent ?? 0
                       : details.scoreGrinta ?? 0,
-                  dateLabel: AppFormats.dateTime(details.kickoffAt),
+                  dateLabel: AppFormats.date(details.kickoffAt),
+                  kickoffTimeLabel: AppFormats.time(details.kickoffAt),
                   matchTypeLabel: details.matchTypeLabel,
                   address: details.address,
+                  manOfMatchNames: motmNames,
+                  motmActionLabel: motmActionLabel,
+                  onMotmTap: motmActionLabel == null
+                      ? null
+                      : () => context.push('/matches/$matchId/vote'),
+                  scorerLabels: scorerLabels,
+                  teamScoredZero: details.scoreGrinta == 0,
                 ),
-                const SizedBox(height: 16),
-                MatchScorersCard(
-                  teamGoals: details.scoreGrinta ?? 0,
-                  scorers: [
-                    for (final stat in details.playerStats)
-                      if (stat.goals > 0)
-                        MatchScorerEntry(name: stat.name, goals: stat.goals),
-                  ],
-                ),
-                if (sportsEnabled) ...[
-                  const SizedBox(height: 16),
-                  MatchMotmVoteCard(matchId: matchId),
-                ],
-                const SizedBox(height: 16),
                 _CompletedCompositionCard(
                   details: details,
                   matchId: matchId,
                   sportsEnabled: sportsEnabled,
                 ),
-                if (sportsEnabled) ...[
-                  const SizedBox(height: 16),
-                  MatchFaitsDuMatchCard(matchId: matchId),
-                ],
+                _CompletedFactsSection(
+                  matchId: matchId,
+                  sportsEnabled: sportsEnabled,
+                ),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -234,10 +251,7 @@ class _PostgameAdminActions extends ConsumerWidget {
 }
 
 class _PostgameDeadlineGate extends StatefulWidget {
-  const _PostgameDeadlineGate({
-    required this.deadline,
-    required this.child,
-  });
+  const _PostgameDeadlineGate({required this.deadline, required this.child});
 
   final DateTime deadline;
   final Widget child;
@@ -401,16 +415,18 @@ class _MatchModule extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                 title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
               Text(
                 subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 12),
               const Align(
@@ -421,6 +437,29 @@ class _MatchModule extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CompletedFactsSection extends ConsumerWidget {
+  const _CompletedFactsSection({
+    required this.matchId,
+    required this.sportsEnabled,
+  });
+
+  final String matchId;
+  final bool sportsEnabled;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!sportsEnabled) return const SizedBox.shrink();
+    final timeline = ref.watch(matchLiveTimelineProvider(matchId)).valueOrNull;
+    if (timeline == null || timeline.events.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: MatchFaitsDuMatchCard(matchId: matchId),
     );
   }
 }
@@ -460,70 +499,19 @@ class _CompletedCompositionCard extends ConsumerWidget {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
-  List<CompletedPlayerSummary> _fullSquadPlayers(
-    MatchFinalizationContext? finalization,
-  ) {
-    final fallbackPlayers = _playersFromMatchDetails();
-    if (finalization == null || finalization.squad.isEmpty) {
-      return fallbackPlayers;
-    }
-
-    final goalsByPlayerId = <String, int>{};
-    for (final scorerId in finalization.scorerGoalLines) {
-      goalsByPlayerId.update(
-        scorerId,
-        (goals) => goals + 1,
-        ifAbsent: () => 1,
-      );
-    }
-
-    final selectedPlayerIds = finalization.presentPlayerIds;
-    final players = [
-      for (final player in finalization.squad)
-        if (selectedPlayerIds.contains(player.id) ||
-            goalsByPlayerId.containsKey(player.id))
-          CompletedPlayerSummary(
-            name: player.name,
-            goals: goalsByPlayerId[player.id] ?? 0,
-          ),
-    ];
-
-    for (final fallback in fallbackPlayers) {
-      final index = players.indexWhere(
-        (player) => player.name.toLowerCase() == fallback.name.toLowerCase(),
-      );
-      if (index == -1) {
-        players.add(fallback);
-      } else if (fallback.goals > players[index].goals) {
-        players[index] = fallback;
-      }
-    }
-
-    players.sort(
-      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-    );
-    return players;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    MatchComposition? composition;
-    if (sportsEnabled) {
-      // Priorité au rendu MPG dès qu'une composition publiée existe.
-      composition =
-          ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
-    }
+    if (!sportsEnabled) return const SizedBox.shrink();
+    final composition =
+        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
+    if (composition == null) return const SizedBox.shrink();
 
-    final finalization = sportsEnabled
-        ? null
-        : ref.watch(matchFinalizationContextProvider(matchId)).valueOrNull;
-    final fallbackPlayers = sportsEnabled
-        ? _playersFromMatchDetails()
-        : _fullSquadPlayers(finalization);
-
-    return CompletedCompositionCard(
-      composition: composition,
-      fallbackPlayers: fallbackPlayers,
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: CompletedCompositionCard(
+        composition: composition,
+        fallbackPlayers: _playersFromMatchDetails(),
+      ),
     );
   }
 }
@@ -626,7 +614,7 @@ class _PredictionsTable extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Pronostics', style: Theme.of(context).textTheme.titleLarge),
+            Text('Prono', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             for (final prediction in predictions)
               _predictionRow(context, prediction),
