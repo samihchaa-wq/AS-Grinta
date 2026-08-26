@@ -268,6 +268,21 @@ class MatchLiveStateController
     );
   }
 
+  Future<void> changeFormation({
+    required String formationCode,
+    required List<Map<String, dynamic>> entries,
+    required int expectedLineupRevision,
+  }) {
+    return _mutate(
+      (repository) => repository.changeLiveFormation(
+        matchId: arg,
+        formationCode: formationCode,
+        entries: entries,
+        expectedLineupRevision: expectedLineupRevision,
+      ),
+    );
+  }
+
   Future<void> deleteEvent(String eventId) {
     return _mutate(
       (repository) => repository.deleteEvent(matchId: arg, eventId: eventId),
