@@ -127,21 +127,21 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
     ...(absentNamesRaw ?? const <String>[]),
   });
 
-  final fieldPlayers = fieldPlayersRaw.map(
-    (entry) {
-      final fullName = (entry['name'] ?? '').toString();
-      final isVacant = isVacantArchiveSlotName(fullName);
-      return HistoricalFieldPlayer(
-        name: isVacant ? '' : shortName(fullName),
-        positionLabel: (entry['position_label'] ?? '').toString(),
-        xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
-        yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
-        isGoalkeeper: entry['is_gk'] as bool? ?? false,
-        photoUrl: isVacant ? null : photoUrlsByName[fullName] as String?,
-        isVacant: isVacant,
-      );
-    },
-  ).toList(growable: false);
+  final fieldPlayers = fieldPlayersRaw
+      .map((entry) {
+        final fullName = (entry['name'] ?? '').toString();
+        final isVacant = isVacantArchiveSlotName(fullName);
+        return HistoricalFieldPlayer(
+          name: isVacant ? '' : shortName(fullName),
+          positionLabel: (entry['position_label'] ?? '').toString(),
+          xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
+          yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
+          isGoalkeeper: entry['is_gk'] as bool? ?? false,
+          photoUrl: isVacant ? null : photoUrlsByName[fullName] as String?,
+          isVacant: isVacant,
+        );
+      })
+      .toList(growable: false);
 
   // Le banc n'est stocké que sous forme de noms, contrairement aux
   // titulaires (positions x/y) : on réutilise quand même [HistoricalFieldPlayer]
@@ -226,10 +226,11 @@ String Function(String) _shortNameResolver(Iterable<String> fullNames) {
 
 final historicalMatchDetailRepositoryProvider =
     Provider<HistoricalMatchDetailRepository>(
-  (ref) => HistoricalMatchDetailRepository(ref.watch(supabaseClientProvider)),
-);
+      (ref) =>
+          HistoricalMatchDetailRepository(ref.watch(supabaseClientProvider)),
+    );
 
 final historicalMatchDetailProvider =
     FutureProvider.family<HistoricalMatchDetail?, String>((ref, matchId) {
-  return ref.watch(historicalMatchDetailRepositoryProvider).fetch(matchId);
-});
+      return ref.watch(historicalMatchDetailRepositoryProvider).fetch(matchId);
+    });

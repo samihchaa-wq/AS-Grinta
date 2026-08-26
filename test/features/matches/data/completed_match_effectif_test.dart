@@ -6,11 +6,7 @@ void main() {
     final effectif = CompletedMatchEffectif.fromRpc({
       'match_id': 'match-1',
       'players': [
-        {
-          'display_name': 'Zed',
-          'presence_status': 'present',
-          'is_guest': true,
-        },
+        {'display_name': 'Zed', 'presence_status': 'present', 'is_guest': true},
         {
           'display_name': 'Ali',
           'presence_status': 'present',
@@ -29,7 +25,10 @@ void main() {
       ],
     });
 
-    expect(effectif.present.map((player) => player.displayName), ['Ali', 'Zed']);
+    expect(effectif.present.map((player) => player.displayName), [
+      'Ali',
+      'Zed',
+    ]);
     expect(effectif.present.last.isGuest, isTrue);
     expect(effectif.absent.map((player) => player.displayName), ['Mehdi']);
   });
@@ -40,7 +39,10 @@ void main() {
       absentNames: ['Flo'],
     );
 
-    expect(effectif.present.map((player) => player.displayName), ['Aki', 'Samih']);
+    expect(effectif.present.map((player) => player.displayName), [
+      'Aki',
+      'Samih',
+    ]);
     expect(effectif.absent.single.displayName, 'Flo');
   });
 }

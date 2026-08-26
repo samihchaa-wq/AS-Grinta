@@ -200,8 +200,8 @@ MatchComposition? _compositionFromHistorical(
   int goalsFor(String name) => name.isEmpty
       ? 0
       : detail.scorers
-          .where((scorer) => scorer.name == name)
-          .fold<int>(0, (total, scorer) => total + scorer.goals);
+            .where((scorer) => scorer.name == name)
+            .fold<int>(0, (total, scorer) => total + scorer.goals);
 
   final entries = <MatchCompositionEntry>[
     for (var i = 0; i < detail.fieldPlayers.length; i += 1)
@@ -210,7 +210,8 @@ MatchComposition? _compositionFromHistorical(
         zone: MatchCompositionZone.field,
         sortOrder: i,
         goals: goalsFor(detail.fieldPlayers[i].name),
-        isMotm: !detail.fieldPlayers[i].isVacant &&
+        isMotm:
+            !detail.fieldPlayers[i].isVacant &&
             detail.motmNames.contains(detail.fieldPlayers[i].name),
       ),
     for (var i = 0; i < detail.benchPlayers.length; i += 1)

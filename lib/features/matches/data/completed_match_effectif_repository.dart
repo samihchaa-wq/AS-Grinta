@@ -54,12 +54,11 @@ class CompletedMatchEffectif {
     CompletedMatchEffectifPlayer player(
       String name,
       CompletedMatchPresenceStatus status,
-    ) =>
-        CompletedMatchEffectifPlayer(
-          displayName: name.trim(),
-          status: status,
-          isGuest: false,
-        );
+    ) => CompletedMatchEffectifPlayer(
+      displayName: name.trim(),
+      status: status,
+      isGuest: false,
+    );
 
     return CompletedMatchEffectif(
       players: [
@@ -73,13 +72,11 @@ class CompletedMatchEffectif {
     );
   }
 
-  List<CompletedMatchEffectifPlayer> get present => _playersWith(
-        CompletedMatchPresenceStatus.present,
-      );
+  List<CompletedMatchEffectifPlayer> get present =>
+      _playersWith(CompletedMatchPresenceStatus.present);
 
-  List<CompletedMatchEffectifPlayer> get absent => _playersWith(
-        CompletedMatchPresenceStatus.absent,
-      );
+  List<CompletedMatchEffectifPlayer> get absent =>
+      _playersWith(CompletedMatchPresenceStatus.absent);
 
   bool get isEmpty => players.isEmpty;
 
@@ -88,9 +85,8 @@ class CompletedMatchEffectif {
   ) {
     final result = players.where((player) => player.status == status).toList();
     result.sort(
-      (a, b) => a.displayName.toLowerCase().compareTo(
-            b.displayName.toLowerCase(),
-          ),
+      (a, b) =>
+          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
     );
     return result;
   }
@@ -113,11 +109,13 @@ class CompletedMatchEffectifRepository {
 
 final completedMatchEffectifRepositoryProvider =
     Provider<CompletedMatchEffectifRepository>((ref) {
-  return CompletedMatchEffectifRepository(ref.watch(supabaseClientProvider));
-});
+      return CompletedMatchEffectifRepository(
+        ref.watch(supabaseClientProvider),
+      );
+    });
 
 final completedMatchEffectifProvider = FutureProvider.autoDispose
     .family<CompletedMatchEffectif?, String>((ref, matchId) async {
-  if (!ref.watch(sportsManagementEnabledProvider)) return null;
-  return ref.watch(completedMatchEffectifRepositoryProvider).fetch(matchId);
-});
+      if (!ref.watch(sportsManagementEnabledProvider)) return null;
+      return ref.watch(completedMatchEffectifRepositoryProvider).fetch(matchId);
+    });

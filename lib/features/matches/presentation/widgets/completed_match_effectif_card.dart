@@ -3,10 +3,7 @@ import 'package:as_grinta/features/matches/data/completed_match_effectif_reposit
 import 'package:flutter/material.dart';
 
 class CompletedMatchEffectifCard extends StatelessWidget {
-  const CompletedMatchEffectifCard({
-    super.key,
-    required this.effectif,
-  });
+  const CompletedMatchEffectifCard({super.key, required this.effectif});
 
   final CompletedMatchEffectif effectif;
 
@@ -24,9 +21,7 @@ class CompletedMatchEffectifCard extends StatelessWidget {
           children: [
             Text(
               'Effectif',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 14),
@@ -74,9 +69,8 @@ class _PresenceGroup extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               '$title (${players.length})',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
           ],
         ),
@@ -85,9 +79,9 @@ class _PresenceGroup extends StatelessWidget {
           Text(
             'Aucun',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
           )
         else
           Wrap(

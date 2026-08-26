@@ -66,9 +66,7 @@ class MatchDetailHeaderCard extends StatelessWidget {
           children: [
             Text(
               'Info',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 14),
@@ -167,11 +165,7 @@ class MatchDetailHeaderCard extends StatelessWidget {
 }
 
 class _MetadataLine extends StatelessWidget {
-  const _MetadataLine({
-    required this.icon,
-    required this.text,
-    this.trailing,
-  });
+  const _MetadataLine({required this.icon, required this.text, this.trailing});
 
   final IconData icon;
   final String text;
@@ -188,15 +182,12 @@ class _MetadataLine extends StatelessWidget {
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-        if (trailing != null) ...[
-          const SizedBox(width: 6),
-          trailing!,
-        ],
+        if (trailing != null) ...[const SizedBox(width: 6), trailing!],
       ],
     );
   }
