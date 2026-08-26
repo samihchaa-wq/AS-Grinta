@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -45,7 +44,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   bool _isHome = true;
   bool _rememberAddressAsDefault = true;
   bool _saving = false;
-  bool _suggestingOdds = false;
   bool _squadDefaultApplied = false;
   String? _clubHomeAddress;
   JerseyOption? _selectedJersey;
@@ -144,10 +142,13 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
           children: [
             if (widget.event == null && _isEvent) ...[
-              _EntryKindPicker(
-                value: _kind,
-                enabled: !busy,
-                onChanged: _changeKind,
+              _CriterionCard(
+                lighter: false,
+                child: _EntryKindPicker(
+                  value: _kind,
+                  enabled: !busy,
+                  onChanged: _changeKind,
+                ),
               ),
               const SizedBox(height: 18),
             ] else if (widget.event != null) ...[
@@ -272,35 +273,59 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     required bool sportsEnabled,
     required bool busy,
   }) {
-    return [
-      MatchFormSection(
-        title: 'Match',
-        subtitle: 'Type, adversaire, terrain et maillot',
-        icon: Icons.sports_soccer_rounded,
-        children: [
-          if (widget.event == null) ...[
-            _EntryKindPicker(
-              value: _kind,
-              enabled: !busy,
-              onChanged: _changeKind,
+    final fields = <Widget>[];
+    var cardIndex = 0;
+
+    void addCard(Widget child) {
+      if (fields.isNotEmpty) fields.add(const SizedBox(height: 10));
+      fields.add(
+        _CriterionCard(
+          lighter: cardIndex.isOdd,
+          child: child,
+        ),
+      );
+      cardIndex += 1;
+    }
+
+    if (widget.event == null) {
+      addCard(
+        _EntryKindPicker(
+          value: _kind,
+          enabled: !busy,
+          onChanged: _changeKind,
+        ),
+      );
+    }
+
+    if (_isInternal) {
+      addCard(
+        const ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.groups_outlined),
+          title: Text('Match entre nous'),
+          subtitle: Text('Sans adversaire.'),
+        ),
+      );
+    } else {
+      addCard(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Adversaire',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 14),
-          ],
-          if (_isInternal)
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.groups_outlined),
-              title: Text('Match entre nous'),
-              subtitle: Text('Sans adversaire et sans cotes.'),
-            )
-          else
+            const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _opponentId.isEmpty ? null : _opponentId,
-                    decoration: const InputDecoration(labelText: 'Adversaire'),
+                    decoration: const InputDecoration(hintText: 'Adversaire'),
                     items: opponents
                         .map(
                           (opponent) => DropdownMenuItem<String>(
@@ -341,8 +366,16 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                 ),
               ],
             ),
-          if (_isNormalMatch) ...[
-            const SizedBox(height: 14),
+          ],
+        ),
+      );
+    }
+
+    if (_isNormalMatch) {
+      addCard(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Text(
               'Lieu',
               style: Theme.of(context)
@@ -372,7 +405,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ],
+        ),
+      );
+
+      addCard(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Text(
               'Maillot',
               style: Theme.of(context)
@@ -399,63 +439,62 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               ],
             ),
           ],
-        ],
-      ),
-      const SizedBox(height: 14),
-      MatchFormSection(
-        title: 'Organisation',
-        subtitle: 'Horaires du match et des convocations',
-        icon: Icons.schedule_rounded,
+        ),
+      );
+    }
+
+    addCard(
+      Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: MatchFormPickerTile(
-                  label: 'Date',
-                  value: _formatDate(_startsAt),
-                  icon: Icons.calendar_today_outlined,
-                  enabled: !busy,
-                  onTap: _pickDate,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: MatchFormPickerTile(
-                  label: 'Heure',
-                  value: _formatTime(_startsAt),
-                  icon: Icons.schedule_outlined,
-                  enabled: !busy,
-                  onTap: _pickTime,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          MatchMeetingTimePicker(
-            kickoffAt: _startsAt,
-            customMeetingAt: _meetingAt,
-            enabled: !busy,
-            onChanged: (value) => setState(() => _meetingAt = value),
-          ),
-          if (widget.event == null) ...[
-            const SizedBox(height: 14),
-            ConvocationLaunchPicker(
-              kickoffAt: _startsAt,
-              mode: _launchMode,
-              customAt: _customLaunchAt,
+          Expanded(
+            child: MatchFormPickerTile(
+              label: 'Date',
+              value: _formatDate(_startsAt),
+              icon: Icons.calendar_today_outlined,
               enabled: !busy,
-              onModeChanged: (mode) => setState(() => _launchMode = mode),
-              onCustomAtChanged: (value) =>
-                  setState(() => _customLaunchAt = value),
+              onTap: _pickDate,
             ),
-          ],
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: MatchFormPickerTile(
+              label: 'Heure',
+              value: _formatTime(_startsAt),
+              icon: Icons.schedule_outlined,
+              enabled: !busy,
+              onTap: _pickTime,
+            ),
+          ),
         ],
       ),
-      const SizedBox(height: 14),
-      MatchFormSection(
-        title: 'Logistique',
-        subtitle: 'Adresse et effectif convoqué',
-        icon: Icons.location_on_outlined,
+    );
+
+    addCard(
+      MatchMeetingTimePicker(
+        kickoffAt: _startsAt,
+        customMeetingAt: _meetingAt,
+        enabled: !busy,
+        onChanged: (value) => setState(() => _meetingAt = value),
+      ),
+    );
+
+    if (widget.event == null) {
+      addCard(
+        ConvocationLaunchPicker(
+          kickoffAt: _startsAt,
+          mode: _launchMode,
+          customAt: _customLaunchAt,
+          enabled: !busy,
+          onModeChanged: (mode) => setState(() => _launchMode = mode),
+          onCustomAtChanged: (value) =>
+              setState(() => _customLaunchAt = value),
+        ),
+      );
+    }
+
+    addCard(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextFormField(
             controller: _addressController,
@@ -472,7 +511,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               alignLabelWithHint: true,
             ),
           ),
-          if (_isNormalMatch) ...[
+          if (_isNormalMatch)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
               value: _rememberAddressAsDefault,
@@ -482,77 +521,28 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                         () => _rememberAddressAsDefault = value ?? false,
                       ),
               title: const Text('Garder cette adresse pour cette équipe'),
-              subtitle: Text(
-                _isHome
-                    ? 'Met à jour le terrain par défaut d’AS Grinta.'
-                    : 'Met à jour le terrain par défaut de l’adversaire.',
-              ),
               controlAffinity: ListTileControlAffinity.leading,
             ),
-            if (sportsEnabled) ...[
-              const SizedBox(height: 4),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.groups_2_outlined),
-                title: const Text('Nombre de joueurs convoqués'),
-                subtitle: Text(
-                  '${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
-                ),
-                trailing: const Icon(Icons.unfold_more_rounded),
-                onTap: busy ? null : _pickSquadSize,
-              ),
-            ],
-          ],
         ],
       ),
-      if (_isNormalMatch) ...[
-        const SizedBox(height: 18),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Row(
-            children: [
-              Icon(
-                Icons.analytics_outlined,
-                size: 18,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Cotes calculées',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              if (_suggestingOdds) ...[
-                const Spacer(),
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: GrintaProgressIndicator(strokeWidth: 2),
-                ),
-              ],
-            ],
+    );
+
+    if (_isNormalMatch && sportsEnabled) {
+      addCard(
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.groups_2_outlined),
+          title: const Text('Nombre de joueurs convoqués'),
+          subtitle: Text(
+            '${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
           ),
+          trailing: const Icon(Icons.unfold_more_rounded),
+          onTap: busy ? null : _pickSquadSize,
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
-            ),
-          ],
-        ),
-      ],
-    ];
+      );
+    }
+
+    return fields;
   }
 
   Widget _dateTile({required bool busy}) => ListTile(
@@ -615,7 +605,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       return;
     }
     setState(() {
-      _suggestingOdds = true;
       _oddsWin = null;
       _oddsDraw = null;
       _oddsLoss = null;
@@ -627,7 +616,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         );
     if (!mounted || token != _oddsRequestToken) return;
     setState(() {
-      _suggestingOdds = false;
       if (odds != null) {
         _oddsWin = odds.win;
         _oddsDraw = odds.draw;
@@ -1093,35 +1081,30 @@ class _CompactChoiceButton extends StatelessWidget {
   }
 }
 
-class _OddsDisplay extends StatelessWidget {
-  const _OddsDisplay({required this.label, required this.value});
+class _CriterionCard extends StatelessWidget {
+  const _CriterionCard({required this.child, required this.lighter});
 
-  final String label;
-  final double? value;
+  final Widget child;
+  final bool lighter;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final background = Color.alphaBlend(
+      colors.primary.withValues(alpha: lighter ? 0.14 : 0.06),
+      colors.surface,
+    );
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(14),
+        color: background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: colors.primary.withValues(alpha: lighter ? 0.28 : 0.18),
+        ),
       ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value == null ? '—' : AppFormats.odds(value!),
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ],
-      ),
+      child: child,
     );
   }
 }
