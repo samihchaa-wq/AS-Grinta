@@ -1,0 +1,65 @@
+name: Temporary cleanup finished match modules
+
+on:
+  push:
+    branches: [finished-match-modules]
+    paths:
+      - '.github/workflows/temporary_cleanup_finished_match_modules.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: finished-match-modules
+          fetch-depth: 0
+      - name: Restore every unrelated file from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          allow() {
+            case "$1" in
+              lib/core/widgets/match_detail_header_card.dart|\
+              lib/features/matches/data/completed_match_effectif_repository.dart|\
+              lib/features/matches/data/historical_match_detail_repository.dart|\
+              lib/features/matches/presentation/historical_match_detail_page.dart|\
+              lib/features/matches/presentation/match_details_page.dart|\
+              lib/features/matches/presentation/widgets/completed_match_effectif_card.dart|\
+              supabase/migrations/20260826007000_finished_match_modules.sql|\
+              test/features/matches/data/completed_match_effectif_test.dart|\
+              test/features/matches/data/historical_absent_names_test.dart|\
+              .github/workflows/temporary_cleanup_finished_match_modules.yml) return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            if allow "$file"; then continue; fi
+            if git cat-file -e "origin/main:$file" 2>/dev/null; then
+              git checkout origin/main -- "$file"
+            else
+              git rm -f --ignore-unmatch "$file"
+            fi
+          done < <(git diff --name-only origin/main...HEAD)
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format intended Dart files only
+        run: dart format lib/core/widgets/match_detail_header_card.dart lib/features/matches/data/completed_match_effectif_repository.dart lib/features/matches/data/historical_match_detail_repository.dart lib/features/matches/presentation/historical_match_detail_page.dart lib/features/matches/presentation/match_details_page.dart lib/features/matches/presentation/widgets/completed_match_effectif_card.dart test/features/matches/data/completed_match_effectif_test.dart test/features/matches/data/historical_absent_names_test.dart
+      - name: Verify scope and commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/temporary_cleanup_finished_match_modules.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Remove unrelated formatter changes"
+          git push origin HEAD:finished-match-modules
