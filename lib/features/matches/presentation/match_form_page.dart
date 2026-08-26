@@ -315,10 +315,19 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        tooltip: 'Ajouter un adversaire',
-                        onPressed: busy ? null : _createOpponent,
-                        icon: const Icon(Icons.add),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                          ),
+                          onPressed: busy ? null : _createOpponent,
+                          icon: const Icon(Icons.add_rounded),
+                          label: const Text(
+                            'Ajouter un adversaire',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -588,9 +597,37 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     );
     controller.dispose();
     if (name == null || name.trim().isEmpty) return;
+    final trimmedName = name.trim();
+    final alreadyExists = ref.read(matchesControllerProvider).opponents.any(
+          (opponent) => opponent['name']?.toString() == trimmedName,
+        );
+    if (alreadyExists) {
+      final createAnyway = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Adversaire déjà existant'),
+              content: Text(
+                'Une équipe nommée « $trimmedName » existe déjà. '
+                'Tu peux quand même créer un nouvel adversaire avec exactement le même nom.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Annuler'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Créer quand même'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+      if (!createAnyway || !mounted) return;
+    }
     final id = await ref
         .read(matchesControllerProvider.notifier)
-        .createOpponent(name.trim());
+        .createOpponent(trimmedName);
     if (!mounted || id == null) return;
     setState(() {
       _isInternal = false;
