@@ -110,16 +110,11 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final phase = match.phase(now: now);
-    final isPastCalendarEntry = phase == MatchDisplayPhase.past ||
-        (phase == MatchDisplayPhase.cancelled &&
-            !now.isBefore(match.kickoffAt));
-    if (isPastCalendarEntry) return const SizedBox.shrink();
 
     final editLocked =
         isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
     final canEditIdentity = !editLocked && !match.isCancelled;
     final canCancel = !editLocked && !match.isCancelled;
-    final canDelete = !editLocked;
     final canEnterStats = !match.isInternal &&
         !match.isArchived &&
         phase == MatchDisplayPhase.awaitingValidation;
@@ -191,31 +186,14 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (canDelete)
-          const PopupMenuItem(
-            value: 'delete',
-            child: ListTile(
-              leading: Icon(Icons.delete_outline),
-              title: Text('Supprimer'),
-              contentPadding: EdgeInsets.zero,
-            ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: ListTile(
+            leading: Icon(Icons.delete_outline),
+            title: Text('Supprimer'),
+            contentPadding: EdgeInsets.zero,
           ),
-        if (!canEditIdentity &&
-            !canEnterStats &&
-            !canFinishInternal &&
-            !canCancel &&
-            !canDelete)
-          const PopupMenuItem(
-            enabled: false,
-            child: ListTile(
-              leading: Icon(Icons.lock_outline_rounded),
-              title: Text('Match verrouillé'),
-              subtitle: Text(
-                'Utilise le Live ou la correction du compte rendu.',
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
+        ),
       ],
     );
   }
