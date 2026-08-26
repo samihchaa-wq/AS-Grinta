@@ -1,0 +1,35 @@
+name: Temporary refine opponent row
+
+on:
+  push:
+    branches:
+      - feat/reorganize-match-form-sections
+
+permissions:
+  contents: write
+
+jobs:
+  refine:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/reorganize-match-form-sections
+      - name: Apply mounted guard
+        env:
+          PATCH_B64: CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKcGF0aHMgPSBbCiAgICBQYXRoKCJsaWIvZmVhdHVyZXMvbWF0Y2hlcy9wcmVzZW50YXRpb24vY2FsZW5kYXJfZW50cnlfZm9ybV9wYWdlLmRhcnQiKSwKICAgIFBhdGgoImxpYi9mZWF0dXJlcy9tYXRjaGVzL3ByZXNlbnRhdGlvbi9tYXRjaF9mb3JtX3BhZ2UuZGFydCIpLApdCm9sZCA9ICIiIiAgICBjb250cm9sbGVyLmRpc3Bvc2UoKTsKICAgIGlmIChuYW1lID09IG51bGwgfHwgbmFtZS50cmltKCkuaXNFbXB0eSkgcmV0dXJuOwogICAgZmluYWwgdHJpbW1lZE5hbWUgPSBuYW1lLnRyaW0oKTsiIiIKbmV3ID0gIiIiICAgIGNvbnRyb2xsZXIuZGlzcG9zZSgpOwogICAgaWYgKG5hbWUgPT0gbnVsbCB8fCBuYW1lLnRyaW0oKS5pc0VtcHR5IHx8ICFtb3VudGVkKSByZXR1cm47CiAgICBmaW5hbCB0cmltbWVkTmFtZSA9IG5hbWUudHJpbSgpOyIiIgpmb3IgcGF0aCBpbiBwYXRoczoKICAgIHRleHQgPSBwYXRoLnJlYWRfdGV4dCgpCiAgICBpZiBvbGQgbm90IGluIHRleHQ6CiAgICAgICAgcmFpc2UgU3lzdGVtRXhpdChmImV4cGVjdGVkIGJsb2NrIG1pc3NpbmcgaW4ge3BhdGh9IikKICAgIHBhdGgud3JpdGVfdGV4dCh0ZXh0LnJlcGxhY2Uob2xkLCBuZXcsIDEpKQo=
+        run: |
+          printf '%s' "$PATCH_B64" | base64 -d > /tmp/refine.py
+          python3 /tmp/refine.py
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart lib/features/matches/presentation/match_form_page.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Guard opponent duplicate dialog after async gap"
+          git push origin HEAD:feat/reorganize-match-form-sections
