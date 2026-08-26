@@ -1,0 +1,46 @@
+name: Temporary calendar history formatter
+
+on:
+  push:
+    branches:
+      - calendar-history-metadata
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: calendar-history-metadata
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format touched Dart files
+        run: |
+          dart format \
+            lib/features/matches/data/calendar_history_repository.dart \
+            lib/features/matches/data/match_details_repository.dart \
+            test/calendar_match_metadata_test.dart
+
+      - name: Commit formatting if needed
+        run: |
+          if git diff --quiet; then
+            echo "Nothing to format."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/matches/data/calendar_history_repository.dart \
+            lib/features/matches/data/match_details_repository.dart \
+            test/calendar_match_metadata_test.dart
+          git commit -m "Format calendar history metadata changes"
+          git push origin HEAD:calendar-history-metadata
