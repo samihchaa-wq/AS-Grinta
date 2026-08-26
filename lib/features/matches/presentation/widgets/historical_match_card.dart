@@ -21,6 +21,14 @@ class HistoricalMatchCard extends StatelessWidget {
     final awayName = isHome ? match.opponentName : 'AS Grinta';
     final homeScore = isHome ? match.grintaScore : match.opponentScore;
     final awayScore = isHome ? match.opponentScore : match.grintaScore;
+    final surface = CalendarCardPalette.matchSurface(
+      match.matchType,
+      unknownAsFinished: true,
+    );
+    final border = CalendarCardPalette.matchBorder(
+      match.matchType,
+      unknownAsFinished: true,
+    );
     final nameStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
           fontSize: 16,
           height: 1.1,
@@ -28,13 +36,10 @@ class HistoricalMatchCard extends StatelessWidget {
         );
 
     return Card(
-      color: CalendarCardPalette.finishedSurface,
+      color: surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(
-          color: CalendarCardPalette.finishedBorder,
-          width: 1.3,
-        ),
+        side: BorderSide(color: border, width: 1.3),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -44,17 +49,35 @@ class HistoricalMatchCard extends StatelessWidget {
           child: MatchDateHeader(
             kickoffAt: match.date,
             foreground: AppTheme.textPrimary,
-            showTime: false,
-            child: MatchFixture(
-              homeName: homeName,
-              awayName: awayName,
-              grintaIsHome: isHome,
-              homeScore: homeScore,
-              awayScore: awayScore,
-              finished: true,
-              nameStyle: nameStyle,
-              scoreFontSize: 20,
-              textAlign: TextAlign.start,
+            secondary: AppTheme.textPrimary,
+            dividerColor: border,
+            showTime: match.hasTime,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                MatchFixture(
+                  homeName: homeName,
+                  awayName: awayName,
+                  grintaIsHome: isHome,
+                  homeScore: homeScore,
+                  awayScore: awayScore,
+                  finished: true,
+                  nameStyle: nameStyle,
+                  scoreFontSize: 20,
+                  textAlign: TextAlign.start,
+                ),
+                if (match.calendarTypeLabel case final label?) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: border,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
