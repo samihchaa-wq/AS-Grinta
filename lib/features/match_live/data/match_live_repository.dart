@@ -47,6 +47,15 @@ abstract interface class MatchLiveRepository {
     List<({String playerIn, String playerOut})> substitutions,
   });
 
+  /// Change le dispositif pendant le Live sans créer de remplacement.
+  /// Les positions et le code du dispositif sont sauvegardés atomiquement.
+  Future<MatchLiveStateBundle> changeLiveFormation({
+    required String matchId,
+    required String formationCode,
+    required List<Map<String, dynamic>> entries,
+    required int expectedLineupRevision,
+  });
+
   /// Supprime un but ou un remplacement saisi par erreur. Un but retire
   /// aussi l'unité correspondante au score.
   Future<MatchLiveStateBundle> deleteEvent({
@@ -231,6 +240,25 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
                     'player_out': substitution.playerOut,
                   },
               ],
+      },
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> changeLiveFormation({
+    required String matchId,
+    required String formationCode,
+    required List<Map<String, dynamic>> entries,
+    required int expectedLineupRevision,
+  }) async {
+    final response = await _client.rpc(
+      'coach_change_match_live_formation',
+      params: {
+        'p_match_id': matchId,
+        'p_formation_code': formationCode,
+        'p_entries': entries,
+        'p_expected_lineup_revision': expectedLineupRevision,
       },
     );
     return MatchLiveStateBundle.fromRpc(response);

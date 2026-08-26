@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
+import 'package:as_grinta/features/match_live/domain/match_live_formation.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
@@ -45,6 +46,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
   final List<PendingSubstitution> _pending = [];
   final GlobalKey _journalKey = GlobalKey();
   bool _saving = false;
+  bool _savingFormation = false;
   bool _journalExpanded = false;
 
   String get matchId => widget.matchId;
@@ -107,6 +109,36 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
             onRemove: (pair) => setState(() => _pending.remove(pair)),
             onClear: () => setState(_pending.clear),
             onValidate: () => _validatePending(lineup, controller),
+          ),
+        ],
+        if (canEdit) ...[
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            key: ValueKey('live-formation-${lineup.formationCode}'),
+            initialValue: formationForCode(lineup.formationCode).code,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: 'Dispositif',
+              border: const OutlineInputBorder(),
+              helperText: _pending.isNotEmpty
+                  ? 'Valide ou annule les remplacements en attente avant de '
+                      'changer de dispositif.'
+                  : null,
+            ),
+            items: [
+              for (final formation in footballFormations)
+                DropdownMenuItem(
+                  value: formation.code,
+                  child: Text(formation.code),
+                ),
+            ],
+            onChanged: _saving || _savingFormation || _pending.isNotEmpty
+                ? null
+                : (value) {
+                    if (value != null) {
+                      _changeFormation(lineup, value, controller);
+                    }
+                  },
           ),
         ],
         const SizedBox(height: AppSpacing.sectionGap),
@@ -247,6 +279,48 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       context,
       'Glisse ce joueur sur le remplaçant qui entre, à gauche du terrain.',
     );
+  }
+
+  Future<void> _changeFormation(
+    MatchComposition lineup,
+    String formationCode,
+    MatchLiveStateController controller,
+  ) async {
+    if (_saving || _savingFormation) return;
+    if (_pending.isNotEmpty) {
+      _showMessage(
+        context,
+        'Valide ou annule les remplacements en attente avant de changer de '
+        'dispositif.',
+      );
+      return;
+    }
+
+    final currentCode = formationForCode(lineup.formationCode).code;
+    final nextCode = formationForCode(formationCode).code;
+    if (currentCode == nextCode) return;
+
+    final changed = repositionLiveLineupForFormation(lineup, nextCode);
+    setState(() => _savingFormation = true);
+    try {
+      await controller.changeFormation(
+        formationCode: nextCode,
+        entries: [
+          for (final entry in changed.entries) entry.toRpcJson(),
+        ],
+        expectedLineupRevision: bundle.session.lineupRevision,
+      );
+      if (!mounted) return;
+      _showMessage(context, 'Dispositif $nextCode appliqué.');
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        context,
+        'Impossible de changer le dispositif. L’état Live a été resynchronisé.',
+      );
+    } finally {
+      if (mounted) setState(() => _savingFormation = false);
+    }
   }
 
   Future<void> _validatePending(
