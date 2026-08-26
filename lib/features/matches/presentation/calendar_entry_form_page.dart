@@ -15,6 +15,7 @@ import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +42,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   String _seasonId = '';
   String _opponentId = '';
   bool _isHome = true;
-  bool _rememberAddressAsDefault = false;
+  bool _rememberAddressAsDefault = true;
   bool _saving = false;
   bool _suggestingOdds = false;
   bool _squadDefaultApplied = false;
@@ -153,31 +154,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               if (widget.event == null) ...[
-                DropdownButtonFormField<_CalendarEntryKind>(
-                  initialValue: _kind,
-                  decoration: const InputDecoration(
-                    labelText: 'Type',
-                    prefixIcon: Icon(Icons.category_outlined),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.championnat,
-                      child: Text('Championnat'),
-                    ),
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.amical,
-                      child: Text('Amical'),
-                    ),
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.internal,
-                      child: Text('Match entre nous'),
-                    ),
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.event,
-                      child: Text('Événement'),
-                    ),
-                  ],
-                  onChanged: busy ? null : _changeKind,
+                _EntryKindPicker(
+                  value: _kind,
+                  enabled: !busy,
+                  onChanged: _changeKind,
                 ),
                 const SizedBox(height: 18),
               ] else ...[
@@ -211,7 +191,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                 const SizedBox(height: 18),
               ],
               if (_isEvent)
-                ..._buildEventFields()
+                ..._buildEventFields(busy: busy)
               else
                 ..._buildMatchFields(
                   opponents: opponents,
@@ -248,10 +228,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     );
   }
 
-  List<Widget> _buildEventFields() {
+  List<Widget> _buildEventFields({required bool busy}) {
     return [
       TextFormField(
         controller: _eventTitleController,
+        enabled: !busy,
         autofocus: widget.event == null,
         textCapitalization: TextCapitalization.sentences,
         maxLength: 120,
@@ -268,17 +249,22 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         },
       ),
       const SizedBox(height: 8),
-      _dateTile(),
-      _timeTile(),
+      _dateTile(busy: busy),
+      _timeTile(busy: busy),
       const SizedBox(height: 12),
       TextFormField(
         controller: _addressController,
+        enabled: !busy,
         textCapitalization: TextCapitalization.words,
+        keyboardType: TextInputType.multiline,
+        minLines: 2,
+        maxLines: null,
         maxLength: 300,
         decoration: const InputDecoration(
           labelText: 'Lieu de rendez-vous',
           hintText: 'Terrain, adresse, salle, restaurant…',
           prefixIcon: Icon(Icons.place_outlined),
+          alignLabelWithHint: true,
         ),
         validator: (raw) {
           final value = raw?.trim() ?? '';
@@ -348,27 +334,40 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         ),
       if (_isNormalMatch) ...[
         const SizedBox(height: 12),
-        DropdownButtonFormField<bool>(
-          initialValue: _isHome,
-          decoration: const InputDecoration(labelText: 'Lieu'),
-          items: const [
-            DropdownMenuItem(value: true, child: Text('Domicile')),
-            DropdownMenuItem(value: false, child: Text('Extérieur')),
+        Text(
+          'Lieu',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _CompactChoiceButton(
+                label: 'Domicile',
+                selected: _isHome,
+                enabled: !busy,
+                onPressed: () => _changeVenue(true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactChoiceButton(
+                label: 'Extérieur',
+                selected: !_isHome,
+                enabled: !busy,
+                onPressed: () => _changeVenue(false),
+              ),
+            ),
           ],
-          onChanged: busy
-              ? null
-              : (value) {
-                  setState(() {
-                    _isHome = value ?? true;
-                    _refreshAddressForSelection();
-                  });
-                  _suggestOdds();
-                },
         ),
       ],
       const SizedBox(height: 12),
-      _dateTile(),
-      _timeTile(),
+      _dateTile(busy: busy),
+      _timeTile(busy: busy),
+      const SizedBox(height: 8),
       MatchMeetingTimePicker(
         kickoffAt: _startsAt,
         customMeetingAt: _meetingAt,
@@ -389,12 +388,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       const SizedBox(height: 12),
       TextFormField(
         controller: _addressController,
+        enabled: !busy,
         textCapitalization: TextCapitalization.words,
+        keyboardType: TextInputType.multiline,
+        minLines: 2,
+        maxLines: null,
         maxLength: 300,
         decoration: const InputDecoration(
           labelText: 'Adresse (facultatif)',
           hintText: 'Terrain, rue, ville…',
           prefixIcon: Icon(Icons.place_outlined),
+          alignLabelWithHint: true,
         ),
       ),
       if (_isNormalMatch) ...[
@@ -405,9 +409,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               ? null
               : (value) =>
                   setState(() => _rememberAddressAsDefault = value ?? false),
-          title: const Text(
-            'Utiliser cette adresse par défaut pour les prochains matchs',
-          ),
+          title: const Text('Garder cette adresse pour cette équipe'),
           subtitle: Text(
             _isHome
                 ? 'Met à jour le terrain par défaut d’AS Grinta.'
@@ -432,27 +434,25 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               _JerseyOptionTile(
                 option: option,
                 selected: _selectedJersey == option,
-                onTap: () => setState(() {
-                  _selectedJersey = _selectedJersey == option ? null : option;
-                }),
+                onTap: busy
+                    ? null
+                    : () => setState(() {
+                          _selectedJersey =
+                              _selectedJersey == option ? null : option;
+                        }),
               ),
           ],
         ),
         if (sportsEnabled) ...[
           const SizedBox(height: 12),
-          TextFormField(
-            controller: _squadSizeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Nombre de joueurs convoqués',
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Nombre de joueurs convoqués'),
+            subtitle: Text(
+              '${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
             ),
-            validator: (raw) {
-              final value = int.tryParse(raw?.trim() ?? '');
-              if (value == null || value < 1 || value > 30) {
-                return 'Choisissez un nombre entre 1 et 30';
-              }
-              return null;
-            },
+            trailing: const Icon(Icons.unfold_more_rounded),
+            onTap: busy ? null : _pickSquadSize,
           ),
         ],
         const SizedBox(height: 20),
@@ -472,44 +472,38 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(
-              child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
-            ),
+            Expanded(child: _OddsDisplay(label: 'Victoire', value: _oddsWin)),
             const SizedBox(width: 8),
-            Expanded(
-              child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
-            ),
+            Expanded(child: _OddsDisplay(label: 'Nul', value: _oddsDraw)),
             const SizedBox(width: 8),
-            Expanded(
-              child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
-            ),
+            Expanded(child: _OddsDisplay(label: 'Défaite', value: _oddsLoss)),
           ],
         ),
       ],
     ];
   }
 
-  Widget _dateTile() => ListTile(
+  Widget _dateTile({required bool busy}) => ListTile(
         contentPadding: EdgeInsets.zero,
         title: const Text('Date'),
         subtitle: Text(_formatDate(_startsAt)),
-        trailing: const Icon(Icons.calendar_today),
-        onTap: _pickDate,
+        trailing: const Icon(Icons.unfold_more_rounded),
+        onTap: busy ? null : _pickDate,
       );
 
-  Widget _timeTile() => ListTile(
+  Widget _timeTile({required bool busy}) => ListTile(
         contentPadding: EdgeInsets.zero,
         title: const Text('Heure'),
         subtitle: Text(_formatTime(_startsAt)),
-        trailing: const Icon(Icons.schedule),
-        onTap: _pickTime,
+        trailing: const Icon(Icons.unfold_more_rounded),
+        onTap: busy ? null : _pickTime,
       );
 
   void _changeKind(_CalendarEntryKind? kind) {
     if (kind == null || kind == _kind) return;
     setState(() {
       _kind = kind;
-      _rememberAddressAsDefault = false;
+      _rememberAddressAsDefault = _isNormalMatch;
       if (_isInternal) {
         _opponentId = '';
         _isHome = true;
@@ -525,6 +519,15 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       }
     });
     if (_isNormalMatch && _opponentId.isNotEmpty) _suggestOdds();
+  }
+
+  void _changeVenue(bool isHome) {
+    if (_isHome == isHome) return;
+    setState(() {
+      _isHome = isHome;
+      _refreshAddressForSelection();
+    });
+    _suggestOdds();
   }
 
   Future<void> _suggestOdds() async {
@@ -620,18 +623,20 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }
 
   Future<void> _pickDate() async {
+    final previousKickoff = _startsAt;
     final today = DateUtils.dateOnly(DateTime.now());
-    final date = await showDatePicker(
+    final firstDate = widget.event == null
+        ? today
+        : DateUtils.dateOnly(_startsAt).isBefore(today)
+            ? DateUtils.dateOnly(_startsAt)
+            : today;
+    final date = await MatchWheelPicker.pickDate(
       context: context,
       initialDate: _startsAt,
-      firstDate: widget.event == null
-          ? today
-          : DateUtils.dateOnly(_startsAt).isBefore(today)
-              ? DateUtils.dateOnly(_startsAt)
-              : today,
+      firstDate: firstDate,
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
-    if (date == null) return;
+    if (date == null || !mounted) return;
     setState(() {
       _startsAt = DateTime(
         date.year,
@@ -641,7 +646,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         _startsAt.minute,
       );
       _repairCustomLaunchIfNeeded();
-      _repairMeetingAt();
+      _repairMeetingAt(previousKickoffAt: previousKickoff);
     });
     if (_isNormalMatch && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -649,15 +654,12 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }
 
   Future<void> _pickTime() async {
-    final time = await showTimePicker(
+    final previousKickoff = _startsAt;
+    final time = await MatchWheelPicker.pickTime(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_startsAt),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
+      initialDateTime: _startsAt,
     );
-    if (time == null) return;
+    if (time == null || !mounted) return;
     setState(() {
       _startsAt = DateTime(
         _startsAt.year,
@@ -667,12 +669,27 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         time.minute,
       );
       _repairCustomLaunchIfNeeded();
-      _repairMeetingAt();
+      _repairMeetingAt(previousKickoffAt: previousKickoff);
     });
   }
 
-  void _repairMeetingAt() {
+  Future<void> _pickSquadSize() async {
+    final current = int.tryParse(_squadSizeController.text.trim()) ?? 14;
+    final value = await MatchWheelPicker.pickInt(
+      context: context,
+      initialValue: current,
+      minValue: 1,
+      maxValue: 30,
+      title: 'Nombre de joueurs convoqués',
+      labelBuilder: (number) => '$number joueur${number == 1 ? '' : 's'}',
+    );
+    if (value == null || !mounted) return;
+    setState(() => _squadSizeController.text = value.toString());
+  }
+
+  void _repairMeetingAt({required DateTime previousKickoffAt}) {
     _meetingAt = preserveCustomMeetingTime(
+      previousKickoffAt: previousKickoffAt,
       kickoffAt: _startsAt,
       customMeetingAt: _meetingAt,
     );
@@ -704,6 +721,15 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         return;
       }
       if (!_isEvent) {
+        final meetingError = validateCustomMeetingAt(
+          kickoffAt: _startsAt,
+          customMeetingAt: _meetingAt,
+        );
+        if (meetingError != null) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(meetingError)));
+          return;
+        }
         final launchError = validateConvocationLaunch(
           mode: _launchMode,
           kickoffAt: _startsAt,
@@ -766,9 +792,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             'Sélectionne un adversaire pour calculer les cotes.',
           );
         }
-        final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-        final squadSizeLimit =
-            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+        final currentSportsEnabled = ref.read(sportsManagementEnabledProvider);
+        final squadSizeLimit = currentSportsEnabled
+            ? int.parse(_squadSizeController.text.trim())
+            : null;
         await ref.read(scheduledMatchCreationRepositoryProvider).createMatch(
               seasonId: _seasonId,
               opponentId: _opponentId,
@@ -849,6 +876,123 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       '${value.minute.toString().padLeft(2, '0')}';
 }
 
+class _EntryKindPicker extends StatelessWidget {
+  const _EntryKindPicker({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final _CalendarEntryKind value;
+  final bool enabled;
+  final ValueChanged<_CalendarEntryKind?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Type',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _CompactChoiceButton(
+                label: 'Championnat',
+                selected: value == _CalendarEntryKind.championnat,
+                enabled: enabled,
+                onPressed: () => onChanged(_CalendarEntryKind.championnat),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactChoiceButton(
+                label: 'Amical',
+                selected: value == _CalendarEntryKind.amical,
+                enabled: enabled,
+                onPressed: () => onChanged(_CalendarEntryKind.amical),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _CompactChoiceButton(
+                label: 'Match entre nous',
+                selected: value == _CalendarEntryKind.internal,
+                enabled: enabled,
+                onPressed: () => onChanged(_CalendarEntryKind.internal),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CompactChoiceButton(
+                label: 'Événement',
+                selected: value == _CalendarEntryKind.event,
+                enabled: enabled,
+                onPressed: () => onChanged(_CalendarEntryKind.event),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CompactChoiceButton extends StatelessWidget {
+  const _CompactChoiceButton({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = ButtonStyle(
+      minimumSize: WidgetStateProperty.all(const Size.fromHeight(48)),
+      padding: WidgetStateProperty.all(
+        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      ),
+      textStyle: WidgetStateProperty.all(
+        const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+    final child = Text(
+      label,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
+    if (selected) {
+      return FilledButton(
+        style: style,
+        onPressed: enabled ? onPressed : null,
+        child: child,
+      );
+    }
+    return OutlinedButton(
+      style: style,
+      onPressed: enabled ? onPressed : null,
+      child: child,
+    );
+  }
+}
+
 class _OddsDisplay extends StatelessWidget {
   const _OddsDisplay({required this.label, required this.value});
 
@@ -891,7 +1035,7 @@ class _JerseyOptionTile extends StatelessWidget {
 
   final JerseyOption option;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
