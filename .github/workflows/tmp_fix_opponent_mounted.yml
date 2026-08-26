@@ -1,0 +1,51 @@
+name: Temporary opponent mounted guard
+
+on:
+  push:
+    branches:
+      - feat/reorganize-match-form-sections
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/reorganize-match-form-sections
+      - name: Add mounted guards
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path('lib/features/matches/presentation/calendar_entry_form_page.dart'),
+              Path('lib/features/matches/presentation/match_form_page.dart'),
+          ]
+          old = """    controller.dispose();
+    if (name == null || name.trim().isEmpty) return;
+    final trimmedName = name.trim();"""
+          new = """    controller.dispose();
+    if (name == null || name.trim().isEmpty || !mounted) return;
+    final trimmedName = name.trim();"""
+          for path in paths:
+              text = path.read_text()
+              if old not in text:
+                  raise SystemExit(f'expected block missing in {path}')
+              path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart lib/features/matches/presentation/match_form_page.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Guard opponent duplicate dialog after async gap"
+          git push origin HEAD:feat/reorganize-match-form-sections
