@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/matches/data/completed_match_effectif_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// Ces tests verrouillent la séparation Présents / Absents du module Effectif.
 void main() {
   test('l effectif final sépare présents absents et invités', () {
     final effectif = CompletedMatchEffectif.fromRpc({
