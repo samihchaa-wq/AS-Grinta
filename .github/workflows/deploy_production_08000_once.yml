@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout merged production candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
 
       - name: Check deployment secrets
         shell: bash
