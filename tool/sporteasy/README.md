@@ -58,9 +58,17 @@ qui ne reflète pas la pratique du club.
 
 ## Limites connues, à trancher avant tout import
 
-- **147 joueurs différents** apparaissent, alors que l'application n'en connaît
-  que 42. Parmi les 105 autres, 43 sont des invités d'un soir (leur nom
-  contient « Pote »). Un import direct créerait une fiche pour chacun.
+- **147 joueurs différents** apparaissent. Relevé en production le 2026-08-26 :
+  114 sont déjà rattachés à une identité, 33 sont inconnus. Parmi ces 33, un est
+  volontairement exclu comme non-joueur, 3 apparaissent dans des matchs avec
+  score, 21 seulement dans des matchs sans score et 8 seulement dans des matchs
+  annulés. Un import de ces derniers créerait une fiche pour chacun.
+  (Ne pas se fier à `tool/player_identity_map.json` pour ce décompte : ce fichier
+  ne liste que les joueurs actifs, pas l'ensemble des identités connues.)
+- **« Nico Rivière » et « Nicolas Rivière »** sont probablement la même personne
+  et créeraient deux fiches distinctes.
+- **« Amicale Olympique Cornebarireu »** porte une faute de frappe dans
+  SportEasy ; la base écrit « Cornebarrieu ». 13 matchs sont concernés.
 - **74 matchs joués sans score.** `historical_match_scores` exige un score, et
   `HistoricalMatchResult` le déclare non nul côté Flutter. Décision du club au
   2026-08-26 : ces matchs restent hors de l'application.
