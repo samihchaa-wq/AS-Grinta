@@ -302,15 +302,12 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               )
             else
-              ...feedSections.expand(
-                (section) => _buildFeedSectionSlivers(
-                  section: section,
-                  isLastSection: section == feedSections.last,
-                  focusKey: focusKey,
-                  focusMatchKey: _focusMatchKey,
-                  isAdmin: isAdmin,
-                  now: now,
-                ),
+              ..._buildFeedSlivers(
+                sections: feedSections,
+                focusKey: focusKey,
+                focusMatchKey: _focusMatchKey,
+                isAdmin: isAdmin,
+                now: now,
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
@@ -325,6 +322,46 @@ String _entryKey(_FeedEntry entry) {
   if (entry.event != null) return 'event:${entry.event!.id}';
   if (entry.historical != null) return 'historical:${entry.historical!.id}';
   return 'unknown';
+}
+
+/// Regroupe les sections d'une même phase (« Terminés », « À venir ») dans un
+/// bloc de défilement.
+///
+/// Un en-tête collant reste épinglé au bloc qui le contient : celui de la
+/// phase précédente se fait pousser hors de l'écran par le suivant au lieu de
+/// s'empiler avec lui et de rogner le haut des cartes.
+List<Widget> _buildFeedSlivers({
+  required List<_FeedSection> sections,
+  required String? focusKey,
+  required GlobalKey focusMatchKey,
+  required bool isAdmin,
+  required DateTime now,
+}) {
+  final slivers = <Widget>[];
+  var group = <Widget>[];
+
+  void closeGroup() {
+    if (group.isEmpty) return;
+    slivers.add(SliverMainAxisGroup(slivers: group));
+    group = <Widget>[];
+  }
+
+  for (final section in sections) {
+    if (section.showPhaseTitle) closeGroup();
+    group.addAll(
+      _buildFeedSectionSlivers(
+        section: section,
+        isLastSection: section == sections.last,
+        focusKey: focusKey,
+        focusMatchKey: focusMatchKey,
+        isAdmin: isAdmin,
+        now: now,
+      ),
+    );
+  }
+  closeGroup();
+
+  return slivers;
 }
 
 List<Widget> _buildFeedSectionSlivers({

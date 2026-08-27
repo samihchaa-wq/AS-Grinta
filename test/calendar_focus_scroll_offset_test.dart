@@ -47,6 +47,12 @@ List<Widget> _section(String title, {Key? cardKey, int? keyedIndex}) {
   ];
 }
 
+Widget _group(String title, {Key? cardKey, int? keyedIndex}) {
+  return SliverMainAxisGroup(
+    slivers: _section(title, cardKey: cardKey, keyedIndex: keyedIndex),
+  );
+}
+
 void main() {
   const cardKey = ValueKey<String>('focus-card');
 
@@ -113,6 +119,80 @@ void main() {
     },
   );
 
+  testWidgets(
+    "l'en-tête d'une phase terminée sort de l'écran quand la suivante arrive",
+    (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomScrollView(
+              controller: controller,
+              slivers: [
+                _group('Terminés'),
+                _group('À venir', cardKey: cardKey, keyedIndex: 3),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Pendant la transition, le nouvel en-tête pousse l'ancien vers le haut.
+      controller.jumpTo(1150);
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.text('Terminés')).dy, 0);
+      expect(
+        tester.getTopLeft(find.text('À venir')).dy,
+        greaterThan(0),
+      );
+
+      // Une fois dans la phase suivante, l'ancien en-tête a disparu.
+      controller.jumpTo(1500);
+      await tester.pumpAndSettle();
+      expect(find.text('Terminés'), findsNothing);
+      expect(tester.getTopLeft(find.text('À venir')).dy, 0);
+    },
+  );
+
+  testWidgets(
+    'la carte visée se cale sous un seul en-tête une fois les phases groupées',
+    (tester) async {
+      final controller = ScrollController();
+      addTearDown(controller.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomScrollView(
+              controller: controller,
+              slivers: [
+                _group('Terminés'),
+                _group('À venir', cardKey: cardKey, keyedIndex: 3),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      controller.jumpTo(1500);
+      await tester.pumpAndSettle();
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(cardKey)),
+        alignment: 0,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+        duration: Duration.zero,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.byKey(cardKey)).dy,
+        moreOrLessEquals(_headerHeight, epsilon: 0.5),
+      );
+    },
+  );
+
   test(
       'le calendrier pose la clé de focus sur la carte, pas sur '
       "l'en-tête épinglé", () async {
@@ -122,5 +202,14 @@ void main() {
 
     expect(source, contains('key: isFocusCard ? focusMatchKey : null'));
     expect(source, isNot(contains('headerIsFocus')));
+  });
+
+  test('le calendrier groupe chaque phase dans son propre bloc', () async {
+    final source = await File(
+      'lib/features/predictions/presentation/merged_matches_view.dart',
+    ).readAsString();
+
+    expect(source, contains('SliverMainAxisGroup(slivers: group)'));
+    expect(source, contains('if (section.showPhaseTitle) closeGroup();'));
   });
 }
