@@ -461,8 +461,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.done,
                         decoration: const InputDecoration(
-                          hintText: 'Rechercher un adversaire',
-                          prefixIcon: Icon(Icons.search_rounded),
+                          hintText: 'Rechercher...',
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 16,
+                          ),
                         ),
                         onFieldSubmitted: (_) => onFieldSubmitted(),
                         onChanged: (value) {
