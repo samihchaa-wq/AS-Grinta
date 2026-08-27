@@ -432,6 +432,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                         controller: textController,
                         focusNode: focusNode,
                         enabled: !busy,
+                        textAlign: TextAlign.start,
+                        textAlignVertical: TextAlignVertical.center,
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.done,
                         decoration: const InputDecoration(
