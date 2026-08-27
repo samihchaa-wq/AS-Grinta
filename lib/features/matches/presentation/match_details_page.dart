@@ -106,6 +106,13 @@ class MatchDetailsPage extends ConsumerWidget {
                 if (stat.goals > 0)
                   stat.goals > 1 ? '${stat.name} ×${stat.goals}' : stat.name,
             ];
+            final assistLabels = [
+              for (final stat in details.playerStats)
+                if (stat.assists > 0)
+                  stat.assists > 1
+                      ? '${stat.name} ×${stat.assists}'
+                      : stat.name,
+            ];
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -134,6 +141,7 @@ class MatchDetailsPage extends ConsumerWidget {
                       ? null
                       : () => context.push('/matches/$matchId/vote'),
                   scorerLabels: scorerLabels,
+                  assistLabels: assistLabels,
                   teamScoredZero: details.scoreGrinta == 0,
                 ),
                 _CompletedCompositionCard(

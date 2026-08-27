@@ -20,11 +20,15 @@ class MatchStatLine {
   const MatchStatLine({
     required this.name,
     required this.goals,
+    required this.assists,
     required this.cleanSheet,
   });
 
   final String name;
   final int goals;
+
+  /// Passes décisives du joueur sur ce match.
+  final int assists;
   final bool cleanSheet;
 }
 
@@ -208,7 +212,7 @@ class MatchDetailsRepository {
 
     if (isValidated) {
       final statRows = await _client.from('match_player_stats').select('''
-        season_player_id,goals,clean_sheet,
+        season_player_id,goals,assists,clean_sheet,
         season_players(first_name,last_name,profiles(surnom))
       ''').eq('match_id', matchId);
       final statsByPlayerId = <String, MatchStatLine>{};
@@ -227,6 +231,7 @@ class MatchDetailsRepository {
             player['last_name'],
           ),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
+          assists: (map['assists'] as num?)?.toInt() ?? 0,
           cleanSheet: map['clean_sheet'] == true,
         );
         final seasonPlayerId = map['season_player_id']?.toString();

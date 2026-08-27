@@ -33,6 +33,7 @@ class PlayerStatistics {
     required this.draws,
     required this.losses,
     required this.goals,
+    required this.assists,
     required this.hdm,
     required this.cleanSheets,
     this.teamCleanSheets = 0,
@@ -53,6 +54,10 @@ class PlayerStatistics {
   final int? draws;
   final int? losses;
   final int goals;
+
+  /// Passes décisives. Suivies seulement depuis leur mise en service : les
+  /// saisons importées affichent 0, sans reconstitution rétroactive.
+  final int assists;
   final int? hdm;
 
   /// Clean sheets attribués au gardien par la validation post-match historique.
@@ -154,6 +159,7 @@ class StatisticsRepository {
           draws,
           losses,
           goals,
+          assists,
           hdm,
           clean_sheets,
           team_clean_sheets,
@@ -227,6 +233,7 @@ class StatisticsRepository {
           draws: (map['draws'] as num?)?.toInt(),
           losses: (map['losses'] as num?)?.toInt(),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
+          assists: (map['assists'] as num?)?.toInt() ?? 0,
           hdm: (map['hdm'] as num?)?.toInt(),
           cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
           teamCleanSheets: (map['team_clean_sheets'] as num?)?.toInt() ?? 0,

@@ -34,6 +34,7 @@ class SportFinalParticipant {
     required this.present,
     required this.selectionStatus,
     required this.goals,
+    required this.assists,
     required this.cleanSheet,
     this.seasonPlayerId,
     this.guestPlayerId,
@@ -55,6 +56,7 @@ class SportFinalParticipant {
         json['final_selection_status'],
       ),
       goals: (json['goals'] as num?)?.toInt() ?? 0,
+      assists: (json['assists'] as num?)?.toInt() ?? 0,
       cleanSheet: json['clean_sheet'] == true,
       photoUrl: _nullableText(json['photo_url']),
       isMotm: json['is_motm'] == true,
@@ -71,6 +73,10 @@ class SportFinalParticipant {
   final bool present;
   final SportFinalSelectionStatus selectionStatus;
   final int goals;
+
+  /// Passes décisives du joueur sur ce match. Une passe décisive suppose un
+  /// but marqué : le total de l'équipe ne peut pas dépasser le score.
+  final int assists;
   final bool cleanSheet;
   final String? photoUrl;
   final bool isMotm;
@@ -79,6 +85,7 @@ class SportFinalParticipant {
     bool? present,
     SportFinalSelectionStatus? selectionStatus,
     int? goals,
+    int? assists,
     bool? cleanSheet,
   }) {
     final nextPresent = present ?? this.present;
@@ -95,6 +102,7 @@ class SportFinalParticipant {
           ? (selectionStatus ?? this.selectionStatus)
           : SportFinalSelectionStatus.notSelected,
       goals: nextPresent ? (goals ?? this.goals) : 0,
+      assists: nextPresent ? (assists ?? this.assists) : 0,
       cleanSheet: nextPresent ? (cleanSheet ?? this.cleanSheet) : false,
       photoUrl: photoUrl,
       isMotm: isMotm,
@@ -107,6 +115,7 @@ class SportFinalParticipant {
       'present': present,
       'final_selection_status': selectionStatus.wireValue,
       'goals': goals,
+      'assists': assists,
       'clean_sheet': cleanSheet,
     };
   }
@@ -194,6 +203,8 @@ class SportMatchFinalization {
       participants.where((p) => p.present && p.isGuest).length;
   int get attributedGoals =>
       participants.fold(0, (sum, participant) => sum + participant.goals);
+  int get attributedAssists =>
+      participants.fold(0, (sum, participant) => sum + participant.assists);
 
   SportMatchFinalization copyWith({
     int? scoreAsGrinta,

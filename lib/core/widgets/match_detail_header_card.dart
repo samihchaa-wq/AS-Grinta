@@ -26,6 +26,7 @@ class MatchDetailHeaderCard extends StatelessWidget {
     this.motmActionLabel,
     this.onMotmTap,
     this.scorerLabels = const [],
+    this.assistLabels = const [],
     this.teamScoredZero = false,
   });
 
@@ -42,6 +43,10 @@ class MatchDetailHeaderCard extends StatelessWidget {
   final String? motmActionLabel;
   final VoidCallback? onMotmTap;
   final List<String> scorerLabels;
+
+  /// Passeurs décisifs. Vide pour les matchs antérieurs au suivi des passes
+  /// décisives : la ligne disparaît alors au lieu d'annoncer « Aucun ».
+  final List<String> assistLabels;
   final bool teamScoredZero;
 
   @override
@@ -55,6 +60,10 @@ class MatchDetailHeaderCard extends StatelessWidget {
         .where((name) => name.isNotEmpty)
         .toList(growable: false);
     final scorers = scorerLabels
+        .map((label) => label.trim())
+        .where((label) => label.isNotEmpty)
+        .toList(growable: false);
+    final assists = assistLabels
         .map((label) => label.trim())
         .where((label) => label.isNotEmpty)
         .toList(growable: false);
@@ -158,6 +167,13 @@ class MatchDetailHeaderCard extends StatelessWidget {
               const _MetadataLine(
                 icon: Icons.sports_soccer_rounded,
                 text: 'Buteurs · Aucun',
+              ),
+            ],
+            if (assists.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _MetadataLine(
+                icon: Icons.emoji_events_outlined,
+                text: 'Passeurs · ${assists.join(' · ')}',
               ),
             ],
           ],

@@ -192,6 +192,8 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
               setState(() => _journalExpanded = value),
           onEditScorer: (event) =>
               _pickGoalScorer(context, controller, event, scorerCandidates),
+          onEditAssist: (event) =>
+              _pickGoalAssist(context, controller, event, scorerCandidates),
           onDelete: (event) => _confirmDeleteEvent(context, controller, event),
         ),
       ],
@@ -384,7 +386,73 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       await controller.setEventScorer(event.id, isOpponentOwnGoal: true);
       return;
     }
-    await controller.setEventScorer(event.id, scorerParticipantId: choice);
+    if (!context.mounted) return;
+    // Dans la foulée du buteur, on demande le passeur : c'est le moment où le
+    // coach a l'action en tête. « Aucune » est proposé en premier pour que ça
+    // reste une question d'une seconde.
+    final assist = await _askAssist(
+      context,
+      candidates: candidates,
+      scorerParticipantId: choice,
+      minute: event.minute,
+    );
+    await controller.setEventScorer(
+      event.id,
+      scorerParticipantId: choice,
+      assistParticipantId: assist.participantId,
+    );
+  }
+
+  /// Corriger la seule passe décisive, sans retoucher au buteur.
+  Future<void> _pickGoalAssist(
+    BuildContext context,
+    MatchLiveStateController controller,
+    MatchLiveEvent event,
+    List<MatchCompositionEntry> candidates,
+  ) async {
+    final scorer = event.scorerParticipantId;
+    if (scorer == null) return;
+    final assist = await _askAssist(
+      context,
+      candidates: candidates,
+      scorerParticipantId: scorer,
+      minute: event.minute,
+    );
+    // Fermer la feuille sans choisir ne doit rien effacer.
+    if (!assist.answered) return;
+    await controller.setEventScorer(
+      event.id,
+      scorerParticipantId: scorer,
+      assistParticipantId: assist.participantId,
+    );
+  }
+
+  /// Renvoie le participant crédité de la passe décisive. `answered` distingue
+  /// « pas de passe décisive » d'une feuille fermée sans répondre. Le buteur ne
+  /// peut pas se faire la passe à lui-même.
+  Future<({bool answered, String? participantId})> _askAssist(
+    BuildContext context, {
+    required List<MatchCompositionEntry> candidates,
+    required String scorerParticipantId,
+    required int minute,
+  }) async {
+    final choice = await pickMatchLiveScorer(
+      context,
+      candidates: [
+        for (final entry in candidates)
+          if (entry.participantId != scorerParticipantId) entry,
+      ],
+      title: 'Passe décisive sur le but de la '
+          '${AppFormats.ordinalFeminine(minute)} minute ?',
+      icon: Icons.emoji_events_outlined,
+      extraChoiceLabel: 'Aucune passe décisive',
+      extraChoiceIcon: Icons.block_outlined,
+    );
+    if (choice == null) return (answered: false, participantId: null);
+    if (choice == kMatchLiveExtraChoiceId) {
+      return (answered: true, participantId: null);
+    }
+    return (answered: true, participantId: choice);
   }
 
   Future<void> _confirmDeleteEvent(

@@ -65,11 +65,14 @@ abstract interface class MatchLiveRepository {
 
   /// Attribue un but déjà enregistré : à un joueur, ou à un contre-son-camp
   /// adverse. Les deux paramètres nuls/faux remettent le but « à attribuer ».
+  /// [assistParticipantId] crédite au passage la passe décisive ; il suppose
+  /// un buteur et ne peut pas désigner ce buteur.
   Future<MatchLiveStateBundle> setEventScorer({
     required String matchId,
     required String eventId,
     String? scorerParticipantId,
     bool isOpponentOwnGoal,
+    String? assistParticipantId,
   });
   Future<MatchLiveStateBundle> endMatch({
     required String matchId,
@@ -282,6 +285,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
     required String eventId,
     String? scorerParticipantId,
     bool isOpponentOwnGoal = false,
+    String? assistParticipantId,
   }) async {
     final response = await _client.rpc(
       'coach_set_match_live_event_scorer',
@@ -290,6 +294,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
         'p_event_id': eventId,
         'p_scorer_participant_id': scorerParticipantId,
         'p_is_opponent_own_goal': isOpponentOwnGoal,
+        'p_assist_participant_id': assistParticipantId,
       },
     );
     return MatchLiveStateBundle.fromRpc(response);
