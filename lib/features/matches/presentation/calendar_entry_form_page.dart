@@ -282,6 +282,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             else
               ..._buildMatchFields(
                 opponents: opponents,
+                seasonRounds: seasonRounds,
                 sportsEnabled: sportsEnabled,
                 busy: busy,
               ),
@@ -368,6 +369,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
   List<Widget> _buildMatchFields({
     required List<Map<String, dynamic>> opponents,
+    required List<int?> seasonRounds,
     required bool sportsEnabled,
     required bool busy,
   }) {
