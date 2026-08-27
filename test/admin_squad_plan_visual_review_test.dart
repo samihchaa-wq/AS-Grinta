@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/composition_drag.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
@@ -80,7 +81,7 @@ void main() {
       expect(find.text('Absents (1)'), findsOneWidget);
       expect(find.text('Sans réponse (1)'), findsOneWidget);
       expect(
-        find.byType(LongPressDraggable<ConvocationPlayer>),
+        find.byType(CompositionDraggable<ConvocationPlayer>),
         findsNWidgets(5),
       );
 

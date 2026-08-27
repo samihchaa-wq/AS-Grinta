@@ -199,8 +199,7 @@ class _MatchLivePreKickoffPageState
             entries: field,
             editable: widget.canEdit,
             markerMetrics: metrics,
-            onDroppedOnSlot: (moving, slot) =>
-                _dropOnSlot(lineup, moving, slot),
+            onDroppedOnSlot: (drop) => _dropOnSlot(lineup, drop),
             onRemoveFromField: (entry) => _moveToBench(lineup, entry),
           ),
         ),
@@ -256,21 +255,10 @@ class _MatchLivePreKickoffPageState
     );
   }
 
-  Future<void> _dropOnSlot(
-    MatchComposition lineup,
-    MatchCompositionEntry moving,
-    FootballFormationSlot slot,
-  ) async {
-    final currentAtSlot = lineup.entries
-        .where((entry) => entry.zone == MatchCompositionZone.field)
-        .cast<MatchCompositionEntry?>()
-        .firstWhere(
-          (entry) =>
-              entry != null &&
-              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position).distance <
-                  .12,
-          orElse: () => null,
-        );
+  Future<void> _dropOnSlot(MatchComposition lineup, FormationDrop drop) async {
+    final moving = drop.entry;
+    final slot = drop.slot;
+    final currentAtSlot = drop.occupant;
     final oldPosition = moving.zone == MatchCompositionZone.field
         ? Offset(moving.x ?? .5, moving.y ?? .5)
         : null;

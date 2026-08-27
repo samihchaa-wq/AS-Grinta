@@ -166,12 +166,11 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
                       editable: canEdit,
                       finishedBenchCounts: bundle.substituteCounts,
                       markerMetrics: metrics,
-                      onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
+                      onDroppedOnSlot: (drop) => _handlePitchDrop(
                         context,
                         controller,
                         lineup,
-                        moving,
-                        slot,
+                        drop,
                       ),
                       onRemoveFromField: (entry) =>
                           _explainHowToSubstitute(context),
@@ -540,9 +539,10 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     BuildContext context,
     MatchLiveStateController controller,
     MatchComposition lineup,
-    MatchCompositionEntry moving,
-    FootballFormationSlot slot,
+    FormationDrop drop,
   ) async {
+    final moving = drop.entry;
+    final slot = drop.slot;
     if (_isPendingParticipant(moving.participantId)) {
       _showMessage(
         context,
@@ -551,16 +551,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       return;
     }
 
-    final currentAtSlot = lineup.entries
-        .where((entry) => entry.zone == MatchCompositionZone.field)
-        .cast<MatchCompositionEntry?>()
-        .firstWhere(
-          (entry) =>
-              entry != null &&
-              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position).distance <
-                  .12,
-          orElse: () => null,
-        );
+    final currentAtSlot = drop.occupant;
 
     if (currentAtSlot != null &&
         _isPendingParticipant(currentAtSlot.participantId)) {

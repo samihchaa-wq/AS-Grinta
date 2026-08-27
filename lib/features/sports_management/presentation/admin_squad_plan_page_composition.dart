@@ -287,19 +287,12 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     });
   }
 
-  void _dropOnSlot(MatchCompositionEntry moving, FootballFormationSlot slot) {
+  void _dropOnSlot(FormationDrop drop) {
     final composition = _composition;
     if (composition == null || _compositionLocked) return;
-    final currentAtSlot = composition.entries
-        .where((entry) => entry.zone == MatchCompositionZone.field)
-        .cast<MatchCompositionEntry?>()
-        .firstWhere(
-          (entry) =>
-              entry != null &&
-              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position).distance <
-                  .12,
-          orElse: () => null,
-        );
+    final moving = drop.entry;
+    final slot = drop.slot;
+    final currentAtSlot = drop.occupant;
     final oldPosition = moving.zone == MatchCompositionZone.field
         ? Offset(moving.x ?? .5, moving.y ?? .5)
         : null;

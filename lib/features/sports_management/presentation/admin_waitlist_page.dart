@@ -1,5 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
+import 'package:as_grinta/core/widgets/composition_drag.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
@@ -362,20 +362,16 @@ class _WaitlistTile extends StatelessWidget {
           ),
           child: card,
         );
-        final autoScroll = DragAutoScroller(context);
-        return LongPressDraggable<SportWaitlistEntry>(
+        return CompositionDraggable<SportWaitlistEntry>(
           data: entry,
-          feedback: Material(
-            type: MaterialType.transparency,
-            child: SizedBox(
-              width: MediaQuery.sizeOf(context).width - 32,
-              child: card,
-            ),
+          // Une ligne pleine largeur recentrée sur le doigt sortirait de
+          // l'écran : elle garde donc la position où on l'a saisie.
+          anchor: CompositionDragAnchor.grabPoint,
+          feedback: SizedBox(
+            width: MediaQuery.sizeOf(context).width - 32,
+            child: card,
           ),
           childWhenDragging: Opacity(opacity: .3, child: content),
-          onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-          onDragEnd: (_) => autoScroll.stop(),
-          onDraggableCanceled: (_, __) => autoScroll.stop(),
           child: content,
         );
       },

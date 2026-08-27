@@ -45,4 +45,52 @@ void main() {
     expect(controller.offset, lessThan(400));
     autoScroller.stop();
   });
+
+  testWidgets(
+    'traverse une liste figée pour trouver la page qui défile vraiment',
+    (tester) async {
+      final controller = ScrollController();
+      late BuildContext itemContext;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ListView(
+              controller: controller,
+              children: [
+                // Cas réel du Tableau Blanc : une liste imbriquée figée dans
+                // la page qui, elle, défile.
+                ListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    Builder(
+                      builder: (context) {
+                        itemContext = context;
+                        return const SizedBox(height: 2000);
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      controller.jumpTo(400);
+      await tester.pump();
+
+      final autoScroller = DragAutoScroller(itemContext);
+      autoScroller.update(const Offset(20, 20));
+      await tester.pump(const Duration(milliseconds: 48));
+
+      expect(
+        controller.offset,
+        lessThan(400),
+        reason: 'la page extérieure doit remonter',
+      );
+      autoScroller.stop();
+    },
+  );
 }

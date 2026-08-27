@@ -31,7 +31,7 @@ MatchCompositionEntry _entry({
 Widget _harness({
   required List<FootballFormationSlot> slots,
   required List<MatchCompositionEntry> field,
-  required void Function(MatchCompositionEntry, FootballFormationSlot) onDrop,
+  required ValueChanged<FormationDrop> onDrop,
   MatchCompositionEntry? bench,
 }) {
   const metrics = FormationMarkerMetrics(56);
@@ -94,9 +94,9 @@ void main() {
           slots: const [target, other],
           field: [starter],
           bench: substitute,
-          onDrop: (entry, slot) {
-            moved = entry;
-            destination = slot;
+          onDrop: (drop) {
+            moved = drop.entry;
+            destination = drop.slot;
           },
         ),
       );
@@ -131,9 +131,9 @@ void main() {
         _harness(
           slots: const [target, other],
           field: [starter],
-          onDrop: (entry, slot) {
-            moved = entry;
-            destination = slot;
+          onDrop: (drop) {
+            moved = drop.entry;
+            destination = drop.slot;
           },
         ),
       );
@@ -173,9 +173,9 @@ void main() {
         _harness(
           slots: const [target, other],
           field: [first, second],
-          onDrop: (entry, slot) {
-            moved = entry;
-            destination = slot;
+          onDrop: (drop) {
+            moved = drop.entry;
+            destination = drop.slot;
           },
         ),
       );

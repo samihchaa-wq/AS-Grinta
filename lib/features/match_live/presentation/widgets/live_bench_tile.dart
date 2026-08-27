@@ -1,4 +1,4 @@
-import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
+import 'package:as_grinta/core/widgets/composition_drag.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 
 /// Vignette d'un joueur sur le banc, avec le compteur 🔄 (nombre de fois sur
 /// le banc). Reprend la même mécanique de glisser-déposer que la composition
-/// pré-match (LongPressDraggable + DragAutoScroller).
+/// pré-match ([CompositionDraggable]).
 class LiveBenchTile extends StatelessWidget {
   const LiveBenchTile({
     super.key,
@@ -79,14 +79,11 @@ class LiveBenchTile extends StatelessWidget {
             child: box,
           );
     if (!draggable) return tappable;
-    final autoScroll = DragAutoScroller(context);
-    return LongPressDraggable<MatchCompositionEntry>(
+    return CompositionDraggable<MatchCompositionEntry>(
       data: entry,
-      feedback: Material(color: Colors.transparent, child: box),
+      feedback: box,
+      feedbackLift: metrics.height * .45,
       childWhenDragging: Opacity(opacity: .3, child: box),
-      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-      onDragEnd: (_) => autoScroll.stop(),
-      onDraggableCanceled: (_, __) => autoScroll.stop(),
       child: tappable,
     );
   }

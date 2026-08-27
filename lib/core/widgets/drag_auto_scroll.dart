@@ -44,7 +44,7 @@ class DragAutoScroller {
       return;
     }
 
-    final scrollable = Scrollable.maybeOf(context);
+    final scrollable = _resolveScrollable();
     if (scrollable == null) {
       stop();
       return;
@@ -72,6 +72,27 @@ class DragAutoScroller {
       _timer ??=
           Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
     }
+  }
+
+  /// Le premier ancêtre qui peut réellement défiler verticalement.
+  ///
+  /// `Scrollable.maybeOf` renvoie le plus proche, même s'il ne défile pas.
+  /// Or plusieurs écrans imbriquent une liste figée
+  /// (`NeverScrollableScrollPhysics`) dans la page qui, elle, défile : le
+  /// défilement automatique visait alors la liste figée et ne se passait
+  /// rien. On remonte donc jusqu'à en trouver un qui a vraiment de la marge.
+  ScrollableState? _resolveScrollable() {
+    ScrollableState? candidate = Scrollable.maybeOf(context);
+    while (candidate != null) {
+      final position = candidate.position;
+      if (position.hasContentDimensions &&
+          position.axis == Axis.vertical &&
+          position.maxScrollExtent > position.minScrollExtent) {
+        return candidate;
+      }
+      candidate = candidate.context.findAncestorStateOfType<ScrollableState>();
+    }
+    return null;
   }
 
   Rect _viewportBounds(ScrollableState scrollable) {

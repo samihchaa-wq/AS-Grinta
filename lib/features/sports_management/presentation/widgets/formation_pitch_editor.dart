@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
-import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
+import 'package:as_grinta/core/widgets/composition_drag.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
+import 'package:as_grinta/features/sports_management/domain/formation_slot_assignment.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
@@ -98,6 +99,29 @@ class FormationMarkerMetrics {
   double get nameFontSize => (width * .18).clamp(10.5, 12.5).toDouble();
 }
 
+/// Ce que le terrain fera d'un joueur relâché sur un poste donné.
+class FormationDrop {
+  const FormationDrop({
+    required this.entry,
+    required this.slot,
+    required this.occupant,
+  });
+
+  /// Le joueur déplacé.
+  final MatchCompositionEntry entry;
+
+  /// Le poste visé (le plus proche du point relâché).
+  final FootballFormationSlot slot;
+
+  /// Le joueur affiché sur ce poste au moment du dépôt, s'il y en avait un.
+  ///
+  /// Les écrans appelants l'utilisaient jusqu'ici en recalculant « le premier
+  /// joueur à moins de 0,12 du poste », un critère différent de celui de
+  /// l'affichage : l'échange pouvait porter sur un autre joueur que celui
+  /// qu'on voyait. Le terrain le fournit désormais lui-même.
+  final MatchCompositionEntry? occupant;
+}
+
 class FormationPitchEditor extends StatefulWidget {
   const FormationPitchEditor({
     super.key,
@@ -112,8 +136,7 @@ class FormationPitchEditor extends StatefulWidget {
 
   final List<FootballFormationSlot> slots;
   final List<MatchCompositionEntry> entries;
-  final void Function(MatchCompositionEntry entry, FootballFormationSlot slot)
-      onDroppedOnSlot;
+  final ValueChanged<FormationDrop> onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
   final bool editable;
 
@@ -131,7 +154,28 @@ class FormationPitchEditor extends StatefulWidget {
 }
 
 class _FormationPitchEditorState extends State<FormationPitchEditor> {
+  /// Clé posée sur la pile qui contient les marqueurs : c'est elle, et non le
+  /// cadre extérieur, qui définit le repère des coordonnées normalisées.
+  final _pitchKey = GlobalKey();
+
+  /// Poste survolé pendant un glisser. Un `ValueNotifier` plutôt qu'un
+  /// `setState` : seuls les marqueurs se redessinent, pas tout le terrain, à
+  /// chaque pixel parcouru par le doigt.
+  final _hoveredSlot = ValueNotifier<int?>(null);
+
   FootballFormationSlot? _selectedSlot;
+
+  /// Dernière répartition postes → joueurs calculée à l'affichage. Les
+  /// dépôts et les appuis s'y réfèrent pour désigner exactement le joueur que
+  /// l'utilisateur voit sur le poste.
+  Map<int, MatchCompositionEntry> _slotEntries = const {};
+
+  /// Point réellement occupé par chaque poste à l'écran : la position du
+  /// joueur qui s'y trouve, ou celle du poste s'il est vide. C'est ce point,
+  /// et non la position théorique du poste, qui sert à désigner la cible d'un
+  /// dépôt — sinon la vignette mise en évidence n'aurait pas été celle sur
+  /// laquelle on relâche.
+  List<Offset> _slotAnchors = const [];
 
   bool _sameSlot(FootballFormationSlot a, FootballFormationSlot b) =>
       a.label == b.label && (a.position - b.position).distance < .001;
@@ -139,6 +183,13 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
   bool _isSelected(FootballFormationSlot slot) {
     final selected = _selectedSlot;
     return selected != null && _sameSlot(selected, slot);
+  }
+
+  int? _indexOfSlot(FootballFormationSlot slot) {
+    for (var index = 0; index < widget.slots.length; index += 1) {
+      if (_sameSlot(widget.slots[index], slot)) return index;
+    }
+    return null;
   }
 
   @override
@@ -155,6 +206,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
   @override
   void dispose() {
     FormationPitchTapSelection.clear(this);
+    _hoveredSlot.dispose();
     super.dispose();
   }
 
@@ -185,8 +237,9 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
         !entry.canBeSelected) {
       return false;
     }
+    final index = _indexOfSlot(target);
     _clearSelection();
-    widget.onDroppedOnSlot(entry, target);
+    _notifyDrop(entry, target, index);
     return true;
   }
 
@@ -207,64 +260,132 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     _placeSelectedPlayer(entry);
   }
 
-  MatchCompositionEntry? _entryFor(
+  void _notifyDrop(
+    MatchCompositionEntry entry,
     FootballFormationSlot slot,
-    bool legacyFlat442,
+    int? slotIndex,
   ) {
-    MatchCompositionEntry? closest;
-    var distance = double.infinity;
-    for (final entry in widget.entries) {
-      final current = _displayPosition(entry, legacyFlat442: legacyFlat442);
-      final candidate = (current - slot.position).distance;
-      if (candidate < distance) {
-        distance = candidate;
-        closest = entry;
-      }
-    }
-    return distance < .12 ? closest : null;
+    final occupant = slotIndex == null ? null : _slotEntries[slotIndex];
+    widget.onDroppedOnSlot(
+      FormationDrop(
+        entry: entry,
+        slot: slot,
+        occupant:
+            occupant?.participantId == entry.participantId ? null : occupant,
+      ),
+    );
+  }
+
+  /// Le poste le plus proche du point relâché.
+  ///
+  /// Auparavant chaque poste portait sa propre zone de dépôt, à peine plus
+  /// grande que la photo : entre deux postes, un joueur relâché ne tombait
+  /// nulle part et rien ne se passait. Tout le terrain accepte désormais le
+  /// dépôt et le ramène au poste le plus proche.
+  int? _slotIndexAt(Offset globalPointer) {
+    if (widget.slots.isEmpty) return null;
+    final renderObject = _pitchKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+    final size = renderObject.size;
+    if (size.isEmpty) return null;
+    final local = renderObject.globalToLocal(globalPointer);
+    final normalized = Offset(local.dx / size.width, local.dy / size.height);
+    return nearestSlotIndex(_slotAnchors, normalized);
+  }
+
+  void _updateHover(Offset globalPointer) {
+    _hoveredSlot.value = _slotIndexAt(globalPointer);
+  }
+
+  void _acceptDrop(DragTargetDetails<MatchCompositionEntry> details) {
+    _hoveredSlot.value = null;
+    _clearSelection();
+    final pointer = CompositionDragPointer.resolve(details.offset);
+    final index = _slotIndexAt(pointer);
+    if (index == null) return;
+    _notifyDrop(details.data, widget.slots[index], index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final legacyFlat442 = _usesLegacyFlat442Layout(widget.entries);
+    final positions = [
+      for (final entry in widget.entries)
+        _displayPosition(entry, legacyFlat442: legacyFlat442),
+    ];
+    final assignment = assignEntriesToSlots(
+      slotPositions: [for (final slot in widget.slots) slot.position],
+      entryPositions: positions,
+    );
+    _slotEntries = {
+      for (final pair in assignment.entries)
+        pair.key: widget.entries[pair.value],
+    };
+    _slotAnchors = [
+      for (var index = 0; index < widget.slots.length; index += 1)
+        if (assignment[index] case final entryIndex?)
+          positions[entryIndex]
+        else
+          widget.slots[index].position,
+    ];
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 540),
       child: AspectRatio(
-        aspectRatio: .68,
+        aspectRatio: kPitchAspectRatio,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final legacyFlat442 = _usesLegacyFlat442Layout(widget.entries);
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF124529),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFF6DAD8B), width: 1.5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 10),
-                  ),
-                ],
+            return DragTarget<MatchCompositionEntry>(
+              onWillAcceptWithDetails: (details) =>
+                  widget.editable && details.data.canBeSelected,
+              onMove: (details) => _updateHover(
+                CompositionDragPointer.resolve(details.offset),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
-                child: Stack(
-                  children: [
-                    const Positioned.fill(
-                      child: CustomPaint(painter: FootballPitchPainter()),
+              onLeave: (_) => _hoveredSlot.value = null,
+              onAcceptWithDetails: _acceptDrop,
+              builder: (context, candidates, rejected) {
+                final hovering = candidates.isNotEmpty;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF124529),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color:
+                          hovering ? AppTheme.accent : const Color(0xFF6DAD8B),
+                      width: 1.5,
                     ),
-                    for (final slot in widget.slots)
-                      _slot(
-                        context,
-                        constraints.biggest,
-                        slot,
-                        _entryFor(slot, legacyFlat442),
-                        widget.finishedBenchCounts,
-                        legacyFlat442,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x33000000),
+                        blurRadius: 18,
+                        offset: Offset(0, 10),
                       ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(26),
+                    child: Stack(
+                      key: _pitchKey,
+                      children: [
+                        const Positioned.fill(
+                          child: CustomPaint(painter: FootballPitchPainter()),
+                        ),
+                        for (var index = 0;
+                            index < widget.slots.length;
+                            index += 1)
+                          _slot(
+                            context,
+                            constraints.biggest,
+                            index,
+                            positions,
+                            legacyFlat442,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           },
         ),
@@ -275,11 +396,13 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
   Widget _slot(
     BuildContext context,
     Size size,
-    FootballFormationSlot slot,
-    MatchCompositionEntry? entry,
-    Map<String, int> finishedBenchCounts,
+    int index,
+    List<Offset> positions,
     bool legacyFlat442,
   ) {
+    final slot = widget.slots[index];
+    final entry = _slotEntries[index];
+
     // Mêmes proportions que la composition d'un match terminé
     // (CompositionPitch) : photo généreuse, prénom juste dessous. Les
     // marqueurs suivent la largeur du terrain, qui se réduit quand le banc
@@ -288,8 +411,6 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
         widget.markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
     final width = metrics.width;
     final height = metrics.height;
-    final avatarSize = metrics.avatarSize;
-    final nameFontSize = metrics.nameFontSize;
 
     // Les coordonnées historiques de l'ancien 4-4-2 étaient très tassées
     // vers le bas. On conserve les données brutes mais on les rééquilibre
@@ -310,155 +431,199 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
       top: top,
       width: width,
       height: height,
-      child: DragTarget<MatchCompositionEntry>(
-        onWillAcceptWithDetails: (details) =>
-            widget.editable && details.data.canBeSelected,
-        onAcceptWithDetails: (details) {
-          _clearSelection();
-          widget.onDroppedOnSlot(details.data, slot);
-        },
-        builder: (context, candidates, rejected) {
+      child: ValueListenableBuilder<int?>(
+        valueListenable: _hoveredSlot,
+        builder: (context, hovered, _) {
           final selected = _isSelected(slot);
-          final highlighted = candidates.isNotEmpty || selected;
-          if (entry == null) {
-            // L'emplacement vide reste carré, à la taille de la photo, pour
-            // que la grille des postes garde son alignement.
-            return Align(
-              alignment: Alignment.topCenter,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: widget.editable ? () => _selectSlot(slot) : null,
-                  borderRadius: BorderRadius.circular(17),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 140),
-                    width: avatarSize,
-                    height: avatarSize,
-                    decoration: BoxDecoration(
-                      color: highlighted
-                          ? AppTheme.accent.withValues(alpha: .32)
-                          : Colors.white.withValues(alpha: .10),
-                      borderRadius: BorderRadius.circular(17),
-                      border: Border.all(
-                        color: highlighted ? AppTheme.accent : Colors.white54,
-                        width: highlighted ? 2.5 : 1,
-                      ),
-                      boxShadow: selected
-                          ? [
-                              BoxShadow(
-                                color: AppTheme.accent.withValues(alpha: .8),
-                                blurRadius: 9,
-                                spreadRadius: 1,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          selected ? Icons.ads_click_rounded : Icons.add,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        Text(
-                          slot.label,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }
-
-          final finishedBenchCount =
-              finishedBenchCounts[entry.participantId] ?? 0;
-          final marker = Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap:
-                  widget.editable ? () => _tapOccupiedSlot(slot, entry) : null,
-              borderRadius: BorderRadius.circular(16),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppTheme.accent.withValues(alpha: .12)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: highlighted ? AppTheme.accent : Colors.transparent,
-                    width: highlighted ? 2.5 : 0,
-                  ),
-                  boxShadow: highlighted
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.accent.withValues(alpha: .9),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        PlayerAvatar(
-                          photoUrl: entry.photoUrl,
-                          name: entry.displayName,
-                          isGoalkeeper: entry.isGoalkeeper,
-                          size: avatarSize,
-                        ),
-                        if (finishedBenchCount > 0)
-                          Positioned(
-                            right: -2,
-                            top: -2,
-                            child: SubstituteHistoryBadge(
-                              count: finishedBenchCount,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    // Prénom sur fond translucide sous la photo, comme sur
-                    // la composition d'un match terminé : jamais posé sur le
-                    // visage, et lisible même par-dessus les tracés blancs
-                    // du terrain.
-                    PitchPlayerName(
-                      label: entry.displayName.trim(),
-                      fontSize: nameFontSize,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-          if (!widget.editable) return marker;
-          final autoScroll = DragAutoScroller(context);
-          return LongPressDraggable<MatchCompositionEntry>(
-            data: entry,
-            feedback: Material(
-              type: MaterialType.transparency,
-              child: SizedBox(width: width, height: height, child: marker),
-            ),
-            childWhenDragging: Opacity(opacity: .25, child: marker),
-            onDragUpdate: (details) =>
-                autoScroll.update(details.globalPosition),
-            onDragEnd: (_) => autoScroll.stop(),
-            onDraggableCanceled: (_, __) => autoScroll.stop(),
-            child: marker,
-          );
+          final targeted = hovered == index;
+          return entry == null
+              ? _emptySlot(slot, metrics,
+                  targeted: targeted, selected: selected)
+              : _occupiedSlot(
+                  slot,
+                  entry,
+                  metrics,
+                  targeted: targeted,
+                  selected: selected,
+                );
         },
       ),
+    );
+  }
+
+  Widget _emptySlot(
+    FootballFormationSlot slot,
+    FormationMarkerMetrics metrics, {
+    required bool targeted,
+    required bool selected,
+  }) {
+    final highlighted = targeted || selected;
+    // L'emplacement vide reste carré, à la taille de la photo, pour que la
+    // grille des postes garde son alignement.
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.editable ? () => _selectSlot(slot) : null,
+          borderRadius: BorderRadius.circular(17),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: metrics.avatarSize,
+            height: metrics.avatarSize,
+            decoration: BoxDecoration(
+              color: highlighted
+                  ? AppTheme.accent.withValues(alpha: .32)
+                  : Colors.white.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(
+                color: highlighted ? AppTheme.accent : Colors.white54,
+                width: highlighted ? 2.5 : 1,
+              ),
+              boxShadow: highlighted
+                  ? [
+                      BoxShadow(
+                        color: AppTheme.accent.withValues(alpha: .8),
+                        blurRadius: 9,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  targeted
+                      ? Icons.south_rounded
+                      : selected
+                          ? Icons.ads_click_rounded
+                          : Icons.add,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                Text(
+                  slot.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _occupiedSlot(
+    FootballFormationSlot slot,
+    MatchCompositionEntry entry,
+    FormationMarkerMetrics metrics, {
+    required bool targeted,
+    required bool selected,
+  }) {
+    final highlighted = targeted || selected;
+    final finishedBenchCount =
+        widget.finishedBenchCounts[entry.participantId] ?? 0;
+
+    final marker = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.editable ? () => _tapOccupiedSlot(slot, entry) : null,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppTheme.accent.withValues(alpha: .12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: highlighted ? AppTheme.accent : Colors.transparent,
+              width: highlighted ? 2.5 : 0,
+            ),
+            boxShadow: highlighted
+                ? [
+                    BoxShadow(
+                      color: AppTheme.accent.withValues(alpha: .9),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  PlayerAvatar(
+                    photoUrl: entry.photoUrl,
+                    name: entry.displayName,
+                    isGoalkeeper: entry.isGoalkeeper,
+                    size: metrics.avatarSize,
+                  ),
+                  if (finishedBenchCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: SubstituteHistoryBadge(
+                        count: finishedBenchCount,
+                      ),
+                    ),
+                  // Pendant un glisser, le poste visé annonce clairement
+                  // qu'un dépôt ici échangera les deux joueurs.
+                  if (targeted)
+                    Positioned.fill(
+                      child: Center(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Padding(
+                            padding: EdgeInsets.all(3),
+                            child: Icon(
+                              Icons.swap_horiz_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              // Prénom sur fond translucide sous la photo, comme sur la
+              // composition d'un match terminé : jamais posé sur le visage,
+              // et lisible même par-dessus les tracés blancs du terrain.
+              PitchPlayerName(
+                label: entry.displayName.trim(),
+                fontSize: metrics.nameFontSize,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!widget.editable) return marker;
+    return CompositionDraggable<MatchCompositionEntry>(
+      data: entry,
+      childWhenDragging: Opacity(opacity: .25, child: marker),
+      feedback: SizedBox(
+        width: metrics.width,
+        height: metrics.height,
+        child: marker,
+      ),
+      feedbackLift: metrics.height * .45,
+      onDragEnd: () => _hoveredSlot.value = null,
+      child: marker,
     );
   }
 }

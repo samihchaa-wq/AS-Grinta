@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/composition_drag.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
@@ -44,7 +45,6 @@ class _CompositionPitchState extends State<CompositionPitch> {
               builder: (context, candidates, rejected) {
                 final highlighted = candidates.isNotEmpty;
                 return AnimatedContainer(
-                  key: _fieldKey,
                   duration: const Duration(milliseconds: 150),
                   decoration: BoxDecoration(
                     color: const Color(0xFF124529),
@@ -66,6 +66,11 @@ class _CompositionPitchState extends State<CompositionPitch> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(26),
                     child: Stack(
+                      // La clé se pose sur la pile, pas sur le cadre : le
+                      // cadre est plus grand de son épaisseur de bordure, et
+                      // celle-ci change pendant un survol. Le repère des
+                      // coordonnées se serait déplacé en cours de glisser.
+                      key: _fieldKey,
                       clipBehavior: Clip.hardEdge,
                       children: [
                         Positioned.fill(
@@ -135,16 +140,14 @@ class _CompositionPitchState extends State<CompositionPitch> {
       width: markerWidth,
       height: markerHeight,
       child: widget.editable && entry.canBeSelected
-          ? LongPressDraggable<MatchCompositionEntry>(
+          ? CompositionDraggable<MatchCompositionEntry>(
               data: entry,
-              feedback: Material(
-                type: MaterialType.transparency,
-                child: SizedBox(
-                  width: markerWidth,
-                  height: markerHeight,
-                  child: marker,
-                ),
+              feedback: SizedBox(
+                width: markerWidth,
+                height: markerHeight,
+                child: marker,
               ),
+              feedbackLift: markerHeight * .45,
               childWhenDragging: Opacity(opacity: 0.28, child: marker),
               child: marker,
             )
@@ -155,7 +158,12 @@ class _CompositionPitchState extends State<CompositionPitch> {
   void _acceptOnField(DragTargetDetails<MatchCompositionEntry> details) {
     final renderObject = _fieldKey.currentContext?.findRenderObject();
     if (renderObject is! RenderBox || !renderObject.hasSize) return;
-    final local = renderObject.globalToLocal(details.offset);
+    // `details.offset` est le coin haut-gauche de la vignette fantôme, pas le
+    // doigt : le joueur atterrissait une demi-vignette trop haut et trop à
+    // gauche.
+    final local = renderObject.globalToLocal(
+      CompositionDragPointer.resolve(details.offset),
+    );
     final normalized = Offset(
       (local.dx / renderObject.size.width).clamp(0.08, 0.92).toDouble(),
       (local.dy / renderObject.size.height).clamp(0.06, 0.94).toDouble(),
@@ -189,9 +197,9 @@ class CompositionPlayerChip extends StatelessWidget {
       onPressed: onTap,
     );
     if (!editable || !entry.canBeSelected) return chip;
-    return LongPressDraggable<MatchCompositionEntry>(
+    return CompositionDraggable<MatchCompositionEntry>(
       data: entry,
-      feedback: Material(type: MaterialType.transparency, child: chip),
+      feedback: chip,
       childWhenDragging: Opacity(opacity: 0.3, child: chip),
       child: chip,
     );

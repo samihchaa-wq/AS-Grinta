@@ -235,14 +235,10 @@ class _EffectifPlayerChip extends StatelessWidget {
     );
     Widget content = chip;
     if (draggable) {
-      final autoScroll = DragAutoScroller(context);
-      content = LongPressDraggable<ConvocationPlayer>(
+      content = CompositionDraggable<ConvocationPlayer>(
         data: player,
-        feedback: Material(type: MaterialType.transparency, child: chip),
+        feedback: chip,
         childWhenDragging: Opacity(opacity: .3, child: chip),
-        onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-        onDragEnd: (_) => autoScroll.stop(),
-        onDraggableCanceled: (_, __) => autoScroll.stop(),
         child: chip,
       );
     }
@@ -388,15 +384,12 @@ class _BenchBox extends StatelessWidget {
       ),
     );
     if (!draggable) return tile;
-    final autoScroll = DragAutoScroller(context);
-    return LongPressDraggable<MatchCompositionEntry>(
+    return CompositionDraggable<MatchCompositionEntry>(
       data: entry,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: Material(type: MaterialType.transparency, child: tile),
+      // Une vignette de banc mesure environ 84 px de haut.
+      feedback: tile,
+      feedbackLift: 38,
       childWhenDragging: Opacity(opacity: .35, child: tile),
-      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-      onDragEnd: (_) => autoScroll.stop(),
-      onDraggableCanceled: (_, __) => autoScroll.stop(),
       child: tile,
     );
   }

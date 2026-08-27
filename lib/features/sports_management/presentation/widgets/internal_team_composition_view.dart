@@ -1,5 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
-import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
+import 'package:as_grinta/core/widgets/composition_drag.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
@@ -429,14 +429,14 @@ class _PlayerChip extends StatelessWidget {
       ),
     );
     if (!editable) return chip;
-    final autoScroll = DragAutoScroller(context);
-    return LongPressDraggable<InternalCompositionEntry>(
+    return CompositionDraggable<InternalCompositionEntry>(
       data: entry,
-      feedback: Material(type: MaterialType.transparency, child: chip),
+      // La puce affichée dans une colonne prend toute sa largeur
+      // (`double.infinity`) : telle quelle, sa copie flottante n'aurait
+      // aucune largeur définie une fois détachée de la colonne. On fait donc
+      // suivre une version compacte.
+      feedback: _PlayerChip(entry: entry, editable: false),
       childWhenDragging: Opacity(opacity: .3, child: chip),
-      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-      onDragEnd: (_) => autoScroll.stop(),
-      onDraggableCanceled: (_, __) => autoScroll.stop(),
       child: chip,
     );
   }
