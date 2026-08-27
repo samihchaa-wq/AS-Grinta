@@ -134,11 +134,26 @@ enum _PlayerStatCol {
 const _playerValueFlex = 1;
 const _playerBadgeSize = statisticsBadgeSize;
 
-/// Les huit colonnes de statistiques (J, B, PD, CS, HDM, G, N, P) se partagent
-/// la zone défilante. On réserve à chacune la même largeur qu'avant l'arrivée
-/// des passes décisives, sinon « HDM » et sa flèche de tri ne tiennent plus.
-const _playerColumnCount = 8;
+/// Les colonnes de statistiques (J, B, [PD], CS, HDM, G, N, P) se partagent la
+/// zone défilante. On réserve à chacune la même largeur qu'avant l'arrivée des
+/// passes décisives, sinon « HDM » et sa flèche de tri ne tiennent plus.
 const _playerColumnWidth = 64.0;
+const _playerColumnCountWithoutAssists = 7;
+
+/// Les passes décisives ne sont suivies que depuis leur mise en service : une
+/// période antérieure n'en contient aucune, et afficher une colonne vide y
+/// ferait croire à un manque de saisie plutôt qu'à une donnée qui n'existait
+/// pas encore.
+///
+/// La saison en cours montre donc toujours la colonne — c'est là qu'on saisit —
+/// et une période passée ne la montre que si elle porte réellement des passes.
+/// Aucune date n'est écrite en dur : la colonne apparaîtra d'elle-même dans
+/// « Saison précédente » et « Toutes saisons » dès que celles-ci couvriront une
+/// saison où des passes ont été enregistrées.
+bool statisticsShowsAssistsColumn(StatisticsPeriodData data) {
+  if (data.period == StatisticsPeriod.current) return true;
+  return data.players.any((player) => player.assists > 0);
+}
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
@@ -209,8 +224,12 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           );
         }
 
+        final showsAssists = statisticsShowsAssistsColumn(data);
         final players = [...data.players];
-        final sort = _sort;
+        // Trier sur une colonne que cette période n'affiche pas donnerait un
+        // classement inexplicable : on retombe sur l'ordre par défaut.
+        final sort =
+            !showsAssists && _sort == _PlayerStatCol.assists ? null : _sort;
         if (sort != null) {
           players.sort((a, b) {
             final comparison = sort == _PlayerStatCol.name
@@ -246,16 +265,19 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           child: StickyHeaderTableCard(
             onRefresh: _refresh,
             pinnedWidth: pinnedWidth,
-            minWidth: pinnedWidth + _playerColumnCount * _playerColumnWidth,
+            minWidth: pinnedWidth +
+                (_playerColumnCountWithoutAssists + (showsAssists ? 1 : 0)) *
+                    _playerColumnWidth,
             pinnedHeader: _PlayersPinnedHeader(
-              sort: _sort,
+              sort: sort,
               descending: _descending,
               onSort: _onSort,
             ),
             scrollableHeader: _PlayersScrollableHeader(
-              sort: _sort,
+              sort: sort,
               descending: _descending,
               onSort: _onSort,
+              showsAssists: showsAssists,
             ),
             rows: [
               for (var index = 0; index < players.length; index++)
@@ -265,6 +287,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
                   player: players[index],
                   isCurrentUser: currentProfileId != null &&
                       players[index].profileId == currentProfileId,
+                  showsAssists: showsAssists,
                 ),
             ],
           ),
@@ -313,11 +336,13 @@ class _PlayersScrollableHeader extends StatelessWidget {
     required this.sort,
     required this.descending,
     required this.onSort,
+    required this.showsAssists,
   });
 
   final _PlayerStatCol? sort;
   final bool descending;
   final ValueChanged<_PlayerStatCol> onSort;
+  final bool showsAssists;
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +365,7 @@ class _PlayersScrollableHeader extends StatelessWidget {
         children: [
           valueCell('J', _PlayerStatCol.played),
           valueCell('B', _PlayerStatCol.goals),
-          valueCell('PD', _PlayerStatCol.assists),
+          if (showsAssists) valueCell('PD', _PlayerStatCol.assists),
           valueCell('CS', _PlayerStatCol.cleanSheets),
           valueCell('HDM', _PlayerStatCol.hdm),
           valueCell('G', _PlayerStatCol.wins),
@@ -357,6 +382,7 @@ StickyTableRow _playersRow(
   required int rank,
   required PlayerStatistics player,
   required bool isCurrentUser,
+  required bool showsAssists,
 }) {
   final valueStyle = grintaTableCellTextStyle(context);
 
@@ -389,7 +415,7 @@ StickyTableRow _playersRow(
       children: [
         value(player.matchesPlayed ?? 0),
         value(player.goals),
-        value(player.assists),
+        if (showsAssists) value(player.assists),
         value(player.teamCleanSheets),
         value(player.hdm ?? 0),
         value(player.wins ?? 0),
