@@ -21,6 +21,82 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _CalendarEntryKind { championnat, amical, internal, event }
 
+String _normalizeOpponentSearch(String value) {
+  var normalized = value.toLowerCase().trim();
+  const replacements = <String, String>{
+    'à': 'a',
+    'á': 'a',
+    'â': 'a',
+    'ä': 'a',
+    'ã': 'a',
+    'å': 'a',
+    'ç': 'c',
+    'è': 'e',
+    'é': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'ì': 'i',
+    'í': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ñ': 'n',
+    'ò': 'o',
+    'ó': 'o',
+    'ô': 'o',
+    'ö': 'o',
+    'õ': 'o',
+    'ù': 'u',
+    'ú': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ý': 'y',
+    'ÿ': 'y',
+    'œ': 'oe',
+    'æ': 'ae',
+  };
+  for (final entry in replacements.entries) {
+    normalized = normalized.replaceAll(entry.key, entry.value);
+  }
+  return normalized
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+int? _opponentMatchScore(String name, String query) {
+  final normalizedName = _normalizeOpponentSearch(name);
+  final normalizedQuery = _normalizeOpponentSearch(query);
+  if (normalizedQuery.isEmpty) return 0;
+  if (normalizedName == normalizedQuery) return 0;
+  if (normalizedName.startsWith(normalizedQuery)) {
+    return 10 + (normalizedName.length - normalizedQuery.length);
+  }
+
+  final words = normalizedName.split(' ');
+  for (var index = 0; index < words.length; index++) {
+    if (words[index].startsWith(normalizedQuery)) return 20 + index;
+  }
+
+  final containsAt = normalizedName.indexOf(normalizedQuery);
+  if (containsAt >= 0) return 40 + containsAt;
+
+  var queryIndex = 0;
+  var gaps = 0;
+  var previousMatch = -1;
+  var nameIndex = 0;
+  while (nameIndex < normalizedName.length &&
+      queryIndex < normalizedQuery.length) {
+    if (normalizedName[nameIndex] == normalizedQuery[queryIndex]) {
+      if (previousMatch >= 0) gaps += nameIndex - previousMatch - 1;
+      previousMatch = nameIndex;
+      queryIndex += 1;
+    }
+    nameIndex += 1;
+  }
+  if (queryIndex == normalizedQuery.length) return 80 + gaps;
+  return null;
+}
+
 class CalendarEntryFormPage extends ConsumerStatefulWidget {
   const CalendarEntryFormPage({super.key, this.event});
 
@@ -275,25 +351,25 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }) {
     final fields = <Widget>[];
     var cardIndex = 0;
+    var selectedOpponentName = '';
+    if (_opponentId.isNotEmpty) {
+      for (final opponent in opponents) {
+        if (opponent['id'].toString() == _opponentId) {
+          selectedOpponentName = opponent['name'].toString();
+          break;
+        }
+      }
+    }
 
     void addCard(Widget child) {
       if (fields.isNotEmpty) fields.add(const SizedBox(height: 10));
-      fields.add(
-        _CriterionCard(
-          lighter: cardIndex.isOdd,
-          child: child,
-        ),
-      );
+      fields.add(_CriterionCard(lighter: cardIndex.isOdd, child: child));
       cardIndex += 1;
     }
 
     if (widget.event == null) {
       addCard(
-        _EntryKindPicker(
-          value: _kind,
-          enabled: !busy,
-          onChanged: _changeKind,
-        ),
+        _EntryKindPicker(value: _kind, enabled: !busy, onChanged: _changeKind),
       );
     }
 
@@ -323,30 +399,73 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _opponentId.isEmpty ? null : _opponentId,
-                    decoration: const InputDecoration(hintText: 'Adversaire'),
-                    items: opponents
-                        .map(
-                          (opponent) => DropdownMenuItem<String>(
-                            value: opponent['id'].toString(),
-                            child: Text(opponent['name'].toString()),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: busy
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _opponentId = value ?? '';
-                              _refreshAddressForSelection();
-                            });
-                            _suggestOdds();
-                          },
-                    validator: (value) =>
-                        _isNormalMatch && (value == null || value.isEmpty)
+                  child: Autocomplete<Map<String, dynamic>>(
+                    initialValue: TextEditingValue(text: selectedOpponentName),
+                    displayStringForOption: (opponent) =>
+                        opponent['name'].toString(),
+                    optionsBuilder: (textEditingValue) {
+                      final query = textEditingValue.text.trim();
+                      if (query.isEmpty) return opponents.take(8);
+
+                      final ranked = <MapEntry<int, Map<String, dynamic>>>[];
+                      for (final opponent in opponents) {
+                        final score = _opponentMatchScore(
+                          opponent['name'].toString(),
+                          query,
+                        );
+                        if (score != null) {
+                          ranked.add(MapEntry(score, opponent));
+                        }
+                      }
+                      ranked.sort((a, b) {
+                        final byScore = a.key.compareTo(b.key);
+                        if (byScore != 0) return byScore;
+                        return a.value['name'].toString().compareTo(
+                              b.value['name'].toString(),
+                            );
+                      });
+                      return ranked.take(8).map((entry) => entry.value);
+                    },
+                    fieldViewBuilder:
+                        (context, textController, focusNode, onFieldSubmitted) {
+                      return TextFormField(
+                        controller: textController,
+                        focusNode: focusNode,
+                        enabled: !busy,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.done,
+                        decoration: const InputDecoration(
+                          hintText: 'Rechercher un adversaire',
+                          prefixIcon: Icon(Icons.search_rounded),
+                        ),
+                        onFieldSubmitted: (_) => onFieldSubmitted(),
+                        onChanged: (value) {
+                          if (_opponentId.isEmpty) return;
+                          if (_normalizeOpponentSearch(value) ==
+                              _normalizeOpponentSearch(
+                                selectedOpponentName,
+                              )) {
+                            return;
+                          }
+                          setState(() {
+                            _opponentId = '';
+                            _oddsWin = null;
+                            _oddsDraw = null;
+                            _oddsLoss = null;
+                          });
+                        },
+                        validator: (_) => _isNormalMatch && _opponentId.isEmpty
                             ? 'Sélectionnez un adversaire'
                             : null,
+                      );
+                    },
+                    onSelected: (opponent) {
+                      setState(() {
+                        _opponentId = opponent['id'].toString();
+                        _refreshAddressForSelection();
+                      });
+                      _suggestOdds();
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -671,9 +790,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     controller.dispose();
     if (name == null || name.trim().isEmpty || !mounted) return;
     final trimmedName = name.trim();
-    final alreadyExists = ref.read(matchesControllerProvider).opponents.any(
-          (opponent) => opponent['name']?.toString() == trimmedName,
-        );
+    final alreadyExists = ref
+        .read(matchesControllerProvider)
+        .opponents
+        .any((opponent) => opponent['name']?.toString() == trimmedName);
     if (alreadyExists) {
       final createAnyway = await showDialog<bool>(
             context: context,
