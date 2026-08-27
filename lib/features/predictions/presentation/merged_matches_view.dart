@@ -302,8 +302,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               )
             else
-              ...feedSections.map(
-                (section) => _buildFeedSection(
+              ...feedSections.expand(
+                (section) => _buildFeedSectionSlivers(
                   section: section,
                   isLastSection: section == feedSections.last,
                   focusKey: focusKey,
@@ -327,7 +327,7 @@ String _entryKey(_FeedEntry entry) {
   return 'unknown';
 }
 
-Widget _buildFeedSection({
+List<Widget> _buildFeedSectionSlivers({
   required _FeedSection section,
   required bool isLastSection,
   required String? focusKey,
@@ -340,44 +340,41 @@ Widget _buildFeedSection({
       focusKey != null &&
       _entryKey(section.entries.first) == focusKey;
 
-  return SliverMainAxisGroup(
-    slivers: [
-      if (title != null)
-        SliverPersistentHeader(
-          key: headerIsFocus ? focusMatchKey : null,
-          pinned: true,
-          delegate: _FeedSectionHeaderDelegate(title: title),
-        ),
-      if (title != null)
-        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.microGap)),
-      if (section.showSeasonTitle)
-        SliverToBoxAdapter(
-          child: _SeasonDivider(seasonName: section.seasonName),
-        ),
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenGutter,
-        ),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final entry = section.entries[index];
-            final isFocusCard =
-                focusKey != null && _entryKey(entry) == focusKey;
-            final isLastCard =
-                isLastSection && index == section.entries.length - 1;
-
-            return Padding(
-              key: isFocusCard && !headerIsFocus ? focusMatchKey : null,
-              padding: EdgeInsets.only(
-                bottom: isLastCard ? 0 : AppSpacing.contentGap,
-              ),
-              child: _buildEntryCard(entry, isAdmin, now),
-            );
-          }, childCount: section.entries.length),
-        ),
+  return [
+    if (title != null)
+      SliverPersistentHeader(
+        key: headerIsFocus ? focusMatchKey : null,
+        pinned: true,
+        delegate: _FeedSectionHeaderDelegate(title: title),
       ),
-    ],
-  );
+    if (title != null)
+      const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.microGap)),
+    if (section.showSeasonTitle)
+      SliverToBoxAdapter(
+        child: _SeasonDivider(seasonName: section.seasonName),
+      ),
+    SliverPadding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenGutter,
+      ),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final entry = section.entries[index];
+          final isFocusCard = focusKey != null && _entryKey(entry) == focusKey;
+          final isLastCard =
+              isLastSection && index == section.entries.length - 1;
+
+          return Padding(
+            key: isFocusCard && !headerIsFocus ? focusMatchKey : null,
+            padding: EdgeInsets.only(
+              bottom: isLastCard ? 0 : AppSpacing.contentGap,
+            ),
+            child: _buildEntryCard(entry, isAdmin, now),
+          );
+        }, childCount: section.entries.length),
+      ),
+    ),
+  ];
 }
 
 class _SeasonDivider extends StatelessWidget {
