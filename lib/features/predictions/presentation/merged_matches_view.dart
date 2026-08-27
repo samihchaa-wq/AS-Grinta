@@ -336,14 +336,14 @@ List<Widget> _buildFeedSectionSlivers({
   required DateTime now,
 }) {
   final title = section.showPhaseTitle ? section.title : null;
-  final headerIsFocus = title != null &&
-      focusKey != null &&
-      _entryKey(section.entries.first) == focusKey;
 
   return [
+    // La clé de focus ne doit jamais être posée sur cet en-tête épinglé :
+    // `Scrollable.ensureVisible` ne sait pas viser un en-tête collé et part
+    // alors jusqu'en bas de la liste, ce qui laisse la carte visée coupée sous
+    // les en-têtes. Elle reste donc toujours sur la carte elle-même.
     if (title != null)
       SliverPersistentHeader(
-        key: headerIsFocus ? focusMatchKey : null,
         pinned: true,
         delegate: _FeedSectionHeaderDelegate(title: title),
       ),
@@ -365,7 +365,7 @@ List<Widget> _buildFeedSectionSlivers({
               isLastSection && index == section.entries.length - 1;
 
           return Padding(
-            key: isFocusCard && !headerIsFocus ? focusMatchKey : null,
+            key: isFocusCard ? focusMatchKey : null,
             padding: EdgeInsets.only(
               bottom: isLastCard ? 0 : AppSpacing.contentGap,
             ),
