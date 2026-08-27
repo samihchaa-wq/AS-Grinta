@@ -98,6 +98,15 @@ abstract interface class MatchLiveRepository {
     String? reason,
   });
 
+  /// Efface la chronologie Live d'un match déjà exporté : le bloc « Faits du
+  /// match » disparaît de la fiche. Le score, les statistiques, la composition
+  /// publiée et le vote Homme du match ne sont pas touchés. Réservé aux
+  /// administrateurs, et renvoie le nombre d'événements supprimés.
+  Future<int> deleteExportedTimeline({
+    required String matchId,
+    String? reason,
+  });
+
   /// Signal "quelque chose a changé" — pas de charge utile : les abonnés
   /// rappellent [fetchLiveState] pour obtenir l'état complet à jour. Même
   /// approche que feature_flags_repository.dart (signal, pas de flux de
@@ -126,6 +135,21 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
       params: {'p_match_id': matchId},
     );
     return MatchLiveTimeline.tryFromRpc(response);
+  }
+
+  @override
+  Future<int> deleteExportedTimeline({
+    required String matchId,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_delete_match_live_timeline',
+      params: {
+        'p_match_id': matchId,
+        'p_reason': _clean(reason),
+      },
+    );
+    return (response as num?)?.toInt() ?? 0;
   }
 
   @override

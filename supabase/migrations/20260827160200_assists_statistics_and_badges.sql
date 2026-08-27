@@ -571,8 +571,14 @@ as $function$
 $function$;
 
 alter function private.profile_badge_metrics(uuid) owner to postgres;
-revoke all on function private.profile_badge_metrics(uuid) from public;
-grant execute on function private.profile_badge_metrics(uuid) to authenticated, service_role;
+-- L'implémentation privée reste hors de portée d'un membre : on passe
+-- toujours par un point d'entrée public qui contrôle l'identité.
+revoke all on function private.profile_badge_metrics(uuid)
+  from public, anon, authenticated;
+grant execute on function private.profile_badge_metrics(uuid) to service_role;
+
+comment on function private.profile_badge_metrics(uuid) is
+  'Implementation reelle des metriques de badges. Reservee aux appelants internes : passer par public.profile_badge_metrics() qui controle l''identite.';
 
 create function public.profile_badge_metrics(p_profile_id uuid)
 returns table(
@@ -625,12 +631,27 @@ alter function public.profile_badge_metrics(uuid) owner to postgres;
 revoke all on function public.profile_badge_metrics(uuid) from public;
 grant execute on function public.profile_badge_metrics(uuid) to authenticated, service_role;
 
+-- Cette fonction lisait les métriques privées en SECURITY INVOKER, ce qui
+-- obligeait à ouvrir l'implémentation privée à tous les membres. Elle porte
+-- désormais elle-même le contrôle d'identité : chacun lit son propre bilan,
+-- le staff peut lire celui d'un autre.
 create or replace function public.profile_badge_display_metrics(p_profile_id uuid)
 returns table(metric text, current_value integer, display_value integer)
-language sql
-stable
+language plpgsql
+stable security definer
 set search_path to ''
 as $function$
+begin
+  if p_profile_id is null then
+    return;
+  end if;
+
+  if p_profile_id is distinct from (select auth.uid())
+     and not public.is_match_staff() then
+    raise exception 'Forbidden' using errcode = '42501';
+  end if;
+
+  return query
   with raw_metrics as (
     select to_jsonb(m) as metrics
     from private.profile_badge_metrics(p_profile_id) m
@@ -701,7 +722,13 @@ as $function$
   from badge_metrics bm
   cross join raw_metrics rm
   cross join season_best sb;
+end;
 $function$;
+
+alter function public.profile_badge_display_metrics(uuid) owner to postgres;
+revoke all on function public.profile_badge_display_metrics(uuid) from public, anon;
+grant execute on function public.profile_badge_display_metrics(uuid)
+  to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 3. Badges passes décisives
