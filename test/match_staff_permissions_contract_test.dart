@@ -10,17 +10,19 @@ void main() {
     final controller = await File(
       'lib/features/matches/presentation/matches_controller.dart',
     ).readAsString();
-    final finalization = await File(
-      'lib/features/matches/presentation/match_finalization_controller.dart',
-    ).readAsString();
 
     expect(form, contains('final canManage = role?.isAdmin ?? false;'));
     expect(
       controller,
       contains('bool get _isAdmin => _role?.isAdmin ?? false;'),
     );
-    expect(finalization, contains('if (!(role?.isAdmin ?? false))'));
   });
+
+  // La finalisation de match n'apparaît volontairement pas ci-dessus : l'écran
+  // réellement utilisé (module sportif) s'appuie sur le contrôle de rôle des
+  // RPC Supabase, pas sur une vérification côté client. L'assertion retirée ici
+  // visait un ancien écran devenu inaccessible, et passait au vert sans plus
+  // rien garantir.
 
   test('runtime code never compares directly against AuthRole.admin', () async {
     final directAdminComparison = RegExp(
