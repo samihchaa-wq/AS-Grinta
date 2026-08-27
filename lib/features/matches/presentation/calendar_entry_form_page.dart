@@ -83,13 +83,15 @@ int? _opponentMatchScore(String name, String query) {
   var queryIndex = 0;
   var gaps = 0;
   var previousMatch = -1;
-  for (var nameIndex = 0;
-      nameIndex < normalizedName.length && queryIndex < normalizedQuery.length;
-      nameIndex++) {
-    if (normalizedName[nameIndex] != normalizedQuery[queryIndex]) continue;
-    if (previousMatch >= 0) gaps += nameIndex - previousMatch - 1;
-    previousMatch = nameIndex;
-    queryIndex += 1;
+  var nameIndex = 0;
+  while (nameIndex < normalizedName.length &&
+      queryIndex < normalizedQuery.length) {
+    if (normalizedName[nameIndex] == normalizedQuery[queryIndex]) {
+      if (previousMatch >= 0) gaps += nameIndex - previousMatch - 1;
+      previousMatch = nameIndex;
+      queryIndex += 1;
+    }
+    nameIndex += 1;
   }
   if (queryIndex == normalizedQuery.length) return 80 + gaps;
   return null;
