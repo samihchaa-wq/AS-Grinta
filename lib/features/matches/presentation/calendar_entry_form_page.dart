@@ -7,11 +7,14 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/data/scheduled_match_creation_repository.dart';
+import 'package:as_grinta/features/matches/domain/championship_round.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_meeting.dart';
+import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/championship_round_tile.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_form_section.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
@@ -121,6 +124,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   bool _rememberAddressAsDefault = true;
   bool _saving = false;
   bool _squadDefaultApplied = false;
+  bool _championshipRoundDefaultApplied = false;
+  int? _championshipRound;
   String? _clubHomeAddress;
   JerseyOption? _selectedJersey;
   double? _oddsWin;
@@ -135,8 +140,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   bool get _isEvent => _kind == _CalendarEntryKind.event;
   bool get _isInternal => _kind == _CalendarEntryKind.internal;
   bool get _isNormalMatch => !_isEvent && !_isInternal;
+  bool get _isChampionship => _kind == _CalendarEntryKind.championnat;
   String get _matchType =>
       _kind == _CalendarEntryKind.amical ? 'amical' : 'championnat';
+
+  /// Journées déjà enregistrées sur la saison, pour proposer la suivante.
+  Iterable<int?> _championshipRoundsOfSeason(List<MatchModel> matches) {
+    return matches
+        .where((match) =>
+            match.seasonId == _seasonId && match.matchType == 'championnat')
+        .map((match) => match.championshipRound);
+  }
 
   @override
   void initState() {
@@ -195,6 +209,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     if (sportsEnabled && !_squadDefaultApplied) {
       _squadDefaultApplied = true;
       _squadSizeController.text = (feature?.usualSquadSize ?? 14).toString();
+    }
+    final seasonRounds =
+        _championshipRoundsOfSeason(state.matches).toList(growable: false);
+    if (!_championshipRoundDefaultApplied &&
+        _seasonId.isNotEmpty &&
+        !state.isLoading) {
+      _championshipRoundDefaultApplied = true;
+      _championshipRound = suggestedChampionshipRound(seasonRounds);
     }
 
     final busy = _saving || state.isLoading;
@@ -590,6 +612,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       ),
     );
 
+    if (_isChampionship) {
+      addCard(
+        ChampionshipRoundTile(
+          round: _championshipRound,
+          roundsOfSeason: seasonRounds,
+          enabled: !busy,
+          onTap: _pickChampionshipRound,
+        ),
+      );
+    }
+
     addCard(
       MatchMeetingTimePicker(
         kickoffAt: _startsAt,
@@ -896,6 +929,22 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     setState(() => _squadSizeController.text = value.toString());
   }
 
+  Future<void> _pickChampionshipRound() async {
+    final rounds = _championshipRoundsOfSeason(
+      ref.read(matchesControllerProvider).matches,
+    ).toList(growable: false);
+    final value = await MatchWheelPicker.pickInt(
+      context: context,
+      initialValue: _championshipRound ?? suggestedChampionshipRound(rounds),
+      minValue: 1,
+      maxValue: maxChampionshipRound,
+      title: 'Journée de championnat',
+      labelBuilder: (number) => 'J$number',
+    );
+    if (value == null || !mounted) return;
+    setState(() => _championshipRound = value);
+  }
+
   void _repairMeetingAt({required DateTime previousKickoffAt}) {
     _meetingAt = preserveCustomMeetingTime(
       previousKickoffAt: previousKickoffAt,
@@ -1005,25 +1054,36 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         final squadSizeLimit = currentSportsEnabled
             ? int.parse(_squadSizeController.text.trim())
             : null;
-        await ref.read(scheduledMatchCreationRepositoryProvider).createMatch(
-              seasonId: _seasonId,
-              opponentId: _opponentId,
-              kickoffAt: _startsAt,
-              isHome: _isHome,
-              oddsWin: win,
-              oddsDraw: draw,
-              oddsLoss: loss,
-              launchMode: _launchMode,
-              customLaunchAt: _customLaunchAt,
-              meetingAt: _meetingAt,
-              squadSizeLimit: squadSizeLimit,
-              address: _addressController.text.trim().isEmpty
-                  ? null
-                  : _addressController.text.trim(),
-              rememberAddressAsDefault: _rememberAddressAsDefault,
-              matchType: _matchType,
-              jerseyNote: _selectedJersey?.id,
-            );
+        final creation = ref.read(scheduledMatchCreationRepositoryProvider);
+        final matchId = await creation.createMatch(
+          seasonId: _seasonId,
+          opponentId: _opponentId,
+          kickoffAt: _startsAt,
+          isHome: _isHome,
+          oddsWin: win,
+          oddsDraw: draw,
+          oddsLoss: loss,
+          launchMode: _launchMode,
+          customLaunchAt: _customLaunchAt,
+          meetingAt: _meetingAt,
+          squadSizeLimit: squadSizeLimit,
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim(),
+          rememberAddressAsDefault: _rememberAddressAsDefault,
+          matchType: _matchType,
+          jerseyNote: _selectedJersey?.id,
+        );
+        // La journée vient du calendrier de la ligue : on impose celle qui est
+        // affichée plutôt que de laisser la numérotation automatique décider.
+        final chosenRound = _championshipRound;
+        if (_isChampionship && chosenRound != null) {
+          final matches = ref.read(matchesRepositoryProvider);
+          await matches.setMatchChampionshipRound(
+            matchId: matchId,
+            round: chosenRound,
+          );
+        }
         await ref
             .read(matchesControllerProvider.notifier)
             .load(allSeasons: true, forceRefresh: true);

@@ -9,12 +9,14 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/matches/data/match_edit_schedule_repository.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/data/scheduled_match_creation_repository.dart';
+import 'package:as_grinta/features/matches/domain/championship_round.dart';
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/championship_round_tile.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_form_section.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
@@ -58,6 +60,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   DateTime? _customLaunchAt;
   bool _launchScheduleChanged = false;
   DateTime? _meetingAt;
+  int? _championshipRound;
 
   int _oddsRequestToken = 0;
   String? _clubHomeAddress;
@@ -113,6 +116,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
     _meetingAt = match?.meetingAt;
+    _championshipRound = match?.championshipRound;
     _selectedJersey = JerseyOption.fromId(match?.jerseyNote);
 
     Future.microtask(() async {
@@ -246,6 +250,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) => _loadSquadLimit());
       }
     }
+
+    final seasonRounds = state.matches
+        .where((match) =>
+            match.seasonId == _seasonId &&
+            match.matchType == 'championnat' &&
+            match.id != widget.match!.id)
+        .map((match) => match.championshipRound)
+        .toList(growable: false);
 
     final busy = state.isLoading || _squadLimitLoading || _saving;
 
@@ -437,6 +449,13 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     ),
                   ],
                 ),
+                if (_matchType == 'championnat' && !_isInternal)
+                  ChampionshipRoundTile(
+                    round: _championshipRound,
+                    roundsOfSeason: seasonRounds,
+                    enabled: !busy,
+                    onTap: () => _pickChampionshipRound(seasonRounds),
+                  ),
                 const SizedBox(height: 12),
                 MatchMeetingTimePicker(
                   kickoffAt: _kickoffAt,
@@ -670,6 +689,20 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     await _suggestOdds();
   }
 
+  Future<void> _pickChampionshipRound(List<int?> roundsOfSeason) async {
+    final value = await MatchWheelPicker.pickInt(
+      context: context,
+      initialValue:
+          _championshipRound ?? suggestedChampionshipRound(roundsOfSeason),
+      minValue: 1,
+      maxValue: maxChampionshipRound,
+      title: 'Journée de championnat',
+      labelBuilder: (number) => 'J$number',
+    );
+    if (value == null || !mounted) return;
+    setState(() => _championshipRound = value);
+  }
+
   Future<void> _confirmDelete() async {
     final match = widget.match;
     if (match == null) return;
@@ -882,6 +915,19 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           launchMode: _launchScheduleChanged ? _launchMode : null,
           customLaunchAt: _launchScheduleChanged ? _customLaunchAt : null,
         );
+        // La journée du championnat est fixée par la ligue : on réécrit celle
+        // qui est affichée. Un match qui quitte le championnat perd la sienne
+        // côté serveur, il n'y a alors rien à envoyer.
+        final chosenRound = _championshipRound;
+        if (_matchType == 'championnat' &&
+            chosenRound != null &&
+            chosenRound != widget.match!.championshipRound) {
+          final matches = ref.read(matchesRepositoryProvider);
+          await matches.setMatchChampionshipRound(
+            matchId: widget.match!.id,
+            round: chosenRound,
+          );
+        }
       }
 
       await notifier.load(
