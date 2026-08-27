@@ -70,6 +70,8 @@ String _rawDescriptorFor({
       return 'MONSIEUR PRÉSENT · SAISON';
     case 'title_top_scorer':
       return 'SOULIER D’OR · SAISON';
+    case 'title_top_assists':
+      return 'PASSE D’OR · SAISON';
     case 'title_best_winrate':
       return 'MONSIEUR VICTOIRE · SAISON';
     case 'title_mvp_king':
