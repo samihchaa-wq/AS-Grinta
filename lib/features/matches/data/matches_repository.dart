@@ -113,6 +113,23 @@ class MatchesRepository {
     );
   }
 
+  /// Journée du championnat, telle que fixée par la ligue.
+  ///
+  /// [round] null rend la main au numéro automatique (journée suivante de la
+  /// saison).
+  Future<void> setMatchChampionshipRound({
+    required String matchId,
+    required int? round,
+  }) async {
+    await _client.rpc(
+      'admin_set_match_championship_round',
+      params: {
+        'p_match_id': matchId,
+        'p_championship_round': round,
+      },
+    );
+  }
+
   Future<void> setMatchJersey({
     required String matchId,
     required String? jerseyNote,
