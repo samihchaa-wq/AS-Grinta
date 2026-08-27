@@ -134,6 +134,12 @@ enum _PlayerStatCol {
 const _playerValueFlex = 1;
 const _playerBadgeSize = statisticsBadgeSize;
 
+/// Les huit colonnes de statistiques (J, B, PD, CS, HDM, G, N, P) se partagent
+/// la zone défilante. On réserve à chacune la même largeur qu'avant l'arrivée
+/// des passes décisives, sinon « HDM » et sa flèche de tri ne tiennent plus.
+const _playerColumnCount = 8;
+const _playerColumnWidth = 64.0;
+
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
 
@@ -240,6 +246,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           child: StickyHeaderTableCard(
             onRefresh: _refresh,
             pinnedWidth: pinnedWidth,
+            minWidth: pinnedWidth + _playerColumnCount * _playerColumnWidth,
             pinnedHeader: _PlayersPinnedHeader(
               sort: _sort,
               descending: _descending,

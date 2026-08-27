@@ -396,10 +396,18 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       scorerParticipantId: choice,
       minute: event.minute,
     );
+    // Feuille fermée sans répondre : on garde la passe décisive déjà connue
+    // quand le buteur n'a pas changé. S'il a changé, l'ancienne passe ne veut
+    // plus rien dire (elle pourrait même désigner le nouveau buteur).
+    final assistParticipantId = assist.answered
+        ? assist.participantId
+        : (choice == event.scorerParticipantId
+            ? event.assistParticipantId
+            : null);
     await controller.setEventScorer(
       event.id,
       scorerParticipantId: choice,
-      assistParticipantId: assist.participantId,
+      assistParticipantId: assistParticipantId,
     );
   }
 

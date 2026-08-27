@@ -73,6 +73,11 @@ alter table public.match_live_events
 comment on column public.match_live_events.assist_participant_id is
   'Passeur décisif du but AS Grinta, toujours distinct du buteur.';
 
+-- Même index de couverture que les autres liens vers un participant : sans
+-- lui, retirer un participant d'un match balaye toute la table d'événements.
+create index if not exists match_live_events_assist_participant_match_idx
+  on public.match_live_events (assist_participant_id, match_id);
+
 -- ---------------------------------------------------------------------------
 -- 2. Live : désigner buteur et passeur d'un même geste
 -- ---------------------------------------------------------------------------
