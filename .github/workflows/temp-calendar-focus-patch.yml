@@ -1,0 +1,228 @@
+name: Temporary calendar focus patch
+
+on:
+  push:
+    branches:
+      - fix/calendar-next-match-focus-offset
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch calendar focus positioning
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/presentation/merged_matches_view.dart')
+          text = path.read_text()
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one match, found {count}: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              """  void _focusRelevantMatch({
+            required String? focusKey,
+            required int? focusIndex,
+            required int totalEntries,
+            required bool cardIsReady,
+            required String requestToken,
+          }) {""",
+              """  void _focusRelevantMatch({
+            required String? focusKey,
+            required int? focusIndex,
+            required int totalEntries,
+            required bool cardIsReady,
+            required String requestToken,
+            required double topInset,
+          }) {""",
+          )
+
+          replace_once(
+              """      _positionRelevantMatch(
+                signature,
+                focusIndex: focusIndex,
+                totalEntries: totalEntries,
+              );""",
+              """      _positionRelevantMatch(
+                signature,
+                focusIndex: focusIndex,
+                totalEntries: totalEntries,
+                topInset: topInset,
+              );""",
+          )
+
+          replace_once(
+              """  Future<void> _positionRelevantMatch(
+            String signature, {
+            required int focusIndex,
+            required int totalEntries,
+            int attempt = 0,
+          }) async {""",
+              """  Future<void> _positionRelevantMatch(
+            String signature, {
+            required int focusIndex,
+            required int totalEntries,
+            required double topInset,
+            int attempt = 0,
+          }) async {""",
+          )
+
+          replace_once(
+              """        _positionRelevantMatch(
+                  signature,
+                  focusIndex: focusIndex,
+                  totalEntries: totalEntries,
+                  attempt: attempt + 1,
+                );""",
+              """        _positionRelevantMatch(
+                  signature,
+                  focusIndex: focusIndex,
+                  totalEntries: totalEntries,
+                  topInset: topInset,
+                  attempt: attempt + 1,
+                );""",
+          )
+
+          replace_once(
+              """      await Scrollable.ensureVisible(
+                ctx,
+                alignment: 0,
+                alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+                duration: Duration.zero,
+              );
+              await Future<void>.delayed(const Duration(milliseconds: 60));""",
+              """      await Scrollable.ensureVisible(
+                ctx,
+                alignment: 0,
+                alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+                duration: Duration.zero,
+              );
+              if (_scrollController.hasClients && topInset > 0) {
+                final position = _scrollController.position;
+                position.jumpTo(
+                  (position.pixels - topInset).clamp(
+                    position.minScrollExtent,
+                    position.maxScrollExtent,
+                  ),
+                );
+              }
+              await Future<void>.delayed(const Duration(milliseconds: 60));""",
+          )
+
+          replace_once(
+              """    final focusRequest = ref.watch(matchesFocusRequestProvider);
+            final focusCardIsReady = focusKey != null && !state.isLoading;
+
+            _focusRelevantMatch(
+              focusKey: focusKey,
+              focusIndex: focusIndex,
+              totalEntries: entries.length,
+              cardIsReady: focusCardIsReady,
+              requestToken: '$focusRequest',
+            );""",
+              """    final focusRequest = ref.watch(matchesFocusRequestProvider);
+            final focusCardIsReady = focusKey != null && !state.isLoading;
+            final focusPinnedHeaderCount = focusKey == null
+                ? 0
+                : _pinnedPhaseHeaderCountForFocus(feedSections, focusKey);
+            final focusTopInset = focusPinnedHeaderCount *
+                    _FeedSectionHeaderDelegate._height +
+                (focusPinnedHeaderCount > 0 ? AppSpacing.microGap : 0);
+
+            _focusRelevantMatch(
+              focusKey: focusKey,
+              focusIndex: focusIndex,
+              totalEntries: entries.length,
+              cardIsReady: focusCardIsReady,
+              requestToken: '$focusRequest',
+              topInset: focusTopInset,
+            );""",
+          )
+
+          replace_once(
+              """String _entryKey(_FeedEntry entry) {
+            if (entry.match != null) return 'match:${entry.match!.id}';
+            if (entry.event != null) return 'event:${entry.event!.id}';
+            if (entry.historical != null) return 'historical:${entry.historical!.id}';
+            return 'unknown';
+          }
+
+          List<Widget> _buildFeedSectionSlivers({""",
+              """String _entryKey(_FeedEntry entry) {
+            if (entry.match != null) return 'match:${entry.match!.id}';
+            if (entry.event != null) return 'event:${entry.event!.id}';
+            if (entry.historical != null) return 'historical:${entry.historical!.id}';
+            return 'unknown';
+          }
+
+          int _pinnedPhaseHeaderCountForFocus(
+            List<_FeedSection> sections,
+            String focusKey,
+          ) {
+            var count = 0;
+            for (final section in sections) {
+              if (section.showPhaseTitle) count += 1;
+              if (section.entries.any((entry) => _entryKey(entry) == focusKey)) {
+                break;
+              }
+            }
+            return count;
+          }
+
+          List<Widget> _buildFeedSectionSlivers({""",
+          )
+
+          replace_once(
+              """  final title = section.showPhaseTitle ? section.title : null;
+            final headerIsFocus = title != null &&
+                focusKey != null &&
+                _entryKey(section.entries.first) == focusKey;
+
+            return [
+              if (title != null)
+                SliverPersistentHeader(
+                  key: headerIsFocus ? focusMatchKey : null,
+                  pinned: true,""",
+              """  final title = section.showPhaseTitle ? section.title : null;
+
+            return [
+              if (title != null)
+                SliverPersistentHeader(
+                  pinned: true,""",
+          )
+
+          replace_once(
+              """          return Padding(
+                    key: isFocusCard && !headerIsFocus ? focusMatchKey : null,""",
+              """          return Padding(
+                    key: isFocusCard ? focusMatchKey : null,""",
+          )
+
+          path.write_text(text)
+          PY
+
+      - name: Remove temporary workflow
+        run: rm .github/workflows/temp-calendar-focus-patch.yml
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/merged_matches_view.dart .github/workflows/temp-calendar-focus-patch.yml
+          git commit -m "Fix calendar next-match focus offset"
+          git push origin HEAD:fix/calendar-next-match-focus-offset
