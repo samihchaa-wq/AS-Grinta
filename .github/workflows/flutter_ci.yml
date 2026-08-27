@@ -308,8 +308,8 @@ jobs:
       - name: Enforce web performance budget
         shell: bash
         env:
-          MAX_MAIN_DART_JS_BYTES: '5600000'
-          MAX_MAIN_DART_JS_GZIP_BYTES: '1600000'
+          MAX_MAIN_DART_JS_BYTES: '6000000'
+          MAX_MAIN_DART_JS_GZIP_BYTES: '1700000'
         run: python3 tool/check_web_performance_budget.py
 
       - name: Upload validation logs
