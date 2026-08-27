@@ -65,11 +65,14 @@ abstract interface class MatchLiveRepository {
 
   /// Attribue un but déjà enregistré : à un joueur, ou à un contre-son-camp
   /// adverse. Les deux paramètres nuls/faux remettent le but « à attribuer ».
+  /// [assistParticipantId] crédite au passage la passe décisive ; il suppose
+  /// un buteur et ne peut pas désigner ce buteur.
   Future<MatchLiveStateBundle> setEventScorer({
     required String matchId,
     required String eventId,
     String? scorerParticipantId,
     bool isOpponentOwnGoal,
+    String? assistParticipantId,
   });
   Future<MatchLiveStateBundle> endMatch({
     required String matchId,
@@ -92,6 +95,15 @@ abstract interface class MatchLiveRepository {
     required int scoreAsGrinta,
     required int scoreAdverse,
     required List<SportFinalParticipant> participants,
+    String? reason,
+  });
+
+  /// Efface la chronologie Live d'un match déjà exporté : le bloc « Faits du
+  /// match » disparaît de la fiche. Le score, les statistiques, la composition
+  /// publiée et le vote Homme du match ne sont pas touchés. Réservé aux
+  /// administrateurs, et renvoie le nombre d'événements supprimés.
+  Future<int> deleteExportedTimeline({
+    required String matchId,
     String? reason,
   });
 
@@ -123,6 +135,21 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
       params: {'p_match_id': matchId},
     );
     return MatchLiveTimeline.tryFromRpc(response);
+  }
+
+  @override
+  Future<int> deleteExportedTimeline({
+    required String matchId,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_delete_match_live_timeline',
+      params: {
+        'p_match_id': matchId,
+        'p_reason': _clean(reason),
+      },
+    );
+    return (response as num?)?.toInt() ?? 0;
   }
 
   @override
@@ -282,6 +309,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
     required String eventId,
     String? scorerParticipantId,
     bool isOpponentOwnGoal = false,
+    String? assistParticipantId,
   }) async {
     final response = await _client.rpc(
       'coach_set_match_live_event_scorer',
@@ -290,6 +318,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
         'p_event_id': eventId,
         'p_scorer_participant_id': scorerParticipantId,
         'p_is_opponent_own_goal': isOpponentOwnGoal,
+        'p_assist_participant_id': assistParticipantId,
       },
     );
     return MatchLiveStateBundle.fromRpc(response);

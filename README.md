@@ -33,9 +33,12 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 - **J-6 à 12 h → T-15** : pronostics, Effectif et Composition sont disponibles selon les droits de l’utilisateur.
 - Une fois l’Effectif enregistré, la Composition propose de **simuler un onze** : les convoqués sont posés à leur poste de référence, en titularisant en priorité ceux qui ont le plus souvent commencé sur le banc. Ces postes de référence se mettent à jour tout seuls au fil des matchs joués. La proposition n’est qu’un point de départ, entièrement modifiable, et n’est enregistrée que par le bouton Enregistrer.
 - **T-15** : les pronostics ferment, Effectif/Composition sont gelés et le Live peut être ouvert.
-- **Live** : chronomètre, événements, buts, remplacements et gestion de la composition réelle.
+- **Live** : chronomètre, événements, buts (avec leur passeur décisif), remplacements et gestion de la composition réelle.
 - Un joueur ou invité ajouté tardivement pendant le Live arrive directement sur le banc.
 - La validation du récapitulatif Live finalise le match avant son passage normal en match passé.
+- Un Live mal rempli garde sa chronologie après validation : un administrateur
+  peut supprimer les « Faits du match » depuis la fiche du match, sans toucher au
+  score, aux statistiques, à la composition ni au vote Homme du match.
 - Le vote Homme du match ouvre après cette validation et reste ouvert **24 h**.
 
 ## Pronostics
@@ -56,7 +59,7 @@ Le module actuel comprend notamment :
 - joueurs de l’effectif et invités ;
 - composition tactique et simulation de composition ;
 - Live ;
-- présence finale, buts et clean sheets ;
+- présence finale, buts, passes décisives et clean sheets ;
 - statistiques ;
 - vote collectif et anonyme de l’Homme du match.
 
@@ -83,7 +86,9 @@ Le contrat détaillé est dans `docs/NOTIFICATIONS_V2.md`.
 ## Statistiques, badges et profils
 
 - Statistiques individuelles et collectives.
-- Buts, clean sheets, matchs joués et Homme du match.
+- Buts, passes décisives, clean sheets, matchs joués et Homme du match.
+- Les passes décisives sont suivies depuis leur mise en service : les saisons
+  importées et les matchs validés avant restent à zéro, sans reconstitution.
 - Saison actuelle, saison précédente et historique toutes saisons.
 - Badges automatiques et manuels.
 - Photos de profil, de joueur et d’invité.

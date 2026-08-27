@@ -123,6 +123,7 @@ enum _PlayerStatCol {
   name,
   played,
   goals,
+  assists,
   cleanSheets,
   hdm,
   wins,
@@ -132,6 +133,12 @@ enum _PlayerStatCol {
 
 const _playerValueFlex = 1;
 const _playerBadgeSize = statisticsBadgeSize;
+
+/// Les huit colonnes de statistiques (J, B, PD, CS, HDM, G, N, P) se partagent
+/// la zone défilante. On réserve à chacune la même largeur qu'avant l'arrivée
+/// des passes décisives, sinon « HDM » et sa flèche de tri ne tiennent plus.
+const _playerColumnCount = 8;
+const _playerColumnWidth = 64.0;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
@@ -161,6 +168,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
     return switch (column) {
       _PlayerStatCol.played => player.matchesPlayed ?? 0,
       _PlayerStatCol.goals => player.goals,
+      _PlayerStatCol.assists => player.assists,
       _PlayerStatCol.cleanSheets => player.teamCleanSheets,
       _PlayerStatCol.wins => player.wins ?? 0,
       _PlayerStatCol.draws => player.draws ?? 0,
@@ -238,6 +246,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           child: StickyHeaderTableCard(
             onRefresh: _refresh,
             pinnedWidth: pinnedWidth,
+            minWidth: pinnedWidth + _playerColumnCount * _playerColumnWidth,
             pinnedHeader: _PlayersPinnedHeader(
               sort: _sort,
               descending: _descending,
@@ -331,6 +340,7 @@ class _PlayersScrollableHeader extends StatelessWidget {
         children: [
           valueCell('J', _PlayerStatCol.played),
           valueCell('B', _PlayerStatCol.goals),
+          valueCell('PD', _PlayerStatCol.assists),
           valueCell('CS', _PlayerStatCol.cleanSheets),
           valueCell('HDM', _PlayerStatCol.hdm),
           valueCell('G', _PlayerStatCol.wins),
@@ -379,6 +389,7 @@ StickyTableRow _playersRow(
       children: [
         value(player.matchesPlayed ?? 0),
         value(player.goals),
+        value(player.assists),
         value(player.teamCleanSheets),
         value(player.hdm ?? 0),
         value(player.wins ?? 0),

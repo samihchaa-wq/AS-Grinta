@@ -26,6 +26,7 @@ void main() {
           'present': true,
           'final_selection_status': 'starter',
           'goals': 2,
+          'assists': 1,
           'clean_sheet': false,
         },
         {
@@ -38,6 +39,7 @@ void main() {
           'present': true,
           'final_selection_status': 'substitute',
           'goals': 1,
+          'assists': 0,
           'clean_sheet': false,
         },
       ],
@@ -49,6 +51,7 @@ void main() {
     expect(result.substituteCount, 1);
     expect(result.guestPresentCount, 1);
     expect(result.attributedGoals, 3);
+    expect(result.attributedAssists, 1);
     expect(result.participants.last.isGuest, isTrue);
   });
 
@@ -63,6 +66,7 @@ void main() {
       present: true,
       selectionStatus: SportFinalSelectionStatus.starter,
       goals: 1,
+      assists: 2,
       cleanSheet: true,
     );
 
@@ -71,12 +75,14 @@ void main() {
     expect(absent.present, isFalse);
     expect(absent.selectionStatus, SportFinalSelectionStatus.notSelected);
     expect(absent.goals, 0);
+    expect(absent.assists, 0);
     expect(absent.cleanSheet, isFalse);
     expect(absent.toRpcJson(), {
       'participant_id': 'participant-1',
       'present': false,
       'final_selection_status': 'not_selected',
       'goals': 0,
+      'assists': 0,
       'clean_sheet': false,
     });
   });

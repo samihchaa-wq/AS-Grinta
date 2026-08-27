@@ -7,6 +7,7 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
@@ -106,6 +107,13 @@ class MatchDetailsPage extends ConsumerWidget {
                 if (stat.goals > 0)
                   stat.goals > 1 ? '${stat.name} ×${stat.goals}' : stat.name,
             ];
+            final assistLabels = [
+              for (final stat in details.playerStats)
+                if (stat.assists > 0)
+                  stat.assists > 1
+                      ? '${stat.name} ×${stat.assists}'
+                      : stat.name,
+            ];
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -134,6 +142,7 @@ class MatchDetailsPage extends ConsumerWidget {
                       ? null
                       : () => context.push('/matches/$matchId/vote'),
                   scorerLabels: scorerLabels,
+                  assistLabels: assistLabels,
                   teamScoredZero: details.scoreGrinta == 0,
                 ),
                 _CompletedCompositionCard(
@@ -204,6 +213,10 @@ class _PostgameAdminActions extends ConsumerWidget {
             icon: const Icon(Icons.edit_note_outlined),
             label: const Text('Modifier les statistiques'),
           ),
+          if (sportsEnabled) ...[
+            const SizedBox(height: 10),
+            _DeleteLiveFactsButton(matchId: matchId),
+          ],
         ],
       ),
     );
@@ -247,6 +260,93 @@ class _PostgameAdminActions extends ConsumerWidget {
             return _actions(context, deadline);
           },
         );
+  }
+}
+
+/// Efface la chronologie rapportée par le Live quand celui-ci a été mal
+/// rempli. Le bouton n'apparaît que s'il y a effectivement des faits à
+/// supprimer, et ne touche à rien d'autre que ces faits.
+class _DeleteLiveFactsButton extends ConsumerStatefulWidget {
+  const _DeleteLiveFactsButton({required this.matchId});
+
+  final String matchId;
+
+  @override
+  ConsumerState<_DeleteLiveFactsButton> createState() =>
+      _DeleteLiveFactsButtonState();
+}
+
+class _DeleteLiveFactsButtonState
+    extends ConsumerState<_DeleteLiveFactsButton> {
+  bool _deleting = false;
+
+  Future<void> _confirmAndDelete() async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Supprimer les faits du match ?'),
+            content: const Text(
+              'La chronologie rapportée par le Live (buts, passes décisives et '
+              'remplacements minute par minute) sera effacée définitivement et '
+              'le bloc « Faits du match » disparaîtra de la fiche.\n\n'
+              'Le score, les statistiques des joueurs, la composition et le '
+              'vote Homme du match ne sont pas touchés.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ref.read(matchLiveRepositoryProvider).deleteExportedTimeline(
+            matchId: widget.matchId,
+            reason: 'Suppression des faits du match',
+          );
+      ref.invalidate(matchLiveTimelineProvider(widget.matchId));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faits du match supprimés.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final timeline =
+        ref.watch(matchLiveTimelineProvider(widget.matchId)).valueOrNull;
+    if (timeline == null || timeline.events.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return OutlinedButton.icon(
+      onPressed: _deleting ? null : _confirmAndDelete,
+      icon: _deleting
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: GrintaProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.timer_off_outlined),
+      label: const Text('Supprimer les faits du match'),
+    );
   }
 }
 

@@ -42,6 +42,10 @@ String _rawDescriptorFor({
       return 'BUTS · SAISON';
     case 'goals':
       return 'BUTS · CARRIÈRE';
+    case 'assists_season':
+      return 'PASSES D. · SAISON';
+    case 'assists':
+      return 'PASSES D. · CARRIÈRE';
     case 'wins_season':
       return 'VICTOIRES · SAISON';
     case 'wins':
@@ -57,6 +61,9 @@ String _rawDescriptorFor({
       if (code == 'max_match_goals__4') return 'QUADRUPLÉ';
       if (code == 'max_match_goals__5') return 'QUINTUPLÉ';
       return 'EXPLOIT BUTEUR';
+    case 'max_match_assists':
+      if (code == 'max_match_assists__3') return 'TRIPLE PASSE';
+      return 'EXPLOIT PASSEUR';
     case 'bet_against_grinta':
       return 'TRAÎTRE';
     case 'title_most_present':

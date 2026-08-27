@@ -108,7 +108,8 @@ class _EventLine extends StatelessWidget {
           Icons.sports_soccer_rounded,
           event.isOpponentOwnGoal
               ? 'CSC adverse'
-              : (event.scorerName ?? 'But AS Grinta'),
+              : '${event.scorerName ?? 'But AS Grinta'}'
+                  '${event.assistName == null ? '' : ' (passe ${event.assistName})'}',
         ),
       MatchLiveEventType.goalThem => (
           Icons.sports_soccer_rounded,

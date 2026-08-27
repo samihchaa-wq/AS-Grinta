@@ -20,6 +20,8 @@ class MatchLiveEvent {
     required this.half,
     this.scorerParticipantId,
     this.scorerName,
+    this.assistParticipantId,
+    this.assistName,
     this.scoreAsGrintaAfter,
     this.scoreAdverseAfter,
     this.playerInParticipantId,
@@ -37,6 +39,8 @@ class MatchLiveEvent {
       half: (json['half'] as num?)?.toInt() ?? 1,
       scorerParticipantId: _nullableText(json['scorer_participant_id']),
       scorerName: _nullableText(json['scorer_name']),
+      assistParticipantId: _nullableText(json['assist_participant_id']),
+      assistName: _nullableText(json['assist_name']),
       scoreAsGrintaAfter: (json['score_as_grinta_after'] as num?)?.toInt(),
       scoreAdverseAfter: (json['score_adverse_after'] as num?)?.toInt(),
       playerInParticipantId: _nullableText(json['player_in_participant_id']),
@@ -53,6 +57,11 @@ class MatchLiveEvent {
   final int half;
   final String? scorerParticipantId;
   final String? scorerName;
+
+  /// Le passeur décisif du but, quand il a été désigné. Toujours différent du
+  /// buteur, et jamais renseigné sur un CSC adverse.
+  final String? assistParticipantId;
+  final String? assistName;
   final int? scoreAsGrintaAfter;
   final int? scoreAdverseAfter;
   final String? playerInParticipantId;

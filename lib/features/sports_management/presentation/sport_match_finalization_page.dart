@@ -93,6 +93,7 @@ class _SportMatchFinalizationPageState
         present: present,
         selectionStatus: nextRole,
         goals: present ? participant.goals : 0,
+        assists: present ? participant.assists : 0,
         cleanSheet: present ? participant.cleanSheet : false,
       ),
     );
@@ -140,6 +141,9 @@ class _SportMatchFinalizationPageState
     if (value.attributedGoals > value.scoreAsGrinta) {
       return 'Les buts attribués dépassent le score d’AS Grinta.';
     }
+    if (value.attributedAssists > value.scoreAsGrinta) {
+      return 'Les passes décisives dépassent le nombre de buts d’AS Grinta.';
+    }
     if (value.scoreAdverse > 0 &&
         value.participants.any((participant) => participant.cleanSheet)) {
       return 'Un clean sheet est impossible lorsque l’adversaire a marqué.';
@@ -171,7 +175,8 @@ class _SportMatchFinalizationPageState
                 children: [
                   Text(
                     '${value.presentCount} présents · ${value.starterCount} titulaires · '
-                    '${value.substituteCount} remplaçants · ${value.attributedGoals} buts attribués.',
+                    '${value.substituteCount} remplaçants · ${value.attributedGoals} buts '
+                    'et ${value.attributedAssists} passes décisives attribués.',
                   ),
                   const SizedBox(height: 10),
                   const Text(
@@ -324,6 +329,10 @@ class _SportMatchFinalizationPageState
               participant,
               participant.copyWith(goals: goals),
             ),
+            onAssistsChanged: (assists) => _updateParticipant(
+              participant,
+              participant.copyWith(assists: assists),
+            ),
             onCleanSheetChanged: (enabled) =>
                 _setCleanSheet(participant, enabled),
           ),
@@ -417,6 +426,11 @@ class _SummaryCard extends StatelessWidget {
                     '${value.attributedGoals}/${value.scoreAsGrinta} buts attribués',
                   ),
                 ),
+                Chip(
+                  label: Text(
+                    '${value.attributedAssists} passes décisives',
+                  ),
+                ),
               ],
             ),
           ],
@@ -489,6 +503,7 @@ class _ParticipantCard extends StatelessWidget {
     required this.saving,
     required this.onPresentChanged,
     required this.onGoalsChanged,
+    required this.onAssistsChanged,
     required this.onCleanSheetChanged,
   });
 
@@ -497,6 +512,7 @@ class _ParticipantCard extends StatelessWidget {
   final bool saving;
   final ValueChanged<bool> onPresentChanged;
   final ValueChanged<int> onGoalsChanged;
+  final ValueChanged<int> onAssistsChanged;
   final ValueChanged<bool> onCleanSheetChanged;
 
   @override
@@ -546,6 +562,31 @@ class _ParticipantCard extends StatelessWidget {
                     onPressed: saving || participant.goals >= 30
                         ? null
                         : () => onGoalsChanged(participant.goals + 1),
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Expanded(child: Text('Passes décisives')),
+                  IconButton.filledTonal(
+                    onPressed: saving || participant.assists == 0
+                        ? null
+                        : () => onAssistsChanged(participant.assists - 1),
+                    icon: const Icon(Icons.remove),
+                  ),
+                  SizedBox(
+                    width: 38,
+                    child: Text(
+                      '${participant.assists}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    onPressed: saving || participant.assists >= 30
+                        ? null
+                        : () => onAssistsChanged(participant.assists + 1),
                     icon: const Icon(Icons.add),
                   ),
                 ],

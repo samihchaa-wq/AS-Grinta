@@ -577,7 +577,7 @@ class _PendingSubstitutions extends StatelessWidget {
   }
 }
 
-enum _JournalAction { scorer, delete }
+enum _JournalAction { scorer, assist, delete }
 
 class _LiveJournal extends StatelessWidget {
   const _LiveJournal({
@@ -587,6 +587,7 @@ class _LiveJournal extends StatelessWidget {
     required this.canEdit,
     required this.onExpandedChanged,
     required this.onEditScorer,
+    required this.onEditAssist,
     required this.onDelete,
   });
 
@@ -595,6 +596,7 @@ class _LiveJournal extends StatelessWidget {
   final bool canEdit;
   final ValueChanged<bool> onExpandedChanged;
   final ValueChanged<MatchLiveEvent> onEditScorer;
+  final ValueChanged<MatchLiveEvent> onEditAssist;
   final ValueChanged<MatchLiveEvent> onDelete;
 
   @override
@@ -663,6 +665,7 @@ class _LiveJournal extends StatelessWidget {
               canEdit: false,
               canEditScorer: canEdit,
               onEditScorer: onEditScorer,
+              onEditAssist: onEditAssist,
               onDelete: onDelete,
             ),
           ] else ...[
@@ -673,6 +676,7 @@ class _LiveJournal extends StatelessWidget {
                 canEdit: canEdit,
                 canEditScorer: canEdit,
                 onEditScorer: onEditScorer,
+                onEditAssist: onEditAssist,
                 onDelete: onDelete,
               ),
               if (index != ordered.length - 1)
@@ -691,6 +695,7 @@ class _JournalEventRow extends StatelessWidget {
     required this.canEdit,
     required this.canEditScorer,
     required this.onEditScorer,
+    required this.onEditAssist,
     required this.onDelete,
   });
 
@@ -698,6 +703,7 @@ class _JournalEventRow extends StatelessWidget {
   final bool canEdit;
   final bool canEditScorer;
   final ValueChanged<MatchLiveEvent> onEditScorer;
+  final ValueChanged<MatchLiveEvent> onEditAssist;
   final ValueChanged<MatchLiveEvent> onDelete;
 
   @override
@@ -709,7 +715,8 @@ class _JournalEventRow extends StatelessWidget {
           theme.colorScheme.primary,
           event.isOpponentOwnGoal
               ? 'But AS Grinta · CSC adverse'
-              : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}',
+              : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}'
+                  '${event.assistName == null ? '' : ' · passe ${event.assistName}'}',
         ),
       MatchLiveEventType.goalThem => (
           Icons.sports_soccer_outlined,
@@ -782,10 +789,13 @@ class _JournalEventRow extends StatelessWidget {
             PopupMenuButton<_JournalAction>(
               tooltip: 'Corriger',
               onSelected: (action) {
-                if (action == _JournalAction.scorer) {
-                  onEditScorer(event);
-                } else {
-                  onDelete(event);
+                switch (action) {
+                  case _JournalAction.scorer:
+                    onEditScorer(event);
+                  case _JournalAction.assist:
+                    onEditAssist(event);
+                  case _JournalAction.delete:
+                    onDelete(event);
                 }
               },
               itemBuilder: (context) => [
@@ -800,6 +810,22 @@ class _JournalEventRow extends StatelessWidget {
                           event.needsScorer
                               ? 'Choisir le buteur'
                               : 'Corriger le buteur',
+                        ),
+                      ],
+                    ),
+                  ),
+                if (event.type == MatchLiveEventType.goalUs &&
+                    event.scorerParticipantId != null)
+                  PopupMenuItem(
+                    value: _JournalAction.assist,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.emoji_events_outlined),
+                        const SizedBox(width: AppSpacing.contentGap),
+                        Text(
+                          event.assistName == null
+                              ? 'Ajouter la passe décisive'
+                              : 'Corriger la passe décisive',
                         ),
                       ],
                     ),

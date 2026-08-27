@@ -22,6 +22,7 @@ Color? parseBadgeColor(String? hex) {
 String? baremeLabelFor(String? metric, int? value) {
   if (metric == null || value == null) return null;
   if (metric == 'max_match_goals' ||
+      metric == 'max_match_assists' ||
       metric == 'seasons_complete' ||
       metric == 'bet_against_grinta' ||
       metric.startsWith('title_')) {

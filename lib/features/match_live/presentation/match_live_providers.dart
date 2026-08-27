@@ -293,6 +293,7 @@ class MatchLiveStateController
     String eventId, {
     String? scorerParticipantId,
     bool isOpponentOwnGoal = false,
+    String? assistParticipantId,
   }) {
     return _mutate(
       (repository) => repository.setEventScorer(
@@ -300,6 +301,7 @@ class MatchLiveStateController
         eventId: eventId,
         scorerParticipantId: scorerParticipantId,
         isOpponentOwnGoal: isOpponentOwnGoal,
+        assistParticipantId: assistParticipantId,
       ),
     );
   }

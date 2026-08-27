@@ -59,22 +59,34 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
     }
   }
 
-  /// Préremplit présence/rôle depuis la composition suivie en direct, et les
-  /// buts depuis les événements "but AS Grinta" horodatés.
+  /// Préremplit présence/rôle depuis la composition suivie en direct, buts et
+  /// passes décisives depuis les événements "but AS Grinta" horodatés.
   SportMatchFinalization _seedFromLiveTracking(SportMatchFinalization base) {
     final lineup = widget.bundle.lineup;
     final goalsByParticipant = <String, int>{};
+    final assistsByParticipant = <String, int>{};
     for (final event in widget.bundle.ownGoals) {
       final id = event.scorerParticipantId;
-      if (id == null) continue;
-      goalsByParticipant[id] = (goalsByParticipant[id] ?? 0) + 1;
+      if (id != null) {
+        goalsByParticipant[id] = (goalsByParticipant[id] ?? 0) + 1;
+      }
+      final assistId = event.assistParticipantId;
+      if (assistId != null) {
+        assistsByParticipant[assistId] =
+            (assistsByParticipant[assistId] ?? 0) + 1;
+      }
     }
     return base.copyWith(
       scoreAsGrinta: widget.bundle.session.scoreAsGrinta,
       scoreAdverse: widget.bundle.session.scoreAdverse,
       participants: [
         for (final participant in base.participants)
-          _seedParticipant(participant, lineup, goalsByParticipant),
+          _seedParticipant(
+            participant,
+            lineup,
+            goalsByParticipant,
+            assistsByParticipant,
+          ),
       ],
     );
   }
@@ -83,6 +95,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
     SportFinalParticipant participant,
     MatchComposition? lineup,
     Map<String, int> goalsByParticipant,
+    Map<String, int> assistsByParticipant,
   ) {
     final liveEntry = lineup?.entries
         .where((entry) => entry.participantId == participant.participantId)
@@ -98,6 +111,8 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
         _ => SportFinalSelectionStatus.notSelected,
       },
       goals: present ? (goalsByParticipant[participant.participantId] ?? 0) : 0,
+      assists:
+          present ? (assistsByParticipant[participant.participantId] ?? 0) : 0,
     );
   }
 
@@ -126,6 +141,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
             ? participant.selectionStatus
             : SportFinalSelectionStatus.notSelected,
         goals: present ? participant.goals : 0,
+        assists: present ? participant.assists : 0,
         cleanSheet: present ? participant.cleanSheet : false,
       ),
     );
@@ -161,6 +177,9 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
     if (value.attributedGoals > value.scoreAsGrinta) {
       return 'Les buts attribués dépassent le score d’AS Grinta.';
     }
+    if (value.attributedAssists > value.scoreAsGrinta) {
+      return 'Les passes décisives dépassent le nombre de buts d’AS Grinta.';
+    }
     if (value.scoreAdverse > 0 &&
         value.participants.any((participant) => participant.cleanSheet)) {
       return 'Un clean sheet est impossible lorsque l’adversaire a marqué.';
@@ -183,7 +202,8 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
             title: const Text('Exporter vers compte rendu ?'),
             content: Text(
               '${value.presentCount} présents · ${value.starterCount} '
-              'titulaires · ${value.attributedGoals} buts attribués.\n\n'
+              'titulaires · ${value.attributedGoals} buts · '
+              '${value.attributedAssists} passes décisives.\n\n'
               'Les statistiques seront publiées dans la fiche du match et '
               'le vote Homme du Match s’ouvrira pour les joueurs.',
             ),
@@ -352,6 +372,10 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
               participant,
               participant.copyWith(goals: goals),
             ),
+            onAssistsChanged: (assists) => _updateParticipant(
+              participant,
+              participant.copyWith(assists: assists),
+            ),
             onCleanSheetChanged: (enabled) =>
                 _setCleanSheet(participant, enabled),
           ),
@@ -429,6 +453,7 @@ class _RecapParticipantCard extends StatelessWidget {
     required this.saving,
     required this.onPresentChanged,
     required this.onGoalsChanged,
+    required this.onAssistsChanged,
     required this.onCleanSheetChanged,
   });
 
@@ -437,6 +462,7 @@ class _RecapParticipantCard extends StatelessWidget {
   final bool saving;
   final ValueChanged<bool> onPresentChanged;
   final ValueChanged<int> onGoalsChanged;
+  final ValueChanged<int> onAssistsChanged;
   final ValueChanged<bool> onCleanSheetChanged;
 
   @override
@@ -483,6 +509,31 @@ class _RecapParticipantCard extends StatelessWidget {
                     onPressed: saving || participant.goals >= 30
                         ? null
                         : () => onGoalsChanged(participant.goals + 1),
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Expanded(child: Text('Passes décisives')),
+                  IconButton.filledTonal(
+                    onPressed: saving || participant.assists == 0
+                        ? null
+                        : () => onAssistsChanged(participant.assists - 1),
+                    icon: const Icon(Icons.remove),
+                  ),
+                  SizedBox(
+                    width: 38,
+                    child: Text(
+                      '${participant.assists}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    onPressed: saving || participant.assists >= 30
+                        ? null
+                        : () => onAssistsChanged(participant.assists + 1),
                     icon: const Icon(Icons.add),
                   ),
                 ],
