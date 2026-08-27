@@ -111,7 +111,9 @@ void main() {
       expect(captured, isNotNull);
       expect(captured!.reference, reference);
       expect(captured!.operation, 'auth_sign-in');
-      expect(captured!.errorType, 'StateError');
+      // Catégorie stable plutôt que nom de classe : sur la version Web publiée,
+      // `runtimeType` ne renvoie qu'un symbole compressé illisible.
+      expect(captured!.errorType, 'state');
       expect(captured!.appVersion, isNotEmpty);
     });
 
