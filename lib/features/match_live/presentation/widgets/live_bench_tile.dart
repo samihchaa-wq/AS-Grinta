@@ -83,7 +83,11 @@ class LiveBenchTile extends StatelessWidget {
             onTap: handleTap,
             child: box,
           );
-    if (!draggable) return tappable;
+    final selectableTile = FormationPitchTapSelectionHighlight(
+      entry: entry,
+      child: tappable,
+    );
+    if (!draggable) return selectableTile;
     final autoScroll = DragAutoScroller(context);
     return LongPressDraggable<MatchCompositionEntry>(
       data: entry,
@@ -92,7 +96,7 @@ class LiveBenchTile extends StatelessWidget {
       onDragUpdate: (details) => autoScroll.update(details.globalPosition),
       onDragEnd: (_) => autoScroll.stop(),
       onDraggableCanceled: (_, __) => autoScroll.stop(),
-      child: tappable,
+      child: selectableTile,
     );
   }
 }
