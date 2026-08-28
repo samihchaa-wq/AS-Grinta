@@ -150,22 +150,24 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showComposition = detail.hasComposition;
-    if (!showComposition) return const SizedBox.shrink();
-
     final composition = _compositionFromHistorical(matchId, detail);
     final fallbackPlayers = _fallbackPlayersFromHistorical(detail);
+
+    // Certaines feuilles d'archives ne contiennent aucune composition mais
+    // connaissent quand même l'effectif présent. Dans ce cas, on affiche la
+    // liste simple « Joueurs (n) » au lieu de masquer toute la section.
+    if (composition == null && fallbackPlayers.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (composition != null) ...[
-          const SizedBox(height: 16),
-          CompletedCompositionCard(
-            composition: composition,
-            fallbackPlayers: fallbackPlayers,
-          ),
-        ],
+        const SizedBox(height: 16),
+        CompletedCompositionCard(
+          composition: composition,
+          fallbackPlayers: fallbackPlayers,
+        ),
       ],
     );
   }

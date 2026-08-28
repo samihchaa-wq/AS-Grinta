@@ -39,13 +39,16 @@ MatchComposition _composition(List<MatchCompositionEntry> entries) {
   );
 }
 
-Widget _harness(MatchComposition composition) {
+Widget _harness(
+  MatchComposition? composition, {
+  List<CompletedPlayerSummary> fallbackPlayers = const [],
+}) {
   return MaterialApp(
     home: Scaffold(
       body: SingleChildScrollView(
         child: CompletedCompositionCard(
           composition: composition,
-          fallbackPlayers: const [],
+          fallbackPlayers: fallbackPlayers,
         ),
       ),
     ),
@@ -85,5 +88,27 @@ void main() {
 
     expect(find.byType(VacantSlotMarker), findsNothing);
     expect(find.textContaining('emplacements grisés'), findsNothing);
+  });
+
+  testWidgets('sans composition, la liste de l’effectif reste affichée', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _harness(
+        null,
+        fallbackPlayers: const [
+          CompletedPlayerSummary(name: 'Alban', goals: 0),
+          CompletedPlayerSummary(name: 'Flo', goals: 0),
+          CompletedPlayerSummary(name: 'Milan', goals: 0),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Joueurs (3)'), findsOneWidget);
+    expect(find.text('Alban'), findsOneWidget);
+    expect(find.text('Flo'), findsOneWidget);
+    expect(find.text('Milan'), findsOneWidget);
+    expect(find.byType(CompositionPitch), findsNothing);
   });
 }
