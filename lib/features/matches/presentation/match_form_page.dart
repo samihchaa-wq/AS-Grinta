@@ -727,11 +727,16 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         ) ??
         false;
     if (!confirmed) return;
-    await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
+    final messenger = ScaffoldMessenger.of(context);
+    final failure = await ref
+        .read(matchesControllerProvider.notifier)
+        .deleteMatch(match.id);
     if (!mounted) return;
-    if (ref.read(matchesControllerProvider).error == null) {
+    if (failure == null) {
       Navigator.pop(context);
+      return;
     }
+    messenger.showSnackBar(SnackBar(content: Text(failure)));
   }
 
   Future<void> _pickDate() async {

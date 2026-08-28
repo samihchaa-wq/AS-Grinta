@@ -79,15 +79,32 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     ref.invalidate(matchDetailsProvider(match.id));
   }
 
+  /// Le contenu du message change selon l'état du match : pendant le Live et
+  /// après la validation, la suppression emporte plus de choses qu'un simple
+  /// match à venir.
+  String _deleteWarning(DateTime now) {
+    if (match.isFinished || match.isArchived) {
+      return 'Le match, ses pronostics, ses buteurs et ses statistiques seront '
+          'définitivement supprimés. Les classements seront recalculés.';
+    }
+    final phase = match.phase(now: now);
+    if (phase == MatchDisplayPhase.live ||
+        phase == MatchDisplayPhase.awaitingValidation) {
+      return 'Ce match est en cours. Sa suppression efface aussi le Live '
+          '(chronomètre, buts, remplacements), la composition et les '
+          'pronostics. C’est définitif.';
+    }
+    return 'Le match, ses pronostics, ses buteurs et ses statistiques seront '
+        'définitivement supprimés.';
+  }
+
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final warning = _deleteWarning(DateTime.now());
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
-            content: const Text(
-              'Le match, ses pronostics, ses buteurs et ses statistiques seront '
-              'définitivement supprimés.',
-            ),
+            content: Text(warning),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -102,8 +119,13 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         ) ??
         false;
     if (!confirmed || !context.mounted) return;
-    await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
+    final messenger = ScaffoldMessenger.of(context);
+    final failure = await ref
+        .read(matchesControllerProvider.notifier)
+        .deleteMatch(match.id);
     ref.invalidate(matchDetailsProvider(match.id));
+    if (failure == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(failure)));
   }
 
   @override
