@@ -139,4 +139,71 @@ void main() {
       expect(find.textContaining('Passeurs'), findsNothing);
     },
   );
+
+  testWidgets('les métadonnées terminées sont regroupées sans libellés', (
+    tester,
+  ) async {
+    const address =
+        'Complexe sportif - Chemin des Garrosses - 31180 - Rouffiac-Tolosan';
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MatchDetailHeaderCard(
+              homeName: 'Rouffiac Tolosan FC',
+              awayName: 'AS Grinta',
+              grintaIsHome: false,
+              homeScore: 2,
+              awayScore: 8,
+              dateLabel: '21/05/26',
+              kickoffTimeLabel: '21h00',
+              matchTypeLabel: 'Championnat · J23',
+              address: address,
+              manOfMatchNames: ['Allan'],
+              scorerLabels: ['Allan ×3', 'Aki ×2'],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text('21/05/26 · 21h00 · Championnat · J23'),
+      findsOneWidget,
+    );
+    expect(find.text(address), findsOneWidget);
+    expect(find.textContaining('Date ·'), findsNothing);
+    expect(find.textContaining('Coup d’envoi ·'), findsNothing);
+    expect(find.textContaining('Type ·'), findsNothing);
+    expect(find.textContaining('Adresse ·'), findsNothing);
+    expect(find.byType(Divider), findsOneWidget);
+  });
+
+  testWidgets('une information de résumé absente ne laisse aucune ligne', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MatchDetailHeaderCard(
+              homeName: 'AS Grinta',
+              awayName: 'Test FC',
+              grintaIsHome: true,
+              homeScore: 0,
+              awayScore: 1,
+              dateLabel: '27/08/26',
+              teamScoredZero: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('HDM'), findsNothing);
+    expect(find.textContaining('Buteurs'), findsNothing);
+    expect(find.textContaining('Passeurs'), findsNothing);
+    expect(find.byType(Divider), findsNothing);
+  });
 }
