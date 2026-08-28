@@ -23,7 +23,10 @@ void main() {
     final match = _matchCreatedAt(createdAt);
 
     expect(
-      canDeleteMatch(match, now: createdAt.add(const Duration(hours: 23, minutes: 59))),
+      canDeleteMatch(
+        match,
+        now: createdAt.add(const Duration(hours: 23, minutes: 59)),
+      ),
       isTrue,
     );
   });
@@ -51,6 +54,9 @@ void main() {
       opponentScore: null,
     );
 
-    expect(canDeleteMatch(match, now: DateTime.utc(2026, 8, 28, 12)), isFalse);
+    expect(
+      canDeleteMatch(match, now: DateTime.utc(2026, 8, 28, 12)),
+      isFalse,
+    );
   });
 }
