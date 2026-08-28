@@ -8,8 +8,21 @@ import os
 from pathlib import Path
 
 MAIN_JS_PATH = Path(os.environ.get("WEB_MAIN_JS_PATH", "build/web/main.dart.js"))
-RAW_LIMIT = int(os.environ.get("MAX_MAIN_DART_JS_BYTES", "5600000"))
-GZIP_LIMIT = int(os.environ.get("MAX_MAIN_DART_JS_GZIP_BYTES", "1600000"))
+
+# Le plafond n'est pas une limite technique : c'est un garde-fou choisi, relevé
+# le 27 août 2026 de 5 600 000 / 1 600 000 octets. Le bundle atteignait alors
+# 91 % du plafond brut, marge trop courte pour absorber une fonctionnalité sans
+# bloquer la publication au mauvais moment. Les valeurs actuelles laissent
+# environ 15 % de marge tout en gardant l'alerte utile.
+#
+# Ce qui compte pour les joueurs est la taille gzip : c'est elle qui est
+# réellement téléchargée à la première visite. Relever ce plafond achète du
+# temps, cela n'allège pas l'application.
+#
+# Les workflows répètent ces valeurs pour rester lisibles ; toute évolution doit
+# les mettre à jour ensemble.
+RAW_LIMIT = int(os.environ.get("MAX_MAIN_DART_JS_BYTES", "6000000"))
+GZIP_LIMIT = int(os.environ.get("MAX_MAIN_DART_JS_GZIP_BYTES", "1700000"))
 SUMMARY_PATH = Path(
     os.environ.get("WEB_PERFORMANCE_SUMMARY", "web-performance-summary.txt")
 )

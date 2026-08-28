@@ -90,8 +90,8 @@ jobs:
         run: python3 tool/stamp_web_release.py
       - name: Enforce web performance budget
         env:
-          MAX_MAIN_DART_JS_BYTES: '5600000'
-          MAX_MAIN_DART_JS_GZIP_BYTES: '1600000'
+          MAX_MAIN_DART_JS_BYTES: '6000000'
+          MAX_MAIN_DART_JS_GZIP_BYTES: '1700000'
         run: python3 tool/check_web_performance_budget.py
       - name: Add SPA fallback
         run: cp build/web/index.html build/web/404.html

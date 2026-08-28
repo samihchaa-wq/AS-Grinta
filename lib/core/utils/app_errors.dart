@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/logging/error_category.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Traduit une erreur technique (PostgREST, Postgres, Auth…) en un message
@@ -6,6 +7,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 String humanizeError(Object? error) {
   if (error == null) {
     return 'Une erreur est survenue. Réessaie dans un instant.';
+  }
+  // Une coupure réseau doit se dire avant tout le reste. Reconnue trop tard,
+  // elle ressortait en « Vérifie ton identifiant et ton mot de passe » pendant
+  // une connexion, ou en message générique partout ailleurs.
+  if (isNetworkFailure(error)) {
+    return 'Connexion au serveur impossible. Vérifie ton réseau.';
   }
   if (error is String) return _fromMessage(error);
   if (error is StateError) return _fromMessage(error.message);

@@ -95,8 +95,8 @@ jobs:
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$app_version"
           WEB_VERSION="$web_version" python3 tool/stamp_web_release.py
-          MAX_MAIN_DART_JS_BYTES=5600000 \
-          MAX_MAIN_DART_JS_GZIP_BYTES=1600000 \
+          MAX_MAIN_DART_JS_BYTES=6000000 \
+          MAX_MAIN_DART_JS_GZIP_BYTES=1700000 \
             python3 tool/check_web_performance_budget.py
           cp build/web/index.html build/web/404.html
           grep -q '/AS-Grinta/' build/web/index.html

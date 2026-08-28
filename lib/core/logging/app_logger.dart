@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:as_grinta/core/config/app_config.dart';
+import 'package:as_grinta/core/logging/error_category.dart';
 
 /// Enregistrement d'incident transmis au collecteur.
 ///
@@ -49,7 +50,7 @@ abstract final class AppLogger {
       ),
       name: 'as_grinta',
       level: 1000,
-      error: error.runtimeType,
+      error: describeErrorForIncident(error),
       stackTrace: stackTrace,
     );
 
@@ -61,7 +62,7 @@ abstract final class AppLogger {
         AppIncident(
           reference: incidentReference,
           operation: sanitizeOperation(operation),
-          errorType: error.runtimeType.toString(),
+          errorType: describeErrorForIncident(error),
           appVersion: AppConfig.version,
         ),
       );
@@ -96,6 +97,7 @@ abstract final class AppLogger {
     final reference = incidentReference == null
         ? ''
         : ' incident=$incidentReference version=${AppConfig.version}';
-    return 'operation=$safeOperation error_type=${error.runtimeType}$reference';
+    final errorType = describeErrorForIncident(error);
+    return 'operation=$safeOperation error_type=$errorType$reference';
   }
 }
