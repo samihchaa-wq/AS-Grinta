@@ -22,7 +22,7 @@ const grintaTableScrollableHeaderPadding = EdgeInsets.fromLTRB(8, 12, 16, 12);
 const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(6, 8, 4, 8);
 
 const grintaTableScrollableRowPadding = EdgeInsets.fromLTRB(8, 17, 16, 17);
-const grintaTableRankWidth = 18.0;
+const grintaTableRankWidth = 26.0;
 const grintaTableRankGap = 4.0;
 
 TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
@@ -112,7 +112,7 @@ double grintaTablePinnedWidthForNames(
 }
 
 /// Le rang d'une ligne, calé à droite dans une case juste assez large pour
-/// deux chiffres, puis un écart franc avant le nom.
+/// trois chiffres, puis un écart franc avant le nom.
 ///
 /// Aligné à gauche, un rang à un chiffre laissait derrière lui un trou aussi
 /// large que le chiffre manquant, et le nom ne démarrait jamais au même
