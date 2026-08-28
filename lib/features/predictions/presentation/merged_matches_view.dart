@@ -712,9 +712,8 @@ class _FeedEntry {
 
   factory _FeedEntry.event(ClubEvent event, {required DateTime now}) =>
       _FeedEntry._(
-        kind: event.startsAt.isAfter(now)
-            ? _FeedKind.event
-            : _FeedKind.pastEvent,
+        kind:
+            event.startsAt.isAfter(now) ? _FeedKind.event : _FeedKind.pastEvent,
         date: event.startsAt,
         event: event,
       );
