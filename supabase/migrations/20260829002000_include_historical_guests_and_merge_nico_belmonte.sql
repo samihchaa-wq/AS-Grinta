@@ -20,11 +20,13 @@ begin
   where lower(btrim(display_name)) = lower('Nico Pote Milan')
   limit 1;
 
-  if v_keep is null then
-    raise exception 'Canonical player Nicolas Belmonte not found';
-  end if;
-
-  if v_drop is not null and v_drop <> v_keep then
+  -- Synthetic/staging databases may contain neither historical identity.
+  -- That is valid: the generic historical backfill below can still run.
+  if v_keep is null and v_drop is null then
+    null;
+  elsif v_keep is null and v_drop is not null then
+    raise exception 'Nico Pote Milan exists but canonical Nicolas Belmonte is missing';
+  elsif v_drop is not null and v_drop <> v_keep then
     if exists (
       select 1
       from public.historical_match_players old_row
@@ -82,6 +84,9 @@ begin
 end
 $$;
 
+-- Recompute Nicolas Belmonte only when that canonical identity exists. Existing
+-- imported rows for everyone else remain untouched because a few contain
+-- manually corrected historical values.
 with agg as (
   select
     h.player_id,
@@ -118,6 +123,8 @@ from agg a
 where s.scope = 'all_time'
   and s.player_id = a.player_id;
 
+-- Backfill every historical identity that has real appearances but was omitted
+-- from the imported all-time ranking.
 with raw as (
   select
     h.player_id,
@@ -175,6 +182,8 @@ where not exists (
     and s.player_id = r.player_id
 );
 
+-- 2025-2026 is the previous season at migration time. Backfill any archived
+-- participant omitted from that period's imported roster/statistics.
 with raw as (
   select
     h.player_id,
