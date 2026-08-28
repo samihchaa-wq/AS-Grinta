@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/matches/domain/match_deletion_window.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
@@ -137,6 +138,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
     final canEditIdentity = !editLocked && !match.isCancelled;
     final canCancel = !editLocked && !match.isCancelled;
+    final canDelete = canDeleteMatch(match, now: now);
     final canEnterStats = !match.isInternal &&
         !match.isArchived &&
         phase == MatchDisplayPhase.awaitingValidation;
@@ -208,14 +210,15 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: ListTile(
-            leading: Icon(Icons.delete_outline),
-            title: Text('Supprimer'),
-            contentPadding: EdgeInsets.zero,
+        if (canDelete)
+          const PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              leading: Icon(Icons.delete_outline),
+              title: Text('Supprimer'),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
       ],
     );
   }
