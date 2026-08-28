@@ -25,7 +25,7 @@ class FormationPitchTapSelection {
   ///
   /// Les vignettes hors terrain s'abonnent à cette valeur pour afficher la
   /// même surbrillance persistante que les titulaires sélectionnés.
-  static ValueListenable<String?> get selectedParticipantId =>
+  static ValueNotifier<String?> get selectedParticipantId =>
       _selectedParticipantId;
 
   /// Branche le banc sur le terrain éditable actif.
