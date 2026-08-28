@@ -387,7 +387,11 @@ class _BenchBox extends StatelessWidget {
         ],
       ),
     );
-    if (!draggable) return tile;
+    final selectableTile = FormationPitchTapSelectionHighlight(
+      entry: entry,
+      child: tile,
+    );
+    if (!draggable) return selectableTile;
     final autoScroll = DragAutoScroller(context);
     return LongPressDraggable<MatchCompositionEntry>(
       data: entry,
@@ -397,7 +401,7 @@ class _BenchBox extends StatelessWidget {
       onDragUpdate: (details) => autoScroll.update(details.globalPosition),
       onDragEnd: (_) => autoScroll.stop(),
       onDraggableCanceled: (_, __) => autoScroll.stop(),
-      child: tile,
+      child: selectableTile,
     );
   }
 }
