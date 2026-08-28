@@ -289,8 +289,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
   }
 
   void _clearSelection({bool detach = false}) {
-    final hadSelection =
-        _selectedSlot != null || _selectedBenchPlayer != null;
+    final hadSelection = _selectedSlot != null || _selectedBenchPlayer != null;
     _selectedSlot = null;
     _selectedBenchPlayer = null;
     if (detach) {
