@@ -65,10 +65,10 @@ List<MatchCompositionEntry> _displayFieldEntries(
 
 /// Rendu unifié de la composition d'un match terminé, que la donnée vienne
 /// du système Live ou de l'archive historique importée : même terrain
-/// ([CompositionPitch], photos, buts ⚽, couronne 👑) quand une composition
-/// avec positions existe, même liste simple « Joueurs (n) » en repli sinon —
-/// pour qu'une fiche de match archivé et une fiche de match courant se
-/// ressemblent trait pour trait.
+/// ([CompositionPitch], photos, buts ⚽, passes 👟, couronne 👑) quand une
+/// composition avec positions existe, même liste simple « Joueurs (n) » en
+/// repli sinon — pour qu'une fiche de match archivé et une fiche de match
+/// courant se ressemblent trait pour trait.
 class CompletedCompositionCard extends StatelessWidget {
   const CompletedCompositionCard({
     super.key,
@@ -113,8 +113,8 @@ class CompletedCompositionCard extends StatelessWidget {
   }
 }
 
-/// Rendu MPG d'une composition publiée (photos, couronne 👑, ballons) pour un
-/// match terminé — identique à l'affichage d'avant-match.
+/// Rendu MPG d'une composition publiée (photos, couronne 👑, ballons et
+/// crampons 👟) pour un match terminé — identique à l'affichage d'avant-match.
 class _MpgCompletedCard extends StatelessWidget {
   const _MpgCompletedCard({required this.composition});
 
@@ -141,8 +141,8 @@ class _MpgCompletedCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Les buts ⚽ et l’homme du match 👑 sont affichés directement '
-              'sur les joueurs.',
+              'Les buts ⚽, les passes décisives 👟 et l’homme du match 👑 '
+              'sont affichés directement sur les joueurs.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),

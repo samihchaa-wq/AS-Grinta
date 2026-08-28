@@ -337,6 +337,12 @@ class CompositionPlayerTile extends StatelessWidget {
                     top: 40,
                     child: GoalBadge(goals: entry.goals),
                   ),
+                if (entry.assists > 0)
+                  Positioned(
+                    left: 0,
+                    top: 53,
+                    child: AssistBadge(assists: entry.assists),
+                  ),
               ],
             ),
           ),
@@ -422,6 +428,47 @@ class GoalBadge extends StatelessWidget {
               ),
               child: Text(
                 '$goals',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Crampon « passe décisive » placé juste sous le ballon. Le comportement est
+/// volontairement identique à [GoalBadge] : une seule icône, puis un petit
+/// compteur en surimpression uniquement à partir de deux passes décisives.
+class AssistBadge extends StatelessWidget {
+  const AssistBadge({super.key, required this.assists});
+
+  final int assists;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Text('👟', style: TextStyle(fontSize: 11, height: 1)),
+        if (assists > 1)
+          Positioned(
+            top: -5,
+            right: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E3A59),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.white70, width: 0.5),
+              ),
+              child: Text(
+                '$assists',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 8,
