@@ -1,9 +1,9 @@
 part of 'admin_squad_plan_page.dart';
 
-const _effectifConvokedColor = Color(0xFF168A52);
-const _effectifWaitlistColor = Color(0xFFE08A00);
-const _effectifAbsentColor = Color(0xFFB33A3A);
-const _effectifNoResponseColor = Color(0xFF6B7280);
+const _effectifConvokedColor = AppTheme.availabilityIn;
+const _effectifWaitlistColor = AppTheme.availabilityWaiting;
+const _effectifAbsentColor = AppTheme.availabilityOut;
+const _effectifNoResponseColor = AppTheme.availabilityUnknown;
 
 extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   bool get _isInternalMatch => _matches.any(
@@ -209,14 +209,15 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   void _showPlayerInfo(ConvocationPlayer player) {
     final status = player.availabilityStatus;
     final updatedAt = player.availabilityUpdatedAt;
-    final (
-      availabilityLabel,
-      availabilityIcon,
-      availabilityColor,
-    ) = switch (status) {
-      'available' => ('Disponible', Icons.check_circle_outline, Colors.green),
-      'absent' => ('Absent', Icons.cancel_outlined, Colors.redAccent),
-      _ => ('Sans réponse', Icons.schedule_outlined, Colors.orangeAccent),
+    final (availabilityLabel, availabilityIcon) = switch (status) {
+      'available' => ('Disponible', Icons.check_circle_outline),
+      'absent' => ('Absent', Icons.cancel_outlined),
+      _ => ('Sans réponse', Icons.schedule_outlined),
+    };
+    final availabilityColor = switch (status) {
+      'available' => _effectifConvokedColor,
+      'absent' => _effectifAbsentColor,
+      _ => _effectifNoResponseColor,
     };
     final hasResponded = status == 'available' || status == 'absent';
     final availabilityDetail = player.isGuest
@@ -259,7 +260,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 const SizedBox(height: 12),
                 _PlayerInfoRow(
                   icon: Icons.hourglass_top_rounded,
-                  color: const Color(0xFFE08A00),
+                  color: _effectifWaitlistColor,
                   title: 'Liste d’attente',
                   detail: waitlistDetail,
                 ),
@@ -267,7 +268,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   const SizedBox(height: 12),
                   _PlayerInfoRow(
                     icon: Icons.repeat_rounded,
-                    color: const Color(0xFFE08A00),
+                    color: _effectifWaitlistColor,
                     title: 'Nombre de tours en liste d’attente',
                     detail: '${player.currentSeasonWaitlistCount} fois',
                   ),

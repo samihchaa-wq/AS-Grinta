@@ -132,22 +132,50 @@ export async function fetchWeatherJson<T>(
   throw lastError ?? new Error("Open-Meteo indisponible");
 }
 
+const POSTAL_CODE = /\b\d{4,6}\b/;
+
+// Admins type addresses by hand: some separate the blocks with a comma
+// ("223 Rue des Arts, 31670 Labege"), others with a spaced dash
+// ("... - 31670 - Labege"). A dash glued to letters belongs to the place name
+// ("Saint-Orens-de-Gameville") and must never split the address.
+function addressSegments(address: string): string[] {
+  return address
+    .split(/\s*,\s*|\s+[-–—]\s+/)
+    .map((part) => part.replace(/^[\s,–—-]+|[\s,–—-]+$/g, "").trim())
+    .filter(Boolean);
+}
+
 export function geocodingQueries(address: string): string[] {
   const trimmed = address.trim();
+  const segments = addressSegments(trimmed);
   const queries: string[] = [];
-  const postalCityMatch = trimmed.match(/\b\d{4,6}\b\s+([^,]+)/);
-  const postalCity = postalCityMatch?.[0]?.trim();
-  const cityOnly = postalCityMatch?.[1]?.trim();
 
-  // Open-Meteo geocodes places rather than street addresses. Prefer the city
-  // extracted from a postal address, then progressively broader fallbacks.
-  if (cityOnly) queries.push(cityOnly);
-  if (postalCity) queries.push(postalCity);
+  // The last postal code of the address is the town one: a four-digit street
+  // number placed before it must not take precedence.
+  const postalIndex = segments.findLastIndex((segment) =>
+    POSTAL_CODE.test(segment)
+  );
+  if (postalIndex >= 0) {
+    const segment = segments[postalIndex];
+    const postal = segment.match(POSTAL_CODE)!;
+    const postalCode = postal[0];
+    // The town follows the postal code inside the same block ("31670 Labege")
+    // or occupies the next block ("... - 31670 - Labege").
+    const sameSegmentCity = segment
+      .slice(postal.index! + postalCode.length)
+      .replace(/^[\s,–—-]+/, "")
+      .trim();
+    const city = sameSegmentCity || segments[postalIndex + 1] || "";
+    if (city) {
+      queries.push(city);
+      queries.push(`${postalCode} ${city}`);
+    }
+  }
 
-  const segments = trimmed.split(",").map((part) => part.trim()).filter(Boolean);
+  // Open-Meteo geocodes places rather than street addresses. Widen the search
+  // progressively, up to the full address.
   if (segments.length > 1) {
-    const lastTwo = segments.slice(-2).join(" ");
-    queries.push(lastTwo);
+    queries.push(segments.slice(-2).join(" "));
     queries.push(segments.at(-1)!);
   }
   queries.push(trimmed);

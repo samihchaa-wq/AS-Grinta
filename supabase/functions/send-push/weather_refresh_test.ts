@@ -84,6 +84,39 @@ Deno.test("priorise la ville extraite avant l'adresse de rue", () => {
   assertEquals(queries.includes("223 Rue des Arts, 31670 Labège, France"), true);
 });
 
+Deno.test("extrait la commune d'une adresse séparée par des tirets", () => {
+  // Adresse réelle du club : Open-Meteo ne géocode pas les rues, et l'ancienne
+  // extraction renvoyait « - Labège », qui ne correspond à aucun lieu.
+  const queries = geocodingQueries(
+    "Complexe Sportif de Toulouse INP - 223 Rue des Arts - 31670 - Labège",
+  );
+  assertEquals(queries[0], "Labège");
+  assertEquals(queries[1], "31670 Labège");
+  assertEquals(
+    queries.includes(
+      "Complexe Sportif de Toulouse INP - 223 Rue des Arts - 31670 - Labège",
+    ),
+    true,
+  );
+});
+
+Deno.test("garde les tirets internes aux noms de commune", () => {
+  const queries = geocodingQueries(
+    "Rue du Stade - 31650 - Saint-Orens-de-Gameville",
+  );
+  assertEquals(queries[0], "Saint-Orens-de-Gameville");
+});
+
+Deno.test("ignore un numéro de rue à quatre chiffres", () => {
+  const queries = geocodingQueries("1234 Route de Narbonne, 31000 Toulouse");
+  assertEquals(queries[0], "Toulouse");
+  assertEquals(queries[1], "31000 Toulouse");
+});
+
+Deno.test("ne renvoie aucune requête pour une adresse vide", () => {
+  assertEquals(geocodingQueries("   ").length, 0);
+});
+
 Deno.test("continue le géocodage après l'échec d'une requête", async () => {
   let calls = 0;
 

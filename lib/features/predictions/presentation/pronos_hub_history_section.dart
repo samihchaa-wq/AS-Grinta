@@ -337,7 +337,13 @@ class _AdminMatchActions extends ConsumerWidget {
         false;
     if (!confirmed || !context.mounted) return;
 
-    await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
+    final messenger = ScaffoldMessenger.of(context);
+    final failure = await ref
+        .read(matchesControllerProvider.notifier)
+        .deleteMatch(match.id);
+    if (failure != null) {
+      messenger.showSnackBar(SnackBar(content: Text(failure)));
+    }
     ref
       ..invalidate(_calendarPredictionProvider)
       ..invalidate(inlineMatchPredictionProvider)
