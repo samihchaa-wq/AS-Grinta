@@ -726,7 +726,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           ),
         ) ??
         false;
-    if (!confirmed) return;
+    if (!confirmed || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final failure = await ref
         .read(matchesControllerProvider.notifier)
