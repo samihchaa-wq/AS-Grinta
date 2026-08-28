@@ -50,6 +50,7 @@ class MatchCompositionEntry {
     this.slotLabel,
     this.photoUrl,
     this.goals = 0,
+    this.assists = 0,
     this.isMotm = false,
     this.isVacant = false,
   });
@@ -71,6 +72,7 @@ class MatchCompositionEntry {
       slotLabel: _nullableText(json['slot_label']),
       photoUrl: _nullableText(json['photo_url']),
       goals: (json['goals'] as num?)?.toInt() ?? 0,
+      assists: (json['assists'] as num?)?.toInt() ?? 0,
       isMotm: json['is_motm'] == true,
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
       availabilityStatus:
@@ -93,6 +95,7 @@ class MatchCompositionEntry {
   final String? slotLabel;
   final String? photoUrl;
   final int goals;
+  final int assists;
   final bool isMotm;
 
   /// Emplacement du terrain dont on ne connaît pas le joueur.
@@ -134,6 +137,7 @@ class MatchCompositionEntry {
       slotLabel: slotLabel,
       photoUrl: photoUrl,
       goals: goals,
+      assists: assists,
       isMotm: isMotm,
       isVacant: isVacant,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -341,6 +345,7 @@ MatchCompositionEntry _initialPostMatchEntry(
         : MatchCompositionZone.notSelected,
     photoUrl: participant.photoUrl,
     goals: participant.goals,
+    assists: participant.assists,
     isMotm: participant.isMotm,
     sortOrder: index,
     availabilityStatus: selected ? 'available' : 'absent',
