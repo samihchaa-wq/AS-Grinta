@@ -1,102 +1,117 @@
--- A player added to an already-started Live session enters through the bench.
--- Keep that first bench presence in the same baseline used by
--- private.match_live_snapshot(), otherwise substitute_counts starts at 0 until
--- the player is substituted out for the first time.
+-- A player added after kickoff enters the Live lineup through the bench.
+-- private.match_live_snapshot() uses starting_lineup_snapshot as the baseline
+-- for the "times on bench" counter, so those late additions must be added to
+-- that snapshot exactly once.
+--
+-- Do this at the public add-player boundary instead of with a generic trigger
+-- on match_composition_entries: save_match_live_lineup rewrites every entry on
+-- each save, and a generic INSERT trigger could therefore double-count a
+-- normal substitution.
 
-create or replace function private.capture_match_live_bench_baseline()
-returns trigger
+create or replace function public.coach_add_match_live_players(
+  p_match_id uuid,
+  p_players jsonb,
+  p_reason text default null::text
+)
+returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $$
+as $function$
 declare
   v_state public.match_live_state;
+  v_before_selected uuid[];
+  v_added_bench_baseline jsonb;
+  v_result jsonb;
 begin
-  if new.zone <> 'bench' then
-    return new;
+  if not private.is_active_profile() then
+    raise exception 'Active profile required' using errcode = '42501';
   end if;
 
-  -- A field -> bench transition is a normal substitution. It is already
-  -- counted from match_live_events.player_out_participant_id and must not be
-  -- added to the baseline a second time. The same applies to a bench rewrite.
-  if tg_op = 'UPDATE' then
-    if old.zone in ('field', 'bench') then
-      return new;
-    end if;
-  end if;
-
+  -- Lock the session before taking the before/after lineup snapshot so another
+  -- Live action cannot interleave between the two observations.
   select session.state
   into v_state
   from public.match_live_sessions session
-  where session.match_id = new.match_id;
+  where session.match_id = p_match_id
+  for update;
 
-  if v_state not in ('running', 'paused', 'halftime') then
-    return new;
+  select coalesce(
+    array_agg(entry.participant_id),
+    array[]::uuid[]
+  )
+  into v_before_selected
+  from public.match_composition_entries entry
+  where entry.match_id = p_match_id
+    and entry.zone in ('field', 'bench');
+
+  v_result := private.add_match_live_players(p_match_id, p_players, p_reason);
+
+  -- Before kickoff confirm_start_match_live snapshots the whole starting bench.
+  -- Once the clock has started, only participants newly selected by THIS call
+  -- receive the extra baseline entry. A normal field -> bench substitution is
+  -- therefore still counted solely by its match_live_event.
+  if v_state in ('running', 'paused', 'halftime') then
+    select coalesce(
+      jsonb_object_agg(entry.participant_id::text, 'bench'::text),
+      '{}'::jsonb
+    )
+    into v_added_bench_baseline
+    from public.match_composition_entries entry
+    where entry.match_id = p_match_id
+      and entry.zone = 'bench'
+      and not (entry.participant_id = any(v_before_selected));
+
+    if v_added_bench_baseline <> '{}'::jsonb then
+      update public.match_live_sessions session
+      set starting_lineup_snapshot =
+            coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
+            || v_added_bench_baseline,
+          updated_at = now()
+      where session.match_id = p_match_id;
+
+      -- private.add_match_live_players returned the snapshot from immediately
+      -- before the baseline repair. Return the refreshed snapshot to the UI so
+      -- the new player's badge is visible without an extra manual reload.
+      v_result := private.match_live_snapshot(p_match_id);
+    end if;
   end if;
 
-  update public.match_live_sessions session
-  set starting_lineup_snapshot =
-        coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
-        || jsonb_build_object(new.participant_id::text, 'bench'),
-      updated_at = now()
-  where session.match_id = new.match_id
-    and not (
-      coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
-      ? new.participant_id::text
-    );
-
-  return new;
+  return v_result;
 end;
-$$;
+$function$;
 
-comment on function private.capture_match_live_bench_baseline() is
-  'Records the first bench presence of a player introduced after Live kickoff; regular field-to-bench substitutions remain event-counted.';
+comment on function public.coach_add_match_live_players(uuid, jsonb, text) is
+  'Adds players to an open Live lineup. Players introduced after kickoff enter through the bench and immediately receive one bench-presence baseline.';
 
-revoke all on function private.capture_match_live_bench_baseline()
-from public, anon, authenticated;
-
-drop trigger if exists capture_match_live_bench_baseline
-on public.match_composition_entries;
-
-create trigger capture_match_live_bench_baseline
-after insert or update of zone on public.match_composition_entries
-for each row
-execute function private.capture_match_live_bench_baseline();
-
--- Repair any already-open session created before this migration. A missing
--- baseline key is safe to infer as "bench" when the player is currently on the
--- bench or has already appeared as player_in. Starters keep their existing
--- "field" key, so a normal substitution cannot be double-counted.
-with inferred_bench as (
-  select distinct candidate.match_id, candidate.participant_id
-  from (
-    select entry.match_id, entry.participant_id
-    from public.match_composition_entries entry
-    join public.match_live_sessions session
-      on session.match_id = entry.match_id
-    where session.state in ('running', 'paused', 'halftime', 'finished')
-      and entry.zone = 'bench'
-
-    union
-
-    select event.match_id, event.player_in_participant_id
-    from public.match_live_events event
-    join public.match_live_sessions session
-      on session.match_id = event.match_id
-    where session.state in ('running', 'paused', 'halftime', 'finished')
-      and event.event_type = 'substitution'
-      and event.player_in_participant_id is not null
-  ) candidate
-), missing_by_match as (
+-- Conservative repair for sessions created before this fix: a currently
+-- benched participant missing from the kickoff snapshot can safely receive the
+-- baseline only when they have no substitution event at all. This repairs the
+-- observed late-add/no-badge case without turning a normal player_out event
+-- into a double count.
+with missing_bench as (
   select
     session.match_id,
-    jsonb_object_agg(inferred.participant_id::text, 'bench'::text) as baseline
+    jsonb_object_agg(entry.participant_id::text, 'bench'::text) as baseline
   from public.match_live_sessions session
-  join inferred_bench inferred on inferred.match_id = session.match_id
-  where not (
-    coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
-    ? inferred.participant_id::text
-  )
+  join public.match_composition_entries entry
+    on entry.match_id = session.match_id
+   and entry.zone = 'bench'
+  where session.state in ('running', 'paused', 'halftime', 'finished')
+    and not (
+      coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
+      ? entry.participant_id::text
+    )
+    and not exists (
+      select 1
+      from public.match_live_events event
+      where event.match_id = session.match_id
+        and event.event_type = 'substitution'
+        and (
+          event.player_in_participant_id = entry.participant_id
+          or event.player_out_participant_id = entry.participant_id
+        )
+    )
   group by session.match_id
 )
 update public.match_live_sessions session
@@ -104,5 +119,5 @@ set starting_lineup_snapshot =
       coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
       || missing.baseline,
     updated_at = now()
-from missing_by_match missing
+from missing_bench missing
 where session.match_id = missing.match_id;
