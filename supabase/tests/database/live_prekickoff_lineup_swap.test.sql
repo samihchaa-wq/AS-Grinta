@@ -50,6 +50,21 @@ values (
   '42200000-0000-0000-0000-000000000001'
 );
 
+-- match_sport_participants pointe vers match_sport_workflows, pas vers
+-- matches : sans cette ligne, tout le décor du test est refusé.
+insert into public.match_sport_workflows(
+  match_id,
+  availability_opens_at,
+  created_by,
+  updated_by
+)
+values (
+  '42200000-0000-0000-0000-000000000020',
+  now() - interval '1 day',
+  '42200000-0000-0000-0000-000000000001',
+  '42200000-0000-0000-0000-000000000001'
+);
+
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper, is_active, position
 )
