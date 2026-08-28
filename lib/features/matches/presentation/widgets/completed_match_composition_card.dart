@@ -139,14 +139,6 @@ class _MpgCompletedCard extends StatelessWidget {
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Les buts ⚽, les passes décisives 👟 et l’homme du match 👑 '
-              'sont affichés directement sur les joueurs.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
-            ),
             if (hasVacantSlots) ...[
               const SizedBox(height: 4),
               Text(
