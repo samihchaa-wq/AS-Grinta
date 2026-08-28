@@ -228,7 +228,10 @@ jobs:
           fi
 
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            if ! cmp -s /tmp/local-only.txt /tmp/allowed-local-only.txt; then
+            comm -23 /tmp/local-only.txt /tmp/allowed-local-only.txt > /tmp/disallowed-local-only.txt
+            if [ -s /tmp/disallowed-local-only.txt ]; then
+              echo "Disallowed local-only versions:"
+              cat /tmp/disallowed-local-only.txt
               echo "::error::A pull request may only be ahead of production by migration files newly added by that pull request."
               exit 1
             fi
