@@ -96,10 +96,11 @@ class MatchDetailHeaderCard extends StatelessWidget {
             child: _MetadataLine(
               icon: Icons.how_to_vote_outlined,
               text: cleanMotmAction,
+              color: AppTheme.accent,
               trailing: const Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: AppTheme.textFaint,
+                color: AppTheme.accent,
               ),
             ),
           ),
@@ -182,24 +183,32 @@ class MatchDetailHeaderCard extends StatelessWidget {
 }
 
 class _MetadataLine extends StatelessWidget {
-  const _MetadataLine({required this.icon, required this.text, this.trailing});
+  const _MetadataLine({
+    required this.icon,
+    required this.text,
+    this.color,
+    this.trailing,
+  });
 
   final IconData icon;
   final String text;
+  final Color? color;
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final foregroundColor = color ?? AppTheme.textSecondary;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: AppTheme.textSecondary),
+        Icon(icon, size: 18, color: foregroundColor),
         const SizedBox(width: 9),
         Expanded(
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: foregroundColor,
                   fontWeight: FontWeight.w700,
                 ),
           ),
