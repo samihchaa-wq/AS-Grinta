@@ -440,10 +440,13 @@ class MatchesController extends StateNotifier<MatchesState> {
     return [win, draw, loss].every((value) => value >= 1.01 && value <= 100);
   }
 
-  Future<void> deleteMatch(String id) async {
+  /// Supprime un match et renvoie `null` en cas de succès, sinon le message à
+  /// afficher. L'échec ne remplace pas la liste des matchs par une carte
+  /// d'erreur : le calendrier reste lisible et l'écran appelant montre la
+  /// raison du refus.
+  Future<String?> deleteMatch(String id) async {
     if (!_canManageMatches) {
-      state = state.copyWith(error: 'Seul le staff peut supprimer un match.');
-      return;
+      return 'Seul le staff peut supprimer un match.';
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -453,8 +456,10 @@ class MatchesController extends StateNotifier<MatchesState> {
         allSeasons: state.includesAllSeasons,
         forceRefresh: true,
       );
+      return null;
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: humanizeError(error));
+      state = state.copyWith(isLoading: false);
+      return humanizeError(error);
     }
   }
 
