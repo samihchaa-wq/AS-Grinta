@@ -151,7 +151,7 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final composition = _compositionFromHistorical(matchId, detail);
-    final fallbackPlayers = _fallbackPlayersFromHistorical(detail);
+    final fallbackPlayers = historicalFallbackPlayers(detail);
 
     // Certaines feuilles d'archives ne contiennent aucune composition mais
     // connaissent quand même l'effectif présent. Dans ce cas, on affiche la
@@ -247,14 +247,17 @@ MatchCompositionEntry _entryFromHistorical(
   );
 }
 
-List<CompletedPlayerSummary> _fallbackPlayersFromHistorical(
+/// Construit l'effectif de secours d'une archive sans composition exploitable.
+/// Philippe est le coach et ne doit jamais être présenté comme joueur.
+@visibleForTesting
+List<CompletedPlayerSummary> historicalFallbackPlayers(
   HistoricalMatchDetail detail,
 ) {
   final playersByName = <String, CompletedPlayerSummary>{};
 
   void addPlayer(String rawName, int goals) {
     final name = rawName.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty || _isHistoricalCoachName(name)) return;
     final key = name.toLowerCase();
     final existing = playersByName[key];
     if (existing == null || goals > existing.goals) {
@@ -271,4 +274,9 @@ List<CompletedPlayerSummary> _fallbackPlayersFromHistorical(
 
   return playersByName.values.toList()
     ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+}
+
+bool _isHistoricalCoachName(String name) {
+  final normalized = name.trim().toLowerCase();
+  return normalized == 'philippe' || normalized.startsWith('philippe ');
 }
