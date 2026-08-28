@@ -7,8 +7,8 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
-import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
+import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
@@ -215,7 +215,6 @@ class _PostgameAdminActions extends ConsumerWidget {
           ),
           if (sportsEnabled) ...[
             const SizedBox(height: 10),
-            _DeleteLiveFactsButton(matchId: matchId),
           ],
         ],
       ),
@@ -266,90 +265,6 @@ class _PostgameAdminActions extends ConsumerWidget {
 /// Efface la chronologie rapportée par le Live quand celui-ci a été mal
 /// rempli. Le bouton n'apparaît que s'il y a effectivement des faits à
 /// supprimer, et ne touche à rien d'autre que ces faits.
-class _DeleteLiveFactsButton extends ConsumerStatefulWidget {
-  const _DeleteLiveFactsButton({required this.matchId});
-
-  final String matchId;
-
-  @override
-  ConsumerState<_DeleteLiveFactsButton> createState() =>
-      _DeleteLiveFactsButtonState();
-}
-
-class _DeleteLiveFactsButtonState
-    extends ConsumerState<_DeleteLiveFactsButton> {
-  bool _deleting = false;
-
-  Future<void> _confirmAndDelete() async {
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Supprimer les faits du match ?'),
-            content: const Text(
-              'La chronologie rapportée par le Live (buts, passes décisives et '
-              'remplacements minute par minute) sera effacée définitivement et '
-              'le bloc « Faits du match » disparaîtra de la fiche.\n\n'
-              'Le score, les statistiques des joueurs, la composition et le '
-              'vote Homme du match ne sont pas touchés.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Annuler'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Supprimer'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirmed) return;
-
-    setState(() => _deleting = true);
-    try {
-      await ref.read(matchLiveRepositoryProvider).deleteExportedTimeline(
-            matchId: widget.matchId,
-            reason: 'Suppression des faits du match',
-          );
-      ref.invalidate(matchLiveTimelineProvider(widget.matchId));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Faits du match supprimés.')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
-    } finally {
-      if (mounted) setState(() => _deleting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final timeline =
-        ref.watch(matchLiveTimelineProvider(widget.matchId)).valueOrNull;
-    if (timeline == null || timeline.events.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return OutlinedButton.icon(
-      onPressed: _deleting ? null : _confirmAndDelete,
-      icon: _deleting
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: GrintaProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.timer_off_outlined),
-      label: const Text('Supprimer les faits du match'),
-    );
-  }
-}
-
 class _PostgameDeadlineGate extends StatefulWidget {
   const _PostgameDeadlineGate({required this.deadline, required this.child});
 
@@ -553,10 +468,13 @@ class _CompletedFactsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!sportsEnabled) return const SizedBox.shrink();
+    // Le bloc décide lui-même s'il a quelque chose à montrer : les buts
+    // viennent du compte rendu validé, les remplacements du journal du direct.
+    final goals = ref.watch(matchGoalActionsProvider(matchId)).valueOrNull;
     final timeline = ref.watch(matchLiveTimelineProvider(matchId)).valueOrNull;
-    if (timeline == null || timeline.events.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final hasFacts = (goals != null && goals.isNotEmpty) ||
+        (timeline != null && timeline.events.isNotEmpty);
+    if (!hasFacts) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: MatchFaitsDuMatchCard(matchId: matchId),

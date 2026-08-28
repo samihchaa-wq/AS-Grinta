@@ -1,18 +1,46 @@
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
+import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_goal_action.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-typedef _ScoredEvent = ({
-  MatchLiveEvent event,
-  int scoreAsGrinta,
-  int scoreAdverse
-});
+/// Une ligne de la chronologie affichée dans la fiche du match.
+class _FactRow {
+  const _FactRow({
+    required this.minuteLabel,
+    required this.text,
+    required this.icon,
+    required this.order,
+    this.scoreLabel,
+    this.substitution,
+    this.sortMinute,
+  });
 
-/// Chronologie des buts et remplacements d'un match suivi en direct, dans
-/// la fiche du match fini. `null` (match jamais suivi via le Tableau Blanc)
-/// n'affiche rien.
+  final String minuteLabel;
+  final String text;
+  final IconData icon;
+
+  /// Score cumulé après ce but. `null` sur un remplacement.
+  final String? scoreLabel;
+  final MatchLiveEvent? substitution;
+
+  /// Minute servant au tri. `null` quand elle est inconnue : la ligne garde
+  /// alors la place que le compte rendu lui a donnée.
+  final int? sortMinute;
+  final int order;
+}
+
+/// Chronologie des faits d'un match terminé, dans sa fiche.
+///
+/// Les buts viennent du **compte rendu validé** : c'est la version corrigée par
+/// l'administrateur, pas le brouillon saisi en direct. Corriger un buteur ou
+/// une minute dans le compte rendu se voit donc immédiatement ici, et un match
+/// saisi sans suivi en direct a lui aussi sa chronologie.
+///
+/// Les remplacements n'existent que dans le journal du direct : ils s'ajoutent
+/// à la liste quand ce journal existe.
 class MatchFaitsDuMatchCard extends ConsumerWidget {
   const MatchFaitsDuMatchCard({super.key, required this.matchId});
 
@@ -20,30 +48,15 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timelineAsync = ref.watch(matchLiveTimelineProvider(matchId));
-    final timeline = timelineAsync.valueOrNull;
-    if (timeline == null || timeline.events.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    final goals = ref.watch(matchGoalActionsProvider(matchId)).valueOrNull;
+    final timeline = ref.watch(matchLiveTimelineProvider(matchId)).valueOrNull;
+    final substitutions = timeline?.events
+            .where((event) => event.type == MatchLiveEventType.substitution)
+            .toList() ??
+        const <MatchLiveEvent>[];
 
-    // Chaque événement de but ne porte que le nouveau score de son propre
-    // camp ; on reconstitue le score cumulé en parcourant la chronologie
-    // complète (toutes mi-temps confondues) dans l'ordre.
-    var scoreAsGrinta = 0;
-    var scoreAdverse = 0;
-    final scored = <_ScoredEvent>[];
-    for (final event in timeline.events) {
-      if (event.type == MatchLiveEventType.goalUs) {
-        scoreAsGrinta = event.scoreAsGrintaAfter ?? scoreAsGrinta;
-      } else if (event.type == MatchLiveEventType.goalThem) {
-        scoreAdverse = event.scoreAdverseAfter ?? scoreAdverse;
-      }
-      scored.add((
-        event: event,
-        scoreAsGrinta: scoreAsGrinta,
-        scoreAdverse: scoreAdverse,
-      ));
-    }
+    final rows = _buildRows(goals ?? const [], substitutions);
+    if (rows.isEmpty) return const SizedBox.shrink();
 
     return Card(
       child: ExpansionTile(
@@ -51,88 +64,100 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
         title: const Text('Faits du match'),
         initiallyExpanded: true,
         children: [
-          _HalfSection(
-            label: '1ʳᵉ mi-temps',
-            events: scored.where((row) => row.event.half == 1).toList(),
-          ),
-          if (scored.any((row) => row.event.half == 2))
-            _HalfSection(
-              label: '2ᵉ mi-temps',
-              events: scored.where((row) => row.event.half == 2).toList(),
-            ),
+          for (final row in rows) _FactLine(row: row),
           const SizedBox(height: 8),
         ],
       ),
     );
   }
-}
 
-class _HalfSection extends StatelessWidget {
-  const _HalfSection({required this.label, required this.events});
+  List<_FactRow> _buildRows(
+    List<MatchGoalAction> goals,
+    List<MatchLiveEvent> substitutions,
+  ) {
+    var scoreAsGrinta = 0;
+    var scoreAdverse = 0;
+    var order = 0;
+    final rows = <_FactRow>[];
 
-  final String label;
-  final List<_ScoredEvent> events;
-
-  @override
-  Widget build(BuildContext context) {
-    if (events.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Text(
-            label.toUpperCase(),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: .6,
-                ),
-          ),
+    // Les buts arrivent déjà dans l'ordre retenu par le compte rendu : le
+    // score cumulé se reconstitue simplement en les parcourant.
+    for (final goal in goals) {
+      if (goal.isAsGrinta) {
+        scoreAsGrinta += 1;
+      } else {
+        scoreAdverse += 1;
+      }
+      rows.add(
+        _FactRow(
+          minuteLabel: goal.minute == null ? '—' : "${goal.minute}'",
+          sortMinute: goal.minute,
+          order: order++,
+          icon: Icons.sports_soccer_rounded,
+          scoreLabel: '$scoreAsGrinta-$scoreAdverse',
+          text: _goalText(goal),
         ),
-        for (final row in events) _EventLine(row: row),
-      ],
-    );
+      );
+    }
+
+    for (final event in substitutions) {
+      rows.add(
+        _FactRow(
+          minuteLabel: "${event.minute}'",
+          sortMinute: event.minute,
+          order: order++,
+          icon: Icons.swap_horiz_rounded,
+          text: '',
+          substitution: event,
+        ),
+      );
+    }
+
+    // Buts et remplacements se mêlent par minute. Une minute inconnue reste à
+    // sa place plutôt que de remonter en tête de match.
+    rows.sort((a, b) {
+      final minuteA = a.sortMinute;
+      final minuteB = b.sortMinute;
+      if (minuteA != null && minuteB != null && minuteA != minuteB) {
+        return minuteA.compareTo(minuteB);
+      }
+      return a.order.compareTo(b.order);
+    });
+    return rows;
+  }
+
+  String _goalText(MatchGoalAction goal) {
+    if (!goal.isAsGrinta) {
+      return goal.isOwnGoal ? 'CSC AS Grinta' : 'But adverse';
+    }
+    if (goal.isOwnGoal) return 'CSC adverse';
+    final scorer = goal.scorerName ?? 'But AS Grinta';
+    return goal.assistKind == MatchGoalAssistKind.player
+        ? '$scorer (passe ${goal.assistName})'
+        : scorer;
   }
 }
 
-class _EventLine extends StatelessWidget {
-  const _EventLine({required this.row});
+class _FactLine extends StatelessWidget {
+  const _FactLine({required this.row});
 
-  final _ScoredEvent row;
+  final _FactRow row;
 
   @override
   Widget build(BuildContext context) {
-    final event = row.event;
-    final (icon, text) = switch (event.type) {
-      MatchLiveEventType.goalUs => (
-          Icons.sports_soccer_rounded,
-          event.isOpponentOwnGoal
-              ? 'CSC adverse'
-              : '${event.scorerName ?? 'But AS Grinta'}'
-                  '${event.assistName == null ? '' : ' (passe ${event.assistName})'}',
-        ),
-      MatchLiveEventType.goalThem => (
-          Icons.sports_soccer_rounded,
-          'But adverse',
-        ),
-      // Le libellé n'est pas utilisé : un remplacement s'affiche avec des
-      // flèches (LiveSubstitutionLine), pas en toutes lettres.
-      MatchLiveEventType.substitution => (Icons.swap_horiz_rounded, ''),
-    };
-    final isGoal = event.type != MatchLiveEventType.substitution;
+    final substitution = row.substitution;
     return ListTile(
       dense: true,
-      leading: Icon(icon, size: 20),
-      title: isGoal
-          ? Text(text)
+      leading: Icon(row.icon, size: 20),
+      title: substitution == null
+          ? Text(row.text)
           : LiveSubstitutionLine(
-              playerInName: event.playerInName ?? '?',
-              playerOutName: event.playerOutName ?? '?',
+              playerInName: substitution.playerInName ?? '?',
+              playerOutName: substitution.playerOutName ?? '?',
             ),
-      subtitle:
-          isGoal ? Text('${row.scoreAsGrinta}-${row.scoreAdverse}') : null,
+      subtitle: row.scoreLabel == null ? null : Text(row.scoreLabel!),
       trailing: Text(
-        "${event.minute}'",
+        row.minuteLabel,
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
     );
