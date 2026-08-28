@@ -24,6 +24,7 @@ class MatchHistoryCard extends ConsumerWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? match.grintaScore : match.opponentScore;
     final awayScore = match.isHome ? match.opponentScore : match.grintaScore;
+    final address = match.address?.trim();
     final surface = match.isCancelled
         ? CalendarCardPalette.cancelledSurface
         : CalendarCardPalette.matchSurface(match.matchType);
@@ -83,6 +84,31 @@ class MatchHistoryCard extends ConsumerWidget {
                             color: border,
                             fontWeight: FontWeight.w900,
                           ),
+                    ),
+                  ],
+                  if (address != null && address.isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.place_outlined, size: 16, color: border),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            address,
+                            textAlign: TextAlign.start,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],

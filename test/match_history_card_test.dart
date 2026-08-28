@@ -5,7 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  MatchModel finishedMatch({required String matchType}) => MatchModel(
+  MatchModel finishedMatch({required String matchType, String? address}) =>
+      MatchModel(
         id: 'match',
         seasonId: 'season',
         opponentId: matchType == 'entre_nous' ? '' : 'opponent',
@@ -16,6 +17,7 @@ void main() {
         grintaScore: null,
         opponentScore: null,
         matchType: matchType,
+        address: address,
       );
 
   Future<void> pumpCard(WidgetTester tester, MatchModel match) async {
@@ -47,4 +49,16 @@ void main() {
       expect(find.byType(InkWell), findsOneWidget);
     },
   );
+
+  testWidgets('un match terminé affiche son adresse', (tester) async {
+    const address =
+        'Complexe Sportif de Toulouse INP - 223 Rue des Arts - 31670 - Labège';
+    await pumpCard(
+      tester,
+      finishedMatch(matchType: 'championnat', address: address),
+    );
+
+    expect(find.byIcon(Icons.place_outlined), findsOneWidget);
+    expect(find.text(address), findsOneWidget);
+  });
 }
