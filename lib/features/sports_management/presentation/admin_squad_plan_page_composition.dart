@@ -569,6 +569,52 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Depuis T-15 cet écran est en lecture seule côté serveur. Sans ce
+        // panneau, l'admin restait devant une composition figée sans savoir
+        // que tout reste corrigeable dans le Live.
+        if (_locked && !_postMatch) ...[
+          Card(
+            color: Theme.of(context).colorScheme.secondaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lock_clock_rounded,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'La composition se modifie maintenant depuis le '
+                          'Live. Le dispositif, le terrain et le banc y '
+                          'restent corrigeables jusqu’au coup d’envoi.',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        _updateState(() => _step = _AdminStep.live),
+                    icon: const Icon(Icons.sports_soccer_rounded),
+                    label: const Text('Ouvrir le Live'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -676,7 +722,10 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         if (_locked && !_postMatch)
           const Padding(
             padding: EdgeInsets.only(top: 10),
-            child: Text('Composition verrouillée au coup d’envoi.'),
+            child: Text(
+              'Composition verrouillée ici : les corrections passent par le '
+              'Live.',
+            ),
           ),
       ],
     );

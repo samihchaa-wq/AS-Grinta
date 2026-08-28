@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/features/match_live/domain/match_live_formation.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
@@ -34,6 +35,7 @@ class _MatchLivePreKickoffPageState
     text: '${widget.bundle.session.planPlannedDurationMinutes}',
   );
   bool _busy = false;
+  bool _savingFormation = false;
   late bool _opening = widget.canEdit && !widget.bundle.session.sessionExists;
   String? _openError;
 
@@ -174,22 +176,51 @@ class _MatchLivePreKickoffPageState
             ),
           ),
           const SizedBox(height: 14),
-          const Card(
+          Card(
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline),
-                  SizedBox(width: 12),
+                  const Icon(Icons.info_outline),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Vérifie la composition ci-dessous. Tu peux encore la '
-                      'corriger en glissant les joueurs.',
+                      field.isEmpty
+                          ? 'Aucun titulaire n’est encore placé. Choisis un '
+                              'dispositif, puis glisse les joueurs du banc sur '
+                              'le terrain.'
+                          : 'Vérifie la composition ci-dessous. Tu peux encore '
+                              'la corriger : dispositif, terrain et banc.',
                     ),
                   ),
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 14),
+          // Le dispositif se change aussi une fois le match lancé. L'avoir ici
+          // évite d'attendre le coup d'envoi pour corriger un mauvais choix,
+          // alors que l'écran Composition est déjà figé à ce stade.
+          DropdownButtonFormField<String>(
+            key: ValueKey('pre-kickoff-formation-${lineup.formationCode}'),
+            initialValue: formationForCode(lineup.formationCode).code,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Dispositif',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              for (final formation in footballFormations)
+                DropdownMenuItem(
+                  value: formation.code,
+                  child: Text(formation.code),
+                ),
+            ],
+            onChanged: _busy || _savingFormation
+                ? null
+                : (value) {
+                    if (value != null) _changeFormation(lineup, value);
+                  },
           ),
           const SizedBox(height: 14),
         ],
@@ -254,6 +285,37 @@ class _MatchLivePreKickoffPageState
         ],
       ],
     );
+  }
+
+  Future<void> _changeFormation(
+    MatchComposition lineup,
+    String formationCode,
+  ) async {
+    if (_busy || _savingFormation) return;
+    final nextCode = formationForCode(formationCode).code;
+    if (formationForCode(lineup.formationCode).code == nextCode) return;
+
+    setState(() => _savingFormation = true);
+    try {
+      final changed = repositionLiveLineupForFormation(lineup, nextCode);
+      await _controller.changeFormation(
+        formationCode: nextCode,
+        entries: [for (final entry in changed.entries) entry.toRpcJson()],
+        expectedLineupRevision: widget.bundle.session.lineupRevision,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossible de changer le dispositif. L’état Live a été '
+            'resynchronisé.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _savingFormation = false);
+    }
   }
 
   Future<void> _dropOnSlot(
@@ -332,7 +394,7 @@ class _MatchLivePreKickoffPageState
         title: const Text('Vérifiez que la composition est bonne'),
         content: const Text(
           'Une fois le match démarré, le chronomètre se lance pour tout le '
-          'monde.',
+          'monde et cette composition devient celle que voient les joueurs.',
         ),
         actions: [
           TextButton(
