@@ -49,8 +49,9 @@ begin
 
   -- Before kickoff confirm_start_match_live snapshots the whole starting bench.
   -- Once the clock has started, only participants newly selected by THIS call
-  -- receive the extra baseline entry. A normal field -> bench substitution is
-  -- therefore still counted solely by its match_live_event.
+  -- and still absent from the kickoff baseline receive the extra baseline entry.
+  -- A normal field -> bench substitution is therefore still counted solely by
+  -- its match_live_event, and an existing starter baseline is never overwritten.
   if v_state in ('running', 'paused', 'halftime') then
     select coalesce(
       jsonb_object_agg(entry.participant_id::text, 'bench'::text),
@@ -58,9 +59,15 @@ begin
     )
     into v_added_bench_baseline
     from public.match_composition_entries entry
+    join public.match_live_sessions session
+      on session.match_id = entry.match_id
     where entry.match_id = p_match_id
       and entry.zone = 'bench'
-      and not (entry.participant_id = any(v_before_selected));
+      and not (entry.participant_id = any(v_before_selected))
+      and not (
+        coalesce(session.starting_lineup_snapshot, '{}'::jsonb)
+        ? entry.participant_id::text
+      );
 
     if v_added_bench_baseline <> '{}'::jsonb then
       update public.match_live_sessions session
