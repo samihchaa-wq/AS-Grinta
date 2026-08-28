@@ -25,7 +25,10 @@ void main() {
           home: Scaffold(
             body: MatchHistoryCard(
               match: match,
-              adminActions: const Icon(Icons.edit_outlined, key: Key('admin-actions')),
+              adminActions: const Icon(
+                Icons.edit_outlined,
+                key: Key('admin-actions'),
+              ),
             ),
           ),
         ),
