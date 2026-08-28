@@ -96,6 +96,20 @@ class FormationMarkerMetrics {
   double get avatarSize => width * .82;
 
   double get nameFontSize => (width * .18).clamp(10.5, 12.5).toDouble();
+
+  /// Largeur maximale de l'étiquette du prénom.
+  ///
+  /// Elle déborde volontairement du marqueur : à la largeur de la photo, un
+  /// prénom comme « François » était coupé en « Franç… » dès que le terrain se
+  /// resserrait pour laisser la place au banc. L'étiquette est centrée sous la
+  /// photo et le débordement va dans l'espace vide du terrain, jamais sur le
+  /// visage du joueur voisin.
+  double get nameMaxWidth => width * 1.6;
+
+  /// Hauteur réservée à l'étiquette dans le marqueur : la hauteur naturelle
+  /// de la pastille, avec un peu de marge pour les prénoms accentués
+  /// (« François ») qui descendent sous la ligne de base.
+  double get nameHeight => nameFontSize * 1.35 + 2;
 }
 
 class FormationPitchEditor extends StatefulWidget {
@@ -432,10 +446,22 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                     // Prénom sur fond translucide sous la photo, comme sur
                     // la composition d'un match terminé : jamais posé sur le
                     // visage, et lisible même par-dessus les tracés blancs
-                    // du terrain.
-                    PitchPlayerName(
-                      label: entry.displayName.trim(),
-                      fontSize: nameFontSize,
+                    // du terrain. L'étiquette a le droit d'être plus large que
+                    // le marqueur pour ne pas tronquer les prénoms longs.
+                    SizedBox(
+                      width: width,
+                      height: metrics.nameHeight,
+                      child: OverflowBox(
+                        minWidth: 0,
+                        maxWidth: metrics.nameMaxWidth,
+                        minHeight: 0,
+                        maxHeight: double.infinity,
+                        alignment: Alignment.topCenter,
+                        child: PitchPlayerName(
+                          label: entry.displayName.trim(),
+                          fontSize: nameFontSize,
+                        ),
+                      ),
                     ),
                   ],
                 ),

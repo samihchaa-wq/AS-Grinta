@@ -44,8 +44,18 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   @override
   void didUpdateWidget(covariant AdminSquadPlanPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialStep != widget.initialStep ||
-        oldWidget.showPredictionStep != widget.showPredictionStep) {
+    // Seule une nouvelle demande explicite (une autre section dans l'URL)
+    // change l'onglet affiché. showPredictionStep, lui, bascule tout seul à
+    // T-15 quand les pronostics ferment : le prendre pour une demande de
+    // navigation renvoyait le coach sur l'onglet d'arrivée — typiquement Info —
+    // en plein Tableau Blanc, dès le premier rafraîchissement suivant.
+    if (oldWidget.initialStep != widget.initialStep) {
+      _step = _stepFrom(widget.initialStep);
+      return;
+    }
+    // L'onglet Prono disparaît à T-15 : s'il était affiché, il faut bien
+    // reprendre la main, mais uniquement dans ce cas-là.
+    if (!widget.showPredictionStep && _step == _AdminStep.prediction) {
       _step = _stepFrom(widget.initialStep);
     }
   }

@@ -52,14 +52,19 @@ class LiveBenchTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 2),
-          Text(
-            entry.displayName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: metrics.nameFontSize,
-              fontWeight: FontWeight.w800,
+          // La colonne du banc est collée au bord de l'écran : le prénom ne
+          // peut pas déborder comme sur le terrain. Il est donc réduit juste
+          // ce qu'il faut plutôt que coupé (« Franç… »).
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              entry.displayName,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: metrics.nameFontSize,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
