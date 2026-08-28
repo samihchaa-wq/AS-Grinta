@@ -173,10 +173,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
             const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
-    final upcomingEvents = events
-        .where((event) => event.startsAt.isAfter(now))
-        .toList(growable: false);
-
     final entries = <_FeedEntry>[];
     for (final match in state.matches) {
       switch (match.phase(now: now)) {
@@ -203,37 +199,19 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
           );
       }
     }
-    entries.addAll(upcomingEvents.map(_FeedEntry.event));
+    entries.addAll(events.map((event) => _FeedEntry.event(event, now: now)));
     entries.addAll(historicalMatches.map(_FeedEntry.historical));
 
     entries.sort((a, b) => a.date.compareTo(b.date));
     final feedSections = _buildFeedSections(entries);
 
     int? focusIndex;
-    const priorityKinds = [
-      _FeedKind.liveMatch,
-      _FeedKind.awaitingValidationMatch,
-      _FeedKind.nextMatch,
-    ];
-    for (final kind in priorityKinds) {
-      for (var i = 0; i < entries.length; i += 1) {
-        if (entries[i].kind == kind) {
-          focusIndex = i;
-          break;
-        }
-      }
-      if (focusIndex != null) break;
-    }
-    if (focusIndex == null) {
-      for (var i = 0; i < entries.length; i += 1) {
-        if (!entries[i].date.isBefore(now)) {
-          focusIndex = i;
-          break;
-        }
-      }
+    for (var i = 0; i < entries.length; i += 1) {
+      if (entries[i].date.isAfter(now)) break;
+      focusIndex = i;
     }
     if (focusIndex == null && entries.isNotEmpty) {
-      focusIndex = entries.length - 1;
+      focusIndex = 0;
     }
 
     final focusKey = focusIndex == null ? null : _entryKey(entries[focusIndex]);
@@ -539,6 +517,7 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
       );
     case _FeedKind.historicalMatch:
       return HistoricalMatchCard(match: entry.historical!);
+    case _FeedKind.pastEvent:
     case _FeedKind.event:
       return CalendarFeedEventCard(event: entry.event!, isAdmin: isAdmin);
   }
@@ -709,6 +688,7 @@ enum _FeedKind {
   awaitingValidationMatch,
   pastMatch,
   historicalMatch,
+  pastEvent,
   event,
 }
 
@@ -730,8 +710,13 @@ class _FeedEntry {
   factory _FeedEntry.match(MatchModel match, _FeedKind kind) =>
       _FeedEntry._(kind: kind, date: match.kickoffAt, match: match);
 
-  factory _FeedEntry.event(ClubEvent event) =>
-      _FeedEntry._(kind: _FeedKind.event, date: event.startsAt, event: event);
+  factory _FeedEntry.event(ClubEvent event, {required DateTime now}) =>
+      _FeedEntry._(
+        kind:
+            event.startsAt.isAfter(now) ? _FeedKind.event : _FeedKind.pastEvent,
+        date: event.startsAt,
+        event: event,
+      );
 
   factory _FeedEntry.historical(HistoricalMatchResult historical) =>
       _FeedEntry._(
@@ -805,6 +790,7 @@ _FeedSectionKind _feedSectionKind(_FeedKind kind) {
   switch (kind) {
     case _FeedKind.pastMatch:
     case _FeedKind.historicalMatch:
+    case _FeedKind.pastEvent:
       return _FeedSectionKind.finished;
     case _FeedKind.upcomingMatch:
     case _FeedKind.nextMatch:
