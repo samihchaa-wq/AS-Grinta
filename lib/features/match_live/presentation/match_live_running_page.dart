@@ -380,10 +380,19 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
           'Qui a marqué à la ${AppFormats.ordinalFeminine(event.minute)} minute ?',
       extraChoiceLabel: 'CSC adverse',
       extraChoiceIcon: Icons.shield_moon_outlined,
+      // Proposé seulement si le but est déjà attribué : c'est le moyen de
+      // revenir en arrière sur un buteur désigné par erreur.
+      clearChoiceLabel:
+          event.needsScorer ? null : 'Effacer · buteur à désigner plus tard',
     );
     if (choice == null) return;
     if (choice == kMatchLiveExtraChoiceId) {
       await controller.setEventScorer(event.id, isOpponentOwnGoal: true);
+      return;
+    }
+    if (choice == kMatchLiveClearChoiceId) {
+      // Sans buteur, la passe décisive n'a plus de sens : elle part avec lui.
+      await controller.setEventScorer(event.id);
       return;
     }
     if (!context.mounted) return;
