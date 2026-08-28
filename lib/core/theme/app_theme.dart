@@ -44,6 +44,21 @@ abstract final class AppTheme {
   static const Color textSecondary = Color(0xFFDCE8F7);
   static const Color textFaint = Color(0xFF9FB4CC);
 
+  // Statuts de disponibilité : convoqué, liste d'attente, absent, sans réponse.
+  // Ces quatre couleurs servent de titre de colonne, de bordure et de teinte de
+  // fond directement sur le bleu nuit de l'application. Les variantes sombres
+  // employées auparavant (#168A52, #B33A3A, #6B7280) n'atteignaient que 3,4:1,
+  // 2,6:1 et 3,1:1 sur ce fond, sous le seuil WCAG AA de 4,5:1 : les titres
+  // « Convoqués », « Absents » et « Sans réponse » étaient difficilement
+  // lisibles. Les teintes claires ci-dessous restent au-dessus de 6:1.
+  //
+  // Ces couleurs ne conviennent qu'au texte et aux fonds teintés : sur un
+  // bouton plein, c'est le libellé clair qui deviendrait illisible.
+  static const Color availabilityIn = success;
+  static const Color availabilityWaiting = warning;
+  static const Color availabilityOut = error;
+  static const Color availabilityUnknown = textFaint;
+
   // Très fin liseré noir appliqué au texte clair pour qu'il reste
   // net et lisible quel que soit ce qui se trouve derrière.
   static const List<Shadow> textOutline = [

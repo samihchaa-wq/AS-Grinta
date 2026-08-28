@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
@@ -110,25 +111,25 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
               _BoardGroup(
                 title: 'Disponibles',
                 players: board.convoked,
-                color: const Color(0xFF168A52),
+                color: AppTheme.availabilityIn,
                 icon: Icons.check_circle_outline,
               ),
               _BoardGroup(
                 title: 'Liste d’attente',
                 players: board.waitlisted,
-                color: const Color(0xFFE08A00),
+                color: AppTheme.availabilityWaiting,
                 icon: Icons.hourglass_top_rounded,
               ),
               _BoardGroup(
                 title: 'Absents',
                 players: absent,
-                color: const Color(0xFFB33A3A),
+                color: AppTheme.availabilityOut,
                 icon: Icons.cancel_outlined,
               ),
               _BoardGroup(
                 title: 'Sans réponse',
                 players: noResponse,
-                color: const Color(0xFF6B7280),
+                color: AppTheme.availabilityUnknown,
                 icon: Icons.schedule_outlined,
               ),
             ];

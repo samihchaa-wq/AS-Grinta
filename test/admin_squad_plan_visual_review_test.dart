@@ -89,7 +89,7 @@ void main() {
       expect(find.text('Absents (0)'), findsOneWidget);
       expect(
         _playerChip(tester, 'Diego').side?.color,
-        _effectifColor(const Color(0xFFB33A3A)),
+        _effectifColor(AppTheme.availabilityOut),
       );
 
       await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
@@ -97,7 +97,7 @@ void main() {
       expect(find.text('Sans réponse (0)'), findsOneWidget);
       expect(
         _playerChip(tester, 'Emma').side?.color,
-        _effectifColor(const Color(0xFF6B7280)),
+        _effectifColor(AppTheme.availabilityUnknown),
       );
 
       // Le retour vers la colonne de disponibilité d'origine doit rester
