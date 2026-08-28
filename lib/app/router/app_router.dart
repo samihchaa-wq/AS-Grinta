@@ -28,7 +28,7 @@ import 'package:as_grinta/features/sports_management/presentation/admin_guests_p
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/sport_match_finalization_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/match_report_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
 import 'package:flutter/foundation.dart';
@@ -106,7 +106,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: '/matches/:matchId/finalize',
-                builder: (context, state) => SportMatchFinalizationPage(
+                builder: (context, state) => MatchReportPage(
                   matchId: state.pathParameters['matchId'] ?? '',
                 ),
               ),

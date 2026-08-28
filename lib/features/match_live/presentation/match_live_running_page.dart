@@ -6,7 +6,7 @@ import 'package:as_grinta/features/match_live/domain/match_live_formation.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
-import 'package:as_grinta/features/match_live/presentation/match_live_recap_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/match_report_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
@@ -62,7 +62,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
               'compte rendu par le coach.',
         );
       }
-      return MatchLiveRecapPage(matchId: matchId, bundle: bundle);
+      return MatchReportView(matchId: matchId);
     }
 
     final lineup = bundle.lineup;

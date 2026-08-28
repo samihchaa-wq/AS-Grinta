@@ -1,12 +1,11 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/features/match_live/domain/match_live_formation.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
-import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
-import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
+import 'package:as_grinta/features/sports_management/domain/match_squad_editing.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/match_squad_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -129,28 +128,6 @@ class _MatchLivePreKickoffPageState
   }
 
   Widget _buildLoaded(BuildContext context, MatchComposition lineup) {
-    return LayoutBuilder(
-      builder: (context, constraints) => _buildComposition(
-        context,
-        lineup,
-        // Le terrain occupe toute la largeur disponible, plafonnée par
-        // FormationPitchEditor. Les vignettes du banc reprennent la même
-        // taille pour qu'un remplaçant occupe la place d'un titulaire.
-        FormationMarkerMetrics.forPitch(
-          (constraints.maxWidth - 32).clamp(0.0, 540.0).toDouble(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComposition(
-    BuildContext context,
-    MatchComposition lineup,
-    FormationMarkerMetrics metrics,
-  ) {
-    final field = lineup.entriesFor(MatchCompositionZone.field);
-    final bench = lineup.entriesFor(MatchCompositionZone.bench);
-
     // Cette liste est déjà imbriquée dans le scroll de la page qui l'affiche.
     // Sans shrinkWrap + NeverScrollableScrollPhysics, les deux listes se
     // disputent les gestes tactiles : scroll bloqué avant le bouton
@@ -176,104 +153,20 @@ class _MatchLivePreKickoffPageState
             ),
           ),
           const SizedBox(height: 14),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      field.isEmpty
-                          ? 'Aucun titulaire n’est encore placé. Choisis un '
-                              'dispositif, puis glisse les joueurs du banc sur '
-                              'le terrain.'
-                          : 'Vérifie la composition ci-dessous. Tu peux encore '
-                              'la corriger : dispositif, terrain et banc.',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
+        ],
+        // Exactement le même bloc terrain/banc que le compte rendu
+        // d'après-match : un seul éditeur d'effectif dans toute l'application.
+        MatchSquadEditor(
+          lineup: lineup,
+          editable: widget.canEdit,
+          header: widget.canEdit ? _buildHint(lineup) : null,
+          onDroppedOnSlot: (moving, slot) => _dropOnSlot(lineup, moving, slot),
+          onMoveToBench: (entry) => _moveToBench(lineup, entry),
           // Le dispositif se change aussi une fois le match lancé. L'avoir ici
           // évite d'attendre le coup d'envoi pour corriger un mauvais choix,
           // alors que l'écran Composition est déjà figé à ce stade.
-          DropdownButtonFormField<String>(
-            key: ValueKey('pre-kickoff-formation-${lineup.formationCode}'),
-            initialValue: formationForCode(lineup.formationCode).code,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Dispositif',
-              border: OutlineInputBorder(),
-            ),
-            items: [
-              for (final formation in footballFormations)
-                DropdownMenuItem(
-                  value: formation.code,
-                  child: Text(formation.code),
-                ),
-            ],
-            onChanged: _busy || _savingFormation
-                ? null
-                : (value) {
-                    if (value != null) _changeFormation(lineup, value);
-                  },
-          ),
-          const SizedBox(height: 14),
-        ],
-        Center(
-          child: FormationPitchEditor(
-            slots: formationForCode(lineup.formationCode).slots,
-            entries: field,
-            editable: widget.canEdit,
-            markerMetrics: metrics,
-            onDroppedOnSlot: (moving, slot) =>
-                _dropOnSlot(lineup, moving, slot),
-            onRemoveFromField: (entry) => _moveToBench(lineup, entry),
-          ),
-        ),
-        const SizedBox(height: 14),
-        DragTarget<MatchCompositionEntry>(
-          onWillAcceptWithDetails: (details) => widget.canEdit,
-          onAcceptWithDetails: (details) => _moveToBench(lineup, details.data),
-          builder: (context, candidates, rejected) => Card(
-            color: candidates.isNotEmpty
-                ? Theme.of(context).colorScheme.primaryContainer
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Banc (${bench.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (bench.isEmpty)
-                    const Text('Aucun joueur sur le banc.')
-                  else
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 14,
-                      children: [
-                        for (final entry in bench)
-                          LiveBenchTile(
-                            entry: entry,
-                            draggable: widget.canEdit,
-                            metrics: metrics,
-                          ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ),
+          onFormationChanged: (code) => _changeFormation(lineup, code),
+          formationBusy: _busy || _savingFormation,
         ),
         if (widget.canEdit) ...[
           const SizedBox(height: 20),
@@ -287,6 +180,31 @@ class _MatchLivePreKickoffPageState
     );
   }
 
+  Widget _buildHint(MatchComposition lineup) {
+    final empty = lineup.entriesFor(MatchCompositionZone.field).isEmpty;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                empty
+                    ? 'Aucun titulaire n’est encore placé. Choisis un '
+                        'dispositif, puis glisse les joueurs du banc sur '
+                        'le terrain.'
+                    : 'Vérifie la composition ci-dessous. Tu peux encore '
+                        'la corriger : dispositif, terrain et banc.',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _changeFormation(
     MatchComposition lineup,
     String formationCode,
@@ -297,7 +215,7 @@ class _MatchLivePreKickoffPageState
 
     setState(() => _savingFormation = true);
     try {
-      final changed = repositionLiveLineupForFormation(lineup, nextCode);
+      final changed = repositionForFormation(lineup, nextCode);
       await _controller.changeFormation(
         formationCode: nextCode,
         entries: [for (final entry in changed.entries) entry.toRpcJson()],
@@ -323,41 +241,9 @@ class _MatchLivePreKickoffPageState
     MatchCompositionEntry moving,
     FootballFormationSlot slot,
   ) async {
-    final currentAtSlot = lineup.entries
-        .where((entry) => entry.zone == MatchCompositionZone.field)
-        .cast<MatchCompositionEntry?>()
-        .firstWhere(
-          (entry) =>
-              entry != null &&
-              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position).distance <
-                  .12,
-          orElse: () => null,
-        );
-    final oldPosition = moving.zone == MatchCompositionZone.field
-        ? Offset(moving.x ?? .5, moving.y ?? .5)
-        : null;
-    final entries = [
-      for (final entry in lineup.entries)
-        if (entry.participantId == moving.participantId)
-          entry.moveTo(
-            MatchCompositionZone.field,
-            x: slot.position.dx,
-            y: slot.position.dy,
-          )
-        else if (currentAtSlot != null &&
-            entry.participantId == currentAtSlot.participantId)
-          oldPosition == null
-              ? entry.moveTo(MatchCompositionZone.bench)
-              : entry.moveTo(
-                  MatchCompositionZone.field,
-                  x: oldPosition.dx,
-                  y: oldPosition.dy,
-                )
-        else
-          entry,
-    ];
+    final next = placeEntryOnSlot(lineup, moving, slot);
     await _controller.saveLiveLineup(
-      entries: [for (final entry in entries) entry.toRpcJson()],
+      entries: [for (final entry in next.entries) entry.toRpcJson()],
       expectedLineupRevision: widget.bundle.session.lineupRevision,
     );
   }
@@ -366,16 +252,9 @@ class _MatchLivePreKickoffPageState
     MatchComposition lineup,
     MatchCompositionEntry moving,
   ) async {
-    final benchCount = lineup.entriesFor(MatchCompositionZone.bench).length;
-    final entries = [
-      for (final entry in lineup.entries)
-        if (entry.participantId == moving.participantId)
-          entry.moveTo(MatchCompositionZone.bench, sortOrder: benchCount)
-        else
-          entry,
-    ];
+    final next = moveEntryToBench(lineup, moving);
     await _controller.saveLiveLineup(
-      entries: [for (final entry in entries) entry.toRpcJson()],
+      entries: [for (final entry in next.entries) entry.toRpcJson()],
       expectedLineupRevision: widget.bundle.session.lineupRevision,
     );
   }
