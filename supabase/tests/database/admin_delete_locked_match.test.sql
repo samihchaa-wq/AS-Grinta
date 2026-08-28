@@ -20,8 +20,8 @@ insert into public.opponents(id, name) values
 ('4d000000-0000-0000-0000-000000000011','Adversaire suppression live'),
 ('4d000000-0000-0000-0000-000000000012','Adversaire suppression passe');
 
--- Un match dont le coup d'envoi est passé : le Live est ouvert, donc l'ancien
--- garde-fou refusait la suppression.
+-- Un match dont le coup d'envoi est passé depuis moins de 24 h : il doit
+-- rester supprimable par le staff même si le Live a été ouvert.
 insert into public.matches(
   id, season_id, opponent_id, match_date, match_time, location,
   planned_duration_minutes, status, match_type, created_by
@@ -41,8 +41,8 @@ insert into public.match_live_sessions(
   '4d000000-0000-0000-0000-000000000001'
 );
 
--- Un match joué, validé il y a plus de 24 h, avec une composition : la fenêtre
--- de correction post-match est fermée.
+-- Un match dont le coup d'envoi remonte à plus de 24 h doit désormais être
+-- conservé, même pour le staff.
 insert into public.matches(
   id, season_id, opponent_id, match_date, match_time, location,
   planned_duration_minutes, status, match_type, created_by
@@ -112,13 +112,14 @@ select set_config('request.jwt.claims',
 select is(
   public.delete_match('4d000000-0000-0000-0000-000000000020'),
   true,
-  'le staff supprime un match dont le Live est ouvert'
+  'le staff supprime un match moins de 24 h après le coup d’envoi'
 );
 
-select is(
-  public.delete_match('4d000000-0000-0000-0000-000000000021'),
-  true,
-  'le staff supprime un match passé dont la fenêtre de correction est fermée'
+select throws_ok(
+  $$select public.delete_match('4d000000-0000-0000-0000-000000000021')$$,
+  '22023',
+  'Un match ne peut être supprimé que jusqu’à 24 heures après son coup d’envoi.',
+  'le staff ne peut plus supprimer un match plus de 24 h après le coup d’envoi'
 );
 
 reset role;
@@ -127,12 +128,16 @@ select set_config('request.jwt.claims', '', true);
 
 select is(
   (select count(*)::int from public.matches
-   where id in (
-     '4d000000-0000-0000-0000-000000000020',
-     '4d000000-0000-0000-0000-000000000021'
-   )),
+   where id = '4d000000-0000-0000-0000-000000000020'),
   0,
-  'les deux matchs ont bien disparu'
+  'le match récent a bien disparu'
+);
+
+select is(
+  (select count(*)::int from public.matches
+   where id = '4d000000-0000-0000-0000-000000000021'),
+  1,
+  'le match ancien est conservé'
 );
 
 select is(
@@ -145,18 +150,15 @@ select is(
 select is(
   (select count(*)::int from public.match_compositions
    where match_id = '4d000000-0000-0000-0000-000000000021'),
-  0,
-  'la composition du match supprimé a disparu'
+  1,
+  'la composition du match ancien est conservée'
 );
 
 select is(
   (select count(*)::int from public.match_predictions
-   where match_id in (
-     '4d000000-0000-0000-0000-000000000020',
-     '4d000000-0000-0000-0000-000000000021'
-   )),
+   where match_id = '4d000000-0000-0000-0000-000000000020'),
   0,
-  'les pronostics des matchs supprimés ont disparu'
+  'les pronostics du match supprimé ont disparu'
 );
 
 select * from finish();

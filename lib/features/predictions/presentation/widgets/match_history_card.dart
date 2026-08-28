@@ -17,7 +17,7 @@ class MatchHistoryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final actions = match.isFinished || match.isCancelled ? null : adminActions;
+    final actions = adminActions;
     final isFinishedInternal = match.isInternal && match.isFinished;
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;

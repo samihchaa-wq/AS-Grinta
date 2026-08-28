@@ -12,6 +12,7 @@ void main() {
       zone: MatchCompositionZone.bench,
       photoUrl: 'https://example.test/photo.jpg',
       goals: 2,
+      assists: 3,
       isMotm: true,
       sortOrder: 0,
       availabilityStatus: 'available',
@@ -23,6 +24,7 @@ void main() {
 
     expect(moved.photoUrl, entry.photoUrl);
     expect(moved.goals, 2);
+    expect(moved.assists, 3);
     expect(moved.isMotm, isTrue);
   });
 
@@ -51,7 +53,7 @@ void main() {
           present: true,
           selectionStatus: SportFinalSelectionStatus.substitute,
           goals: 1,
-          assists: 0,
+          assists: 2,
           cleanSheet: false,
           photoUrl: 'https://example.test/present.jpg',
           isMotm: true,
@@ -85,6 +87,7 @@ void main() {
     expect(present.zone, MatchCompositionZone.bench);
     expect(present.photoUrl, isNotNull);
     expect(present.goals, 1);
+    expect(present.assists, 2);
     expect(present.isMotm, isTrue);
     expect(absent.zone, MatchCompositionZone.notSelected);
   });
