@@ -47,10 +47,15 @@ class MatchDetailHeaderCard extends StatelessWidget {
   /// Passeurs décisifs. Vide pour les matchs antérieurs au suivi des passes
   /// décisives : la ligne disparaît alors au lieu d'annoncer « Aucun ».
   final List<String> assistLabels;
+
+  /// Conservé pour compatibilité avec les appels existants. Un match à zéro
+  /// but n'affiche plus une ligne « Buteurs · Aucun » : une donnée absente est
+  /// désormais entièrement omise de la fiche.
   final bool teamScoredZero;
 
   @override
   Widget build(BuildContext context) {
+    final cleanDate = dateLabel.trim();
     final cleanTime = kickoffTimeLabel?.trim();
     final cleanType = matchTypeLabel?.trim();
     final cleanAddress = address?.trim();
@@ -67,6 +72,49 @@ class MatchDetailHeaderCard extends StatelessWidget {
         .map((label) => label.trim())
         .where((label) => label.isNotEmpty)
         .toList(growable: false);
+
+    final summaryParts = <String>[
+      if (cleanDate.isNotEmpty) cleanDate,
+      if (cleanTime != null && cleanTime.isNotEmpty) cleanTime,
+      if (cleanType != null && cleanType.isNotEmpty) cleanType,
+    ];
+
+    final postMatchRows = <Widget>[
+      if (motmNames.isNotEmpty)
+        _MetadataLine(
+          icon: Icons.workspace_premium_outlined,
+          text: 'HDM · ${motmNames.join(' · ')}',
+        )
+      else if (cleanMotmAction != null &&
+          cleanMotmAction.isNotEmpty &&
+          onMotmTap != null)
+        InkWell(
+          onTap: onMotmTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: _MetadataLine(
+              icon: Icons.how_to_vote_outlined,
+              text: cleanMotmAction,
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppTheme.textFaint,
+              ),
+            ),
+          ),
+        ),
+      if (scorers.isNotEmpty)
+        _MetadataLine(
+          icon: Icons.sports_soccer_rounded,
+          text: 'Buteurs · ${scorers.join(' · ')}',
+        ),
+      if (assists.isNotEmpty)
+        _MetadataLine(
+          icon: Icons.emoji_events_outlined,
+          text: 'Passeurs · ${assists.join(' · ')}',
+        ),
+    ];
 
     return Card(
       child: Padding(
@@ -91,23 +139,11 @@ class MatchDetailHeaderCard extends StatelessWidget {
               finished: true,
               nameStyle: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 14),
-            _MetadataLine(
-              icon: Icons.calendar_today_outlined,
-              text: 'Date · $dateLabel',
-            ),
-            if (cleanTime != null && cleanTime.isNotEmpty) ...[
-              const SizedBox(height: 8),
+            if (summaryParts.isNotEmpty) ...[
+              const SizedBox(height: 14),
               _MetadataLine(
-                icon: Icons.schedule_rounded,
-                text: 'Coup d’envoi · $cleanTime',
-              ),
-            ],
-            if (cleanType != null && cleanType.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _MetadataLine(
-                icon: Icons.emoji_events_outlined,
-                text: 'Type · $cleanType',
+                icon: Icons.calendar_today_outlined,
+                text: summaryParts.join(' · '),
               ),
             ],
             if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
@@ -119,7 +155,7 @@ class MatchDetailHeaderCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: _MetadataLine(
                     icon: Icons.place_outlined,
-                    text: 'Adresse · $cleanAddress',
+                    text: cleanAddress,
                     trailing: const Icon(
                       Icons.chevron_right_rounded,
                       size: 18,
@@ -129,52 +165,14 @@ class MatchDetailHeaderCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (motmNames.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _MetadataLine(
-                icon: Icons.workspace_premium_outlined,
-                text: 'HDM · ${motmNames.join(' · ')}',
-              ),
-            ] else if (cleanMotmAction != null &&
-                cleanMotmAction.isNotEmpty &&
-                onMotmTap != null) ...[
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: onMotmTap,
-                borderRadius: BorderRadius.circular(10),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: _MetadataLine(
-                    icon: Icons.how_to_vote_outlined,
-                    text: cleanMotmAction,
-                    trailing: const Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: AppTheme.textFaint,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-            if (scorers.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _MetadataLine(
-                icon: Icons.sports_soccer_rounded,
-                text: 'Buteurs · ${scorers.join(' · ')}',
-              ),
-            ] else if (teamScoredZero) ...[
-              const SizedBox(height: 8),
-              const _MetadataLine(
-                icon: Icons.sports_soccer_rounded,
-                text: 'Buteurs · Aucun',
-              ),
-            ],
-            if (assists.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              _MetadataLine(
-                icon: Icons.emoji_events_outlined,
-                text: 'Passeurs · ${assists.join(' · ')}',
-              ),
+            if (postMatchRows.isNotEmpty) ...[
+              const SizedBox(height: 22),
+              const Divider(height: 1),
+              const SizedBox(height: 18),
+              for (var index = 0; index < postMatchRows.length; index += 1) ...[
+                if (index > 0) const SizedBox(height: 10),
+                postMatchRows[index],
+              ],
             ],
           ],
         ),
