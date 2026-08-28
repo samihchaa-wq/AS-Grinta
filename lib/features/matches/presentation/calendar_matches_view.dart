@@ -195,6 +195,12 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
           onDisplayModeChanged: (mode) {
             if (mode == _displayMode) return;
             setState(() => _displayMode = mode);
+            if (mode == _CalendarDisplayMode.scroll) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                ref.read(matchesFocusRequestProvider.notifier).state++;
+              });
+            }
           },
           onExport: exportAction,
           onCreate: isAdmin ? _openCreate : null,
