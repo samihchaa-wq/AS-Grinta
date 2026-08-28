@@ -14,26 +14,102 @@ class FormationPitchTapSelection {
   FormationPitchTapSelection._();
 
   static Object? _owner;
-  static bool Function(MatchCompositionEntry entry)? _placePlayer;
+  static bool Function(MatchCompositionEntry entry)? _tapPlayer;
+  static bool _hasSelection = false;
+  static final ValueNotifier<String?> _selectedParticipantId =
+      ValueNotifier<String?>(null);
 
-  static bool get hasSelection => _placePlayer != null;
+  static bool get hasSelection => _hasSelection;
 
+  /// Joueur du banc actuellement sélectionné au clic, s'il y en a un.
+  ///
+  /// Les vignettes hors terrain s'abonnent à cette valeur pour afficher la
+  /// même surbrillance persistante que les titulaires sélectionnés.
+  static ValueListenable<String?> get selectedParticipantId =>
+      _selectedParticipantId;
+
+  /// Branche le banc sur le terrain éditable actif.
+  ///
+  /// Le callback reste actif même sans emplacement déjà sélectionné : un clic
+  /// sur un remplaçant peut ainsi devenir le premier clic du remplacement.
   static void activate({
     required Object owner,
     required bool Function(MatchCompositionEntry entry) placePlayer,
   }) {
     _owner = owner;
-    _placePlayer = placePlayer;
+    _tapPlayer = placePlayer;
   }
 
   static bool placePlayer(MatchCompositionEntry entry) {
-    return _placePlayer?.call(entry) ?? false;
+    return _tapPlayer?.call(entry) ?? false;
+  }
+
+  static void updateSelection({
+    required Object owner,
+    required bool hasSelection,
+    String? selectedParticipantId,
+  }) {
+    if (!identical(_owner, owner)) return;
+    _hasSelection = hasSelection;
+    if (_selectedParticipantId.value != selectedParticipantId) {
+      _selectedParticipantId.value = selectedParticipantId;
+    }
   }
 
   static void clear(Object owner) {
     if (!identical(_owner, owner)) return;
     _owner = null;
-    _placePlayer = null;
+    _tapPlayer = null;
+    _hasSelection = false;
+    if (_selectedParticipantId.value != null) {
+      _selectedParticipantId.value = null;
+    }
+  }
+}
+
+/// Surbrillance persistante d'un joueur du banc sélectionné au clic.
+class FormationPitchTapSelectionHighlight extends StatelessWidget {
+  const FormationPitchTapSelectionHighlight({
+    super.key,
+    required this.entry,
+    required this.child,
+  });
+
+  final MatchCompositionEntry entry;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<String?>(
+      valueListenable: FormationPitchTapSelection.selectedParticipantId,
+      child: child,
+      builder: (context, selectedParticipantId, child) {
+        final selected = selectedParticipantId == entry.participantId;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppTheme.accent.withValues(alpha: .10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? AppTheme.accent : Colors.transparent,
+              width: selected ? 2.5 : 0,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.accent.withValues(alpha: .8),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: child,
+        );
+      },
+    );
   }
 }
 
@@ -146,6 +222,7 @@ class FormationPitchEditor extends StatefulWidget {
 
 class _FormationPitchEditorState extends State<FormationPitchEditor> {
   FootballFormationSlot? _selectedSlot;
+  MatchCompositionEntry? _selectedBenchPlayer;
 
   bool _sameSlot(FootballFormationSlot a, FootballFormationSlot b) =>
       a.label == b.label && (a.position - b.position).distance < .001;
@@ -156,12 +233,22 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.editable) _activateTapSelection();
+  }
+
+  @override
   void didUpdateWidget(covariant FormationPitchEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     final selected = _selectedSlot;
-    if (!widget.editable ||
-        (selected != null &&
-            !widget.slots.any((slot) => _sameSlot(slot, selected)))) {
+    if (!widget.editable) {
+      _clearSelection(detach: true);
+      return;
+    }
+    _activateTapSelection();
+    if (selected != null &&
+        !widget.slots.any((slot) => _sameSlot(slot, selected))) {
       _clearSelection();
     }
   }
@@ -172,36 +259,83 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     super.dispose();
   }
 
+  void _activateTapSelection() {
+    FormationPitchTapSelection.activate(
+      owner: this,
+      placePlayer: _tapBenchPlayer,
+    );
+    _syncTapSelectionState();
+  }
+
+  void _syncTapSelectionState() {
+    FormationPitchTapSelection.updateSelection(
+      owner: this,
+      hasSelection: _selectedSlot != null || _selectedBenchPlayer != null,
+      selectedParticipantId: _selectedBenchPlayer?.participantId,
+    );
+  }
+
   void _selectSlot(FootballFormationSlot slot) {
     if (!widget.editable) return;
     if (_isSelected(slot)) {
       _clearSelection();
       return;
     }
-    setState(() => _selectedSlot = slot);
-    FormationPitchTapSelection.activate(
-      owner: this,
-      placePlayer: _placeSelectedPlayer,
-    );
+    setState(() {
+      _selectedSlot = slot;
+      _selectedBenchPlayer = null;
+    });
+    _syncTapSelectionState();
   }
 
-  void _clearSelection() {
-    FormationPitchTapSelection.clear(this);
-    if (!mounted || _selectedSlot == null) return;
-    setState(() => _selectedSlot = null);
-  }
-
-  bool _placeSelectedPlayer(MatchCompositionEntry entry) {
-    final target = _selectedSlot;
-    if (!mounted ||
-        !widget.editable ||
-        target == null ||
-        !entry.canBeSelected) {
-      return false;
+  void _clearSelection({bool detach = false}) {
+    final hadSelection =
+        _selectedSlot != null || _selectedBenchPlayer != null;
+    _selectedSlot = null;
+    _selectedBenchPlayer = null;
+    if (detach) {
+      FormationPitchTapSelection.clear(this);
+    } else {
+      _syncTapSelectionState();
     }
-    _clearSelection();
-    widget.onDroppedOnSlot(entry, target);
+    if (hadSelection && mounted) setState(() {});
+  }
+
+  bool _tapBenchPlayer(MatchCompositionEntry entry) {
+    if (!mounted || !widget.editable || !entry.canBeSelected) return false;
+
+    final target = _selectedSlot;
+    if (target != null) {
+      _clearSelection();
+      widget.onDroppedOnSlot(entry, target);
+      return true;
+    }
+
+    if (_selectedBenchPlayer?.participantId == entry.participantId) {
+      _clearSelection();
+      return true;
+    }
+
+    setState(() {
+      _selectedSlot = null;
+      _selectedBenchPlayer = entry;
+    });
+    _syncTapSelectionState();
     return true;
+  }
+
+  bool _placeSelectedBenchPlayer(FootballFormationSlot slot) {
+    final selectedBenchPlayer = _selectedBenchPlayer;
+    if (selectedBenchPlayer == null) return false;
+    _clearSelection();
+    widget.onDroppedOnSlot(selectedBenchPlayer, slot);
+    return true;
+  }
+
+  void _tapEmptySlot(FootballFormationSlot slot) {
+    if (!widget.editable) return;
+    if (_placeSelectedBenchPlayer(slot)) return;
+    _selectSlot(slot);
   }
 
   void _tapOccupiedSlot(
@@ -209,6 +343,8 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     MatchCompositionEntry entry,
   ) {
     if (!widget.editable) return;
+    if (_placeSelectedBenchPlayer(slot)) return;
+
     final selected = _selectedSlot;
     if (selected == null) {
       _selectSlot(slot);
@@ -218,7 +354,9 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
       _clearSelection();
       return;
     }
-    _placeSelectedPlayer(entry);
+
+    _clearSelection();
+    widget.onDroppedOnSlot(entry, selected);
   }
 
   MatchCompositionEntry? _entryFor(
@@ -342,7 +480,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: widget.editable ? () => _selectSlot(slot) : null,
+                  onTap: widget.editable ? () => _tapEmptySlot(slot) : null,
                   borderRadius: BorderRadius.circular(17),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 140),
