@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/match_goal_action.dart';
@@ -60,19 +61,12 @@ class MatchGoalActionsEditor extends StatelessWidget {
       children: [
         if (editable)
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-            child: Row(
-              children: [
-                const Icon(Icons.drag_indicator_rounded, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Appuie longuement sur un but pour le remonter ou le '
-                    'descendre dans la chronologie.',
-                    style: Theme.of(context).textTheme.bodySmall,
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Text(
+              'Maintiens un but pour changer son ordre.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
                   ),
-                ),
-              ],
             ),
           ),
         ReorderableListView.builder(
@@ -116,14 +110,22 @@ class _GoalActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final incomplete = goal.hasUnknownScorer;
+    final sideColor = goal.isAsGrinta ? AppTheme.primaryBright : AppTheme.error;
+    final borderColor = incomplete
+        ? AppTheme.warning
+        : sideColor.withValues(alpha: .55);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      color: incomplete ? colors.surfaceContainerHighest : null,
+      margin: const EdgeInsets.only(bottom: 8),
+      color: AppTheme.surfaceHigh,
+      shape: AppTheme.cardShape(
+        radius: 14,
+        borderColor: borderColor,
+        borderWidth: incomplete ? 1.5 : 1,
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -134,22 +136,23 @@ class _GoalActionCard extends StatelessWidget {
                   editable: editable,
                   onChanged: (minute) => onChanged(goal.withMinute(minute)),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     goal.isAsGrinta ? 'AS Grinta' : opponentName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
+                      fontSize: 15,
                       fontWeight: FontWeight.w900,
-                      color: goal.isAsGrinta ? colors.primary : colors.error,
+                      color: sideColor,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.sports_soccer_rounded,
-                  size: 20,
-                  color: goal.isAsGrinta ? colors.primary : colors.error,
+                  size: 19,
+                  color: sideColor,
                 ),
               ],
             ),
@@ -328,7 +331,7 @@ class _MinuteFieldState extends State<_MinuteField> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 78,
+      width: 64,
       child: Focus(
         onFocusChange: (value) => _hasFocus = value,
         child: TextField(
@@ -336,15 +339,41 @@ class _MinuteFieldState extends State<_MinuteField> {
           enabled: widget.editable,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(2),
           ],
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             isDense: true,
-            labelText: 'Min.',
+            labelText: 'Min',
             hintText: '?',
-            border: OutlineInputBorder(),
+            filled: true,
+            fillColor: AppTheme.surface,
+            labelStyle: const TextStyle(color: AppTheme.textFaint),
+            hintStyle: const TextStyle(color: AppTheme.textFaint),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppTheme.outline),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: AppTheme.accent,
+                width: 1.5,
+              ),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(
+                color: AppTheme.outline.withValues(alpha: .55),
+              ),
+            ),
           ),
           onChanged: (value) {
             final text = value.trim();
@@ -385,21 +414,64 @@ class _AttributionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, size: 20),
-      title: Text(label, style: Theme.of(context).textTheme.bodySmall),
-      subtitle: Text(
-        value,
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          color: muted ? colors.outline : null,
+    final radius = BorderRadius.circular(10);
+    return Padding(
+      padding: const EdgeInsets.only(top: 5),
+      child: Material(
+        color: enabled
+            ? AppTheme.surface.withValues(alpha: .72)
+            : AppTheme.surface.withValues(alpha: .38),
+        borderRadius: radius,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+            child: Row(
+              children: [
+                Icon(icon, size: 17, color: AppTheme.textSecondary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textFaint,
+                              fontSize: 11,
+                              height: 1.1,
+                            ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ).copyWith(
+                          color: muted ? AppTheme.warning : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (enabled) ...[
+                  const SizedBox(width: 6),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: AppTheme.textSecondary,
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
-      trailing: enabled ? const Icon(Icons.edit_rounded, size: 18) : null,
-      onTap: enabled ? onTap : null,
     );
   }
 }
