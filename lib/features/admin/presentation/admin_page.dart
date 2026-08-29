@@ -60,13 +60,6 @@ class AdminPage extends ConsumerWidget {
                   'Utilisateurs',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Chacun crée son compte via le lien. Tu valides ensuite les '
-                  'nouveaux comptes ci-dessous. L’effectif des joueurs se '
-                  'gère dans « Effectif ».',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
