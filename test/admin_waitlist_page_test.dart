@@ -29,8 +29,16 @@ void main() {
         findsOneWidget,
       );
 
+      final aliceCard = find.ancestor(
+        of: find.text('Alice'),
+        matching: find.byType(Card),
+      );
+      final aliceDragHandle = find.descendant(
+        of: aliceCard,
+        matching: find.byIcon(Icons.drag_indicator),
+      );
       final gesture = await tester.startGesture(
-        tester.getCenter(find.text('Alice')),
+        tester.getCenter(aliceDragHandle),
       );
       await tester.pump(const Duration(milliseconds: 600));
       await gesture.moveTo(tester.getCenter(find.text('Bruno')));
@@ -44,6 +52,27 @@ void main() {
 
       expect(repository.savedOrder, ['bruno', 'alice']);
       expect(find.text('Liste d’attente enregistrée.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'waitlist opens directly on recalculate without the explanatory card',
+    (tester) async {
+      final repository = _FakeSportWaitlistRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sportWaitlistRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(home: AdminWaitlistPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recalculer'), findsOneWidget);
+      expect(find.text('Saison 2026-2027'), findsNothing);
+      expect(find.textContaining('L’application commence'), findsNothing);
+      expect(find.byType(CircleAvatar), findsNothing);
     },
   );
 
@@ -73,10 +102,7 @@ void main() {
               (widget.icon as Icon).icon == Icons.add_circle_outline,
         ),
       );
-      // Invoked directly rather than via tester.tap(): the button sits
-      // inside a nested DragTarget/LongPressDraggable stack whose gesture
-      // arena makes a coordinate-based tap unreliable in this test harness.
-      tester.widget<IconButton>(incrementButtonFinder).onPressed!();
+      await tester.tap(incrementButtonFinder);
       await tester.pumpAndSettle();
 
       expect(repository.lastManualCountSeasonPlayerId, 'bruno');
