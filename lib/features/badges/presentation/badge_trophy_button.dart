@@ -30,7 +30,7 @@ class BadgeTrophyButton extends ConsumerWidget {
           children: [
             const Icon(
               Icons.emoji_events_rounded,
-              size: 24,
+              size: 26,
               color: AppTheme.reward,
             ),
             const ExcludeSemantics(
