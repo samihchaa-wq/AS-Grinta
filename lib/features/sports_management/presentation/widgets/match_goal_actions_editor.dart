@@ -64,7 +64,9 @@ class MatchGoalActionsEditor extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
             child: Text(
               'Maintiens un but pour changer son ordre.',
-              style: Theme.of(context).textTheme.bodySmall
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
                   ?.copyWith(color: AppTheme.textSecondary),
             ),
           ),
@@ -111,9 +113,8 @@ class _GoalActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final incomplete = goal.hasUnknownScorer;
     final sideColor = goal.isAsGrinta ? AppTheme.primaryBright : AppTheme.error;
-    final borderColor = incomplete
-        ? AppTheme.warning
-        : sideColor.withValues(alpha: .55);
+    final borderColor =
+        incomplete ? AppTheme.warning : sideColor.withValues(alpha: .55);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -433,26 +434,24 @@ class _AttributionTile extends StatelessWidget {
                       Text(
                         label,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textFaint,
-                          fontSize: 11,
-                          height: 1.1,
-                        ),
+                              color: AppTheme.textFaint,
+                              fontSize: 11,
+                              height: 1.1,
+                            ),
                       ),
                       const SizedBox(height: 1),
                       Text(
                         value,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(
-                              color: AppTheme.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                            ).copyWith(
-                              color: muted
-                                  ? AppTheme.warning
-                                  : AppTheme.textPrimary,
-                            ),
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ).copyWith(
+                          color:
+                              muted ? AppTheme.warning : AppTheme.textPrimary,
+                        ),
                       ),
                     ],
                   ),
