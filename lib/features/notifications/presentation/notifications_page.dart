@@ -258,7 +258,9 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
   }
 }
 
-final notificationsPausedProvider = FutureProvider.autoDispose<bool>((ref) async {
+final notificationsPausedProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
   final response = await ref
       .read(supabaseClientProvider)
       .rpc('admin_get_notifications_paused');
