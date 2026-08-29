@@ -4,9 +4,31 @@ import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+@visibleForTesting
+bool shouldRefocusMatchesAfterRouteReturn({
+  required String? previousLocationPath,
+  required String currentLocationPath,
+}) {
+  if (previousLocationPath == null ||
+      previousLocationPath == '/matches' ||
+      currentLocationPath != '/matches') {
+    return false;
+  }
+
+  final segments = Uri.parse(previousLocationPath).pathSegments;
+  final returnedFromModernPastMatch =
+      segments.length == 2 && segments.first == 'matches';
+  final returnedFromHistoricalMatch = segments.length == 3 &&
+      segments[0] == 'matches' &&
+      segments[1] == 'history';
+
+  return !returnedFromModernPastMatch && !returnedFromHistoricalMatch;
+}
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({
@@ -33,11 +55,9 @@ class _AppShellState extends ConsumerState<AppShell>
   // les deux lisent l'état actuel du shell.
   int? _previousShellIndex;
 
-  // Une grande partie de l'application (fiche match, administration, profil,
-  // notifications…) vit dans la même branche que le Calendrier. Dans ces cas,
-  // revenir en arrière vers `/matches` ne change pas `currentIndex` : sans
-  // mémoriser aussi le chemin précédent, aucun nouveau focus n'était demandé
-  // et la liste pouvait réapparaître tout en haut de l'historique.
+  // Les écrans de la branche Calendrier partagent le même navigator. On garde
+  // le chemin précédent pour distinguer une vraie arrivée sur `/matches` d'un
+  // simple retour depuis une fiche de match consultée dans la chronologie.
   String? _previousLocationPath;
 
   Uri get _uri => Uri.parse(widget.location);
@@ -121,18 +141,19 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) {
-    // Toute arrivée sur la racine du Calendrier doit déclencher un re-focus
-    // sur l'élément pertinent : changement d'onglet, retour système depuis
-    // une fiche/admin/profil, ou goBranch tiers. Le seul index de branche ne
-    // suffit pas puisque ces écrans partagent la branche 0 avec `/matches`.
+    // Une vraie arrivée sur Calendrier continue à recentrer sur l'élément
+    // pertinent. Seul le simple pop d'une fiche de match issue du calendrier
+    // conserve la position exacte afin de pouvoir parcourir plusieurs anciens
+    // matchs à la suite.
     final currentShellIndex = widget.navigationShell.currentIndex;
     final currentLocationPath = _uri.path;
     final switchedToMatchesBranch = _previousShellIndex != null &&
         _previousShellIndex != 0 &&
         currentShellIndex == 0;
-    final returnedToMatchesRoot = _previousLocationPath != null &&
-        _previousLocationPath != '/matches' &&
-        currentLocationPath == '/matches';
+    final returnedToMatchesRoot = shouldRefocusMatchesAfterRouteReturn(
+      previousLocationPath: _previousLocationPath,
+      currentLocationPath: currentLocationPath,
+    );
 
     if (switchedToMatchesBranch || returnedToMatchesRoot) {
       _scheduleMatchFocus();
