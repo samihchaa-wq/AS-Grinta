@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -539,14 +540,9 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
     final lineup = _lineup;
     if (report == null || lineup == null) return const SizedBox.shrink();
 
-    final squadOk = _squadIssue == null;
-    final factsOk = _factsIssue == null;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (report.isCorrection)
-          _CorrectionNotice(closesAt: report.correctionClosesAt),
         if (!report.isEditable)
           const _ReadOnlyNotice()
         else
@@ -563,17 +559,21 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
         ),
         TabBar(
           controller: _tabs,
-          tabs: [
-            Tab(
-              icon: Icon(squadOk ? Icons.check_circle : Icons.groups_rounded),
-              text: 'Effectif',
-            ),
-            Tab(
-              icon: Icon(
-                factsOk ? Icons.check_circle : Icons.sports_soccer_rounded,
-              ),
-              text: 'Faits du match',
-            ),
+          indicatorColor: AppTheme.accent,
+          labelColor: AppTheme.accent,
+          unselectedLabelColor: AppTheme.textSecondary,
+          dividerColor: AppTheme.outline.withValues(alpha: .45),
+          labelStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+          tabs: const [
+            Tab(height: 42, text: 'Effectif'),
+            Tab(height: 42, text: 'Faits du match'),
           ],
         ),
         Expanded(
@@ -583,7 +583,7 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
               // Les deux onglets gardent leur état : passer de l'un à l'autre
               // ne perd aucune modification.
               SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -614,7 +614,7 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
                 ),
               ),
               SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                 child: MatchGoalActionsEditor(
                   goalActions: _goals,
                   squad: _squad,
@@ -630,25 +630,17 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
         SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _TabStatusLine(squadOk: squadOk, factsOk: factsOk),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: _editable && !_saving ? _submit : null,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: GrintaProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.verified_rounded),
-                  label: const Text('VALIDER LE COMPTE RENDU'),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: FilledButton.icon(
+              onPressed: _editable && !_saving ? _submit : null,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: GrintaProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.verified_rounded),
+              label: const Text('VALIDER LE COMPTE RENDU'),
             ),
           ),
         ),
@@ -685,78 +677,6 @@ class _SquadHint extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _TabStatusLine extends StatelessWidget {
-  const _TabStatusLine({required this.squadOk, required this.factsOk});
-
-  final bool squadOk;
-  final bool factsOk;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    Widget chip(String label, bool ok) => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              ok ? Icons.check_circle : Icons.error_outline,
-              size: 16,
-              color: ok ? colors.primary : colors.error,
-            ),
-            const SizedBox(width: 4),
-            Text(label, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        chip('Effectif', squadOk),
-        const SizedBox(width: 16),
-        chip('Faits du match', factsOk),
-      ],
-    );
-  }
-}
-
-class _CorrectionNotice extends StatelessWidget {
-  const _CorrectionNotice({required this.closesAt});
-
-  final DateTime? closesAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-      child: Row(
-        children: [
-          Icon(Icons.history_rounded, size: 16, color: colors.outline),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              closesAt == null
-                  ? 'Correction d’un match déjà validé.'
-                  : 'Correction d’un match déjà validé · possible jusqu’au '
-                      '${_formatDate(closesAt!)}.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: colors.outline),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime value) {
-    final day = value.day.toString().padLeft(2, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return '$day/$month à ${hour}h$minute';
   }
 }
 
@@ -810,7 +730,7 @@ class _ReportScoreHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         child: Column(
