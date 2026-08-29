@@ -7,4 +7,4 @@ Les cartes du calendrier utilisent un filigrane vectoriel spécifique à chaque 
 - Championnat : coupe + lauriers.
 - Match entre nous : trois joueurs + ballon.
 
-Le dessin est conservé carré et sans déformation. L'effet visuel vient uniquement du placement : légère rotation, grande taille, décalage vers la droite et rognage par la carte. L'opacité reste volontairement faible afin de préserver la lisibilité des contenus et actions.
+Le dessin reste carré et conserve strictement ses proportions. Il n'est jamais étiré ni compressé. L'effet visuel vient uniquement du placement dans la carte : légère rotation, grande taille, décalage vers la droite et rognage par les bords. L'opacité reste volontairement faible afin de préserver la lisibilité des contenus et actions.
