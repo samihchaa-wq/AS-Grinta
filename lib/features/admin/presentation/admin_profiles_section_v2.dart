@@ -207,7 +207,7 @@ class _ProfileCard extends ConsumerWidget {
                 ),
               ),
             if (!policy.isSelf) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               if (policy.isPending)
                 _PendingProfileActions(
                   profile: profile,
@@ -244,65 +244,76 @@ class _ProfileCard extends ConsumerWidget {
                   },
                 )
               else
-                _ValidatedProfileActions(
-                  profile: profile,
-                  archived: policy.isArchived,
-                  onResetPassword: () =>
-                      _resetPassword(context, ref, repository, profile),
-                  onHistory: () async {
-                    final choice = await _pickHistorical(
-                      context,
-                      repository,
-                      profileId: profile.id,
-                    );
-                    if (choice == null) return;
-                    await run(
-                      () => repository.setHistoricalProfile(
-                        profileId: profile.id,
-                        historicalId: choice.historicalId,
-                      ),
-                      success: choice.historicalId == null
-                          ? 'Historique détaché de ${profile.displayName}.'
-                          : 'Historique rattaché à ${profile.displayName}.',
-                    );
-                    ref.invalidate(_adminHistoricalPlayersProvider);
-                  },
-                  onArchiveToggle: () async {
-                    final nextStatus =
-                        policy.isArchived ? 'active' : 'archived';
-                    if (!policy.isArchived) {
-                      final confirmed = await _confirm(
-                        context,
-                        'Archiver ce compte ?',
-                        '${profile.displayName} ne pourra plus se connecter. '
-                            'Ses données seront conservées.',
-                      );
-                      if (!confirmed) return;
-                    }
-                    await run(
-                      () => repository.updateProfileStatus(
-                        profile.id,
-                        nextStatus,
-                      ),
-                      success: policy.isArchived
-                          ? 'Compte réactivé.'
-                          : 'Compte archivé.',
-                    );
-                  },
-                  onDelete: () async {
-                    final confirmed = await _confirm(
-                      context,
-                      'Supprimer ce compte ?',
-                      '${profile.displayName} sera supprimé définitivement. '
-                          'Pour bloquer uniquement la connexion, utilise '
-                          '« Archiver ».',
-                    );
-                    if (!confirmed) return;
-                    await run(
-                      () => repository.deleteAccount(profile.id),
-                      success: 'Compte supprimé.',
-                    );
-                  },
+                ExpansionTile(
+                  key: PageStorageKey<String>(
+                    'validated-actions-${profile.id}',
+                  ),
+                  initiallyExpanded: false,
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  title: const Text('Actions'),
+                  children: [
+                    _ValidatedProfileActions(
+                      profile: profile,
+                      archived: policy.isArchived,
+                      onResetPassword: () =>
+                          _resetPassword(context, ref, repository, profile),
+                      onHistory: () async {
+                        final choice = await _pickHistorical(
+                          context,
+                          repository,
+                          profileId: profile.id,
+                        );
+                        if (choice == null) return;
+                        await run(
+                          () => repository.setHistoricalProfile(
+                            profileId: profile.id,
+                            historicalId: choice.historicalId,
+                          ),
+                          success: choice.historicalId == null
+                              ? 'Historique détaché de ${profile.displayName}.'
+                              : 'Historique rattaché à ${profile.displayName}.',
+                        );
+                        ref.invalidate(_adminHistoricalPlayersProvider);
+                      },
+                      onArchiveToggle: () async {
+                        final nextStatus =
+                            policy.isArchived ? 'active' : 'archived';
+                        if (!policy.isArchived) {
+                          final confirmed = await _confirm(
+                            context,
+                            'Archiver ce compte ?',
+                            '${profile.displayName} ne pourra plus se connecter. '
+                                'Ses données seront conservées.',
+                          );
+                          if (!confirmed) return;
+                        }
+                        await run(
+                          () => repository.updateProfileStatus(
+                            profile.id,
+                            nextStatus,
+                          ),
+                          success: policy.isArchived
+                              ? 'Compte réactivé.'
+                              : 'Compte archivé.',
+                        );
+                      },
+                      onDelete: () async {
+                        final confirmed = await _confirm(
+                          context,
+                          'Supprimer ce compte ?',
+                          '${profile.displayName} sera supprimé définitivement. '
+                              'Pour bloquer uniquement la connexion, utilise '
+                              '« Archiver ».',
+                        );
+                        if (!confirmed) return;
+                        await run(
+                          () => repository.deleteAccount(profile.id),
+                          success: 'Compte supprimé.',
+                        );
+                      },
+                    ),
+                  ],
                 ),
             ],
           ],
