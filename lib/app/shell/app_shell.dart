@@ -19,7 +19,9 @@ class _NoPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) => child;
+  ) {
+    return child;
+  }
 }
 
 const _webPageTransitionsTheme = PageTransitionsTheme(
@@ -187,6 +189,10 @@ class _AppShellState extends ConsumerState<AppShell>
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final baseTheme = Theme.of(context);
+    var pageTransitionsTheme = baseTheme.pageTransitionsTheme;
+    if (kIsWeb) {
+      pageTransitionsTheme = _webPageTransitionsTheme;
+    }
     final moduleTheme = baseTheme.copyWith(
       // Les pages doivent couvrir intégralement la route située dessous.
       // Sinon Safari/iOS révèle l'ancien écran au travers du canvas pendant
@@ -195,9 +201,7 @@ class _AppShellState extends ConsumerState<AppShell>
       // Sur le Web, le navigateur anime déjà son historique lors d'un swipe.
       // Ajouter en plus le fondu Flutter provoque un second mouvement au
       // relâchement. Les transitions internes restent inchangées sur natif.
-      pageTransitionsTheme: kIsWeb
-          ? _webPageTransitionsTheme
-          : baseTheme.pageTransitionsTheme,
+      pageTransitionsTheme: pageTransitionsTheme,
     );
 
     return LayoutBuilder(
