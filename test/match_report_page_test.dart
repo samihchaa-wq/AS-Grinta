@@ -10,13 +10,23 @@ import 'package:flutter_test/flutter_test.dart';
 /// L'écran « Compte rendu » : deux onglets, une seule validation, et un score
 /// qui ne peut jamais s'écarter des buts saisis.
 void main() {
-  testWidgets('les deux onglets et la validation unique sont présents', (
+  testWidgets('les deux onglets texte et la validation unique sont présents', (
     tester,
   ) async {
     await _pump(tester, _repository(_report()));
 
-    expect(find.widgetWithText(Tab, 'Effectif'), findsOneWidget);
-    expect(find.widgetWithText(Tab, 'Faits du match'), findsOneWidget);
+    final effectifTab = find.widgetWithText(Tab, 'Effectif');
+    final factsTab = find.widgetWithText(Tab, 'Faits du match');
+    expect(effectifTab, findsOneWidget);
+    expect(factsTab, findsOneWidget);
+    expect(
+      find.descendant(of: effectifTab, matching: find.byType(Icon)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: factsTab, matching: find.byType(Icon)),
+      findsNothing,
+    );
     expect(find.text('VALIDER LE COMPTE RENDU'), findsOneWidget);
     // Une seule action globale : pas de validation par module.
     expect(find.textContaining('Valider l’effectif'), findsNothing);
@@ -98,14 +108,14 @@ void main() {
     expect(find.byType(CheckboxListTile), findsNWidgets(2));
   });
 
-  testWidgets('un match déjà validé s’annonce comme une correction', (
+  testWidgets('un match déjà validé n’affiche plus de bandeau de correction', (
     tester,
   ) async {
     await _pump(tester, _repository(_report(isCorrection: true)));
 
     expect(
       find.textContaining('Correction d’un match déjà validé'),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
