@@ -159,9 +159,6 @@ class _StubMatchLiveRepository implements MatchLiveRepository {
         MatchLiveAddPlayerOptions.fromRpc(const <String, dynamic>{}),
       );
     }
-    if (invocation.memberName == #deleteExportedTimeline) {
-      return Future<int>.value(0);
-    }
     if (invocation.memberName == #publishRecap) {
       return Future<SportMatchFinalization>.error(
         UnimplementedError('publishRecap'),
