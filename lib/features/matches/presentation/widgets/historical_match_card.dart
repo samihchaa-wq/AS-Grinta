@@ -3,6 +3,7 @@ import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/core/widgets/moment_card_watermark.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +38,83 @@ class HistoricalMatchCard extends StatelessWidget {
           fontWeight: FontWeight.w800,
         );
 
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+      child: MatchDateHeader(
+        kickoffAt: match.date,
+        foreground: AppTheme.textPrimary,
+        secondary: AppTheme.textPrimary,
+        dividerColor: border,
+        showTime: match.hasTime,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            MatchFixture(
+              homeName: homeName,
+              awayName: awayName,
+              grintaIsHome: isHome,
+              homeScore: homeScore,
+              awayScore: awayScore,
+              finished: true,
+              nameStyle: nameStyle,
+              scoreFontSize: 20,
+              textAlign: TextAlign.start,
+            ),
+            if (match.calendarTypeLabel case final label?) ...[
+              const SizedBox(height: 7),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: border,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+            ],
+            if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
+              const SizedBox(height: 7),
+              InkWell(
+                onTap: () => showMatchAddressSheet(context, cleanAddress),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.place_outlined,
+                        size: 16,
+                        color: border,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          cleanAddress,
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 17,
+                        color: border,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
     return Card(
       color: surface,
       shape: RoundedRectangleBorder(
@@ -46,81 +124,10 @@ class HistoricalMatchCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/matches/history/${match.id}', extra: match),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-          child: MatchDateHeader(
-            kickoffAt: match.date,
-            foreground: AppTheme.textPrimary,
-            secondary: AppTheme.textPrimary,
-            dividerColor: border,
-            showTime: match.hasTime,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                MatchFixture(
-                  homeName: homeName,
-                  awayName: awayName,
-                  grintaIsHome: isHome,
-                  homeScore: homeScore,
-                  awayScore: awayScore,
-                  finished: true,
-                  nameStyle: nameStyle,
-                  scoreFontSize: 20,
-                  textAlign: TextAlign.start,
-                ),
-                if (match.calendarTypeLabel case final label?) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: border,
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                ],
-                if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  InkWell(
-                    onTap: () => showMatchAddressSheet(context, cleanAddress),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.place_outlined,
-                            size: 16,
-                            color: border,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              cleanAddress,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelMedium
-                                  ?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 17,
-                            color: border,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+        child: MomentCardWatermark(
+          kind: momentWatermarkKindForMatchType(match.matchType),
+          color: border,
+          child: content,
         ),
       ),
     );
