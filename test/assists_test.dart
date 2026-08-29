@@ -173,6 +173,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text(address), findsOneWidget);
+    expect(find.byIcon(Icons.calendar_today_outlined), findsNothing);
+    expect(find.byIcon(Icons.place_outlined), findsNothing);
+    expect(find.byIcon(Icons.workspace_premium_outlined), findsNothing);
+    expect(find.byIcon(Icons.sports_soccer_rounded), findsNothing);
     expect(find.textContaining('Date ·'), findsNothing);
     expect(find.textContaining('Coup d’envoi ·'), findsNothing);
     expect(find.textContaining('Type ·'), findsNothing);
