@@ -1,0 +1,36 @@
+name: Moment watermark exact formatter
+
+on:
+  push:
+    branches:
+      - agent/moment-card-watermarks
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Format all tracked Dart files exactly like CI
+        run: |
+          mapfile -t files < <(git ls-files '*.dart')
+          dart format "${files[@]}"
+      - name: Show changed files
+        run: git status --short
+      - name: Pack exact formatted cards
+        run: |
+          mkdir -p formatted/lib/features/matches/presentation/widgets
+          cp lib/features/matches/presentation/widgets/calendar_feed_event_card.dart formatted/lib/features/matches/presentation/widgets/
+          cp lib/features/matches/presentation/widgets/historical_match_card.dart formatted/lib/features/matches/presentation/widgets/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: exact-formatted-moment-cards
+          path: formatted
