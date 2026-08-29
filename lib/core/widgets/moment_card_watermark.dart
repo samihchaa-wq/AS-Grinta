@@ -237,8 +237,8 @@ class _MomentWatermarkPainter extends CustomPainter {
     final pentagon = Path();
     for (var i = 0; i < 5; i += 1) {
       final angle = -math.pi / 2 + i * math.pi * 2 / 5;
-      final point = center +
-          Offset(math.cos(angle), math.sin(angle)) * radius * .34;
+      final point =
+          center + Offset(math.cos(angle), math.sin(angle)) * radius * .34;
       if (i == 0) {
         pentagon.moveTo(point.dx, point.dy);
       } else {
@@ -250,10 +250,10 @@ class _MomentWatermarkPainter extends CustomPainter {
 
     for (var i = 0; i < 5; i += 1) {
       final angle = -math.pi / 2 + i * math.pi * 2 / 5;
-      final from = center +
-          Offset(math.cos(angle), math.sin(angle)) * radius * .34;
-      final to = center +
-          Offset(math.cos(angle), math.sin(angle)) * radius * .82;
+      final from =
+          center + Offset(math.cos(angle), math.sin(angle)) * radius * .34;
+      final to =
+          center + Offset(math.cos(angle), math.sin(angle)) * radius * .82;
       canvas.drawLine(from, to, thin);
     }
   }
