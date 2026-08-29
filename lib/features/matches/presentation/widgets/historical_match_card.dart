@@ -32,7 +32,9 @@ class HistoricalMatchCard extends StatelessWidget {
       match.matchType,
       unknownAsFinished: true,
     );
-    final nameStyle = Theme.of(context).textTheme.titleSmall
+    final nameStyle = Theme.of(context)
+        .textTheme
+        .titleSmall
         ?.copyWith(fontSize: 16, height: 1.1, fontWeight: FontWeight.w800);
 
     final content = Padding(
@@ -62,7 +64,9 @@ class HistoricalMatchCard extends StatelessWidget {
               const SizedBox(height: 7),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelMedium
+                style: Theme.of(context)
+                    .textTheme
+                    .labelMedium
                     ?.copyWith(color: border, fontWeight: FontWeight.w900),
               ),
             ],
@@ -81,11 +85,11 @@ class HistoricalMatchCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           cleanAddress,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                       ),
                       const SizedBox(width: 4),
