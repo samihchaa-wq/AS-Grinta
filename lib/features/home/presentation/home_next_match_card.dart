@@ -4,6 +4,7 @@ import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/core/widgets/moment_card_watermark.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
@@ -142,6 +143,12 @@ class HomeNextMatchCard extends StatelessWidget {
       ),
     );
 
+    final decoratedContent = MomentCardWatermark(
+      kind: momentWatermarkKindForMatchType(match.matchType),
+      color: cardBorder,
+      child: content,
+    );
+
     return Card(
       color: cardSurface,
       shape: RoundedRectangleBorder(
@@ -153,7 +160,7 @@ class HomeNextMatchCard extends StatelessWidget {
         onTap: () => context.push(
           '/matches/${match.id}/lineup?section=$initialSection',
         ),
-        child: content,
+        child: decoratedContent,
       ),
     );
   }
