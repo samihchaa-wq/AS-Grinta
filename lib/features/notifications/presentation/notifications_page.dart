@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
-import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -28,15 +27,13 @@ class NotificationsPage extends ConsumerWidget {
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: const [
             _PushActivationCard(),
-            SizedBox(height: 16),
             _MandatoryNotificationsCard(),
-            SizedBox(height: 16),
+            SizedBox(height: 12),
             _OptionalNotificationsCard(),
-            _TestPushButton(),
-            _AdminCustomNotificationCard(),
+            _NotificationActionsRow(),
             _AdminKillSwitchCard(),
           ],
         ),
@@ -62,28 +59,16 @@ class _MandatoryNotificationsCard extends StatelessWidget {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Elles concernent directement l’organisation d’un match et ne '
-              'peuvent pas être désactivées dans AS Grinta.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _line(
               Icons.event_available_outlined,
               'Ouverture des disponibilités',
-              'À J−6 à 12h, quand tu peux indiquer si tu es disponible.',
             ),
-            _line(
-              Icons.event_busy_outlined,
-              'Match annulé',
-              'Si un match est annulé après l’ouverture des disponibilités.',
-            ),
+            _line(Icons.event_busy_outlined, 'Match annulé'),
             _line(
               Icons.update_outlined,
               'Match reporté ou horaire modifié',
-              'Si la date change, ta disponibilité est redemandée. Si seule '
-                  'l’heure change, ta réponse est conservée.',
+              bottomPadding: 0,
             ),
           ],
         ),
@@ -91,25 +76,21 @@ class _MandatoryNotificationsCard extends StatelessWidget {
     );
   }
 
-  Widget _line(IconData icon, String title, String subtitle) {
+  Widget _line(
+    IconData icon,
+    String title, {
+    double bottomPadding = 10,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: bottomPadding),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 22),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 2),
-                Text(subtitle),
-              ],
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -127,79 +108,50 @@ class _OptionalNotificationsCard extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'À toi de choisir',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Tu peux activer ou désactiver chaque notification séparément.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            preferencesAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: GrintaProgressIndicator()),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: preferencesAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: GrintaProgressIndicator()),
+          ),
+          error: (_, __) => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text('Impossible de charger tes préférences.'),
+          ),
+          data: (preferences) => Column(
+            children: [
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Ouverture pronostique'),
+                value: preferences.predictionNotifications,
+                onChanged: (value) => _update(
+                  context,
+                  ref,
+                  preferences.copyWith(predictionNotifications: value),
+                ),
               ),
-              error: (_, __) => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('Impossible de charger tes préférences.'),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Vote Homme du Match'),
+                value: preferences.motmVoteNotifications,
+                onChanged: (value) => _update(
+                  context,
+                  ref,
+                  preferences.copyWith(motmVoteNotifications: value),
+                ),
               ),
-              data: (preferences) => Column(
-                children: [
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    secondary: const Icon(Icons.sports_soccer_outlined),
-                    title: const Text('Pronostics'),
-                    subtitle: const Text(
-                      'Un rappel à J−5 si tu n’as pas pronostiqué.',
-                    ),
-                    value: preferences.predictionNotifications,
-                    onChanged: (value) => _update(
-                      context,
-                      ref,
-                      preferences.copyWith(predictionNotifications: value),
-                    ),
-                  ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    secondary: const Icon(Icons.workspace_premium_outlined),
-                    title: const Text('Vote Homme du match'),
-                    subtitle: const Text(
-                      'Prévenu à l’ouverture du vote et quand le résultat tombe.',
-                    ),
-                    value: preferences.motmVoteNotifications,
-                    onChanged: (value) => _update(
-                      context,
-                      ref,
-                      preferences.copyWith(motmVoteNotifications: value),
-                    ),
-                  ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    secondary: const Icon(Icons.how_to_reg_outlined),
-                    title: const Text('Convocations'),
-                    subtitle: const Text(
-                      'Prévenu si tu passes de la liste d’attente aux convoqués.',
-                    ),
-                    value: preferences.convocationNotifications,
-                    onChanged: (value) => _update(
-                      context,
-                      ref,
-                      preferences.copyWith(convocationNotifications: value),
-                    ),
-                  ),
-                ],
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Passage en convoqué'),
+                value: preferences.convocationNotifications,
+                onChanged: (value) => _update(
+                  context,
+                  ref,
+                  preferences.copyWith(convocationNotifications: value),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -223,6 +175,37 @@ class _OptionalNotificationsCard extends ConsumerWidget {
   }
 }
 
+class _NotificationActionsRow extends ConsumerWidget {
+  const _NotificationActionsRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isAdmin = ref.watch(isAdminViewProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          const Expanded(child: _TestPushButton()),
+          if (isAdmin) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => context.push('/admin/notification'),
+                child: const Text(
+                  'Envoyer un notif.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _TestPushButton extends ConsumerStatefulWidget {
   const _TestPushButton();
 
@@ -235,9 +218,6 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
 
   Future<void> _send() async {
     setState(() => _sending = true);
-    // Le succès n'est plus supposé : la RPC vérifie l'abonnement et le
-    // coupe-circuit `notifications_paused` avant d'envoyer quoi que ce soit,
-    // et dit ce qu'elle a réellement fait.
     var message = 'Test envoyé — regarde tes notifications.';
     try {
       final result =
@@ -265,19 +245,15 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: OutlinedButton.icon(
-        onPressed: _sending ? null : _send,
-        icon: _sending
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: GrintaProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.send_outlined),
-        label: const Text('M’envoyer un test'),
-      ),
+    return OutlinedButton(
+      onPressed: _sending ? null : _send,
+      child: _sending
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: GrintaProgressIndicator(strokeWidth: 2),
+            )
+          : const Text('Test'),
     );
   }
 }
@@ -294,39 +270,6 @@ final notificationsPausedProvider = FutureProvider.autoDispose<bool>((
   );
   return flag['enabled'] == true;
 });
-
-class _AdminCustomNotificationCard extends ConsumerWidget {
-  const _AdminCustomNotificationCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(isAdminViewProvider)) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Card(
-        child: ListTile(
-          leading: const Icon(Icons.campaign_outlined),
-          title: const Row(
-            children: [
-              AdminBadge(),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Envoyer une notification',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-          subtitle: const Text('Écris un message et choisis qui le reçoit.'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/admin/notification'),
-        ),
-      ),
-    );
-  }
-}
 
 class _AdminKillSwitchCard extends ConsumerStatefulWidget {
   const _AdminKillSwitchCard();
@@ -366,40 +309,16 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
     final paused = pausedAsync.valueOrNull ?? false;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 12),
       child: Card(
         color: paused ? const Color(0xFF3A1F22) : null,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AdminBadge(),
-              const SizedBox(height: 8),
-              Text(
-                'Toutes les notifications',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                paused
-                    ? 'Désactivées : aucun joueur ne reçoit rien, y compris le test.'
-                    : 'Coupe temporairement tous les envois sans modifier les '
-                        'préférences des joueurs.',
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Désactiver toutes les notifications'),
-                value: paused,
-                onChanged: (_updating || pausedAsync.isLoading)
-                    ? null
-                    : (value) => _toggle(value),
-              ),
-            ],
-          ),
+        child: SwitchListTile.adaptive(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          title: const Text('Désactiver toutes les notifications'),
+          value: paused,
+          onChanged: (_updating || pausedAsync.isLoading)
+              ? null
+              : (value) => _toggle(value),
         ),
       ),
     );
@@ -439,84 +358,61 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
   Widget build(BuildContext context) {
     final statusAsync = ref.watch(pushStatusProvider);
 
-    return Card(
-      child: statusAsync.when(
-        loading: () => const ListTile(
-          leading: Icon(Icons.notifications_outlined),
-          title: Text('Notifications push'),
-          trailing: SizedBox(
-            width: 20,
-            height: 20,
-            child: GrintaProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-        error: (_, __) => const ListTile(
-          leading: Icon(Icons.notifications_off_outlined),
-          title: Text('Notifications push indisponibles'),
-        ),
-        data: (status) {
-          if (!status.supported) {
-            return const ListTile(
-              leading: Icon(Icons.notifications_off_outlined),
-              title: Text('Notifications push'),
-              subtitle: Text(
-                'Non disponibles dans ce navigateur. Sur iPhone, installe '
-                'd’abord l’application depuis Safari : Partager → '
-                '« Sur l’écran d’accueil ».',
-              ),
-            );
-          }
+    return statusAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const _CompactPushStatus(
+        icon: Icons.notifications_off_outlined,
+        label: 'Notifications push indisponibles',
+      ),
+      data: (status) {
+        if (status.subscribed) return const SizedBox.shrink();
 
-          if (status.subscribed) {
-            return const ListTile(
-              leading: Icon(Icons.notifications_active_outlined),
-              title: Text('Notifications activées'),
-              subtitle: Text(
-                'Les notifications essentielles restent actives. Tu peux '
-                'personnaliser les notifications facultatives ci-dessous.',
-              ),
-              trailing: Icon(Icons.check_circle_outline),
-            );
-          }
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Row(
-                  children: [
-                    Icon(Icons.notifications_outlined),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Notifications désactivées sur cet appareil',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Active-les pour recevoir les informations essentielles '
-                  'liées aux matchs.',
-                ),
-                const SizedBox(height: 14),
-                FilledButton.icon(
-                  onPressed: _enabling ? null : _enable,
-                  icon: _enabling
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: GrintaProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.notifications_active_outlined),
-                  label: const Text('Activer les notifications'),
-                ),
-              ],
-            ),
+        if (!status.supported) {
+          return const _CompactPushStatus(
+            icon: Icons.notifications_off_outlined,
+            label: 'Notifications indisponibles sur cet appareil',
           );
-        },
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('Notifications désactivées'),
+              trailing: _enabling
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: GrintaProgressIndicator(strokeWidth: 2),
+                    )
+                  : TextButton(
+                      onPressed: _enable,
+                      child: const Text('Activer'),
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CompactPushStatus extends StatelessWidget {
+  const _CompactPushStatus({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        child: ListTile(
+          leading: Icon(icon),
+          title: Text(label),
+        ),
       ),
     );
   }
