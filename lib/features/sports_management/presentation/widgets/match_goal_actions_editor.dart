@@ -64,9 +64,8 @@ class MatchGoalActionsEditor extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
             child: Text(
               'Maintiens un but pour changer son ordre.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: AppTheme.textSecondary),
             ),
           ),
         ReorderableListView.builder(
@@ -149,11 +148,7 @@ class _GoalActionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.sports_soccer_rounded,
-                  size: 19,
-                  color: sideColor,
-                ),
+                Icon(Icons.sports_soccer_rounded, size: 19, color: sideColor),
               ],
             ),
             const SizedBox(height: 6),
@@ -308,8 +303,9 @@ class _MinuteField extends StatefulWidget {
 }
 
 class _MinuteFieldState extends State<_MinuteField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.minute?.toString() ?? '');
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.minute?.toString() ?? '',
+  );
 
   @override
   void didUpdateWidget(covariant _MinuteField oldWidget) {
@@ -355,18 +351,17 @@ class _MinuteFieldState extends State<_MinuteField> {
             fillColor: AppTheme.surface,
             labelStyle: const TextStyle(color: AppTheme.textFaint),
             hintStyle: const TextStyle(color: AppTheme.textFaint),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 10,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: const BorderSide(color: AppTheme.outline),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: AppTheme.accent,
-                width: 1.5,
-              ),
+              borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -438,23 +433,26 @@ class _AttributionTile extends StatelessWidget {
                       Text(
                         label,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textFaint,
-                              fontSize: 11,
-                              height: 1.1,
-                            ),
+                          color: AppTheme.textFaint,
+                          fontSize: 11,
+                          height: 1.1,
+                        ),
                       ),
                       const SizedBox(height: 1),
                       Text(
                         value,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ).copyWith(
-                          color: muted ? AppTheme.warning : AppTheme.textPrimary,
-                        ),
+                        style:
+                            const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ).copyWith(
+                              color: muted
+                                  ? AppTheme.warning
+                                  : AppTheme.textPrimary,
+                            ),
                       ),
                     ],
                   ),
