@@ -63,231 +63,257 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Profil')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-        children: [
-          Semantics(
-            container: true,
-            explicitChildNodes: true,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                border: Border.all(
-                  color: AppTheme.outline.withValues(alpha: .56),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 700;
+          final avatarSize = compact ? 68.0 : 76.0;
+          final sectionGap = compact ? 12.0 : 16.0;
+          final fieldGap = compact ? 6.0 : 8.0;
+
+          return ListView(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              compact ? 4 : 8,
+              16,
+              compact ? 10 : 16,
+            ),
+            children: [
+              Semantics(
+                container: true,
+                explicitChildNodes: true,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 12 : 14,
+                    vertical: compact ? 10 : 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    border: Border.all(
+                      color: AppTheme.outline.withValues(alpha: .56),
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.surfaceHigh,
-                          border: Border.all(
-                            color: AppTheme.primaryBright.withValues(
-                              alpha: .36,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppTheme.surfaceHigh,
+                              border: Border.all(
+                                color: AppTheme.primaryBright.withValues(
+                                  alpha: .36,
+                                ),
+                              ),
+                            ),
+                            child: PlayerAvatar(
+                              photoUrl: profile?.photoUrl,
+                              name: profile?.displayName ?? '',
+                              size: avatarSize,
                             ),
                           ),
-                        ),
-                        child: PlayerAvatar(
-                          photoUrl: profile?.photoUrl,
-                          name: profile?.displayName ?? '',
-                          size: 96,
-                        ),
-                      ),
-                      Positioned(
-                        right: -2,
-                        bottom: 0,
-                        child: Tooltip(
-                          message: photoActionLabel,
-                          child: Semantics(
-                            button: true,
-                            enabled: !busy,
-                            label: photoActionLabel,
-                            child: Material(
-                              color: AppTheme.primary,
-                              shape: const CircleBorder(),
-                              child: InkWell(
-                                customBorder: const CircleBorder(),
-                                onTap: busy ? null : _pickAndUploadPhoto,
-                                child: const Padding(
-                                  padding: EdgeInsets.all(9),
-                                  child: Icon(
-                                    Icons.photo_camera_rounded,
-                                    size: 17,
-                                    color: Colors.white,
+                          Positioned(
+                            right: -2,
+                            bottom: -1,
+                            child: Tooltip(
+                              message: photoActionLabel,
+                              child: Semantics(
+                                button: true,
+                                enabled: !busy,
+                                label: photoActionLabel,
+                                child: Material(
+                                  color: AppTheme.primary,
+                                  shape: const CircleBorder(),
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: busy ? null : _pickAndUploadPhoto,
+                                    child: Padding(
+                                      padding: EdgeInsets.all(compact ? 7 : 8),
+                                      child: Icon(
+                                        Icons.photo_camera_rounded,
+                                        size: compact ? 15 : 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: -.25,
+                                  ),
+                            ),
+                            const SizedBox(height: 7),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                if ((profile?.username ?? '').isNotEmpty)
+                                  _ProfileMetaChip(
+                                    icon: Icons.alternate_email_rounded,
+                                    label: profile!.username!,
+                                  ),
+                                _ProfileMetaChip(
+                                  icon: Icons.shield_outlined,
+                                  label: profile == null
+                                      ? 'Rôle inconnu'
+                                      : profile.role.label,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  Text(
-                    displayName,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -.25,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      if ((profile?.username ?? '').isNotEmpty)
-                        _ProfileMetaChip(
-                          icon: Icons.alternate_email_rounded,
-                          label: profile!.username!,
-                        ),
-                      _ProfileMetaChip(
-                        icon: Icons.shield_outlined,
-                        label: profile == null
-                            ? 'Rôle inconnu'
-                            : profile.role.label,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Ta photo apparaît sur les compositions.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppTheme.textFaint),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          const _SectionHeading(
-            icon: Icons.person_outline_rounded,
-            title: 'Informations personnelles',
-          ),
-          const SizedBox(height: 10),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _firstNameController,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
-                      labelText: 'Prénom',
-                      prefixIcon: const Icon(Icons.person_outline_rounded),
-                      errorText: _firstNameError,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _lastNameController,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
-                      labelText: 'Nom',
-                      prefixIcon: const Icon(Icons.badge_outlined),
-                      errorText: _lastNameError,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _surnomController,
-                    textInputAction: TextInputAction.done,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: InputDecoration(
-                      labelText: 'Surnom (optionnel)',
-                      prefixIcon: const Icon(Icons.sports_soccer_rounded),
-                      helperText: 'Il s’affiche à la place du prénom.',
-                      errorText: _surnomError,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: busy ? null : _saveProfile,
-            icon: busy
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: GrintaProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_rounded),
-            label: const Text('Enregistrer les modifications'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: busy ? null : () => _changePassword(context),
-            icon: const Icon(Icons.lock_reset_rounded),
-            label: const Text('Changer le mot de passe'),
-          ),
-          if (_localError != null || authState.error != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color:
-                    Theme.of(context).colorScheme.error.withValues(alpha: .1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                border: Border.all(
-                  color:
-                      Theme.of(context).colorScheme.error.withValues(alpha: .3),
                 ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.error_outline_rounded,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _localError ?? authState.error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+              SizedBox(height: sectionGap),
+              const _SectionHeading(
+                icon: Icons.person_outline_rounded,
+                title: 'Informations personnelles',
+              ),
+              SizedBox(height: compact ? 6 : 8),
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(compact ? 10 : 12),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _firstNameController,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Prénom',
+                          prefixIcon: const Icon(Icons.person_outline_rounded),
+                          errorText: _firstNameError,
+                          isDense: true,
+                        ),
                       ),
+                      SizedBox(height: fieldGap),
+                      TextField(
+                        controller: _lastNameController,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Nom',
+                          prefixIcon: const Icon(Icons.badge_outlined),
+                          errorText: _lastNameError,
+                          isDense: true,
+                        ),
+                      ),
+                      SizedBox(height: fieldGap),
+                      TextField(
+                        controller: _surnomController,
+                        textInputAction: TextInputAction.done,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Surnom (optionnel)',
+                          prefixIcon: const Icon(Icons.sports_soccer_rounded),
+                          errorText: _surnomError,
+                          isDense: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: compact ? 10 : 12),
+              FilledButton.icon(
+                onPressed: busy ? null : _saveProfile,
+                icon: busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: GrintaProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_rounded),
+                label: const Text('Enregistrer les modifications'),
+              ),
+              SizedBox(height: compact ? 6 : 8),
+              OutlinedButton.icon(
+                onPressed: busy ? null : () => _changePassword(context),
+                icon: const Icon(Icons.lock_reset_rounded),
+                label: const Text('Changer le mot de passe'),
+              ),
+              if (_localError != null || authState.error != null) ...[
+                SizedBox(height: compact ? 6 : 8),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .error
+                        .withValues(alpha: .1),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    border: Border.all(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .error
+                          .withValues(alpha: .3),
                     ),
                   ),
-                ],
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _localError ?? authState.error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              SizedBox(height: compact ? 8 : 10),
+              const Divider(height: 1),
+              SizedBox(height: compact ? 6 : 8),
+              OutlinedButton.icon(
+                onPressed: busy ? null : () => _signOut(context),
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Se déconnecter'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .error
+                        .withValues(alpha: .5),
+                  ),
+                ),
               ),
-            ),
-          ],
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: busy ? null : () => _signOut(context),
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Se déconnecter'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-              side: BorderSide(
-                color:
-                    Theme.of(context).colorScheme.error.withValues(alpha: .5),
-              ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -498,7 +524,7 @@ class _ProfileMetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: AppTheme.surfaceHigh,
         borderRadius: BorderRadius.circular(999),
@@ -507,8 +533,8 @@ class _ProfileMetaChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: AppTheme.textFaint),
-          const SizedBox(width: 6),
+          Icon(icon, size: 14, color: AppTheme.textFaint),
+          const SizedBox(width: 5),
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
