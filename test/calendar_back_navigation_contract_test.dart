@@ -15,8 +15,10 @@ void main() {
     expect(source, isNot(contains('returnedToMatchesRoot')));
 
     // Une vraie bascule vers la branche Calendrier continue en revanche de
-    // demander le recentrage attendu.
+    // demander le recentrage attendu, tout comme la sélection explicite de
+    // l'onglet qui passe toujours par _openMatches().
     expect(source, contains('if (switchedToMatchesBranch)'));
+    expect(source, contains('void _openMatches()'));
     expect(source, contains('_scheduleMatchFocus();'));
   });
 }
