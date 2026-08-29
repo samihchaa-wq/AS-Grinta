@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/core/widgets/moment_card_watermark.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -66,8 +67,6 @@ class MatchHistoryCard extends ConsumerWidget {
                       homeScore: homeScore,
                       awayScore: awayScore,
                       finished: match.isFinished,
-                      // Les scores conservent le code résultat du composant :
-                      // vert victoire, orange nul, rouge défaite.
                       nameStyle:
                           Theme.of(context).textTheme.titleSmall?.copyWith(
                                 fontSize: 16,
@@ -123,6 +122,14 @@ class MatchHistoryCard extends ConsumerWidget {
       ),
     );
 
+    final decoratedContent = match.isCancelled
+        ? content
+        : MomentCardWatermark(
+            kind: momentWatermarkKindForMatchType(match.matchType),
+            color: border,
+            child: content,
+          );
+
     return Card(
       color: surface,
       shape: RoundedRectangleBorder(
@@ -130,13 +137,11 @@ class MatchHistoryCard extends ConsumerWidget {
         side: BorderSide(color: border, width: 1.3),
       ),
       clipBehavior: Clip.antiAlias,
-      // Une fois terminé, un « Match entre nous » devient une archive purement
-      // informative : pas de navigation ni d'indication visuelle cliquable.
       child: isFinishedInternal
-          ? content
+          ? decoratedContent
           : InkWell(
               onTap: () => context.push('/matches/${match.id}'),
-              child: content,
+              child: decoratedContent,
             ),
     );
   }
