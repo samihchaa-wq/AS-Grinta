@@ -1,0 +1,74 @@
+name: Temporary iOS WebKit swipe fix
+
+on:
+  push:
+    branches: [fix/ios-webkit-no-transition-pages-v2]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/ios-webkit-no-transition-pages-v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Patch match route pages for iOS WebKit history swipe
+        shell: python
+        run: |
+          from pathlib import Path
+
+          router = Path('lib/app/router/app_router.dart')
+          text = router.read_text()
+
+          old_import = "import 'package:flutter/foundation.dart';\nimport 'package:flutter_riverpod/flutter_riverpod.dart';"
+          new_import = "import 'package:flutter/foundation.dart';\nimport 'package:flutter/material.dart';\nimport 'package:flutter_riverpod/flutter_riverpod.dart';"
+          if old_import not in text:
+              raise SystemExit('Expected Flutter imports not found')
+          text = text.replace(old_import, new_import, 1)
+
+          marker = "final appRouterProvider = Provider<GoRouter>((ref) {"
+          helper = '''@visibleForTesting\nbool shouldUseNoTransitionPageForWebKitHistory({\n  required bool isWeb,\n  required TargetPlatform platform,\n}) {\n  return isWeb &&\n      (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS);\n}\n\nPage<void> _browserSafeMatchPage({\n  required GoRouterState state,\n  required Widget child,\n}) {\n  // Flutter issue #114324: iOS WebKit can briefly redraw the route that is\n  // being left after the native browser history swipe has already revealed\n  // the destination. A real NoTransitionPage avoids that extra PageRoute.\n  if (shouldUseNoTransitionPageForWebKitHistory(\n    isWeb: kIsWeb,\n    platform: defaultTargetPlatform,\n  )) {\n    return NoTransitionPage<void>(key: state.pageKey, child: child);\n  }\n  return MaterialPage<void>(key: state.pageKey, child: child);\n}\n\n'''
+          if marker not in text:
+              raise SystemExit('Router provider marker not found')
+          text = text.replace(marker, helper + marker, 1)
+
+          old_modern = '''              GoRoute(\n                path: '/matches/:matchId',\n                builder: (context, state) => MatchDetailsPage(\n                  matchId: state.pathParameters['matchId'] ?? '',\n                ),\n              ),'''
+          new_modern = '''              GoRoute(\n                path: '/matches/:matchId',\n                pageBuilder: (context, state) => _browserSafeMatchPage(\n                  state: state,\n                  child: MatchDetailsPage(\n                    matchId: state.pathParameters['matchId'] ?? '',\n                  ),\n                ),\n              ),'''
+          if old_modern not in text:
+              raise SystemExit('Modern match route block not found')
+          text = text.replace(old_modern, new_modern, 1)
+
+          old_history = '''              GoRoute(\n                path: '/matches/history/:matchId',\n                builder: (context, state) => HistoricalMatchDetailPage(\n                  matchId: state.pathParameters['matchId'] ?? '',\n                  initialMatch: state.extra is HistoricalMatchResult\n                      ? state.extra as HistoricalMatchResult\n                      : null,\n                ),\n              ),'''
+          new_history = '''              GoRoute(\n                path: '/matches/history/:matchId',\n                pageBuilder: (context, state) => _browserSafeMatchPage(\n                  state: state,\n                  child: HistoricalMatchDetailPage(\n                    matchId: state.pathParameters['matchId'] ?? '',\n                    initialMatch: state.extra is HistoricalMatchResult\n                        ? state.extra as HistoricalMatchResult\n                        : null,\n                  ),\n                ),\n              ),'''
+          if old_history not in text:
+              raise SystemExit('Historical match route block not found')
+          text = text.replace(old_history, new_history, 1)
+
+          router.write_text(text)
+
+          test = Path('test/webkit_history_swipe_page_policy_test.dart')
+          test.write_text('''import 'package:as_grinta/app/router/app_router.dart';\nimport 'package:flutter/material.dart';\nimport 'package:flutter_test/flutter_test.dart';\n\nvoid main() {\n  group('WebKit browser history page policy', () {\n    test('uses NoTransitionPage policy for iOS web', () {\n      expect(\n        shouldUseNoTransitionPageForWebKitHistory(\n          isWeb: true,\n          platform: TargetPlatform.iOS,\n        ),\n        isTrue,\n      );\n    });\n\n    test('uses the same policy for macOS web', () {\n      expect(\n        shouldUseNoTransitionPageForWebKitHistory(\n          isWeb: true,\n          platform: TargetPlatform.macOS,\n        ),\n        isTrue,\n      );\n    });\n\n    test('keeps normal transitions on Android web and native iOS', () {\n      expect(\n        shouldUseNoTransitionPageForWebKitHistory(\n          isWeb: true,\n          platform: TargetPlatform.android,\n        ),\n        isFalse,\n      );\n      expect(\n        shouldUseNoTransitionPageForWebKitHistory(\n          isWeb: false,\n          platform: TargetPlatform.iOS,\n        ),\n        isFalse,\n      );\n    });\n  });\n}\n''')
+      - name: Format
+        run: dart format lib/app/router/app_router.dart test/webkit_history_swipe_page_policy_test.dart
+      - name: Analyze
+        run: flutter analyze --fatal-warnings --fatal-infos
+      - name: Tests
+        run: flutter test
+      - name: Build web
+        run: flutter build web --release --base-href /AS-Grinta/
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/app/router/app_router.dart test/webkit_history_swipe_page_policy_test.dart
+          git commit -m 'Contourner le flash de swipe WebKit iOS'
+          git push origin HEAD:fix/ios-webkit-no-transition-pages-v2
