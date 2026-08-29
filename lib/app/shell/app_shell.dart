@@ -33,13 +33,6 @@ class _AppShellState extends ConsumerState<AppShell>
   // les deux lisent l'état actuel du shell.
   int? _previousShellIndex;
 
-  // Une grande partie de l'application (fiche match, administration, profil,
-  // notifications…) vit dans la même branche que le Calendrier. Dans ces cas,
-  // revenir en arrière vers `/matches` ne change pas `currentIndex` : sans
-  // mémoriser aussi le chemin précédent, aucun nouveau focus n'était demandé
-  // et la liste pouvait réapparaître tout en haut de l'historique.
-  String? _previousLocationPath;
-
   Uri get _uri => Uri.parse(widget.location);
   int get _selectedIndex => widget.navigationShell.currentIndex;
 
@@ -121,24 +114,19 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) {
-    // Toute arrivée sur la racine du Calendrier doit déclencher un re-focus
-    // sur l'élément pertinent : changement d'onglet, retour système depuis
-    // une fiche/admin/profil, ou goBranch tiers. Le seul index de branche ne
-    // suffit pas puisque ces écrans partagent la branche 0 avec `/matches`.
+    // Un changement explicite de branche vers Calendrier recentre la liste sur
+    // l'élément pertinent. En revanche, un simple pop depuis une fiche match
+    // reste dans la branche 0 : il doit conserver exactement la position de
+    // défilement (ou le mois) que l'utilisateur consultait.
     final currentShellIndex = widget.navigationShell.currentIndex;
-    final currentLocationPath = _uri.path;
     final switchedToMatchesBranch = _previousShellIndex != null &&
         _previousShellIndex != 0 &&
         currentShellIndex == 0;
-    final returnedToMatchesRoot = _previousLocationPath != null &&
-        _previousLocationPath != '/matches' &&
-        currentLocationPath == '/matches';
 
-    if (switchedToMatchesBranch || returnedToMatchesRoot) {
+    if (switchedToMatchesBranch) {
       _scheduleMatchFocus();
     }
     _previousShellIndex = currentShellIndex;
-    _previousLocationPath = currentLocationPath;
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final moduleTheme = Theme.of(
@@ -237,7 +225,7 @@ class _DesktopNavigation extends StatelessWidget {
       minExtendedWidth: 200,
       groupAlignment: -.7,
       labelType:
-          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+          extended ? NavigationRailLabelType.none : NavigationRailLabelBehavior.all,
       onDestinationSelected: onSelected,
       leading: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 22),
