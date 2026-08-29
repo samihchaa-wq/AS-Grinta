@@ -82,7 +82,6 @@ class MatchDetailHeaderCard extends StatelessWidget {
     final postMatchRows = <Widget>[
       if (motmNames.isNotEmpty)
         _MetadataLine(
-          icon: Icons.workspace_premium_outlined,
           text: 'HDM · ${motmNames.join(' · ')}',
         )
       else if (cleanMotmAction != null &&
@@ -94,7 +93,6 @@ class MatchDetailHeaderCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: _MetadataLine(
-              icon: Icons.how_to_vote_outlined,
               text: cleanMotmAction,
               color: AppTheme.accent,
               trailing: const Icon(
@@ -107,7 +105,6 @@ class MatchDetailHeaderCard extends StatelessWidget {
         ),
       if (scorers.isNotEmpty)
         _MetadataLine(
-          icon: Icons.sports_soccer_rounded,
           text: 'Buteurs · ${scorers.join(' · ')}',
         ),
       if (assists.isNotEmpty)
@@ -143,7 +140,6 @@ class MatchDetailHeaderCard extends StatelessWidget {
             if (summaryParts.isNotEmpty) ...[
               const SizedBox(height: 14),
               _MetadataLine(
-                icon: Icons.calendar_today_outlined,
                 text: summaryParts.join(' · '),
               ),
             ],
@@ -155,7 +151,6 @@ class MatchDetailHeaderCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: _MetadataLine(
-                    icon: Icons.place_outlined,
                     text: cleanAddress,
                     trailing: const Icon(
                       Icons.chevron_right_rounded,
@@ -184,14 +179,14 @@ class MatchDetailHeaderCard extends StatelessWidget {
 
 class _MetadataLine extends StatelessWidget {
   const _MetadataLine({
-    required this.icon,
     required this.text,
+    this.icon,
     this.color,
     this.trailing,
   });
 
-  final IconData icon;
   final String text;
+  final IconData? icon;
   final Color? color;
   final Widget? trailing;
 
@@ -202,8 +197,10 @@ class _MetadataLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: foregroundColor),
-        const SizedBox(width: 9),
+        if (icon != null) ...[
+          Icon(icon, size: 18, color: foregroundColor),
+          const SizedBox(width: 9),
+        ],
         Expanded(
           child: Text(
             text,
