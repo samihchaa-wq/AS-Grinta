@@ -4,9 +4,34 @@ import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+class _NoPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
+}
+
+const _webPageTransitionsTheme = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: _NoPageTransitionsBuilder(),
+    TargetPlatform.iOS: _NoPageTransitionsBuilder(),
+    TargetPlatform.macOS: _NoPageTransitionsBuilder(),
+    TargetPlatform.windows: _NoPageTransitionsBuilder(),
+    TargetPlatform.linux: _NoPageTransitionsBuilder(),
+    TargetPlatform.fuchsia: _NoPageTransitionsBuilder(),
+  },
+);
 
 @visibleForTesting
 bool shouldRefocusMatchesAfterRouteReturn({
@@ -161,9 +186,18 @@ class _AppShellState extends ConsumerState<AppShell>
     _previousLocationPath = currentLocationPath;
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
-    final moduleTheme = Theme.of(
-      context,
-    ).copyWith(scaffoldBackgroundColor: Colors.transparent);
+    final baseTheme = Theme.of(context);
+    final moduleTheme = baseTheme.copyWith(
+      // Les pages doivent couvrir intégralement la route située dessous.
+      // Sinon Safari/iOS révèle l'ancien écran au travers du canvas pendant
+      // le geste natif Retour/Suivant et produit un effet de double écran.
+      scaffoldBackgroundColor: AppTheme.background,
+      // Sur le Web, le navigateur anime déjà son historique lors d'un swipe.
+      // Ajouter en plus le fondu Flutter provoque un second mouvement au
+      // relâchement. Les transitions internes restent inchangées sur natif.
+      pageTransitionsTheme:
+          kIsWeb ? _webPageTransitionsTheme : baseTheme.pageTransitionsTheme,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -172,7 +206,7 @@ class _AppShellState extends ConsumerState<AppShell>
         final content = Theme(data: moduleTheme, child: widget.navigationShell);
 
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppTheme.background,
           body: SafeArea(
             bottom: !useRail,
             child: Column(
