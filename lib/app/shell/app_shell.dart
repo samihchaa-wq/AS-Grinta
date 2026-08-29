@@ -225,7 +225,7 @@ class _DesktopNavigation extends StatelessWidget {
       minExtendedWidth: 200,
       groupAlignment: -.7,
       labelType:
-          extended ? NavigationRailLabelType.none : NavigationRailLabelBehavior.all,
+          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
       onDestinationSelected: onSelected,
       leading: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 22),
