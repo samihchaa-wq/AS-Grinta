@@ -32,11 +32,8 @@ class HistoricalMatchCard extends StatelessWidget {
       match.matchType,
       unknownAsFinished: true,
     );
-    final nameStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontSize: 16,
-          height: 1.1,
-          fontWeight: FontWeight.w800,
-        );
+    final nameStyle = Theme.of(context).textTheme.titleSmall
+        ?.copyWith(fontSize: 16, height: 1.1, fontWeight: FontWeight.w800);
 
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
@@ -65,10 +62,8 @@ class HistoricalMatchCard extends StatelessWidget {
               const SizedBox(height: 7),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: border,
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context).textTheme.labelMedium
+                    ?.copyWith(color: border, fontWeight: FontWeight.w900),
               ),
             ],
             if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
@@ -81,18 +76,12 @@ class HistoricalMatchCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.place_outlined,
-                        size: 16,
-                        color: border,
-                      ),
+                      Icon(Icons.place_outlined, size: 16, color: border),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           cleanAddress,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelMedium
+                          style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w700,
