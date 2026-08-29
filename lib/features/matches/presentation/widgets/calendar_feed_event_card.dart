@@ -53,11 +53,11 @@ class CalendarFeedEventCard extends ConsumerWidget {
                     event.title,
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontSize: 16,
-                          height: 1.1,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.textPrimary,
-                        ),
+                      fontSize: 16,
+                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -75,9 +75,7 @@ class CalendarFeedEventCard extends ConsumerWidget {
                           textAlign: TextAlign.start,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelMedium
+                          style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w700,
@@ -90,9 +88,9 @@ class CalendarFeedEventCard extends ConsumerWidget {
                   Text(
                     'Événement',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: CalendarCardPalette.eventBorder,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      color: CalendarCardPalette.eventBorder,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
