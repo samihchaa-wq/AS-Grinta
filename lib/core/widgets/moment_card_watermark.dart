@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 
 enum MomentWatermarkKind { event, friendly, championship, internal }
 
-/// Filigrane vectoriel des cartes du calendrier.
+/// Filigrane vectoriel dessiné directement dans Flutter.
 ///
-/// Le dessin reste carré et conserve donc toujours ses proportions. Seule son
-/// intégration dans la carte est légèrement inclinée puis rognée par le
-/// `clipBehavior` de la Card.
+/// Le pictogramme reste carré et conserve toujours ses proportions : seule
+/// l'intégration est légèrement inclinée, agrandie puis rognée par la carte.
 class MomentCardWatermark extends StatelessWidget {
   const MomentCardWatermark({
     super.key,
@@ -91,31 +90,35 @@ class _MomentWatermarkPainter extends CustomPainter {
     canvas.drawCircle(center, 105, stroke);
     canvas.drawCircle(center, 98, thin);
 
-    switch (kind) {
-      case MomentWatermarkKind.event:
-        _drawEvent(canvas, stroke, thin);
-      case MomentWatermarkKind.friendly:
-        _drawFriendly(canvas, stroke, thin);
-      case MomentWatermarkKind.championship:
-        _drawChampionship(canvas, stroke, thin);
-      case MomentWatermarkKind.internal:
-        _drawInternal(canvas, stroke, thin);
+    if (kind == MomentWatermarkKind.event) {
+      _drawEvent(canvas, stroke, thin);
+    } else if (kind == MomentWatermarkKind.friendly) {
+      _drawFriendly(canvas, stroke, thin);
+    } else if (kind == MomentWatermarkKind.championship) {
+      _drawChampionship(canvas, stroke, thin);
+    } else {
+      _drawInternal(canvas, stroke, thin);
     }
   }
 
   void _drawEvent(Canvas canvas, Paint stroke, Paint thin) {
-    final calendar = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(63, 62, 105, 92),
-      const Radius.circular(8),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(63, 62, 105, 92),
+        const Radius.circular(8),
+      ),
+      stroke,
     );
-    canvas.drawRRect(calendar, stroke);
     canvas.drawLine(const Offset(63, 86), const Offset(168, 86), stroke);
     canvas.drawLine(const Offset(84, 54), const Offset(84, 73), stroke);
     canvas.drawLine(const Offset(145, 54), const Offset(145, 73), stroke);
 
     for (final y in <double>[105, 125]) {
       for (final x in <double>[82, 104, 126, 148]) {
-        canvas.drawRect(Rect.fromCenter(center: Offset(x, y), width: 7, height: 7), thin);
+        canvas.drawRect(
+          Rect.fromCenter(center: Offset(x, y), width: 7, height: 7),
+          thin,
+        );
       }
     }
 
@@ -125,9 +128,6 @@ class _MomentWatermarkPainter extends CustomPainter {
   }
 
   void _drawFriendly(Canvas canvas, Paint stroke, Paint thin) {
-    // Deux avant-bras qui convergent vers une poignée centrale, dans l'esprit
-    // du logo de référence mais avec moins de micro-détails pour rester lisible
-    // comme filigrane à faible opacité.
     final leftArm = Path()
       ..moveTo(48, 139)
       ..lineTo(83, 110)
@@ -159,12 +159,6 @@ class _MomentWatermarkPainter extends CustomPainter {
     canvas.drawLine(const Offset(99, 112), const Offset(127, 132), thin);
 
     _drawBall(canvas, const Offset(120, 169), 27, stroke, thin);
-
-    for (final a in <double>[-2.45, -2.05, -1.1, -.7]) {
-      final from = Offset(120 + math.cos(a) * 61, 104 + math.sin(a) * 61);
-      final to = Offset(120 + math.cos(a) * 73, 104 + math.sin(a) * 73);
-      canvas.drawLine(from, to, thin);
-    }
   }
 
   void _drawChampionship(Canvas canvas, Paint stroke, Paint thin) {
@@ -190,7 +184,6 @@ class _MomentWatermarkPainter extends CustomPainter {
     canvas.drawPath(rightHandle, stroke);
 
     _drawStar(canvas, const Offset(120, 101), 19, 8, thin);
-
     canvas.drawLine(const Offset(120, 146), const Offset(120, 166), stroke);
     canvas.drawLine(const Offset(105, 166), const Offset(135, 166), stroke);
     canvas.drawRRect(
@@ -206,12 +199,11 @@ class _MomentWatermarkPainter extends CustomPainter {
   }
 
   void _drawInternal(Canvas canvas, Paint stroke, Paint thin) {
-    const heads = <Offset>[
+    for (final head in const <Offset>[
       Offset(78, 86),
       Offset(120, 76),
       Offset(162, 86),
-    ];
-    for (final head in heads) {
+    ]) {
       canvas.drawCircle(head, 15, stroke);
     }
 
@@ -226,7 +218,6 @@ class _MomentWatermarkPainter extends CustomPainter {
       ..cubicTo(138, 111, 145, 104, 156, 103)
       ..cubicTo(170, 102, 181, 108, 186, 127);
     canvas.drawPath(shoulders, stroke);
-
     canvas.drawLine(const Offset(88, 109), const Offset(105, 101), thin);
     canvas.drawLine(const Offset(135, 101), const Offset(152, 109), thin);
     canvas.drawLine(const Offset(61, 128), const Offset(61, 160), stroke);
@@ -246,7 +237,8 @@ class _MomentWatermarkPainter extends CustomPainter {
     final pentagon = Path();
     for (var i = 0; i < 5; i += 1) {
       final angle = -math.pi / 2 + i * math.pi * 2 / 5;
-      final point = center + Offset(math.cos(angle), math.sin(angle)) * radius * .34;
+      final point = center +
+          Offset(math.cos(angle), math.sin(angle)) * radius * .34;
       if (i == 0) {
         pentagon.moveTo(point.dx, point.dy);
       } else {
@@ -258,8 +250,10 @@ class _MomentWatermarkPainter extends CustomPainter {
 
     for (var i = 0; i < 5; i += 1) {
       final angle = -math.pi / 2 + i * math.pi * 2 / 5;
-      final from = center + Offset(math.cos(angle), math.sin(angle)) * radius * .34;
-      final to = center + Offset(math.cos(angle), math.sin(angle)) * radius * .82;
+      final from = center +
+          Offset(math.cos(angle), math.sin(angle)) * radius * .34;
+      final to = center +
+          Offset(math.cos(angle), math.sin(angle)) * radius * .82;
       canvas.drawLine(from, to, thin);
     }
   }
@@ -280,7 +274,12 @@ class _MomentWatermarkPainter extends CustomPainter {
       final x = origin.dx + direction * (5 + i * 3);
       final leaf = Path()
         ..moveTo(x, y)
-        ..quadraticBezierTo(x + direction * 15, y - 8, x + direction * 14, y - 17)
+        ..quadraticBezierTo(
+          x + direction * 15,
+          y - 8,
+          x + direction * 14,
+          y - 17,
+        )
         ..quadraticBezierTo(x + direction * 4, y - 14, x, y)
         ..close();
       canvas.drawPath(leaf, paint);
