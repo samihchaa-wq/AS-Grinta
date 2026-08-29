@@ -4,36 +4,9 @@ import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-class _NoPageTransitionsBuilder extends PageTransitionsBuilder {
-  const _NoPageTransitionsBuilder();
-
-  @override
-  Widget buildTransitions<T>(
-    PageRoute<T> route,
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    return child;
-  }
-}
-
-const _webPageTransitionsTheme = PageTransitionsTheme(
-  builders: {
-    TargetPlatform.android: _NoPageTransitionsBuilder(),
-    TargetPlatform.iOS: _NoPageTransitionsBuilder(),
-    TargetPlatform.macOS: _NoPageTransitionsBuilder(),
-    TargetPlatform.windows: _NoPageTransitionsBuilder(),
-    TargetPlatform.linux: _NoPageTransitionsBuilder(),
-    TargetPlatform.fuchsia: _NoPageTransitionsBuilder(),
-  },
-);
 
 @visibleForTesting
 bool shouldRefocusMatchesAfterRouteReturn({
@@ -188,20 +161,10 @@ class _AppShellState extends ConsumerState<AppShell>
     _previousLocationPath = currentLocationPath;
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
-    final baseTheme = Theme.of(context);
-    var pageTransitionsTheme = baseTheme.pageTransitionsTheme;
-    if (kIsWeb) {
-      pageTransitionsTheme = _webPageTransitionsTheme;
-    }
-    final moduleTheme = baseTheme.copyWith(
-      // Les pages doivent couvrir intégralement la route située dessous.
-      // Sinon Safari/iOS révèle l'ancien écran au travers du canvas pendant
-      // le geste natif Retour/Suivant et produit un effet de double écran.
+    final moduleTheme = Theme.of(context).copyWith(
+      // Chaque route reste opaque afin que la page précédente ne traverse pas
+      // le canvas pendant un geste Retour/Suivant du navigateur.
       scaffoldBackgroundColor: AppTheme.background,
-      // Sur le Web, le navigateur anime déjà son historique lors d'un swipe.
-      // Ajouter en plus le fondu Flutter provoque un second mouvement au
-      // relâchement. Les transitions internes restent inchangées sur natif.
-      pageTransitionsTheme: pageTransitionsTheme,
     );
 
     return LayoutBuilder(
