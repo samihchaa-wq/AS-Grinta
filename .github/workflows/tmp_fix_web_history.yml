@@ -1,0 +1,67 @@
+name: Temporary web history fix
+
+on:
+  push:
+    branches: [fix/web-history-popstate-flash]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/web-history-popstate-flash
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply targeted source changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          pubspec = Path('pubspec.yaml')
+          text = pubspec.read_text()
+          old = '  go_router: ^14.8.1\n'
+          new = '  go_router: ^16.2.4\n'
+          if old not in text:
+              raise SystemExit('Expected go_router constraint not found')
+          pubspec.write_text(text.replace(old, new, 1))
+
+          shell = Path('lib/app/shell/app_shell.dart')
+          text = shell.read_text()
+          text = text.replace("import 'package:flutter/foundation.dart';\n", '', 1)
+
+          start = text.find('class _NoPageTransitionsBuilder extends PageTransitionsBuilder {')
+          marker = '@visibleForTesting\nbool shouldRefocusMatchesAfterRouteReturn'
+          end = text.find(marker)
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('Expected temporary transition override not found')
+          text = text[:start] + text[end:]
+
+          old_theme = '''    final baseTheme = Theme.of(context);\n    var pageTransitionsTheme = baseTheme.pageTransitionsTheme;\n    if (kIsWeb) {\n      pageTransitionsTheme = _webPageTransitionsTheme;\n    }\n    final moduleTheme = baseTheme.copyWith(\n      // Les pages doivent couvrir intégralement la route située dessous.\n      // Sinon Safari/iOS révèle l'ancien écran au travers du canvas pendant\n      // le geste natif Retour/Suivant et produit un effet de double écran.\n      scaffoldBackgroundColor: AppTheme.background,\n      // Sur le Web, le navigateur anime déjà son historique lors d'un swipe.\n      // Ajouter en plus le fondu Flutter provoque un second mouvement au\n      // relâchement. Les transitions internes restent inchangées sur natif.\n      pageTransitionsTheme: pageTransitionsTheme,\n    );\n'''
+          new_theme = '''    final moduleTheme = Theme.of(context).copyWith(\n      // Chaque route reste opaque afin que la page précédente ne traverse pas\n      // le canvas pendant un geste Retour/Suivant du navigateur.\n      scaffoldBackgroundColor: AppTheme.background,\n    );\n'''
+          if old_theme not in text:
+              raise SystemExit('Expected web transition theme block not found')
+          shell.write_text(text.replace(old_theme, new_theme, 1))
+      - name: Refresh locked dependencies
+        run: flutter pub get
+      - name: Format
+        run: dart format lib/app/shell/app_shell.dart
+      - name: Analyze
+        run: flutter analyze --fatal-warnings --fatal-infos
+      - name: Tests
+        run: flutter test
+      - name: Commit generated lock and source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add pubspec.yaml pubspec.lock lib/app/shell/app_shell.dart
+          git commit -m 'Corriger la synchronisation Retour/Suivant Web'
+          git push origin HEAD:fix/web-history-popstate-flash
