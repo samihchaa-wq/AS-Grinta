@@ -1,24 +1,60 @@
-import 'dart:io';
-
+import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('a simple back from a match does not request a calendar refocus', () {
-    final source = File(
-      'lib/app/shell/app_shell.dart',
-    ).readAsStringSync();
+  group('shouldRefocusMatchesAfterRouteReturn', () {
+    test('preserves position after a modern past-match detail', () {
+      expect(
+        shouldRefocusMatchesAfterRouteReturn(
+          previousLocationPath: '/matches/match-123',
+          currentLocationPath: '/matches',
+        ),
+        isFalse,
+      );
+    });
 
-    // Revenir d'une fiche match vers /matches reste dans la branche Calendrier.
-    // Le shell ne doit donc plus déduire un re-focus du seul changement d'URL :
-    // sinon Défilé saute à « Précédent élément » et Par mois au mois courant.
-    expect(source, isNot(contains('_previousLocationPath')));
-    expect(source, isNot(contains('returnedToMatchesRoot')));
+    test('preserves position after an imported historical match detail', () {
+      expect(
+        shouldRefocusMatchesAfterRouteReturn(
+          previousLocationPath: '/matches/history/history-123',
+          currentLocationPath: '/matches',
+        ),
+        isFalse,
+      );
+    });
 
-    // Une vraie bascule vers la branche Calendrier continue en revanche de
-    // demander le recentrage attendu, tout comme la sélection explicite de
-    // l'onglet qui passe toujours par _openMatches().
-    expect(source, contains('if (switchedToMatchesBranch)'));
-    expect(source, contains('void _openMatches()'));
-    expect(source, contains('_scheduleMatchFocus();'));
+    test('keeps refocus for other same-branch returns', () {
+      expect(
+        shouldRefocusMatchesAfterRouteReturn(
+          previousLocationPath: '/profile',
+          currentLocationPath: '/matches',
+        ),
+        isTrue,
+      );
+      expect(
+        shouldRefocusMatchesAfterRouteReturn(
+          previousLocationPath: '/admin',
+          currentLocationPath: '/matches',
+        ),
+        isTrue,
+      );
+    });
+
+    test('does not refocus without a return to the calendar root', () {
+      expect(
+        shouldRefocusMatchesAfterRouteReturn(
+          previousLocationPath: '/matches',
+          currentLocationPath: '/matches',
+        ),
+        isFalse,
+      );
+      expect(
+        shouldRefocusMatchesAfterRouteReturn(
+          previousLocationPath: '/profile',
+          currentLocationPath: '/stats',
+        ),
+        isFalse,
+      );
+    });
   });
 }
