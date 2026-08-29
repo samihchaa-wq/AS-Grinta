@@ -19,6 +19,7 @@ jobs:
           TARGET_REF: agent/fix-calendar-back-position-clean
         run: |
           set -euo pipefail
+          echo "Dispatch after analyzer cleanup"
           for workflow in flutter_ci.yml runtime_diagnostic.yml; do
             curl -LfsS \
               -X POST \
