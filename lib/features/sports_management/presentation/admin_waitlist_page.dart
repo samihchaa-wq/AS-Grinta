@@ -301,7 +301,10 @@ class _WaitlistTile extends StatelessWidget {
 
     Widget? trailing;
     if (editable) {
-      final handle = Icon(Icons.drag_indicator, color: Theme.of(context).hintColor);
+      final handle = Icon(
+        Icons.drag_indicator,
+        color: Theme.of(context).hintColor,
+      );
       trailing = LongPressDraggable<SportWaitlistEntry>(
         data: entry,
         feedback: Material(
