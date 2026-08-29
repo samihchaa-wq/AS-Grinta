@@ -4,9 +4,31 @@ import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+@visibleForTesting
+bool shouldRefocusMatchesAfterRouteReturn({
+  required String? previousLocationPath,
+  required String currentLocationPath,
+}) {
+  if (previousLocationPath == null ||
+      previousLocationPath == '/matches' ||
+      currentLocationPath != '/matches') {
+    return false;
+  }
+
+  final segments = Uri.parse(previousLocationPath).pathSegments;
+  final returnedFromModernPastMatch =
+      segments.length == 2 && segments.first == 'matches';
+  final returnedFromHistoricalMatch = segments.length == 3 &&
+      segments[0] == 'matches' &&
+      segments[1] == 'history';
+
+  return !returnedFromModernPastMatch && !returnedFromHistoricalMatch;
+}
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({
@@ -32,6 +54,11 @@ class _AppShellState extends ConsumerState<AppShell>
   // à `widget.navigationShell.currentIndex` ne détecte jamais de transition —
   // les deux lisent l'état actuel du shell.
   int? _previousShellIndex;
+
+  // Les écrans de la branche Calendrier partagent le même navigator. On garde
+  // le chemin précédent pour distinguer une vraie arrivée sur `/matches` d'un
+  // simple retour depuis une fiche de match consultée dans la chronologie.
+  String? _previousLocationPath;
 
   Uri get _uri => Uri.parse(widget.location);
   int get _selectedIndex => widget.navigationShell.currentIndex;
@@ -114,19 +141,25 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) {
-    // Un changement explicite de branche vers Calendrier recentre la liste sur
-    // l'élément pertinent. En revanche, un simple pop depuis une fiche match
-    // reste dans la branche 0 : il doit conserver exactement la position de
-    // défilement (ou le mois) que l'utilisateur consultait.
+    // Une vraie arrivée sur Calendrier continue à recentrer sur l'élément
+    // pertinent. Seul le simple pop d'une fiche de match issue du calendrier
+    // conserve la position exacte afin de pouvoir parcourir plusieurs anciens
+    // matchs à la suite.
     final currentShellIndex = widget.navigationShell.currentIndex;
+    final currentLocationPath = _uri.path;
     final switchedToMatchesBranch = _previousShellIndex != null &&
         _previousShellIndex != 0 &&
         currentShellIndex == 0;
+    final returnedToMatchesRoot = shouldRefocusMatchesAfterRouteReturn(
+      previousLocationPath: _previousLocationPath,
+      currentLocationPath: currentLocationPath,
+    );
 
-    if (switchedToMatchesBranch) {
+    if (switchedToMatchesBranch || returnedToMatchesRoot) {
       _scheduleMatchFocus();
     }
     _previousShellIndex = currentShellIndex;
+    _previousLocationPath = currentLocationPath;
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final moduleTheme = Theme.of(
