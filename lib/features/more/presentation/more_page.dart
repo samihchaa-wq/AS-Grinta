@@ -11,7 +11,6 @@ class MorePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile;
     final isRealAdmin = ref.watch(isRealAdminProvider);
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
@@ -25,11 +24,6 @@ class MorePage extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.person_outline),
               title: const Text('Profil'),
-              subtitle: Text(
-                profile?.displayName.isNotEmpty == true
-                    ? profile!.displayName
-                    : 'Ton prénom, ton nom et ton mot de passe',
-              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/profile'),
             ),
@@ -39,7 +33,6 @@ class MorePage extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.notifications_none_outlined),
               title: const Text('Notifications'),
-              subtitle: const Text('Choisis quand tu veux être prévenu'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/notifications'),
             ),
@@ -50,7 +43,6 @@ class MorePage extends ConsumerWidget {
               child: ListTile(
                 leading: const Icon(Icons.format_list_numbered_rounded),
                 title: const Text('Liste d’attente'),
-                subtitle: const Text('L’ordre pour proposer une place libre'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push(
                   isRealAdmin && !viewingAsUser
@@ -69,9 +61,6 @@ class MorePage extends ConsumerWidget {
                   'Administration',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
-                subtitle: const Text(
-                  'Comptes, saison, matchs et gestion de l’effectif',
-                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/admin'),
               ),
@@ -85,10 +74,6 @@ class MorePage extends ConsumerWidget {
                 title: const Text(
                   'Aperçu utilisateur',
                   style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Vois l’app comme un utilisateur : tous les contrôles admin '
-                  'sont masqués. Tes droits ne changent pas.',
                 ),
                 value: viewingAsUser,
                 onChanged: (value) => setViewAsUser(ref, value),
