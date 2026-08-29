@@ -8,6 +8,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/core/widgets/moment_card_watermark.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
@@ -302,12 +303,6 @@ String _entryKey(_FeedEntry entry) {
   return 'unknown';
 }
 
-/// Regroupe les sections d'une même phase (« Terminés », « À venir ») dans un
-/// bloc de défilement.
-///
-/// Un en-tête collant reste épinglé au bloc qui le contient : celui de la
-/// phase précédente se fait pousser hors de l'écran par le suivant au lieu de
-/// s'empiler avec lui et de rogner le haut des cartes.
 List<Widget> _buildFeedSlivers({
   required List<_FeedSection> sections,
   required String? focusKey,
@@ -353,10 +348,6 @@ List<Widget> _buildFeedSectionSlivers({
   final title = section.showPhaseTitle ? section.title : null;
 
   return [
-    // La clé de focus ne doit jamais être posée sur cet en-tête épinglé :
-    // `Scrollable.ensureVisible` ne sait pas viser un en-tête collé et part
-    // alors jusqu'en bas de la liste, ce qui laisse la carte visée coupée sous
-    // les en-têtes. Elle reste donc toujours sur la carte elle-même.
     if (title != null)
       SliverPersistentHeader(
         pinned: true,
@@ -667,6 +658,14 @@ class _UpcomingMatchCard extends ConsumerWidget {
       ),
     );
 
+    final decoratedContent = match.isCancelled
+        ? content
+        : MomentCardWatermark(
+            kind: momentWatermarkKindForMatchType(match.matchType),
+            color: cardBorder,
+            child: content,
+          );
+
     return Card(
       color: cardSurface,
       shape: RoundedRectangleBorder(
@@ -675,8 +674,11 @@ class _UpcomingMatchCard extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: match.isCancelled
-          ? content
-          : InkWell(onTap: () => context.push(detailsRoute), child: content),
+          ? decoratedContent
+          : InkWell(
+              onTap: () => context.push(detailsRoute),
+              child: decoratedContent,
+            ),
     );
   }
 }
