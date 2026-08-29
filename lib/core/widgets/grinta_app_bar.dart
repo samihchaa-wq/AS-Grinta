@@ -134,7 +134,7 @@ List<Widget> grintaHomeActions(BuildContext context) => [
       const SizedBox(width: 2),
       IconButton(
         tooltip: 'Paramètres',
-        iconSize: 25,
+        iconSize: 27,
         visualDensity: VisualDensity.compact,
         padding: const EdgeInsets.all(7),
         constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
