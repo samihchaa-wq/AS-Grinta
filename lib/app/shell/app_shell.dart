@@ -195,8 +195,9 @@ class _AppShellState extends ConsumerState<AppShell>
       // Sur le Web, le navigateur anime déjà son historique lors d'un swipe.
       // Ajouter en plus le fondu Flutter provoque un second mouvement au
       // relâchement. Les transitions internes restent inchangées sur natif.
-      pageTransitionsTheme:
-          kIsWeb ? _webPageTransitionsTheme : baseTheme.pageTransitionsTheme,
+      pageTransitionsTheme: kIsWeb
+          ? _webPageTransitionsTheme
+          : baseTheme.pageTransitionsTheme,
     );
 
     return LayoutBuilder(
