@@ -64,11 +64,15 @@ class InternalMatchComposition {
     required this.team1Name,
     required this.team2Name,
     required this.entries,
+    this.team1JerseyId = 'orange',
+    this.team2JerseyId = 'blue',
   });
 
   final String matchId;
   final String team1Name;
   final String team2Name;
+  final String team1JerseyId;
+  final String team2JerseyId;
   final List<InternalCompositionEntry> entries;
 
   List<InternalCompositionEntry> get unassigned =>
@@ -86,6 +90,8 @@ class InternalMatchComposition {
       matchId: json['match_id']?.toString() ?? '',
       team1Name: (json['team1_name'] ?? 'Équipe 1').toString(),
       team2Name: (json['team2_name'] ?? 'Équipe 2').toString(),
+      team1JerseyId: (json['team1_jersey'] ?? 'orange').toString(),
+      team2JerseyId: (json['team2_jersey'] ?? 'blue').toString(),
       entries: entriesRaw is List
           ? entriesRaw
               .map(
