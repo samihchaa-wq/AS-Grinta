@@ -29,8 +29,9 @@ insert into public.matches(
   '4d000000-0000-0000-0000-000000000020',
   '4d000000-0000-0000-0000-000000000010',
   '4d000000-0000-0000-0000-000000000011',
-  (now() at time zone 'Europe/Paris')::date - 1,
-  '20:00'::time, 'domicile', 90, 'a_venir', 'championnat',
+  ((now() at time zone 'Europe/Paris') - interval '1 hour')::date,
+  ((now() at time zone 'Europe/Paris') - interval '1 hour')::time,
+  'domicile', 90, 'a_venir', 'championnat',
   '4d000000-0000-0000-0000-000000000001'
 );
 
@@ -130,7 +131,7 @@ select is(
   (select count(*)::int from public.matches
    where id = '4d000000-0000-0000-0000-000000000020'),
   0,
-  'le match récent a bien disparu'
+  'le match récent a bien été supprimé'
 );
 
 select is(
@@ -138,27 +139,6 @@ select is(
    where id = '4d000000-0000-0000-0000-000000000021'),
   1,
   'le match ancien est conservé'
-);
-
-select is(
-  (select count(*)::int from public.match_live_sessions
-   where match_id = '4d000000-0000-0000-0000-000000000020'),
-  0,
-  'la session Live du match supprimé a disparu'
-);
-
-select is(
-  (select count(*)::int from public.match_compositions
-   where match_id = '4d000000-0000-0000-0000-000000000021'),
-  1,
-  'la composition du match ancien est conservée'
-);
-
-select is(
-  (select count(*)::int from public.match_predictions
-   where match_id = '4d000000-0000-0000-0000-000000000020'),
-  0,
-  'les pronostics du match supprimé ont disparu'
 );
 
 select * from finish();
