@@ -251,7 +251,7 @@ class _StickyHeaderTableCardState extends State<StickyHeaderTableCard> {
                 decoration: BoxDecoration(
                   color: index.isEven
                       ? Colors.transparent
-                      : AppTheme.surfaceHigh.withValues(alpha: .10),
+                      : AppTheme.surfaceHigh.withValues(alpha: .40),
                   border: Border(
                     bottom: BorderSide(
                       color: AppTheme.outline.withValues(alpha: .16),
