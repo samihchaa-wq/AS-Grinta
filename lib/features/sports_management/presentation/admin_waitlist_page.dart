@@ -153,15 +153,13 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     if (waitlist == null || !_dirty) return;
     setState(() => _saving = true);
     try {
-      final saved = await ref
-          .read(sportWaitlistRepositoryProvider)
-          .reorderWaitlist(
-            seasonId: waitlist.seasonId,
-            orderedPlayerIds: _entries
-                .map((entry) => entry.seasonPlayerId)
-                .toList(),
-            reason: reason,
-          );
+      final saved =
+          await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
+                seasonId: waitlist.seasonId,
+                orderedPlayerIds:
+                    _entries.map((entry) => entry.seasonPlayerId).toList(),
+                reason: reason,
+              );
       if (!mounted) return;
       setState(() {
         _waitlist = saved;
@@ -261,8 +259,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         child: GrintaEmptyState(
           icon: Icons.format_list_numbered_rounded,
           title: 'Aucun joueur dans la saison',
-          message:
-              'Ajoute des joueurs à l’effectif pour construire l’ordre '
+          message: 'Ajoute des joueurs à l’effectif pour construire l’ordre '
               'de la liste d’attente.',
         ),
       );
@@ -286,9 +283,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final pinnedWidth = (constraints.maxWidth * .34)
-                    .clamp(112.0, 150.0)
-                    .toDouble();
+                final pinnedWidth =
+                    (constraints.maxWidth * .34).clamp(112.0, 150.0).toDouble();
                 return StickyHeaderTableCard(
                   key: const ValueKey('waitlist-table'),
                   onRefresh: _load,
