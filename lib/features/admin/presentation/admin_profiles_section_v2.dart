@@ -5,58 +5,6 @@ final _adminHistoricalPlayersProvider =
   return ref.watch(adminRepositoryProvider).fetchHistoricalPlayers();
 });
 
-class _ProfilesSection extends StatelessWidget {
-  const _ProfilesSection({
-    required this.title,
-    required this.profiles,
-    required this.emptyMessage,
-    required this.icon,
-  });
-
-  final String title;
-  final List<AdminProfileItem> profiles;
-  final String emptyMessage;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 22),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
-            ),
-            Chip(
-              visualDensity: VisualDensity.compact,
-              label: Text('${profiles.length}'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (profiles.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle_outline, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(emptyMessage)),
-                ],
-              ),
-            ),
-          )
-        else
-          ...profiles.map((profile) => _ProfileCard(profile: profile)),
-      ],
-    );
-  }
-}
-
 class _RoleChoice extends StatelessWidget {
   const _RoleChoice({required this.current, required this.onSelected});
 
