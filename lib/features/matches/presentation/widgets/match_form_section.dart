@@ -8,13 +8,13 @@ class MatchFormSection extends StatelessWidget {
   const MatchFormSection({
     super.key,
     required this.title,
-    required this.icon,
+    this.icon,
     required this.children,
     this.subtitle,
   });
 
   final String title;
-  final IconData icon;
+  final IconData? icon;
   final String? subtitle;
   final List<Widget> children;
 
@@ -120,21 +120,13 @@ class MatchFormPickerTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(icon, size: 16, color: colors.onSurfaceVariant),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 6),
               Row(

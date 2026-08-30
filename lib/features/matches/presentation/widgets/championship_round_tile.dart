@@ -31,7 +31,6 @@ class ChampionshipRoundTile extends StatelessWidget {
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.format_list_numbered_rounded),
       title: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.centerLeft,
