@@ -57,13 +57,13 @@ as $function$
         when event.event_type <> 'goal_us'
           or coalesce(event.is_opponent_own_goal, false)
           or event.scorer_participant_id is null then null
-        else event.assist_participant_id
+        else nullif(to_jsonb(event) ->> 'assist_participant_id', '')::uuid
       end as assist_participant_id,
       case
         when event.event_type <> 'goal_us'
           or coalesce(event.is_opponent_own_goal, false) then 'none'
         when event.scorer_participant_id is null then 'unknown'
-        when event.assist_participant_id is not null then 'player'
+        when nullif(to_jsonb(event) ->> 'assist_participant_id', '') is not null then 'player'
         else 'unknown'
       end as assist_kind,
       case
@@ -91,7 +91,7 @@ as $function$
     left join public.guest_players scorer_guest
       on scorer_guest.id = scorer_p.guest_player_id
     left join public.match_sport_participants assist_p
-      on assist_p.id = event.assist_participant_id
+      on assist_p.id = nullif(to_jsonb(event) ->> 'assist_participant_id', '')::uuid
     left join public.season_players assist_player
       on assist_player.id = assist_p.season_player_id
     left join public.profiles assist_profile
