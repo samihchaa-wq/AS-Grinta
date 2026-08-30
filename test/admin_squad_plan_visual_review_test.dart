@@ -41,7 +41,10 @@ void main() {
       OutlinedButton,
       'Voir la liste d’attente',
     );
-    final guestButton = find.widgetWithText(OutlinedButton, 'Ajouter un invité');
+    final guestButton = find.widgetWithText(
+      OutlinedButton,
+      'Ajouter un invité',
+    );
     expect(waitlistButton, findsOneWidget);
     expect(guestButton, findsOneWidget);
     final waitlistRect = tester.getRect(waitlistButton);
