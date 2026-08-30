@@ -84,13 +84,14 @@ class _InternalTeamCompositionViewState
   }
 
   void _ensurePositionProfiles(List<InternalCompositionEntry> entries) {
-    final seasonPlayerIds = entries
-        .map((entry) => entry.seasonPlayerId?.trim())
-        .whereType<String>()
-        .where((id) => id.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final seasonPlayerIds =
+        entries
+            .map((entry) => entry.seasonPlayerId?.trim())
+            .whereType<String>()
+            .where((id) => id.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     final key = seasonPlayerIds.join(',');
     if (_positionLoadKey == key) return;
     _positionLoadKey = key;
@@ -103,8 +104,9 @@ class _InternalTeamCompositionViewState
   ) async {
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
-      final canonicalPlayerIds =
-          await repository.fetchCanonicalPlayerIds(seasonPlayerIds);
+      final canonicalPlayerIds = await repository.fetchCanonicalPlayerIds(
+        seasonPlayerIds,
+      );
       final history = await repository.fetchPlayerPositionHistory(
         kLivePositionHistoryStart,
       );
@@ -132,8 +134,8 @@ class _InternalTeamCompositionViewState
     _syncingNames = false;
     _entries = List.of(composition.entries);
 
-    final first = JerseyOption.fromId(composition.team1JerseyId) ??
-        JerseyOption.orange;
+    final first =
+        JerseyOption.fromId(composition.team1JerseyId) ?? JerseyOption.orange;
     var second =
         JerseyOption.fromId(composition.team2JerseyId) ?? JerseyOption.blue;
     if (second == first) {
@@ -194,19 +196,20 @@ class _InternalTeamCompositionViewState
     if (entries == null || _saving) return;
     setState(() => _saving = true);
     try {
-      final saved =
-          await ref.read(internalMatchCompositionRepositoryProvider).save(
-        matchId: widget.matchId,
-        team1Name: _team1Controller.text,
-        team2Name: _team2Controller.text,
-        team1JerseyId: _team1Jersey.id,
-        team2JerseyId: _team2Jersey.id,
-        entries: [
-          for (final entry in entries.where((e) => e.teamNo == null)) entry,
-          for (final entry in entries.where((e) => e.teamNo == 1)) entry,
-          for (final entry in entries.where((e) => e.teamNo == 2)) entry,
-        ],
-      );
+      final saved = await ref
+          .read(internalMatchCompositionRepositoryProvider)
+          .save(
+            matchId: widget.matchId,
+            team1Name: _team1Controller.text,
+            team2Name: _team2Controller.text,
+            team1JerseyId: _team1Jersey.id,
+            team2JerseyId: _team2Jersey.id,
+            entries: [
+              for (final entry in entries.where((e) => e.teamNo == null)) entry,
+              for (final entry in entries.where((e) => e.teamNo == 1)) entry,
+              for (final entry in entries.where((e) => e.teamNo == 2)) entry,
+            ],
+          );
       if (!mounted) return;
       setState(() {
         _initFrom(saved);
@@ -219,9 +222,8 @@ class _InternalTeamCompositionViewState
       ).showSnackBar(const SnackBar(content: Text('Composition enregistrée.')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur : $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Erreur : $error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -259,8 +261,11 @@ class _InternalTeamCompositionViewState
           break;
       }
     }
-    final best = [defender, midfielder, attacker]
-        .reduce((a, b) => a > b ? a : b);
+    final best = [
+      defender,
+      midfielder,
+      attacker,
+    ].reduce((a, b) => a > b ? a : b);
     if (best <= 0) return _PositionGroup.other;
 
     final mainGroup = _slotGroup(profile.mainSlotLabel);
@@ -448,8 +453,8 @@ class _SelectionHint extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: selected == null ? FontWeight.w600 : FontWeight.w800,
-            ),
+          fontWeight: selected == null ? FontWeight.w600 : FontWeight.w800,
+        ),
       ),
     );
   }
@@ -483,9 +488,10 @@ class _UnassignedPanel extends StatelessWidget {
       groups[groupFor(entry)]!.add(entry);
     }
     for (final values in groups.values) {
-      values.sort((a, b) => a.displayName.toLowerCase().compareTo(
-            b.displayName.toLowerCase(),
-          ));
+      values.sort(
+        (a, b) =>
+            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+      );
     }
     final visibleGroups = _PositionGroup.values
         .where((group) => groups[group]!.isNotEmpty)
@@ -511,9 +517,8 @@ class _UnassignedPanel extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Non affectés (${entries.length})',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
                   if (editable && selectedIsAssigned)
@@ -540,8 +545,7 @@ class _UnassignedPanel extends StatelessWidget {
                 selectedParticipantId: selectedParticipantId,
                 onSelect: onSelect,
               ),
-              if (index != visibleGroups.length - 1)
-                const SizedBox(height: 10),
+              if (index != visibleGroups.length - 1) const SizedBox(height: 10),
             ],
           ],
         ],
@@ -566,11 +570,11 @@ class _PositionGroupSection extends StatelessWidget {
   final ValueChanged<InternalCompositionEntry> onSelect;
 
   String get label => switch (group) {
-        _PositionGroup.defenders => 'Défenseurs',
-        _PositionGroup.midfielders => 'Milieux',
-        _PositionGroup.attackers => 'Attaquants',
-        _PositionGroup.other => 'Autre',
-      };
+    _PositionGroup.defenders => 'Défenseurs',
+    _PositionGroup.midfielders => 'Milieux',
+    _PositionGroup.attackers => 'Attaquants',
+    _PositionGroup.other => 'Autre',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -582,12 +586,10 @@ class _PositionGroupSection extends StatelessWidget {
           child: Text(
             '$label (${entries.length})',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: .72),
-                ),
+              fontWeight: FontWeight.w800,
+              color: Theme.of(context).colorScheme.onSurface
+                  .withValues(alpha: .72),
+            ),
           ),
         ),
         Wrap(
@@ -692,9 +694,8 @@ class _TeamColumn extends StatelessWidget {
                       ),
                       child: Text(
                         '${entries.length}',
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
                   ),
@@ -705,10 +706,7 @@ class _TeamColumn extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         if (editable)
-          _JerseyPicker(
-            selected: jersey,
-            onSelected: onSelectJersey,
-          ),
+          _JerseyPicker(selected: jersey, onSelected: onSelectJersey),
         if (editable) const SizedBox(height: 8),
         if (editable && controller != null)
           Padding(
@@ -733,9 +731,8 @@ class _TeamColumn extends StatelessWidget {
             child: Text(
               '$semanticName · ${_playerCount(entries.length)}',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
         Container(
@@ -758,7 +755,8 @@ class _TeamColumn extends StatelessWidget {
                         entry: entries[index],
                         editable: editable,
                         expand: true,
-                        selected: selectedParticipantId ==
+                        selected:
+                            selectedParticipantId ==
                             entries[index].participantId,
                         onTap: () => onSelectPlayer(entries[index]),
                       ),
@@ -774,10 +772,7 @@ class _TeamColumn extends StatelessWidget {
 }
 
 class _JerseyPicker extends StatelessWidget {
-  const _JerseyPicker({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _JerseyPicker({required this.selected, required this.onSelected});
 
   final JerseyOption selected;
   final ValueChanged<JerseyOption> onSelected;
@@ -788,15 +783,18 @@ class _JerseyPicker extends StatelessWidget {
       children: [
         Text(
           'Maillot',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(context).textTheme.labelSmall
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (var index = 0; index < JerseyOption.values.length; index++) ...[
+            for (
+              var index = 0;
+              index < JerseyOption.values.length;
+              index++
+            ) ...[
               _JerseyChoice(
                 option: JerseyOption.values[index],
                 selected: JerseyOption.values[index] == selected,
