@@ -360,10 +360,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           return null;
         },
       ),
-      const SizedBox(height: 4),
-      const Text(
-        'Un événement est uniquement un rendez-vous dans le calendrier : aucun prono, effectif, composition, live ou statistique ne sera créé.',
-      ),
     ];
   }
 
