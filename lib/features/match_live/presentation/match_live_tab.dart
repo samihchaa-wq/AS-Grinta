@@ -85,8 +85,9 @@ class MatchLiveTab extends ConsumerWidget {
             bundle: bundle,
             canEdit: canEdit,
           );
-          if (!canEdit || bundle.session.state == MatchLiveState.finished) {
-            return page;
+          if (!canEdit) return page;
+          if (bundle.session.state == MatchLiveState.finished) {
+            return _FinishedLiveViewport(child: page);
           }
           return _LiveRealtimeBoundary(matchId: matchId, child: page);
         } catch (error, stackTrace) {
@@ -110,6 +111,26 @@ class MatchLiveTab extends ConsumerWidget {
         }
       },
     );
+  }
+}
+
+/// Le compte rendu final contient un `Expanded` et suppose donc une hauteur
+/// bornée. L'onglet Admin, lui, est placé dans le `ListView` du gestionnaire de
+/// match et lui transmet une hauteur infinie. LimitedBox ne contraint le child
+/// que dans ce cas non borné : sur une page déjà bornée, il reste transparent.
+/// On garde ainsi le scroll interne du compte rendu et son bouton de validation
+/// réellement au bas de son viewport, sans hauteur fixe dépendante du téléphone.
+class _FinishedLiveViewport extends StatelessWidget {
+  const _FinishedLiveViewport({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final viewportHeight =
+        (media.size.height - media.padding.vertical).clamp(1.0, double.infinity);
+    return LimitedBox(maxHeight: viewportHeight, child: child);
   }
 }
 
