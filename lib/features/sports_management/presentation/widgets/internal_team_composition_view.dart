@@ -36,8 +36,10 @@ class _InternalTeamCompositionViewState
   final _team1Controller = TextEditingController();
   final _team2Controller = TextEditingController();
   List<InternalCompositionEntry>? _entries;
+  Map<String, String> _canonicalPlayerIds = const {};
   Map<String, PlayerPositionProfile> _positionProfiles =
       kPlayerPositionProfiles;
+  String? _positionLoadKey;
   String? _selectedParticipantId;
   JerseyOption _team1Jersey = JerseyOption.orange;
   JerseyOption _team2Jersey = JerseyOption.blue;
@@ -50,7 +52,6 @@ class _InternalTeamCompositionViewState
     super.initState();
     _team1Controller.addListener(_handleTeamNameChanged);
     _team2Controller.addListener(_handleTeamNameChanged);
-    _refreshPositionProfiles();
   }
 
   @override
@@ -62,6 +63,9 @@ class _InternalTeamCompositionViewState
     _team2Controller.clear();
     _syncingNames = false;
     _entries = null;
+    _canonicalPlayerIds = const {};
+    _positionProfiles = kPlayerPositionProfiles;
+    _positionLoadKey = null;
     _selectedParticipantId = null;
     _team1Jersey = JerseyOption.orange;
     _team2Jersey = JerseyOption.blue;
@@ -79,17 +83,40 @@ class _InternalTeamCompositionViewState
     super.dispose();
   }
 
-  Future<void> _refreshPositionProfiles() async {
+  void _ensurePositionProfiles(List<InternalCompositionEntry> entries) {
+    final seasonPlayerIds = entries
+        .map((entry) => entry.seasonPlayerId?.trim())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    final key = seasonPlayerIds.join(',');
+    if (_positionLoadKey == key) return;
+    _positionLoadKey = key;
+    Future.microtask(() => _refreshPositionProfiles(seasonPlayerIds, key));
+  }
+
+  Future<void> _refreshPositionProfiles(
+    List<String> seasonPlayerIds,
+    String loadKey,
+  ) async {
     try {
-      final history = await ref
-          .read(matchCompositionRepositoryProvider)
-          .fetchPlayerPositionHistory(kLivePositionHistoryStart);
+      final repository = ref.read(matchCompositionRepositoryProvider);
+      final canonicalPlayerIds =
+          await repository.fetchCanonicalPlayerIds(seasonPlayerIds);
+      final history = await repository.fetchPlayerPositionHistory(
+        kLivePositionHistoryStart,
+      );
       final merged = mergePlayerPositionProfiles(history: history);
-      if (!mounted) return;
-      setState(() => _positionProfiles = merged);
+      if (!mounted || _positionLoadKey != loadKey) return;
+      setState(() {
+        _canonicalPlayerIds = canonicalPlayerIds;
+        _positionProfiles = merged;
+      });
     } catch (_) {
-      // L'archive embarquée reste une source valable si l'historique récent
-      // est momentanément indisponible, exactement comme pour la simulation.
+      // Même repli que « Simuler la compo » : l'archive embarquée reste
+      // exploitable si l'historique récent est momentanément indisponible.
     }
   }
 
@@ -202,10 +229,13 @@ class _InternalTeamCompositionViewState
 
   _PositionGroup _positionGroup(InternalCompositionEntry entry) {
     if (entry.isGoalkeeper || entry.isGuest) return _PositionGroup.other;
-    final playerId = entry.canonicalPlayerId?.trim();
-    final profile = playerId == null || playerId.isEmpty
+    final seasonPlayerId = entry.seasonPlayerId?.trim();
+    final canonicalPlayerId = seasonPlayerId == null
         ? null
-        : _positionProfiles[playerId];
+        : _canonicalPlayerIds[seasonPlayerId];
+    final profile = canonicalPlayerId == null
+        ? null
+        : _positionProfiles[canonicalPlayerId];
 
     // En-dessous de quatre titularisations, le poste moyen bouge trop vite
     // pour constituer une catégorie utile. Ces joueurs restent volontairement
@@ -233,7 +263,6 @@ class _InternalTeamCompositionViewState
         .reduce((a, b) => a > b ? a : b);
     if (best <= 0) return _PositionGroup.other;
 
-    // En cas d'égalité parfaite, le poste principal tranche de façon stable.
     final mainGroup = _slotGroup(profile.mainSlotLabel);
     if ((mainGroup == _PositionGroup.defenders && defender == best) ||
         (mainGroup == _PositionGroup.midfielders && midfielder == best) ||
@@ -271,15 +300,19 @@ class _InternalTeamCompositionViewState
           _initFrom(composition);
         }
         final entries = _entries!;
+        _ensurePositionProfiles(entries);
         final unassigned = entries.where((e) => e.teamNo == null).toList();
         final team1 = entries.where((e) => e.teamNo == 1).toList();
         final team2 = entries.where((e) => e.teamNo == 2).toList();
-        final selected = _selectedParticipantId == null
-            ? null
-            : entries.cast<InternalCompositionEntry?>().firstWhere(
-                  (entry) => entry?.participantId == _selectedParticipantId,
-                  orElse: () => null,
-                );
+        InternalCompositionEntry? selected;
+        if (_selectedParticipantId != null) {
+          for (final entry in entries) {
+            if (entry.participantId == _selectedParticipantId) {
+              selected = entry;
+              break;
+            }
+          }
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -454,6 +487,9 @@ class _UnassignedPanel extends StatelessWidget {
             b.displayName.toLowerCase(),
           ));
     }
+    final visibleGroups = _PositionGroup.values
+        .where((group) => groups[group]!.isNotEmpty)
+        .toList(growable: false);
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -496,18 +532,17 @@ class _UnassignedPanel extends StatelessWidget {
             )
           else ...[
             const SizedBox(height: 8),
-            for (final group in _PositionGroup.values)
-              if (groups[group]!.isNotEmpty) ...[
-                _PositionGroupSection(
-                  group: group,
-                  entries: groups[group]!,
-                  editable: editable,
-                  selectedParticipantId: selectedParticipantId,
-                  onSelect: onSelect,
-                ),
-                if (group != _PositionGroup.values.last)
-                  const SizedBox(height: 10),
-              ],
+            for (var index = 0; index < visibleGroups.length; index++) ...[
+              _PositionGroupSection(
+                group: visibleGroups[index],
+                entries: groups[visibleGroups[index]]!,
+                editable: editable,
+                selectedParticipantId: selectedParticipantId,
+                onSelect: onSelect,
+              ),
+              if (index != visibleGroups.length - 1)
+                const SizedBox(height: 10),
+            ],
           ],
         ],
       ),
