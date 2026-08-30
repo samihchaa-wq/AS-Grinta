@@ -412,113 +412,120 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
     if (!_isInternal) {
       addCard(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Adversaire',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Autocomplete<Map<String, dynamic>>(
-                    initialValue: TextEditingValue(text: selectedOpponentName),
-                    displayStringForOption: (opponent) =>
-                        opponent['name'].toString(),
-                    optionsBuilder: (textEditingValue) {
-                      final query = textEditingValue.text.trim();
-                      if (query.isEmpty) return opponents.take(8);
-
-                      final ranked = <MapEntry<int, Map<String, dynamic>>>[];
-                      for (final opponent in opponents) {
-                        final score = _opponentMatchScore(
+        Builder(
+          builder: (opponentSectionContext) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Adversaire',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Autocomplete<Map<String, dynamic>>(
+                      initialValue:
+                          TextEditingValue(text: selectedOpponentName),
+                      displayStringForOption: (opponent) =>
                           opponent['name'].toString(),
-                          query,
-                        );
-                        if (score != null) {
-                          ranked.add(MapEntry(score, opponent));
-                        }
-                      }
-                      ranked.sort((a, b) {
-                        final byScore = a.key.compareTo(b.key);
-                        if (byScore != 0) return byScore;
-                        return a.value['name'].toString().compareTo(
-                              b.value['name'].toString(),
-                            );
-                      });
-                      return ranked.take(8).map((entry) => entry.value);
-                    },
-                    fieldViewBuilder:
-                        (context, textController, focusNode, onFieldSubmitted) {
-                      return TextFormField(
-                        controller: textController,
-                        focusNode: focusNode,
-                        enabled: !busy,
-                        textAlign: TextAlign.start,
-                        textAlignVertical: TextAlignVertical.center,
-                        textCapitalization: TextCapitalization.words,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          hintText: 'Rechercher...',
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 16,
-                          ),
-                        ),
-                        onFieldSubmitted: (_) => onFieldSubmitted(),
-                        onChanged: (value) {
-                          if (_opponentId.isEmpty) return;
-                          if (_normalizeOpponentSearch(value) ==
-                              _normalizeOpponentSearch(
-                                selectedOpponentName,
-                              )) {
-                            return;
+                      optionsBuilder: (textEditingValue) {
+                        final query = textEditingValue.text.trim();
+                        if (query.isEmpty) return opponents.take(8);
+
+                        final ranked = <MapEntry<int, Map<String, dynamic>>>[];
+                        for (final opponent in opponents) {
+                          final score = _opponentMatchScore(
+                            opponent['name'].toString(),
+                            query,
+                          );
+                          if (score != null) {
+                            ranked.add(MapEntry(score, opponent));
                           }
-                          setState(() {
-                            _opponentId = '';
-                            _oddsWin = null;
-                            _oddsDraw = null;
-                            _oddsLoss = null;
-                          });
-                        },
-                        validator: (_) => _isNormalMatch && _opponentId.isEmpty
-                            ? 'Sélectionnez un adversaire'
-                            : null,
-                      );
-                    },
-                    onSelected: (opponent) {
-                      setState(() {
-                        _opponentId = opponent['id'].toString();
-                        _refreshAddressForSelection();
-                      });
-                      _suggestOdds();
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(56),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                        }
+                        ranked.sort((a, b) {
+                          final byScore = a.key.compareTo(b.key);
+                          if (byScore != 0) return byScore;
+                          return a.value['name'].toString().compareTo(
+                                b.value['name'].toString(),
+                              );
+                        });
+                        return ranked.take(8).map((entry) => entry.value);
+                      },
+                      fieldViewBuilder: (context, textController, focusNode,
+                          onFieldSubmitted) {
+                        return TextFormField(
+                          controller: textController,
+                          focusNode: focusNode,
+                          enabled: !busy,
+                          textAlign: TextAlign.start,
+                          textAlignVertical: TextAlignVertical.center,
+                          textCapitalization: TextCapitalization.words,
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            hintText: 'Rechercher...',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                          ),
+                          onTap: () => _scrollOpponentSearchIntoView(
+                            opponentSectionContext,
+                          ),
+                          onFieldSubmitted: (_) => onFieldSubmitted(),
+                          onChanged: (value) {
+                            if (_opponentId.isEmpty) return;
+                            if (_normalizeOpponentSearch(value) ==
+                                _normalizeOpponentSearch(
+                                  selectedOpponentName,
+                                )) {
+                              return;
+                            }
+                            setState(() {
+                              _opponentId = '';
+                              _oddsWin = null;
+                              _oddsDraw = null;
+                              _oddsLoss = null;
+                            });
+                          },
+                          validator: (_) =>
+                              _isNormalMatch && _opponentId.isEmpty
+                                  ? 'Sélectionnez un adversaire'
+                                  : null,
+                        );
+                      },
+                      onSelected: (opponent) {
+                        setState(() {
+                          _opponentId = opponent['id'].toString();
+                          _refreshAddressForSelection();
+                        });
+                        _suggestOdds();
+                      },
                     ),
-                    onPressed: busy ? null : _createOpponent,
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text(
-                      'Ajouter un adversaire',
-                      textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(56),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                      onPressed: busy ? null : _createOpponent,
+                      icon: const Icon(Icons.add_rounded),
+                      label: const Text(
+                        'Ajouter un adversaire',
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -703,6 +710,18 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     }
 
     return fields;
+  }
+
+  void _scrollOpponentSearchIntoView(BuildContext sectionContext) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !sectionContext.mounted) return;
+      Scrollable.ensureVisible(
+        sectionContext,
+        alignment: 0.02,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Widget _dateTile({required bool busy}) => ListTile(
