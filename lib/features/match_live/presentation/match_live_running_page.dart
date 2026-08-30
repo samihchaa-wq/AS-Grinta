@@ -9,6 +9,7 @@ import 'package:as_grinta/features/match_live/presentation/match_live_providers.
 import 'package:as_grinta/features/sports_management/presentation/match_report_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
@@ -76,6 +77,8 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     final scorerCandidates = [...field, ...bench];
     final pendingOutIds = {for (final pair in _pending) pair.playerOut};
     final controller = ref.read(matchLiveStateProvider(matchId).notifier);
+    final setupControlsDisabled =
+        _saving || _savingFormation || _pending.isNotEmpty;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -113,33 +116,72 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
         ],
         if (canEdit) ...[
           const SizedBox(height: 10),
-          DropdownButtonFormField<String>(
-            key: ValueKey('live-formation-${lineup.formationCode}'),
-            initialValue: formationForCode(lineup.formationCode).code,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: 'Dispositif',
-              border: const OutlineInputBorder(),
-              helperText: _pending.isNotEmpty
-                  ? 'Valide ou annule les remplacements en attente avant de '
-                      'changer de dispositif.'
-                  : null,
-            ),
-            items: [
-              for (final formation in footballFormations)
-                DropdownMenuItem(
-                  value: formation.code,
-                  child: Text(formation.code),
+          Row(
+            key: const ValueKey('live-running-controls'),
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('live-formation-${lineup.formationCode}'),
+                  initialValue: formationForCode(lineup.formationCode).code,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Dispositif',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 16,
+                    ),
+                  ),
+                  items: [
+                    for (final formation in footballFormations)
+                      DropdownMenuItem(
+                        value: formation.code,
+                        child: Text(formation.code),
+                      ),
+                  ],
+                  onChanged: setupControlsDisabled
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            _changeFormation(lineup, value, controller);
+                          }
+                        },
                 ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: setupControlsDisabled
+                        ? null
+                        : () => showMatchLiveAddPlayerSheet(
+                              context,
+                              ref,
+                              matchId: matchId,
+                            ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Ajouter un joueur'),
+                    ),
+                  ),
+                ),
+              ),
             ],
-            onChanged: _saving || _savingFormation || _pending.isNotEmpty
-                ? null
-                : (value) {
-                    if (value != null) {
-                      _changeFormation(lineup, value, controller);
-                    }
-                  },
           ),
+          if (_pending.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Valide ou annule les remplacements en attente avant de '
+                'changer de dispositif ou d’ajouter un joueur.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
         ],
         const SizedBox(height: AppSpacing.sectionGap),
         LayoutBuilder(

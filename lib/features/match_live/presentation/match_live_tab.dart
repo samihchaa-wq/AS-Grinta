@@ -4,7 +4,6 @@ import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_pre_kickoff_page.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_running_page.dart';
-import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -77,11 +76,7 @@ class MatchLiveTab extends ConsumerWidget {
               canEdit: canEdit,
             );
             return canEdit
-                ? _LiveAddPlayerAction(
-                    matchId: matchId,
-                    compact: false,
-                    child: page,
-                  )
+                ? _LiveRealtimeBoundary(matchId: matchId, child: page)
                 : page;
           }
 
@@ -93,11 +88,7 @@ class MatchLiveTab extends ConsumerWidget {
           if (!canEdit || bundle.session.state == MatchLiveState.finished) {
             return page;
           }
-          return _LiveAddPlayerAction(
-            matchId: matchId,
-            compact: true,
-            child: page,
-          );
+          return _LiveRealtimeBoundary(matchId: matchId, child: page);
         } catch (error, stackTrace) {
           FlutterError.reportError(
             FlutterErrorDetails(
@@ -122,15 +113,10 @@ class MatchLiveTab extends ConsumerWidget {
   }
 }
 
-class _LiveAddPlayerAction extends ConsumerWidget {
-  const _LiveAddPlayerAction({
-    required this.matchId,
-    required this.compact,
-    required this.child,
-  });
+class _LiveRealtimeBoundary extends ConsumerWidget {
+  const _LiveRealtimeBoundary({required this.matchId, required this.child});
 
   final String matchId;
-  final bool compact;
   final Widget child;
 
   @override
@@ -138,25 +124,6 @@ class _LiveAddPlayerAction extends ConsumerWidget {
     final realtimeDegraded = ref.watch(
       matchLiveRealtimeDegradedProvider(matchId),
     );
-    final Widget? action = compact
-        ? Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox.square(
-              dimension: 34,
-              child: IconButton.filledTonal(
-                tooltip: 'Ajouter un joueur',
-                padding: EdgeInsets.zero,
-                visualDensity: VisualDensity.compact,
-                onPressed: () => showMatchLiveAddPlayerSheet(
-                  context,
-                  ref,
-                  matchId: matchId,
-                ),
-                icon: const Icon(Icons.add_rounded, size: 20),
-              ),
-            ),
-          )
-        : null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -166,11 +133,6 @@ class _LiveAddPlayerAction extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.fromLTRB(12, 6, 12, 2),
             child: _RealtimeFallbackNotice(),
-          ),
-        if (action != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-            child: action,
           ),
         child,
       ],
