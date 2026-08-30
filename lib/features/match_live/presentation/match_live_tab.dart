@@ -85,8 +85,9 @@ class MatchLiveTab extends ConsumerWidget {
             bundle: bundle,
             canEdit: canEdit,
           );
-          if (!canEdit || bundle.session.state == MatchLiveState.finished) {
-            return page;
+          if (!canEdit) return page;
+          if (bundle.session.state == MatchLiveState.finished) {
+            return MatchLiveFinishedViewport(child: page);
           }
           return _LiveRealtimeBoundary(matchId: matchId, child: page);
         } catch (error, stackTrace) {
@@ -110,6 +111,28 @@ class MatchLiveTab extends ConsumerWidget {
         }
       },
     );
+  }
+}
+
+/// Borne le compte rendu final lorsqu'il est imbriqué dans le `ListView` de
+/// l'administration. `LimitedBox` ne contraint le child que si son parent est
+/// non borné ; sur une page déjà bornée, ce wrapper reste transparent.
+///
+/// Cette classe est publique uniquement pour verrouiller ce contrat de layout
+/// par un widget test sans devoir fabriquer tout l'état d'un Live.
+class MatchLiveFinishedViewport extends StatelessWidget {
+  const MatchLiveFinishedViewport({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final viewportHeight = (media.size.height - media.padding.vertical).clamp(
+      1.0,
+      double.infinity,
+    );
+    return LimitedBox(maxHeight: viewportHeight, child: child);
   }
 }
 
