@@ -177,6 +177,32 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     }
   }
 
+  StickyTableRow _tableRow(int index) {
+    final entry = _entries[index];
+    ValueChanged<SportWaitlistEntry>? onReorderDrop;
+    if (widget.editable) {
+      onReorderDrop = (dragged) => _reorderByDrag(dragged, entry);
+    }
+
+    return StickyTableRow(
+      pinned: _WaitlistPinnedRow(
+        key: ValueKey('waitlist-row-${entry.seasonPlayerId}'),
+        index: index,
+        entry: entry,
+        editable: widget.editable,
+        onReorderDrop: onReorderDrop,
+      ),
+      scrollable: _WaitlistScrollableRow(
+        entry: entry,
+        editable: widget.editable,
+        adjustingCount: _adjustingCounts.contains(entry.seasonPlayerId),
+        onReorderDrop: onReorderDrop,
+        onIncrement: () => _adjustWaitlistCount(entry, 1),
+        onDecrement: () => _adjustWaitlistCount(entry, -1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -268,35 +294,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
                   scrollableHeader: const _WaitlistScrollableHeader(),
                   rows: [
                     for (var index = 0; index < _entries.length; index++)
-                      StickyTableRow(
-                        pinned: _WaitlistPinnedRow(
-                          key: ValueKey(
-                            'waitlist-row-${_entries[index].seasonPlayerId}',
-                          ),
-                          index: index,
-                          entry: _entries[index],
-                          editable: widget.editable,
-                          onReorderDrop: widget.editable
-                              ? (dragged) =>
-                                  _reorderByDrag(dragged, _entries[index])
-                              : null,
-                        ),
-                        scrollable: _WaitlistScrollableRow(
-                          entry: _entries[index],
-                          editable: widget.editable,
-                          adjustingCount: _adjustingCounts.contains(
-                            _entries[index].seasonPlayerId,
-                          ),
-                          onReorderDrop: widget.editable
-                              ? (dragged) =>
-                                  _reorderByDrag(dragged, _entries[index])
-                              : null,
-                          onIncrement: () =>
-                              _adjustWaitlistCount(_entries[index], 1),
-                          onDecrement: () =>
-                              _adjustWaitlistCount(_entries[index], -1),
-                        ),
-                      ),
+                      _tableRow(index),
                   ],
                 );
               },
