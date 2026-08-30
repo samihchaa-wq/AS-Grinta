@@ -8,7 +8,6 @@ class InternalCompositionEntry {
     required this.isGoalkeeper,
     this.seasonPlayerId,
     this.guestPlayerId,
-    this.canonicalPlayerId,
     this.photoUrl,
     this.teamNo,
     this.sortOrder = 0,
@@ -17,7 +16,6 @@ class InternalCompositionEntry {
   final String participantId;
   final String? seasonPlayerId;
   final String? guestPlayerId;
-  final String? canonicalPlayerId;
   final String displayName;
   final String? photoUrl;
   final bool isGuest;
@@ -30,7 +28,6 @@ class InternalCompositionEntry {
       participantId: participantId,
       seasonPlayerId: seasonPlayerId,
       guestPlayerId: guestPlayerId,
-      canonicalPlayerId: canonicalPlayerId,
       displayName: displayName,
       photoUrl: photoUrl,
       isGuest: isGuest,
@@ -45,7 +42,6 @@ class InternalCompositionEntry {
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString(),
       guestPlayerId: json['guest_player_id']?.toString(),
-      canonicalPlayerId: json['canonical_player_id']?.toString(),
       displayName: (json['display_name'] ?? 'Joueur').toString(),
       photoUrl: json['photo_url']?.toString(),
       isGuest: json['is_guest'] == true,
