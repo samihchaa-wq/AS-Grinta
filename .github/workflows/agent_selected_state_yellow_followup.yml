@@ -17,61 +17,16 @@ jobs:
           ref: agent/selected-state-yellow-followup
           fetch-depth: 0
 
-      - name: Apply selected-state yellow
+      - name: Patch selected colors
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
+          sed -i 's/? Colors.white/? AppTheme.accent/' lib/core/widgets/grinta_secondary_tabs.dart
+          python3 -c "from pathlib import Path; p=Path('lib/features/matches/presentation/calendar_entry_form_page.dart'); s=p.read_text(); old='    if (selected) {\n      return FilledButton(\n        style: style,\n'; new='    if (selected) {\n      return FilledButton(\n        style: style.copyWith(\n          foregroundColor: WidgetStatePropertyAll(\n            Theme.of(context).colorScheme.secondary,\n          ),\n        ),\n'; assert old in s; p.write_text(s.replace(old,new,1))"
 
-          secondary = Path('lib/core/widgets/grinta_secondary_tabs.dart')
-          text = secondary.read_text()
-          old = """              foregroundColor: WidgetStateProperty.resolveWith((states) {
-                return states.contains(WidgetState.selected)
-                    ? Colors.white
-                    : AppTheme.textFaint;
-              }),
-"""
-          new = """              foregroundColor: WidgetStateProperty.resolveWith((states) {
-                return states.contains(WidgetState.selected)
-                    ? AppTheme.accent
-                    : AppTheme.textFaint;
-              }),
-"""
-          if old not in text:
-              raise SystemExit('Secondary tabs selected foreground pattern not found')
-          secondary.write_text(text.replace(old, new, 1))
-
-          form = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
-          text = form.read_text()
-          old = """    if (selected) {
-      return FilledButton(
-        style: style,
-        onPressed: enabled ? onPressed : null,
-        child: child,
-      );
-    }
-"""
-          new = """    if (selected) {
-      return FilledButton(
-        style: style.copyWith(
-          foregroundColor: WidgetStatePropertyAll(
-            Theme.of(context).colorScheme.secondary,
-          ),
-        ),
-        onPressed: enabled ? onPressed : null,
-        child: child,
-      );
-    }
-"""
-          if old not in text:
-              raise SystemExit('Compact selected choice pattern not found')
-          form.write_text(text.replace(old, new, 1))
-          PY
-
-      - name: Commit source patch and remove temporary workflow
+      - name: Commit patch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           rm .github/workflows/agent_selected_state_yellow_followup.yml
-          git add lib/core/widgets/grinta_secondary_tabs.dart lib/features/matches/presentation/calendar_entry_form_page.dart .github/workflows/agent_selected_state_yellow_followup.yml
+          git add -A
           git commit -m "Extend club yellow to secondary selections"
           git push origin HEAD:agent/selected-state-yellow-followup
