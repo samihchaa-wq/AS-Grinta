@@ -156,9 +156,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
               children: [
                 Text(
                   'S’abonner au calendrier',
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -192,7 +192,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                 ListTile(
                   leading: const Icon(Icons.link_rounded),
                   title: const Text('Copier le lien du calendrier'),
-                  subtitle: const Text('Pour toute autre application compatible ICS'),
+                  subtitle: const Text(
+                    'Pour toute autre application compatible ICS',
+                  ),
                   trailing: const Icon(Icons.content_copy_rounded),
                   onTap: () => choose(() async {
                     await _copyCalendarLink(httpsUri);
@@ -401,7 +403,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       month: _monthCursor,
       seasonName: selectedSeasonName,
       future: _historyForSeason(selectedSeasonName),
-      events: seasonEvents,
+      events: events,
       onRefresh: () => _refreshHistory(selectedSeasonName),
     );
   }
