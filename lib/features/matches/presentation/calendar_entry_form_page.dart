@@ -161,8 +161,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     _kind = event == null
         ? _CalendarEntryKind.championnat
         : _CalendarEntryKind.event;
-    _startsAt =
-        event?.startsAt ??
+    _startsAt = event?.startsAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _seasonId = event?.seasonId ?? '';
     _eventTitleController.text = event?.title ?? '';
@@ -174,9 +173,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         await controller.load(allSeasons: true);
       }
       if (!mounted) return;
-      final home = await ref
-          .read(matchesRepositoryProvider)
-          .fetchClubHomeAddress();
+      final home =
+          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       if (widget.event == null && !_isEvent) _prefillAddress();
@@ -196,14 +194,12 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature = ref
-        .watch(featureFlagsControllerProvider)
-        .valueOrNull
-        ?.sportsManagement;
+    final feature =
+        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
     final seasons = widget.event == null
         ? state.seasons
-              .where((season) => season['status']?.toString() == 'open')
-              .toList(growable: false)
+            .where((season) => season['status']?.toString() == 'open')
+            .toList(growable: false)
         : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -215,8 +211,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       _squadDefaultApplied = true;
       _squadSizeController.text = (feature?.usualSquadSize ?? 14).toString();
     }
-    final seasonRounds = _championshipRoundsOfSeason(state.matches)
-        .toList(growable: false);
+    final seasonRounds =
+        _championshipRoundsOfSeason(state.matches).toList(growable: false);
     if (!_championshipRoundDefaultApplied &&
         _seasonId.isNotEmpty &&
         !state.isLoading) {
@@ -427,7 +423,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           children: [
             Text(
               'Adversaire',
-              style: Theme.of(context).textTheme.titleSmall
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
@@ -457,50 +455,49 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                         final byScore = a.key.compareTo(b.key);
                         if (byScore != 0) return byScore;
                         return a.value['name'].toString().compareTo(
-                          b.value['name'].toString(),
-                        );
+                              b.value['name'].toString(),
+                            );
                       });
                       return ranked.take(8).map((entry) => entry.value);
                     },
                     fieldViewBuilder:
                         (context, textController, focusNode, onFieldSubmitted) {
-                          return TextFormField(
-                            controller: textController,
-                            focusNode: focusNode,
-                            enabled: !busy,
-                            textAlign: TextAlign.start,
-                            textAlignVertical: TextAlignVertical.center,
-                            textCapitalization: TextCapitalization.words,
-                            textInputAction: TextInputAction.done,
-                            decoration: const InputDecoration(
-                              hintText: 'Rechercher...',
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 16,
-                              ),
-                            ),
-                            onFieldSubmitted: (_) => onFieldSubmitted(),
-                            onChanged: (value) {
-                              if (_opponentId.isEmpty) return;
-                              if (_normalizeOpponentSearch(value) ==
-                                  _normalizeOpponentSearch(
-                                    selectedOpponentName,
-                                  )) {
-                                return;
-                              }
-                              setState(() {
-                                _opponentId = '';
-                                _oddsWin = null;
-                                _oddsDraw = null;
-                                _oddsLoss = null;
-                              });
-                            },
-                            validator: (_) =>
-                                _isNormalMatch && _opponentId.isEmpty
-                                ? 'Sélectionnez un adversaire'
-                                : null,
-                          );
+                      return TextFormField(
+                        controller: textController,
+                        focusNode: focusNode,
+                        enabled: !busy,
+                        textAlign: TextAlign.start,
+                        textAlignVertical: TextAlignVertical.center,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.done,
+                        decoration: const InputDecoration(
+                          hintText: 'Rechercher...',
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 16,
+                          ),
+                        ),
+                        onFieldSubmitted: (_) => onFieldSubmitted(),
+                        onChanged: (value) {
+                          if (_opponentId.isEmpty) return;
+                          if (_normalizeOpponentSearch(value) ==
+                              _normalizeOpponentSearch(
+                                selectedOpponentName,
+                              )) {
+                            return;
+                          }
+                          setState(() {
+                            _opponentId = '';
+                            _oddsWin = null;
+                            _oddsDraw = null;
+                            _oddsLoss = null;
+                          });
                         },
+                        validator: (_) => _isNormalMatch && _opponentId.isEmpty
+                            ? 'Sélectionnez un adversaire'
+                            : null,
+                      );
+                    },
                     onSelected: (opponent) {
                       setState(() {
                         _opponentId = opponent['id'].toString();
@@ -539,7 +536,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           children: [
             Text(
               'Lieu',
-              style: Theme.of(context).textTheme.titleSmall
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
@@ -596,8 +595,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               onChanged: busy
                   ? null
                   : (value) => setState(
-                      () => _rememberAddressAsDefault = value ?? false,
-                    ),
+                        () => _rememberAddressAsDefault = value ?? false,
+                      ),
               title: Text(
                 'Mémorise cette adresse',
                 maxLines: 1,
@@ -650,7 +649,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           children: [
             Text(
               'Maillot',
-              style: Theme.of(context).textTheme.titleSmall
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
@@ -665,10 +666,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                     onTap: busy
                         ? null
                         : () => setState(() {
-                            _selectedJersey = _selectedJersey == option
-                                ? null
-                                : option;
-                          }),
+                              _selectedJersey =
+                                  _selectedJersey == option ? null : option;
+                            }),
                   ),
               ],
             ),
@@ -712,20 +712,20 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }
 
   Widget _dateTile({required bool busy}) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    title: const Text('Date'),
-    subtitle: Text(_formatDate(_startsAt)),
-    trailing: const Icon(Icons.unfold_more_rounded),
-    onTap: busy ? null : _pickDate,
-  );
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Date'),
+        subtitle: Text(_formatDate(_startsAt)),
+        trailing: const Icon(Icons.unfold_more_rounded),
+        onTap: busy ? null : _pickDate,
+      );
 
   Widget _timeTile({required bool busy}) => ListTile(
-    contentPadding: EdgeInsets.zero,
-    title: const Text('Heure'),
-    subtitle: Text(_formatTime(_startsAt)),
-    trailing: const Icon(Icons.unfold_more_rounded),
-    onTap: busy ? null : _pickTime,
-  );
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Heure'),
+        subtitle: Text(_formatTime(_startsAt)),
+        trailing: const Icon(Icons.unfold_more_rounded),
+        onTap: busy ? null : _pickTime,
+      );
 
   void _changeKind(_CalendarEntryKind? kind) {
     if (kind == null || kind == _kind) return;
@@ -775,9 +775,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       _oddsDraw = null;
       _oddsLoss = null;
     });
-    final odds = await ref
-        .read(matchesRepositoryProvider)
-        .previewMatchOdds(
+    final odds = await ref.read(matchesRepositoryProvider).previewMatchOdds(
           opponentId: _opponentId,
           isHome: _isHome,
           referenceDate: _startsAt,
@@ -805,10 +803,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref
-          .read(matchesControllerProvider)
-          .opponents
-          .firstWhere(
+      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -848,8 +843,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         .opponents
         .any((opponent) => opponent['name']?.toString() == trimmedName);
     if (alreadyExists) {
-      final createAnyway =
-          await showDialog<bool>(
+      final createAnyway = await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
               title: const Text('Adversaire déjà existant'),
@@ -889,8 +883,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     final firstDate = widget.event == null
         ? today
         : DateUtils.dateOnly(_startsAt).isBefore(today)
-        ? DateUtils.dateOnly(_startsAt)
-        : today;
+            ? DateUtils.dateOnly(_startsAt)
+            : today;
     final date = await MatchWheelPicker.pickDate(
       context: context,
       initialDate: _startsAt,
@@ -1119,8 +1113,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   Future<void> _confirmDeleteEvent() async {
     final event = widget.event;
     if (event == null) return;
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer cet événement ?'),
@@ -1181,7 +1174,9 @@ class _EntryKindPicker extends StatelessWidget {
       children: [
         Text(
           'Type',
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
