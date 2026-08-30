@@ -89,11 +89,6 @@ class _RoleChoice extends StatelessWidget {
         Wrap(
           spacing: 8,
           children: [
-            // `onSelected: null` désactivait la puce du rôle EN VIGUEUR, que
-            // Material grisait alors : le rôle actif avait l'apparence d'un
-            // état indisponible, et le rôle inactif celle du rôle courant. La
-            // puce reste donc active et un nouveau clic sur le rôle déjà
-            // sélectionné est simplement ignoré.
             for (final role in _roles)
               ChoiceChip(
                 label: Text(role.label),
@@ -153,158 +148,149 @@ class _ProfileCard extends ConsumerWidget {
       }
     }
 
+    Widget validatedDetails() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (profile.username.trim().isNotEmpty)
+            Text('Identifiant : ${profile.username}'),
+          Text(
+            historicalPlayers == null
+                ? 'Rattachement : …'
+                : historicalPlayer == null
+                    ? 'Rattachement : aucun'
+                    : 'Rattachement : ${historicalPlayer.name}',
+          ),
+          if (!policy.isSelf) ...[
+            const SizedBox(height: 10),
+            _RoleChoice(
+              current: profile.role,
+              onSelected: (role) => run(
+                () => repository.updateProfileRole(profile.id, role),
+                success: 'Accès de ${profile.displayName} mis à jour.',
+              ),
+            ),
+          ],
+          if (!profile.passwordSet)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Chip(
+                visualDensity: VisualDensity.compact,
+                avatar: Icon(Icons.hourglass_top, size: 16),
+                label: Text('En attente de 1re connexion'),
+              ),
+            ),
+          if (!policy.isSelf) ...[
+            const SizedBox(height: 8),
+            _ValidatedProfileActions(
+              profile: profile,
+              archived: policy.isArchived,
+              onResetPassword: () =>
+                  _resetPassword(context, ref, repository, profile),
+              onHistory: () async {
+                final choice = await _pickHistorical(
+                  context,
+                  repository,
+                  profileId: profile.id,
+                );
+                if (choice == null) return;
+                await run(
+                  () => repository.setHistoricalProfile(
+                    profileId: profile.id,
+                    historicalId: choice.historicalId,
+                  ),
+                  success: choice.historicalId == null
+                      ? 'Historique détaché de ${profile.displayName}.'
+                      : 'Historique rattaché à ${profile.displayName}.',
+                );
+                ref.invalidate(_adminHistoricalPlayersProvider);
+              },
+              onArchiveToggle: () async {
+                final nextStatus = policy.isArchived ? 'active' : 'archived';
+                if (!policy.isArchived) {
+                  final confirmed = await _confirm(
+                    context,
+                    'Archiver ce compte ?',
+                    '${profile.displayName} ne pourra plus se connecter. '
+                        'Ses données seront conservées.',
+                  );
+                  if (!confirmed) return;
+                }
+                await run(
+                  () => repository.updateProfileStatus(profile.id, nextStatus),
+                  success: policy.isArchived
+                      ? 'Compte réactivé.'
+                      : 'Compte archivé.',
+                );
+              },
+              onDelete: () async {
+                final confirmed = await _confirm(
+                  context,
+                  'Supprimer ce compte ?',
+                  '${profile.displayName} sera supprimé définitivement. '
+                      'Pour bloquer uniquement la connexion, utilise '
+                      '« Archiver ».',
+                );
+                if (!confirmed) return;
+                await run(
+                  () => repository.deleteAccount(profile.id),
+                  success: 'Compte supprimé.',
+                );
+              },
+            ),
+          ],
+        ],
+      );
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    profile.displayName,
-                    style: Theme.of(context).textTheme.titleMedium,
+      child: policy.isPending
+          ? Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          profile.displayName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                // Étiquettes purement informatives : un Chip Material expose
-                // une sémantique sélectionnable, qu'un lecteur d'écran
-                // annonçait comme une case à cocher inexistante.
-                if (policy.isSelf)
-                  const _StatusChip(label: 'Toi')
-                else if (policy.isArchived)
-                  const _StatusChip(label: 'Archivé'),
-              ],
-            ),
-            if (profile.username.trim().isNotEmpty)
-              Text('Identifiant : ${profile.username}'),
-            if (!policy.isPending)
-              Text(
-                historicalPlayers == null
-                    ? 'Rattachement : …'
-                    : historicalPlayer == null
-                        ? 'Rattachement : aucun'
-                        : 'Rattachement : ${historicalPlayer.name}',
-              ),
-            if (!policy.isSelf && !policy.isPending) ...[
-              const SizedBox(height: 10),
-              _RoleChoice(
-                current: profile.role,
-                onSelected: (role) => run(
-                  () => repository.updateProfileRole(profile.id, role),
-                  success: 'Accès de ${profile.displayName} mis à jour.',
-                ),
-              ),
-            ],
-            if (!profile.passwordSet && !policy.isPending)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Chip(
-                  visualDensity: VisualDensity.compact,
-                  avatar: Icon(Icons.hourglass_top, size: 16),
-                  label: Text('En attente de 1re connexion'),
-                ),
-              ),
-            if (!policy.isSelf) ...[
-              const SizedBox(height: 6),
-              if (policy.isPending)
-                _PendingProfileActions(
-                  profile: profile,
-                  onValidate: () async {
-                    final choice = await _askPlayerLink(context, ref);
-                    if (choice == null) return;
-                    await run(
-                      () async {
-                        await repository.validateProfile(
-                          profile.id,
-                          seasonPlayerId: choice.seasonPlayerId,
-                        );
-                        final seasonId = choice.seasonId;
-                        if (seasonId != null) {
-                          ref.invalidate(rosterProvider(seasonId));
-                        }
-                      },
-                      success: choice.seasonPlayerId == null
-                          ? '${profile.displayName} peut maintenant se connecter.'
-                          : '${profile.displayName} est validé et relié au joueur.',
-                    );
-                  },
-                  onReject: () async {
-                    final confirmed = await _confirm(
-                      context,
-                      'Refuser et supprimer ce compte ?',
-                      '${profile.displayName} sera supprimé définitivement.',
-                    );
-                    if (!confirmed) return;
-                    await run(
-                      () => repository.deleteAccount(profile.id),
-                      success: 'Compte supprimé.',
-                    );
-                  },
-                )
-              else
-                ExpansionTile(
-                  key: PageStorageKey<String>(
-                    'validated-actions-${profile.id}',
-                  ),
-                  initiallyExpanded: false,
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: EdgeInsets.zero,
-                  title: const Text('Actions'),
-                  children: [
-                    _ValidatedProfileActions(
+                  if (profile.username.trim().isNotEmpty)
+                    Text('Identifiant : ${profile.username}'),
+                  if (!policy.isSelf) ...[
+                    const SizedBox(height: 6),
+                    _PendingProfileActions(
                       profile: profile,
-                      archived: policy.isArchived,
-                      onResetPassword: () =>
-                          _resetPassword(context, ref, repository, profile),
-                      onHistory: () async {
-                        final choice = await _pickHistorical(
-                          context,
-                          repository,
-                          profileId: profile.id,
-                        );
+                      onValidate: () async {
+                        final choice = await _askPlayerLink(context, ref);
                         if (choice == null) return;
                         await run(
-                          () => repository.setHistoricalProfile(
-                            profileId: profile.id,
-                            historicalId: choice.historicalId,
-                          ),
-                          success: choice.historicalId == null
-                              ? 'Historique détaché de ${profile.displayName}.'
-                              : 'Historique rattaché à ${profile.displayName}.',
-                        );
-                        ref.invalidate(_adminHistoricalPlayersProvider);
-                      },
-                      onArchiveToggle: () async {
-                        final nextStatus =
-                            policy.isArchived ? 'active' : 'archived';
-                        if (!policy.isArchived) {
-                          final confirmed = await _confirm(
-                            context,
-                            'Archiver ce compte ?',
-                            '${profile.displayName} ne pourra plus se connecter. '
-                                'Ses données seront conservées.',
-                          );
-                          if (!confirmed) return;
-                        }
-                        await run(
-                          () => repository.updateProfileStatus(
-                            profile.id,
-                            nextStatus,
-                          ),
-                          success: policy.isArchived
-                              ? 'Compte réactivé.'
-                              : 'Compte archivé.',
+                          () async {
+                            await repository.validateProfile(
+                              profile.id,
+                              seasonPlayerId: choice.seasonPlayerId,
+                            );
+                            final seasonId = choice.seasonId;
+                            if (seasonId != null) {
+                              ref.invalidate(rosterProvider(seasonId));
+                            }
+                          },
+                          success: choice.seasonPlayerId == null
+                              ? '${profile.displayName} peut maintenant se connecter.'
+                              : '${profile.displayName} est validé et relié au joueur.',
                         );
                       },
-                      onDelete: () async {
+                      onReject: () async {
                         final confirmed = await _confirm(
                           context,
-                          'Supprimer ce compte ?',
-                          '${profile.displayName} sera supprimé définitivement. '
-                              'Pour bloquer uniquement la connexion, utilise '
-                              '« Archiver ».',
+                          'Refuser et supprimer ce compte ?',
+                          '${profile.displayName} sera supprimé définitivement.',
                         );
                         if (!confirmed) return;
                         await run(
@@ -314,20 +300,40 @@ class _ProfileCard extends ConsumerWidget {
                       },
                     ),
                   ],
-                ),
-            ],
-          ],
-        ),
-      ),
+                ],
+              ),
+            )
+          : ExpansionTile(
+              key: PageStorageKey<String>('validated-profile-${profile.id}'),
+              initiallyExpanded: false,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+              childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              title: Text(
+                profile.displayName,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (policy.isSelf)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: _StatusChip(label: 'Toi'),
+                    )
+                  else if (policy.isArchived)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: _StatusChip(label: 'Archivé'),
+                    ),
+                  const Icon(Icons.expand_more),
+                ],
+              ),
+              children: [validatedDetails()],
+            ),
     );
   }
 }
 
-/// Étiquette d'état non interactive.
-///
-/// Un [Chip] Material porte une sémantique de sélection : sur l'écran Comptes,
-/// la pastille « Toi » était annoncée comme une case à cocher. On masque donc
-/// la sémantique du Chip et on la remplace par un simple libellé.
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.label});
 
