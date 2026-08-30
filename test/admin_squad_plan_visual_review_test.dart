@@ -35,8 +35,18 @@ void main() {
 
     expect(
       find.textContaining('jusqu’à ce que tu appuies sur Enregistrer.'),
-      findsOneWidget,
+      findsNothing,
     );
+    final waitlistButton =
+        find.widgetWithText(OutlinedButton, 'Voir la liste d’attente');
+    final guestButton = find.widgetWithText(OutlinedButton, 'Ajouter un invité');
+    expect(waitlistButton, findsOneWidget);
+    expect(guestButton, findsOneWidget);
+    final waitlistRect = tester.getRect(waitlistButton);
+    final guestRect = tester.getRect(guestButton);
+    expect(waitlistRect.left, lessThan(guestRect.left));
+    expect((waitlistRect.top - guestRect.top).abs(), lessThan(0.5));
+    expect((waitlistRect.width - guestRect.width).abs(), lessThan(0.5));
     expect(find.byType(ActionChip), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(find.textContaining('Brouillon'), findsNothing);
