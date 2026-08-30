@@ -37,14 +37,6 @@ class PlayersRegistryPage extends ConsumerWidget {
           return _RosterList(seasonId: seasonId);
         },
       ),
-      floatingActionButton: seasonAsync.valueOrNull == null
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () =>
-                  _showPlayerDialog(context, ref, seasonId: seasonAsync.value!),
-              icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Ajouter'),
-            ),
     );
   }
 }
@@ -68,15 +60,25 @@ class _RosterList extends ConsumerWidget {
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () =>
+                    _showPlayerDialog(context, ref, seasonId: seasonId),
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Ajouter un joueur à l’effectif'),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (players.isEmpty)
               const Card(
                 child: GrintaEmptyState(
                   icon: Icons.groups_rounded,
                   title: 'Effectif vide',
-                  message: 'Ajoute tes joueurs avec le bouton « Ajouter » '
-                      'en bas de l’écran.',
+                  message: 'Ajoute ton premier joueur avec le bouton '
+                      'ci-dessus.',
                   compact: true,
                 ),
               )
