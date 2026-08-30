@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +54,23 @@ class MorePage extends ConsumerWidget {
             ),
           ],
           if (isRealAdmin && !viewingAsUser) ...[
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.stadium_outlined),
+                title: const Text(
+                  'Équipes & stades',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: const Text('Adversaires, stades et adresses'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const OpponentStadiumLibraryPage(),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 10),
             Card(
               child: ListTile(
