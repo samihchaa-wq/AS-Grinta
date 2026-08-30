@@ -32,8 +32,34 @@ import 'package:as_grinta/features/sports_management/presentation/match_report_p
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+@visibleForTesting
+bool shouldUseNoTransitionPageForWebKitHistory({
+  required bool isWeb,
+  required TargetPlatform platform,
+}) {
+  return isWeb &&
+      (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS);
+}
+
+Page<void> _browserSafeMatchPage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  // Flutter issue #114324: iOS WebKit can briefly redraw the route that is
+  // being left after the native browser history swipe has already revealed
+  // the destination. A real NoTransitionPage avoids that extra PageRoute.
+  if (shouldUseNoTransitionPageForWebKitHistory(
+    isWeb: kIsWeb,
+    platform: defaultTargetPlatform,
+  )) {
+    return NoTransitionPage<void>(key: state.pageKey, child: child);
+  }
+  return MaterialPage<void>(key: state.pageKey, child: child);
+}
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier();
@@ -79,17 +105,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: '/matches/:matchId',
-                builder: (context, state) => MatchDetailsPage(
-                  matchId: state.pathParameters['matchId'] ?? '',
+                pageBuilder: (context, state) => _browserSafeMatchPage(
+                  state: state,
+                  child: MatchDetailsPage(
+                    matchId: state.pathParameters['matchId'] ?? '',
+                  ),
                 ),
               ),
               GoRoute(
                 path: '/matches/history/:matchId',
-                builder: (context, state) => HistoricalMatchDetailPage(
-                  matchId: state.pathParameters['matchId'] ?? '',
-                  initialMatch: state.extra is HistoricalMatchResult
-                      ? state.extra as HistoricalMatchResult
-                      : null,
+                pageBuilder: (context, state) => _browserSafeMatchPage(
+                  state: state,
+                  child: HistoricalMatchDetailPage(
+                    matchId: state.pathParameters['matchId'] ?? '',
+                    initialMatch: state.extra is HistoricalMatchResult
+                        ? state.extra as HistoricalMatchResult
+                        : null,
+                  ),
                 ),
               ),
               GoRoute(
