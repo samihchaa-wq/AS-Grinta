@@ -1254,7 +1254,11 @@ class _CompactChoiceButton extends StatelessWidget {
     );
     if (selected) {
       return FilledButton(
-        style: style,
+        style: style.copyWith(
+          foregroundColor: WidgetStatePropertyAll(
+            Theme.of(context).colorScheme.secondary,
+          ),
+        ),
         onPressed: enabled ? onPressed : null,
         child: child,
       );
