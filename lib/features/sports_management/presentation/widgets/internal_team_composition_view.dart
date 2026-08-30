@@ -2,8 +2,10 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
     show PlayerAvatar;
@@ -11,6 +13,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const int _minimumPositionAppearances = 5;
+
+final _internalPositionProfilesProvider =
+    FutureProvider.autoDispose<Map<String, PlayerPositionProfile>>((ref) async {
+  final repository = ref.watch(matchCompositionRepositoryProvider);
+  try {
+    return mergePlayerPositionProfiles(
+      history: await repository.fetchPlayerPositionHistory(
+        kLivePositionHistoryStart,
+      ),
+    );
+  } catch (_) {
+    return kPlayerPositionProfiles;
+  }
+});
 
 enum _InternalPlayerCategory { defender, midfielder, attacker, other }
 
@@ -31,18 +47,10 @@ class InternalTeamCompositionView extends ConsumerStatefulWidget {
     super.key,
     required this.matchId,
     required this.editable,
-    this.canonicalPlayerIds = const {},
-    this.positionProfiles = kPlayerPositionProfiles,
   });
 
   final String matchId;
   final bool editable;
-
-  /// `season_players.id` -> identité canonique (`players.id`).
-  final Map<String, String> canonicalPlayerIds;
-
-  /// Même historique pondéré que celui utilisé par « Simuler la compo ».
-  final Map<String, PlayerPositionProfile> positionProfiles;
 
   @override
   ConsumerState<InternalTeamCompositionView> createState() =>
@@ -163,13 +171,14 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  _InternalPlayerCategory _categoryFor(InternalCompositionEntry entry) {
+  _InternalPlayerCategory _categoryFor(
+    InternalCompositionEntry entry,
+    Map<String, PlayerPositionProfile> positionProfiles,
+  ) {
     if (entry.isGoalkeeper) return _InternalPlayerCategory.other;
-    final seasonPlayerId = entry.seasonPlayerId;
-    if (seasonPlayerId == null) return _InternalPlayerCategory.other;
-    final canonicalId = widget.canonicalPlayerIds[seasonPlayerId];
+    final canonicalId = entry.canonicalPlayerId;
     if (canonicalId == null) return _InternalPlayerCategory.other;
-    final profile = widget.positionProfiles[canonicalId];
+    final profile = positionProfiles[canonicalId];
     if (profile == null ||
         profile.appearances < _minimumPositionAppearances) {
       return _InternalPlayerCategory.other;
@@ -178,8 +187,8 @@ class _InternalTeamCompositionViewState
     var weightedY = 0.0;
     var totalWeight = 0.0;
     for (final sample in profile.samples) {
-      // Comme la simulation, on ne transforme jamais un dépannage au but en
-      // poste de champ. Un gardien déclaré est déjà classé « Autre » plus haut.
+      // Comme la simulation, un dépannage au but n'influence jamais le poste
+      // moyen d'un joueur de champ.
       if (sample.slotLabel == 'GB') continue;
       final position = matchSheetSlotPositions[sample.slotLabel];
       if (position == null || sample.weight <= 0) continue;
@@ -189,21 +198,24 @@ class _InternalTeamCompositionViewState
     if (totalWeight <= 0) return _InternalPlayerCategory.other;
 
     final averageY = weightedY / totalWeight;
-    // Frontières placées entre les lignes de la feuille de match :
-    // défense (y=.65+) / milieux (jusqu'à .53), puis ailiers (.22) / MOC (.27).
+    // Frontières entre les lignes de la feuille de match : défense (y=.65+)
+    // / milieux (jusqu'à .53), puis ailiers (.22) / MOC (.27).
     if (averageY >= .59) return _InternalPlayerCategory.defender;
     if (averageY <= .235) return _InternalPlayerCategory.attacker;
     return _InternalPlayerCategory.midfielder;
   }
 
   Map<_InternalPlayerCategory, List<InternalCompositionEntry>>
-      _groupUnassigned(List<InternalCompositionEntry> entries) {
+      _groupUnassigned(
+    List<InternalCompositionEntry> entries,
+    Map<String, PlayerPositionProfile> positionProfiles,
+  ) {
     final grouped = {
       for (final category in _InternalPlayerCategory.values)
         category: <InternalCompositionEntry>[],
     };
     for (final entry in entries) {
-      grouped[_categoryFor(entry)]!.add(entry);
+      grouped[_categoryFor(entry, positionProfiles)]!.add(entry);
     }
     for (final values in grouped.values) {
       values.sort(
@@ -255,6 +267,9 @@ class _InternalTeamCompositionViewState
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(internalMatchCompositionProvider(widget.matchId));
+    final positionProfiles =
+        ref.watch(_internalPositionProfilesProvider).valueOrNull ??
+            kPlayerPositionProfiles;
 
     return async.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -281,14 +296,16 @@ class _InternalTeamCompositionViewState
         final unassigned = entries.where((e) => e.teamNo == null).toList();
         final team1 = entries.where((e) => e.teamNo == 1).toList();
         final team2 = entries.where((e) => e.teamNo == 2).toList();
-        final grouped = _groupUnassigned(unassigned);
-        final selectedEntry = _selectedParticipantId == null
-            ? null
-            : entries.cast<InternalCompositionEntry?>().firstWhere(
-                  (entry) =>
-                      entry?.participantId == _selectedParticipantId,
-                  orElse: () => null,
-                );
+        final grouped = _groupUnassigned(unassigned, positionProfiles);
+        InternalCompositionEntry? selectedEntry;
+        if (_selectedParticipantId != null) {
+          for (final entry in entries) {
+            if (entry.participantId == _selectedParticipantId) {
+              selectedEntry = entry;
+              break;
+            }
+          }
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -350,8 +367,8 @@ class _InternalTeamCompositionViewState
                     entries: team1,
                     editable: widget.editable,
                     selectedParticipantId: _selectedParticipantId,
-                    canReceiveSelected: selectedEntry != null &&
-                        selectedEntry.teamNo != 1,
+                    canReceiveSelected:
+                        selectedEntry != null && selectedEntry.teamNo != 1,
                     onJerseyTap: () => _moveSelectedToTeam(1),
                     onJerseyChanged: (jersey) => _selectJersey(1, jersey),
                     onPlayerTap: _togglePlayerSelection,
@@ -370,8 +387,8 @@ class _InternalTeamCompositionViewState
                     entries: team2,
                     editable: widget.editable,
                     selectedParticipantId: _selectedParticipantId,
-                    canReceiveSelected: selectedEntry != null &&
-                        selectedEntry.teamNo != 2,
+                    canReceiveSelected:
+                        selectedEntry != null && selectedEntry.teamNo != 2,
                     onJerseyTap: () => _moveSelectedToTeam(2),
                     onJerseyChanged: (jersey) => _selectJersey(2, jersey),
                     onPlayerTap: _togglePlayerSelection,
@@ -429,7 +446,7 @@ class _PlayerCategorySection extends StatelessWidget {
               '$title (${entries.length})',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.muted,
+                    color: AppTheme.textFaint,
                   ),
             ),
           ),
@@ -517,10 +534,7 @@ class _TeamColumn extends StatelessWidget {
                     width: canReceiveSelected ? 2 : 1,
                   ),
                 ),
-                child: Image.asset(
-                  jersey.assetPath,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset(jersey.assetPath, fit: BoxFit.contain),
               ),
             ),
           ),
@@ -535,10 +549,7 @@ class _TeamColumn extends StatelessWidget {
         ),
         if (editable) ...[
           const SizedBox(height: 6),
-          _JerseyPicker(
-            selected: jersey,
-            onChanged: onJerseyChanged,
-          ),
+          _JerseyPicker(selected: jersey, onChanged: onJerseyChanged),
         ],
         const SizedBox(height: 8),
         if (editable && controller != null)
@@ -708,7 +719,8 @@ class _PlayerChip extends StatelessWidget {
                   onPressed: onRemove,
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints:
+                      const BoxConstraints(minWidth: 28, minHeight: 28),
                   icon: const Icon(Icons.close_rounded, size: 16),
                 ),
               ],
