@@ -55,7 +55,7 @@ void main() {
     await _capture(tester, 'effectif_compact_enregistrer.png');
   });
 
-  testWidgets('captures the composition with explicit save', (tester) async {
+  testWidgets('captures the compact composition controls', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
@@ -63,7 +63,18 @@ void main() {
       initialStep: 'composition',
     );
 
-    expect(find.textContaining('puis appuie sur Enregistrer.'), findsOneWidget);
+    expect(find.text('Composition'), findsNothing);
+    expect(find.textContaining('Choisis un dispositif'), findsNothing);
+    final formation = find.byType(DropdownButtonFormField<String>);
+    final simulateButton =
+        find.widgetWithText(OutlinedButton, 'Simuler une composition');
+    expect(formation, findsOneWidget);
+    expect(simulateButton, findsOneWidget);
+    final formationRect = tester.getRect(formation);
+    final simulateRect = tester.getRect(simulateButton);
+    expect(formationRect.left, lessThan(simulateRect.left));
+    expect((formationRect.top - simulateRect.top).abs(), lessThan(0.5));
+    expect((formationRect.width - simulateRect.width).abs(), lessThan(0.5));
     expect(find.text('Remplaçants (3)'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(
