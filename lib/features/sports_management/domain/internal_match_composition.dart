@@ -8,6 +8,7 @@ class InternalCompositionEntry {
     required this.isGoalkeeper,
     this.seasonPlayerId,
     this.guestPlayerId,
+    this.canonicalPlayerId,
     this.photoUrl,
     this.teamNo,
     this.sortOrder = 0,
@@ -16,6 +17,7 @@ class InternalCompositionEntry {
   final String participantId;
   final String? seasonPlayerId;
   final String? guestPlayerId;
+  final String? canonicalPlayerId;
   final String displayName;
   final String? photoUrl;
   final bool isGuest;
@@ -28,6 +30,7 @@ class InternalCompositionEntry {
       participantId: participantId,
       seasonPlayerId: seasonPlayerId,
       guestPlayerId: guestPlayerId,
+      canonicalPlayerId: canonicalPlayerId,
       displayName: displayName,
       photoUrl: photoUrl,
       isGuest: isGuest,
@@ -42,6 +45,7 @@ class InternalCompositionEntry {
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString(),
       guestPlayerId: json['guest_player_id']?.toString(),
+      canonicalPlayerId: json['canonical_player_id']?.toString(),
       displayName: (json['display_name'] ?? 'Joueur').toString(),
       photoUrl: json['photo_url']?.toString(),
       isGuest: json['is_guest'] == true,
@@ -63,12 +67,16 @@ class InternalMatchComposition {
     required this.matchId,
     required this.team1Name,
     required this.team2Name,
+    required this.team1JerseyId,
+    required this.team2JerseyId,
     required this.entries,
   });
 
   final String matchId;
   final String team1Name;
   final String team2Name;
+  final String team1JerseyId;
+  final String team2JerseyId;
   final List<InternalCompositionEntry> entries;
 
   List<InternalCompositionEntry> get unassigned =>
@@ -86,6 +94,11 @@ class InternalMatchComposition {
       matchId: json['match_id']?.toString() ?? '',
       team1Name: (json['team1_name'] ?? 'Équipe 1').toString(),
       team2Name: (json['team2_name'] ?? 'Équipe 2').toString(),
+      // Valeurs historiques de l'écran avant l'arrivée du troisième maillot.
+      // Les fallbacks gardent aussi la compatibilité avec un serveur pas
+      // encore migré pendant un déploiement progressif.
+      team1JerseyId: (json['team1_jersey_id'] ?? 'orange').toString(),
+      team2JerseyId: (json['team2_jersey_id'] ?? 'blue').toString(),
       entries: entriesRaw is List
           ? entriesRaw
               .map(
