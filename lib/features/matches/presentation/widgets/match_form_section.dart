@@ -8,13 +8,13 @@ class MatchFormSection extends StatelessWidget {
   const MatchFormSection({
     super.key,
     required this.title,
-    this.icon,
+    required this.icon,
     required this.children,
     this.subtitle,
   });
 
   final String title;
-  final IconData? icon;
+  final IconData icon;
   final String? subtitle;
   final List<Widget> children;
 
@@ -88,14 +88,12 @@ class MatchFormPickerTile extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
-    required this.icon,
     required this.onTap,
     this.enabled = true,
   });
 
   final String label;
   final String value;
-  final IconData icon;
   final VoidCallback onTap;
   final bool enabled;
 
