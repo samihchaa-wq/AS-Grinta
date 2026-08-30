@@ -1,6 +1,6 @@
 name: Agent yellow meeting convocation jersey
 
-'on':
+on:
   push:
     branches:
       - agent/yellow-meeting-convocation-jersey
@@ -16,84 +16,5 @@ jobs:
         with:
           ref: agent/yellow-meeting-convocation-jersey
           fetch-depth: 0
-
-      - name: Apply selected yellow follow-up
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          meeting = Path('lib/features/matches/presentation/widgets/match_meeting_time_picker.dart')
-          text = meeting.read_text()
-          old = """    if (selected) {
-      return FilledButton(
-        onPressed: enabled ? onPressed : null,
-        child: Text(label),
-      );
-    }
-"""
-          new = """    if (selected) {
-      return FilledButton(
-        style: FilledButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.secondary,
-        ),
-        onPressed: enabled ? onPressed : null,
-        child: Text(label),
-      );
-    }
-"""
-          if text.count(old) != 1:
-              raise SystemExit(f'Unexpected meeting selected-button match count: {text.count(old)}')
-          meeting.write_text(text.replace(old, new, 1))
-
-          convoc = Path('lib/features/matches/presentation/widgets/convocation_launch_picker.dart')
-          text = convoc.read_text()
-          old = """    if (selected) {
-      return FilledButton(
-        style: style,
-        onPressed: enabled ? onPressed : null,
-        child: Text(label, maxLines: 1),
-      );
-    }
-"""
-          new = """    if (selected) {
-      return FilledButton(
-        style: style.copyWith(
-          foregroundColor: WidgetStatePropertyAll(
-            Theme.of(context).colorScheme.secondary,
-          ),
-        ),
-        onPressed: enabled ? onPressed : null,
-        child: Text(label, maxLines: 1),
-      );
-    }
-"""
-          if text.count(old) != 1:
-              raise SystemExit(f'Unexpected convocation selected-button match count: {text.count(old)}')
-          convoc.write_text(text.replace(old, new, 1))
-
-          for filename in [
-              'lib/features/matches/presentation/calendar_entry_form_page.dart',
-              'lib/features/matches/presentation/match_form_page.dart',
-          ]:
-              path = Path(filename)
-              text = path.read_text()
-              old = '    final accent = Theme.of(context).colorScheme.primary;\n'
-              new = '    final accent = Theme.of(context).colorScheme.secondary;\n'
-              if text.count(old) != 1:
-                  raise SystemExit(f'Unexpected jersey accent match count in {filename}: {text.count(old)}')
-              path.write_text(text.replace(old, new, 1))
-          PY
-
-      - name: Commit source patch and remove temporary workflow
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm .github/workflows/agent_yellow_meeting_convocation_jersey.yml
-          git add \
-            lib/features/matches/presentation/widgets/match_meeting_time_picker.dart \
-            lib/features/matches/presentation/widgets/convocation_launch_picker.dart \
-            lib/features/matches/presentation/calendar_entry_form_page.dart \
-            lib/features/matches/presentation/match_form_page.dart \
-            .github/workflows/agent_yellow_meeting_convocation_jersey.yml
-          git commit -m "Align remaining selected states with club yellow"
-          git push origin HEAD:agent/yellow-meeting-convocation-jersey
+      - name: Apply patch
+        run: bash .github/scripts/patch_selected_yellow.sh
