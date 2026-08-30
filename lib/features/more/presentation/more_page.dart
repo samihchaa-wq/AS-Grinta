@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -64,11 +65,18 @@ class MorePage extends ConsumerWidget {
                 ),
                 subtitle: const Text('Adversaires, stades et adresses'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const OpponentStadiumLibraryPage(),
-                  ),
-                ),
+                onTap: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const OpponentStadiumLibraryPage(),
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  await ref.read(matchesControllerProvider.notifier).load(
+                        allSeasons: true,
+                        forceRefresh: true,
+                      );
+                },
               ),
             ),
             const SizedBox(height: 10),
