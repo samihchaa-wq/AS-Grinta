@@ -1,0 +1,43 @@
+name: Temporary opponent formatter
+
+on:
+  push:
+    branches:
+      - feature/opponent-stadium-library
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feature/opponent-stadium-library
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format target file
+        run: dart format lib/features/admin/presentation/opponent_stadium_library_page.dart
+
+      - name: Commit formatter output
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- lib/features/admin/presentation/opponent_stadium_library_page.dart; then
+            echo "Already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/admin/presentation/opponent_stadium_library_page.dart
+          git commit -m "Format opponent stadium library with CI Dart"
+          git push origin HEAD:feature/opponent-stadium-library
