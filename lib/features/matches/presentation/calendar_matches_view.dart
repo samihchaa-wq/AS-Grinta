@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:as_grinta/app/shell/module_navigation.dart';
-import 'package:as_grinta/core/calendar/ics_calendar_export.dart';
+import 'package:as_grinta/core/config/app_config.dart';
+import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
@@ -14,7 +15,6 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
-import 'package:as_grinta/features/matches/domain/calendar_export.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
@@ -24,8 +24,10 @@ import 'package:as_grinta/features/matches/presentation/widgets/historical_match
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 part 'calendar_matches_widgets.dart';
 
@@ -76,48 +78,50 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     await _refreshModernMatches();
   }
 
-  Future<void> _exportCurrentSeason({
-    required String seasonId,
-    required String seasonName,
-  }) async {
-    final state = ref.read(matchesControllerProvider);
-    final matches = state.matches
-        .where((match) => match.seasonId == seasonId)
-        .toList(growable: false);
-    List<ClubEvent> events;
+  Future<void> _subscribeCurrentSeason() async {
     try {
-      events = (await ref.read(
-        clubEventsProvider.future,
-      ))
-          .where((event) => event.seasonId == seasonId)
-          .toList(growable: false);
-    } catch (_) {
-      events = const <ClubEvent>[];
-    }
+      final client = ref.read(supabaseClientProvider);
+      final rawToken = await client.rpc(
+        'get_or_create_calendar_subscription_token',
+      );
+      final token = rawToken?.toString().trim() ?? '';
+      if (token.isEmpty) {
+        throw StateError('Le lien d’abonnement n’a pas pu être créé.');
+      }
 
-    if (matches.isEmpty && events.isEmpty) {
+      final httpsUri = Uri.parse(
+        '${AppConfig.supabaseUrl}/functions/v1/calendar-feed',
+      ).replace(queryParameters: {'token': token});
+      final webcalUri = httpsUri.replace(scheme: 'webcal');
+
+      var launched = false;
+      try {
+        launched = await launchUrl(
+          webcalUri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (_) {
+        launched = false;
+      }
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun élément à ajouter au calendrier.')),
-      );
-      return;
-    }
+      if (launched) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Abonnement calendrier ouvert. Les prochains changements se synchroniseront automatiquement.',
+            ),
+          ),
+        );
+        return;
+      }
 
-    try {
-      final contents = buildSeasonIcs(
-        seasonName: seasonName,
-        matches: matches,
-        events: events,
-      );
-      await downloadIcsFile(
-        contents: contents,
-        filename: 'as-grinta-$seasonName.ics',
-      );
+      await Clipboard.setData(ClipboardData(text: httpsUri.toString()));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Calendrier .ics généré. Ouvre le fichier pour l’ajouter à ton agenda.',
+            'Lien ICS copié. Ajoute-le comme calendrier par URL dans Google Calendar ou Outlook.',
           ),
         ),
       );
@@ -172,7 +176,6 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
           orElse: () => null,
         );
     final currentSeasonName = currentSeason?['name']?.toString();
-    final currentSeasonId = currentSeason?['id']?.toString();
     final selectedSeason =
         _seasonForMonth(seasons, _monthCursor) ?? currentSeason;
     final selectedSeasonName = selectedSeason?['name']?.toString();
@@ -181,12 +184,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final canGoPrevious = bounds != null && _monthCursor.isAfter(bounds.$1);
     final canGoNext = bounds != null && _monthCursor.isBefore(bounds.$2);
 
-    final exportAction = currentSeasonId != null && currentSeasonName != null
-        ? () => _exportCurrentSeason(
-              seasonId: currentSeasonId,
-              seasonName: currentSeasonName,
-            )
-        : null;
+    final exportAction =
+        currentSeasonName != null ? _subscribeCurrentSeason : null;
 
     return Column(
       children: [

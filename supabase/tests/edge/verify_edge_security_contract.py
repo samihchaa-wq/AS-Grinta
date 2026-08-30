@@ -51,6 +51,7 @@ def main() -> int:
         "register-account": False,
         "send-push": False,
         "send-prediction-reminders": True,
+        "calendar-feed": False,
     }
     versioned_functions = {
         path.name
@@ -194,6 +195,34 @@ def main() -> int:
             marker in push_security,
             f"send-push/request_security: garde absente: {marker}",
         )
+
+    calendar = source("calendar-feed")
+    for marker in (
+        'req.method !== "GET" && req.method !== "HEAD"',
+        'searchParams.get("token")',
+        "UUID_RE.test(token)",
+        'from("calendar_subscriptions")',
+        '.eq("token", token)',
+        '.eq("profiles.status", "active")',
+        'Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")',
+        'from("matches")',
+        'from("calendar_match_tombstones")',
+        'STATUS:${cancelled ? "CANCELLED" : "CONFIRMED"}',
+        'Cache-Control": "no-cache, no-store, must-revalidate"',
+    ):
+        require(marker in calendar, f"calendar-feed: garde absente: {marker}")
+    require_in_order(
+        calendar,
+        "UUID_RE.test(token)",
+        'from("calendar_subscriptions")',
+        "calendar-feed doit valider le token avant toute lecture privilégiée",
+    )
+    require_in_order(
+        calendar,
+        '.eq("profiles.status", "active")',
+        'from("matches")',
+        "calendar-feed doit vérifier le profil actif avant de charger le calendrier",
+    )
 
     for slug in ("claim-account", "send-prediction-reminders"):
         retired = source(slug)
