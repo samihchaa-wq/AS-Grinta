@@ -51,13 +51,17 @@ class _OpponentStadiumLibraryPageState
           .order('name');
       if (!mounted) return;
       setState(() {
-        _items = (rows as List)
+        final items = (rows as List)
             .map(
               (row) => _OpponentStadium.fromJson(
                 Map<String, dynamic>.from(row as Map),
               ),
             )
             .toList(growable: false);
+        items.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+        _items = items;
       });
     } catch (error) {
       if (!mounted) return;
@@ -227,9 +231,6 @@ class _OpponentStadiumLibraryPageState
                   child: Card(
                     child: ListTile(
                       contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.stadium_outlined),
-                      ),
                       title: Text(
                         item.name,
                         style: const TextStyle(fontWeight: FontWeight.w800),
