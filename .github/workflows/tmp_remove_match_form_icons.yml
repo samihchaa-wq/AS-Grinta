@@ -1,0 +1,65 @@
+name: Temporary match form icon cleanup
+
+on:
+  push:
+    branches:
+      - fix/remove-match-form-icons
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/remove-match-form-icons
+      - name: Patch Flutter UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
+          s = p.read_text()
+          replacements = {
+            "              icon: Icons.calendar_today_outlined,\n": "",
+            "              icon: Icons.schedule_outlined,\n": "",
+            "              prefixIcon: Icon(Icons.place_outlined),\n": "",
+            "          leading: const Icon(Icons.groups_2_outlined),\n": "",
+            "            CheckboxListTile(\n              contentPadding: EdgeInsets.zero,\n": "            CheckboxListTile(\n              contentPadding: EdgeInsets.zero,\n              dense: true,\n              visualDensity: const VisualDensity(vertical: -4),\n",
+          }
+          for old, new in replacements.items():
+            if old not in s:
+              raise SystemExit(f'Missing expected calendar form snippet: {old!r}')
+            s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          p = Path('lib/features/matches/presentation/widgets/championship_round_tile.dart')
+          s = p.read_text()
+          old = "      leading: const Icon(Icons.format_list_numbered_rounded),\n"
+          if old not in s:
+            raise SystemExit('Missing championship leading icon')
+          p.write_text(s.replace(old, '', 1))
+
+          p = Path('lib/features/matches/presentation/widgets/match_form_section.dart')
+          s = p.read_text()
+          s = s.replace("    required this.icon,\n", "    this.icon,\n", 1)
+          s = s.replace("  final IconData icon;\n", "  final IconData? icon;\n", 1)
+          old = """              Row(\n                children: [\n                  Icon(icon, size: 16, color: colors.onSurfaceVariant),\n                  const SizedBox(width: 6),\n                  Expanded(\n                    child: Text(\n                      label,\n                      maxLines: 1,\n                      overflow: TextOverflow.ellipsis,\n                      style: textTheme.labelMedium?.copyWith(\n                        color: colors.onSurfaceVariant,\n                      ),\n                    ),\n                  ),\n                ],\n              ),\n"""
+          new = """              Text(\n                label,\n                maxLines: 1,\n                overflow: TextOverflow.ellipsis,\n                style: textTheme.labelMedium?.copyWith(\n                  color: colors.onSurfaceVariant,\n                ),\n              ),\n"""
+          if old not in s:
+            raise SystemExit('Missing picker label/icon row')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart \
+                  lib/features/matches/presentation/widgets/championship_round_tile.dart \
+                  lib/features/matches/presentation/widgets/match_form_section.dart
+          git commit -m "Remove match creation field icons and tighten address memory row"
+          git push origin HEAD:fix/remove-match-form-icons
