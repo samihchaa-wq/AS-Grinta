@@ -67,8 +67,8 @@ class InternalMatchComposition {
     required this.matchId,
     required this.team1Name,
     required this.team2Name,
-    required this.team1JerseyId,
-    required this.team2JerseyId,
+    this.team1JerseyId = 'orange',
+    this.team2JerseyId = 'blue',
     required this.entries,
   });
 
