@@ -403,7 +403,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       month: _monthCursor,
       seasonName: selectedSeasonName,
       future: _historyForSeason(selectedSeasonName),
-      events: events,
+      events: seasonEvents,
       onRefresh: () => _refreshHistory(selectedSeasonName),
     );
   }
