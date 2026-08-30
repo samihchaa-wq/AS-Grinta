@@ -334,9 +334,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           return null;
         },
       ),
-      const SizedBox(height: 8),
-      _dateTile(busy: busy),
-      _timeTile(busy: busy),
       const SizedBox(height: 12),
       TextFormField(
         controller: _addressController,
@@ -359,6 +356,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           return null;
         },
       ),
+      const SizedBox(height: 8),
+      _dateTile(busy: busy),
+      _timeTile(busy: busy),
     ];
   }
 
@@ -560,85 +560,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           ],
         ),
       );
-
-      addCard(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Maillot',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final option in JerseyOption.values)
-                  _JerseyOptionTile(
-                    option: option,
-                    selected: _selectedJersey == option,
-                    onTap: busy
-                        ? null
-                        : () => setState(() {
-                              _selectedJersey =
-                                  _selectedJersey == option ? null : option;
-                            }),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    addCard(
-      Row(
-        children: [
-          Expanded(
-            child: MatchFormPickerTile(
-              label: 'Date',
-              value: _formatDate(_startsAt),
-              enabled: !busy,
-              onTap: _pickDate,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: MatchFormPickerTile(
-              label: 'Heure',
-              value: _formatTime(_startsAt),
-              enabled: !busy,
-              onTap: _pickTime,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    addCard(
-      MatchMeetingTimePicker(
-        kickoffAt: _startsAt,
-        customMeetingAt: _meetingAt,
-        enabled: !busy,
-        onChanged: (value) => setState(() => _meetingAt = value),
-      ),
-    );
-
-    if (widget.event == null) {
-      addCard(
-        ConvocationLaunchPicker(
-          kickoffAt: _startsAt,
-          mode: _launchMode,
-          customAt: _customLaunchAt,
-          enabled: !busy,
-          onModeChanged: (mode) => setState(() => _launchMode = mode),
-          onCustomAtChanged: (value) => setState(() => _customLaunchAt = value),
-        ),
-      );
     }
 
     addCard(
@@ -682,6 +603,74 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       ),
     );
 
+    addCard(
+      Row(
+        children: [
+          Expanded(
+            child: MatchFormPickerTile(
+              label: 'Date',
+              value: _formatDate(_startsAt),
+              enabled: !busy,
+              onTap: _pickDate,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: MatchFormPickerTile(
+              label: 'Heure',
+              value: _formatTime(_startsAt),
+              enabled: !busy,
+              onTap: _pickTime,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    addCard(
+      MatchMeetingTimePicker(
+        kickoffAt: _startsAt,
+        customMeetingAt: _meetingAt,
+        enabled: !busy,
+        onChanged: (value) => setState(() => _meetingAt = value),
+      ),
+    );
+
+    if (_isNormalMatch) {
+      addCard(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Maillot',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final option in JerseyOption.values)
+                  _JerseyOptionTile(
+                    option: option,
+                    selected: _selectedJersey == option,
+                    onTap: busy
+                        ? null
+                        : () => setState(() {
+                              _selectedJersey =
+                                  _selectedJersey == option ? null : option;
+                            }),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_isNormalMatch && sportsEnabled) {
       addCard(
         ListTile(
@@ -696,6 +685,19 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           ),
           trailing: const Icon(Icons.unfold_more_rounded),
           onTap: busy ? null : _pickSquadSize,
+        ),
+      );
+    }
+
+    if (widget.event == null) {
+      addCard(
+        ConvocationLaunchPicker(
+          kickoffAt: _startsAt,
+          mode: _launchMode,
+          customAt: _customLaunchAt,
+          enabled: !busy,
+          onModeChanged: (mode) => setState(() => _launchMode = mode),
+          onCustomAtChanged: (value) => setState(() => _customLaunchAt = value),
         ),
       );
     }
