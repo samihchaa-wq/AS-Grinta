@@ -1,9 +1,9 @@
 name: Temporary match form icon cleanup
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/remove-match-form-icons
+      - main
 
 permissions:
   contents: write
