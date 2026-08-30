@@ -70,13 +70,11 @@ class _OpponentStadiumLibraryPageState
   List<_OpponentStadium> get _filteredItems {
     final query = _searchController.text.trim().toLowerCase();
     if (query.isEmpty) return _items;
-    return _items
-        .where((item) {
-          return item.name.toLowerCase().contains(query) ||
-              (item.stadiumName?.toLowerCase().contains(query) ?? false) ||
-              (item.address?.toLowerCase().contains(query) ?? false);
-        })
-        .toList(growable: false);
+    return _items.where((item) {
+      return item.name.toLowerCase().contains(query) ||
+          (item.stadiumName?.toLowerCase().contains(query) ?? false) ||
+          (item.address?.toLowerCase().contains(query) ?? false);
+    }).toList(growable: false);
   }
 
   Future<void> _openEditor([_OpponentStadium? item]) async {
@@ -90,17 +88,15 @@ class _OpponentStadiumLibraryPageState
 
     setState(() => _saving = true);
     try {
-      await ref
-          .read(supabaseClientProvider)
-          .rpc(
-            'admin_save_opponent_stadium',
-            params: {
-              'p_opponent_id': item?.id,
-              'p_name': result.name,
-              'p_stadium_name': result.stadiumName,
-              'p_address': result.address,
-            },
-          );
+      await ref.read(supabaseClientProvider).rpc(
+        'admin_save_opponent_stadium',
+        params: {
+          'p_opponent_id': item?.id,
+          'p_name': result.name,
+          'p_stadium_name': result.stadiumName,
+          'p_address': result.address,
+        },
+      );
       await _load();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -122,8 +118,7 @@ class _OpponentStadiumLibraryPageState
   }
 
   Future<void> _delete(_OpponentStadium item) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer cette équipe ?'),
@@ -148,12 +143,10 @@ class _OpponentStadiumLibraryPageState
 
     setState(() => _saving = true);
     try {
-      await ref
-          .read(supabaseClientProvider)
-          .rpc(
-            'admin_delete_unused_opponent',
-            params: {'p_opponent_id': item.id},
-          );
+      await ref.read(supabaseClientProvider).rpc(
+        'admin_delete_unused_opponent',
+        params: {'p_opponent_id': item.id},
+      );
       await _load();
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -252,8 +245,8 @@ class _OpponentStadiumLibraryPageState
                                 fontWeight: FontWeight.w700,
                                 color: item.stadiumName == null
                                     ? Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant
+                                        .colorScheme
+                                        .onSurfaceVariant
                                     : null,
                               ),
                             ),
@@ -359,7 +352,9 @@ class _OpponentStadiumEditorState extends State<_OpponentStadiumEditor> {
             children: [
               Text(
                 widget.item == null ? 'Nouvelle équipe' : 'Modifier l’équipe',
-                style: Theme.of(context).textTheme.titleLarge
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),
