@@ -16,10 +16,7 @@ const double kPlayerPositionAffinityRange = .18;
 /// Les passages au but sont ignorés pour les joueurs de champ. Cette fonction
 /// est la source de vérité commune à la simulation de composition et aux
 /// regroupements Défenseurs / Milieux / Attaquants des matchs entre nous.
-double playerPositionAffinity(
-  PlayerPositionProfile? profile,
-  Offset target,
-) {
+double playerPositionAffinity(PlayerPositionProfile? profile, Offset target) {
   if (profile == null) return 0;
   var total = 0.0;
   for (final sample in profile.samples) {
@@ -38,8 +35,7 @@ enum PlayerPositionBand { defender, midfielder, attacker }
 /// Ligne correspondant à un poste canonique de la feuille de match.
 PlayerPositionBand? playerPositionBandForSlot(String slotLabel) {
   return switch (slotLabel) {
-    'DG' || 'DCG' || 'DC' || 'DCD' || 'DD' =>
-      PlayerPositionBand.defender,
+    'DG' || 'DCG' || 'DC' || 'DCD' || 'DD' => PlayerPositionBand.defender,
     'MDG' ||
     'MDC' ||
     'MDD' ||
@@ -50,10 +46,8 @@ PlayerPositionBand? playerPositionBandForSlot(String slotLabel) {
     'MD' ||
     'MOG' ||
     'MOC' ||
-    'MOD' =>
-      PlayerPositionBand.midfielder,
-    'AG' || 'AD' || 'BUG' || 'BU' || 'BUD' =>
-      PlayerPositionBand.attacker,
+    'MOD' => PlayerPositionBand.midfielder,
+    'AG' || 'AD' || 'BUG' || 'BU' || 'BUD' => PlayerPositionBand.attacker,
     _ => null,
   };
 }
