@@ -94,10 +94,7 @@ class _AdminPageState extends ConsumerState<AdminPage> {
 }
 
 class _AdminSegmentedBar extends StatelessWidget {
-  const _AdminSegmentedBar({
-    required this.selected,
-    required this.onSelected,
-  });
+  const _AdminSegmentedBar({required this.selected, required this.onSelected});
 
   final _AdminSection selected;
   final ValueChanged<_AdminSection> onSelected;
@@ -218,10 +215,7 @@ class _SeasonSection extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
         children: [
-          _SeasonCard(
-            dashboard: dashboard,
-            onSeasonCreated: onSeasonCreated,
-          ),
+          _SeasonCard(dashboard: dashboard, onSeasonCreated: onSeasonCreated),
         ],
       ),
     );
@@ -272,13 +266,13 @@ class _SegmentedBar<T> extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: selected == items[index].$1
-                              ? FontWeight.w800
-                              : FontWeight.w600,
-                          color: selected == items[index].$1
-                              ? scheme.onPrimaryContainer
-                              : scheme.onSurfaceVariant,
-                        ),
+                      fontWeight: selected == items[index].$1
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: selected == items[index].$1
+                          ? scheme.onPrimaryContainer
+                          : scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
