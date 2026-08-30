@@ -1,0 +1,182 @@
+name: Reorder calendar entry form v2
+
+on:
+  push:
+    branches:
+      - fix/reorder-calendar-entry-form-v2
+    paths:
+      - .github/workflows/reorder_calendar_entry_form_v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/reorder-calendar-entry-form-v2
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Reorder creation modules and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
+          text = path.read_text()
+
+          # Event: Nom -> Lieu de rendez-vous -> Date/Heure.
+          event_start = text.index('  List<Widget> _buildEventFields({required bool busy}) {')
+          match_start = text.index('  List<Widget> _buildMatchFields({', event_start)
+          event = text[event_start:match_start]
+
+          date_start_marker = "      const SizedBox(height: 8),\n      _dateTile(busy: busy),\n"
+          address_marker = "      TextFormField(\n        controller: _addressController,"
+          tail_marker = "    ];\n  }\n\n"
+
+          date_start = event.index(date_start_marker)
+          address_start = event.index(address_marker, date_start)
+          tail_start = event.rindex(tail_marker)
+
+          name_sec = event[:date_start]
+          date_sec = event[date_start:address_start]
+          address_sec = event[address_start:tail_start]
+          tail = event[tail_start:]
+
+          prefix = "      const SizedBox(height: 8),\n"
+          suffix = "      const SizedBox(height: 12),\n"
+          if not date_sec.startswith(prefix) or not date_sec.endswith(suffix):
+              raise SystemExit('Unexpected event date block spacing; aborting safely.')
+          date_core = date_sec[len(prefix):-len(suffix)]
+          new_event = (
+              name_sec
+              + "      const SizedBox(height: 12),\n"
+              + address_sec
+              + "      const SizedBox(height: 8),\n"
+              + date_core
+              + tail
+          )
+          text = text[:event_start] + new_event + text[match_start:]
+
+          # Matches: Type + journée -> Adversaire -> Lieu -> Adresse -> Date/Heure
+          # -> Rendez-vous -> Maillot -> Nombre convoqués -> Lancement convocations.
+          match_start = text.index('  List<Widget> _buildMatchFields({')
+          match_end = text.index('  Widget _dateTile', match_start)
+          func = text[match_start:match_end]
+
+          type_m = "    if (widget.event == null) {\n      addCard(\n        Column(\n          crossAxisAlignment: CrossAxisAlignment.stretch,\n          children: [\n            _EntryKindPicker("
+          opponent_m = '    if (!_isInternal) {'
+          normal_m = '    if (_isNormalMatch) {'
+          date_m = "    addCard(\n      Row(\n        children: [\n          Expanded(\n            child: MatchFormPickerTile(\n              label: 'Date'"
+          meeting_m = '    addCard(\n      MatchMeetingTimePicker('
+          launch_m = "    if (widget.event == null) {\n      addCard(\n        ConvocationLaunchPicker("
+          address_m = "    addCard(\n      Column(\n        crossAxisAlignment: CrossAxisAlignment.stretch,\n        children: [\n          TextFormField(\n            controller: _addressController,"
+          squad_m = '    if (_isNormalMatch && sportsEnabled) {'
+          return_m = '    return fields;'
+
+          markers = [type_m, opponent_m, normal_m, date_m, meeting_m, launch_m, address_m, squad_m, return_m]
+          positions = [func.index(marker) for marker in markers]
+          if positions != sorted(positions):
+              raise SystemExit('Unexpected latest-main section order; aborting safely.')
+
+          pre = func[:positions[0]]
+          type_sec = func[positions[0]:positions[1]]
+          opponent_sec = func[positions[1]:positions[2]]
+          normal_sec = func[positions[2]:positions[3]]
+          date_sec = func[positions[3]:positions[4]]
+          meeting_sec = func[positions[4]:positions[5]]
+          launch_sec = func[positions[5]:positions[6]]
+          address_sec = func[positions[6]:positions[7]]
+          squad_sec = func[positions[7]:positions[8]]
+          tail = func[positions[8]:]
+
+          normal_prefix = '    if (_isNormalMatch) {\n'
+          normal_suffix = '    }\n\n'
+          if not normal_sec.startswith(normal_prefix) or not normal_sec.endswith(normal_suffix):
+              raise SystemExit('Unexpected normal-match wrapper; aborting safely.')
+          inner = normal_sec[len(normal_prefix):-len(normal_suffix)]
+          jersey_m = "      addCard(\n        Column(\n          crossAxisAlignment: CrossAxisAlignment.stretch,\n          children: [\n            Text(\n              'Maillot',"
+          jersey_pos = inner.index(jersey_m)
+          venue_inner = inner[:jersey_pos]
+          jersey_inner = inner[jersey_pos:]
+          venue_sec = normal_prefix + venue_inner + normal_suffix
+          jersey_sec = normal_prefix + jersey_inner + normal_suffix
+
+          new_func = (
+              pre
+              + type_sec
+              + opponent_sec
+              + venue_sec
+              + address_sec
+              + date_sec
+              + meeting_sec
+              + jersey_sec
+              + squad_sec
+              + launch_sec
+              + tail
+          )
+          text = text[:match_start] + new_func + text[match_end:]
+          path.write_text(text)
+
+          final = path.read_text()
+          mstart = final.index('  List<Widget> _buildMatchFields({')
+          mend = final.index('  Widget _dateTile', mstart)
+          match = final[mstart:mend]
+          match_markers = [
+              '_EntryKindPicker(',
+              'ChampionshipRoundTile(',
+              "'Adversaire',",
+              "'Lieu',",
+              'controller: _addressController',
+              "label: 'Date',",
+              'MatchMeetingTimePicker(',
+              "'Maillot',",
+              "'Nombre de joueurs convoqués ",
+              'ConvocationLaunchPicker(',
+          ]
+          positions = [match.index(marker) for marker in match_markers]
+          if positions != sorted(positions):
+              raise SystemExit('Final match module order check failed.')
+
+          estart = final.index('  List<Widget> _buildEventFields({required bool busy}) {')
+          eend = final.index('  List<Widget> _buildMatchFields({', estart)
+          event = final[estart:eend]
+          event_markers = [
+              'controller: _eventTitleController',
+              'controller: _addressController',
+              '_dateTile(busy: busy)',
+              '_timeTile(busy: busy)',
+          ]
+          positions = [event.index(marker) for marker in event_markers]
+          if positions != sorted(positions):
+              raise SystemExit('Final event module order check failed.')
+
+          if 'Un événement est uniquement un rendez-vous' in final:
+              raise SystemExit('Removed event helper copy was reintroduced.')
+          PY
+          flutter pub get --enforce-lockfile
+          dart format lib/features/matches/presentation/calendar_entry_form_page.dart
+          git diff --check
+
+      - name: Commit result and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/reorder_calendar_entry_form_v2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart .github/workflows/reorder_calendar_entry_form_v2.yml
+          git commit -m 'Reorder calendar entry creation modules on latest main'
+          git push origin HEAD:fix/reorder-calendar-entry-form-v2
