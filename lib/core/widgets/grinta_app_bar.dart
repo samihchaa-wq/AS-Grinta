@@ -8,6 +8,9 @@ import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_en
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+/// Clé stable du badge club qui ramène au calendrier.
+const grintaClubHomeBadgeKey = ValueKey<String>('club-home-badge');
+
 /// Barre supérieure commune de l'application.
 class GrintaAppBar extends AppBar {
   GrintaAppBar({
@@ -27,6 +30,47 @@ class GrintaAppBar extends AppBar {
             admin: admin,
           ),
         );
+}
+
+/// Badge AS Grinta réutilisable pour les en-têtes hors [GrintaAppBar].
+///
+/// Sa destination est volontairement absolue : quel que soit l'historique de
+/// navigation, un appui revient toujours à la racine Calendrier.
+class GrintaClubHomeButton extends StatelessWidget {
+  const GrintaClubHomeButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Retour au calendrier',
+      child: Tooltip(
+        message: 'Retour au calendrier',
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkResponse(
+            key: grintaClubHomeBadgeKey,
+            onTap: () => context.go('/matches'),
+            radius: 24,
+            containedInkWell: true,
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Image.asset(
+                  'assets/images/as_grinta_logo.webp',
+                  height: 42,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _HeaderBackdrop extends StatelessWidget {
@@ -79,18 +123,7 @@ class _GrintaTitleBar extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 48,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Image.asset(
-                'assets/images/as_grinta_logo.webp',
-                height: 42,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-              ),
-            ),
-          ),
+          const GrintaClubHomeButton(),
           const SizedBox(width: AppSpacing.contentGap),
           Expanded(
             child: DefaultTextStyle.merge(

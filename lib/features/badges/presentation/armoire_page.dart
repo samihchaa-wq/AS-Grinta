@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -46,7 +47,7 @@ class ArmoirePage extends ConsumerWidget {
     final isAdmin = ref.watch(isAdminViewProvider);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GrintaAppBar(
         title: const Text('Armoire à badges'),
         actions: [
           if (isAdmin)

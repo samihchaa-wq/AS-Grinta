@@ -1,14 +1,15 @@
 import 'dart:ui' as ui;
 
+import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/data/wrapped_music.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_motion.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
-import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_slides.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -53,9 +54,7 @@ class SeasonWrappedPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: wrapped.when(
-        loading: () => const Center(
-          child: GrintaLoader.page(message: 'Préparation de ton bilan'),
-        ),
+        loading: () => const _WrappedLoading(),
         error: (_, __) => const _WrappedMessage(
           icon: Icons.cloud_off_outlined,
           title: 'Bilan indisponible',
@@ -72,6 +71,30 @@ class SeasonWrappedPage extends ConsumerWidget {
           return _WrappedStory(wrapped: data);
         },
       ),
+    );
+  }
+}
+
+class _WrappedLoading extends StatelessWidget {
+  const _WrappedLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Stack(
+      children: [
+        Center(
+          child: GrintaLoader.page(message: 'Préparation de ton bilan'),
+        ),
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 6, top: 4),
+              child: GrintaClubHomeButton(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -100,6 +123,11 @@ class _WrappedMessage extends StatelessWidget {
                 title: title,
                 message: message,
               ),
+            ),
+            const Positioned(
+              top: 4,
+              left: 6,
+              child: GrintaClubHomeButton(),
             ),
             const _CloseButton(),
           ],
@@ -551,6 +579,7 @@ class _StoryControls extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Row(
         children: [
+          const GrintaClubHomeButton(),
           if (preview)
             // Des chiffres d'exemple ne doivent jamais pouvoir passer pour
             // un vrai bilan : l'aperçu le dit sur chaque écran.
