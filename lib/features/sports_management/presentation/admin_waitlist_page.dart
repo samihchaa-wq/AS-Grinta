@@ -2,11 +2,12 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class AdminWaitlistPage extends ConsumerStatefulWidget {
   const AdminWaitlistPage({super.key, this.editable = true});
@@ -65,10 +66,12 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     if (dragged.seasonPlayerId == target.seasonPlayerId) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries);
-      final fromIndex =
-          entries.indexWhere((e) => e.seasonPlayerId == dragged.seasonPlayerId);
-      final toIndex =
-          entries.indexWhere((e) => e.seasonPlayerId == target.seasonPlayerId);
+      final fromIndex = entries.indexWhere(
+        (e) => e.seasonPlayerId == dragged.seasonPlayerId,
+      );
+      final toIndex = entries.indexWhere(
+        (e) => e.seasonPlayerId == target.seasonPlayerId,
+      );
       if (fromIndex == -1 || toIndex == -1) return;
       final item = entries.removeAt(fromIndex);
       entries.insert(toIndex, item);
@@ -97,10 +100,9 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     });
 
     try {
-      await ref.read(sportWaitlistRepositoryProvider).setWaitlistManualCount(
-            seasonPlayerId: playerId,
-            count: newCount,
-          );
+      await ref
+          .read(sportWaitlistRepositoryProvider)
+          .setWaitlistManualCount(seasonPlayerId: playerId, count: newCount);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -112,9 +114,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
               current,
         ];
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) {
         setState(() => _adjustingCounts.remove(playerId));
@@ -131,11 +132,13 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries)
         ..sort((a, b) {
-          final byWaitlistCount = a.currentSeasonWaitlistCount
-              .compareTo(b.currentSeasonWaitlistCount);
+          final byWaitlistCount = a.currentSeasonWaitlistCount.compareTo(
+            b.currentSeasonWaitlistCount,
+          );
           if (byWaitlistCount != 0) return byWaitlistCount;
-          return a.previousSeasonAttendanceCount
-              .compareTo(b.previousSeasonAttendanceCount);
+          return a.previousSeasonAttendanceCount.compareTo(
+            b.previousSeasonAttendanceCount,
+          );
         });
       _entries = entries;
       _dirty = true;
@@ -168,12 +171,37 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  StickyTableRow _tableRow(int index) {
+    final entry = _entries[index];
+    ValueChanged<SportWaitlistEntry>? onReorderDrop;
+    if (widget.editable) {
+      onReorderDrop = (dragged) => _reorderByDrag(dragged, entry);
+    }
+
+    return StickyTableRow(
+      pinned: _WaitlistPinnedRow(
+        key: ValueKey('waitlist-row-${entry.seasonPlayerId}'),
+        index: index,
+        entry: entry,
+        editable: widget.editable,
+        onReorderDrop: onReorderDrop,
+      ),
+      scrollable: _WaitlistScrollableRow(
+        entry: entry,
+        editable: widget.editable,
+        adjustingCount: _adjustingCounts.contains(entry.seasonPlayerId),
+        onReorderDrop: onReorderDrop,
+        onIncrement: () => _adjustWaitlistCount(entry, 1),
+        onDecrement: () => _adjustWaitlistCount(entry, -1),
+      ),
+    );
   }
 
   @override
@@ -237,282 +265,176 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-      children: [
-        if (widget.editable) ...[
-          OutlinedButton.icon(
-            onPressed: _saving ? null : _recalculateOrder,
-            icon: const Icon(Icons.auto_fix_high_outlined),
-            label: const Text('Recalculer'),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        children: [
+          if (widget.editable) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _saving ? null : _recalculateOrder,
+                icon: const Icon(Icons.auto_fix_high_outlined),
+                label: const Text('Recalculer'),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final pinnedWidth =
+                    (constraints.maxWidth * .34).clamp(112.0, 150.0).toDouble();
+                return StickyHeaderTableCard(
+                  key: const ValueKey('waitlist-table'),
+                  onRefresh: _load,
+                  minWidth: constraints.maxWidth,
+                  pinnedWidth: pinnedWidth,
+                  pinnedHeader: const _WaitlistPinnedHeader(),
+                  scrollableHeader: const _WaitlistScrollableHeader(),
+                  rows: [
+                    for (var index = 0; index < _entries.length; index++)
+                      _tableRow(index),
+                  ],
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 14),
         ],
-        _WaitlistTable(
-          entries: _entries,
-          editable: widget.editable,
-          adjustingCounts: _adjustingCounts,
-          onReorderDrop: _reorderByDrag,
-          onIncrement: (entry) => _adjustWaitlistCount(entry, 1),
-          onDecrement: (entry) => _adjustWaitlistCount(entry, -1),
+      ),
+    );
+  }
+}
+
+class _WaitlistPinnedHeader extends StatelessWidget {
+  const _WaitlistPinnedHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 72),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Text(
+        'Joueurs',
+        textAlign: TextAlign.center,
+        style: grintaTableHeaderTextStyle(context),
+      ),
+    );
+  }
+}
+
+class _WaitlistScrollableHeader extends StatelessWidget {
+  const _WaitlistScrollableHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = Theme.of(context).colorScheme.outlineVariant;
+    final style = grintaTableHeaderTextStyle(context).copyWith(height: 1.2);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _WaitlistHeaderCell(
+          flex: 16,
+          label: 'Présence saison\nprécédente',
+          style: style,
+          borderColor: borderColor,
+        ),
+        _WaitlistHeaderCell(
+          flex: 18,
+          label: 'Liste d’attente cette\nsaison',
+          style: style,
+          borderColor: borderColor,
+          drawRightBorder: false,
         ),
       ],
     );
   }
 }
 
-class _WaitlistTable extends StatelessWidget {
-  const _WaitlistTable({
-    required this.entries,
-    required this.editable,
-    required this.adjustingCounts,
-    required this.onReorderDrop,
-    required this.onIncrement,
-    required this.onDecrement,
+class _WaitlistHeaderCell extends StatelessWidget {
+  const _WaitlistHeaderCell({
+    required this.flex,
+    required this.label,
+    required this.style,
+    required this.borderColor,
+    this.drawRightBorder = true,
   });
 
-  final List<SportWaitlistEntry> entries;
-  final bool editable;
-  final Set<String> adjustingCounts;
-  final void Function(SportWaitlistEntry dragged, SportWaitlistEntry target)
-      onReorderDrop;
-  final ValueChanged<SportWaitlistEntry> onIncrement;
-  final ValueChanged<SportWaitlistEntry> onDecrement;
+  final int flex;
+  final String label;
+  final TextStyle style;
+  final Color borderColor;
+  final bool drawRightBorder;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final borderColor = colors.outlineVariant;
-    final headerColor = Color.alphaBlend(
-      colors.primary.withAlpha(24),
-      colors.surface,
-    );
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 92,
-            color: headerColor,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _WaitlistCell(
-                  width: 40,
-                  borderColor: borderColor,
-                  child: Text(
-                    '#',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                _WaitlistCell(
-                  flex: 13,
-                  borderColor: borderColor,
-                  child: Text(
-                    'Prénoms',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                _WaitlistCell(
-                  flex: 16,
-                  borderColor: borderColor,
-                  child: Text(
-                    'Présence saison précédente',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                _WaitlistCell(
-                  flex: 21,
-                  drawRightBorder: false,
-                  borderColor: borderColor,
-                  child: Text(
-                    'Liste d’attente cette saison',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          for (var index = 0; index < entries.length; index++)
-            _WaitlistTableRow(
-              key: ValueKey(entries[index].seasonPlayerId),
-              index: index,
-              entry: entries[index],
-              editable: editable,
-              adjustingCount:
-                  adjustingCounts.contains(entries[index].seasonPlayerId),
-              borderColor: borderColor,
-              onReorderDrop: editable
-                  ? (dragged) => onReorderDrop(dragged, entries[index])
-                  : null,
-              onIncrement: () => onIncrement(entries[index]),
-              onDecrement: () => onDecrement(entries[index]),
-            ),
-        ],
+    return Expanded(
+      flex: flex,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 72),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 12),
+        decoration: BoxDecoration(
+          border: drawRightBorder
+              ? Border(right: BorderSide(color: borderColor))
+              : null,
+        ),
+        child: Text(label, textAlign: TextAlign.center, style: style),
       ),
     );
   }
 }
 
-class _WaitlistTableRow extends StatelessWidget {
-  const _WaitlistTableRow({
+class _WaitlistPinnedRow extends StatelessWidget {
+  const _WaitlistPinnedRow({
     super.key,
     required this.index,
     required this.entry,
     required this.editable,
-    required this.adjustingCount,
-    required this.borderColor,
-    required this.onIncrement,
-    required this.onDecrement,
     this.onReorderDrop,
   });
 
   final int index;
   final SportWaitlistEntry entry;
   final bool editable;
-  final bool adjustingCount;
-  final Color borderColor;
-  final VoidCallback onIncrement;
-  final VoidCallback onDecrement;
   final ValueChanged<SportWaitlistEntry>? onReorderDrop;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final total = entry.previousSeasonMatchCount;
-    final attendance = entry.previousSeasonAttendanceCount;
-    final previousSeasonPresence = total > 0 ? '$attendance' : 'Aucune donnée';
-    final waitlistCount = entry.currentSeasonWaitlistCount;
+    final borderColor = theme.colorScheme.outlineVariant;
     final autoScroll = DragAutoScroller(context);
 
-    Widget buildRow({bool highlighted = false}) {
-      final content = AnimatedContainer(
-        key: ValueKey('waitlist-row-${entry.seasonPlayerId}'),
-        duration: const Duration(milliseconds: 120),
-        height: 82,
-        decoration: BoxDecoration(
-          color: highlighted
-              ? Color.alphaBlend(
-                  colors.primary.withAlpha(18),
-                  colors.surface,
-                )
-              : colors.surface,
-          border: Border(top: BorderSide(color: borderColor)),
-        ),
+    final content = Container(
+      decoration: BoxDecoration(
+        border: Border(right: BorderSide(color: borderColor)),
+      ),
+      child: Padding(
+        padding: grintaTablePinnedRowPadding,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _WaitlistCell(
-              width: 40,
-              borderColor: borderColor,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                '${index + 1}',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            _WaitlistCell(
-              flex: 13,
-              borderColor: borderColor,
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+            GrintaTableRankCell(rank: index + 1),
+            Expanded(
               child: Text(
                 entry.displayName,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+                style: grintaTableCellTextStyle(
+                  context,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-            ),
-            _WaitlistCell(
-              flex: 16,
-              borderColor: borderColor,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                previousSeasonPresence,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyLarge,
-              ),
-            ),
-            _WaitlistCell(
-              flex: 21,
-              drawRightBorder: false,
-              borderColor: borderColor,
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: editable
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 28,
-                          child: Text(
-                            '$waitlistCount',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        _CompactIconButton(
-                          key: ValueKey(
-                            'waitlist-decrement-${entry.seasonPlayerId}',
-                          ),
-                          icon: Icons.remove_circle_outline,
-                          onPressed: !adjustingCount && waitlistCount > 0
-                              ? onDecrement
-                              : null,
-                        ),
-                        _CompactIconButton(
-                          key: ValueKey(
-                            'waitlist-increment-${entry.seasonPlayerId}',
-                          ),
-                          icon: Icons.add_circle_outline,
-                          onPressed: adjustingCount ? null : onIncrement,
-                        ),
-                      ],
-                    )
-                  : Text(
-                      '$waitlistCount',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
             ),
           ],
         ),
-      );
+      ),
+    );
 
-      if (!editable) return content;
-
-      return LongPressDraggable<SportWaitlistEntry>(
+    Widget row = content;
+    if (editable) {
+      row = LongPressDraggable<SportWaitlistEntry>(
         key: ValueKey('waitlist-drag-${entry.seasonPlayerId}'),
         data: entry,
         feedback: Material(
@@ -521,7 +443,7 @@ class _WaitlistTableRow extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 260),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: colors.surface,
+              color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(blurRadius: 12, color: Color(0x33000000)),
@@ -530,19 +452,14 @@ class _WaitlistTableRow extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '${index + 1}',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(width: 10),
+                GrintaTableRankCell(rank: index + 1),
                 Flexible(
                   child: Text(
                     entry.displayName,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    style: grintaTableCellTextStyle(
+                      context,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -558,57 +475,145 @@ class _WaitlistTableRow extends StatelessWidget {
       );
     }
 
-    if (!editable || onReorderDrop == null) {
-      return buildRow();
-    }
-
-    return DragTarget<SportWaitlistEntry>(
-      onWillAcceptWithDetails: (details) =>
-          details.data.seasonPlayerId != entry.seasonPlayerId,
-      onAcceptWithDetails: (details) => onReorderDrop!(details.data),
-      builder: (context, candidates, rejected) {
-        return buildRow(highlighted: candidates.isNotEmpty);
-      },
+    return _WaitlistDropTarget(
+      entry: entry,
+      onReorderDrop: onReorderDrop,
+      child: row,
     );
   }
 }
 
-class _WaitlistCell extends StatelessWidget {
-  const _WaitlistCell({
-    required this.borderColor,
-    required this.child,
-    this.width,
-    this.flex,
-    this.drawRightBorder = true,
-    this.alignment = Alignment.center,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8),
-  }) : assert(width != null || flex != null);
+class _WaitlistScrollableRow extends StatelessWidget {
+  const _WaitlistScrollableRow({
+    required this.entry,
+    required this.editable,
+    required this.adjustingCount,
+    required this.onIncrement,
+    required this.onDecrement,
+    this.onReorderDrop,
+  });
 
-  final double? width;
-  final int? flex;
-  final bool drawRightBorder;
-  final Color borderColor;
-  final AlignmentGeometry alignment;
-  final EdgeInsetsGeometry padding;
+  final SportWaitlistEntry entry;
+  final bool editable;
+  final bool adjustingCount;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+  final ValueChanged<SportWaitlistEntry>? onReorderDrop;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = Theme.of(context).colorScheme.outlineVariant;
+    final total = entry.previousSeasonMatchCount;
+    final attendance = entry.previousSeasonAttendanceCount;
+    final previousSeasonPresence = total > 0 ? '$attendance' : 'Aucune donnée';
+    final waitlistCount = entry.currentSeasonWaitlistCount;
+    final valueStyle = grintaTableCellTextStyle(context);
+
+    final content = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 16,
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 17),
+            decoration: BoxDecoration(
+              border: Border(right: BorderSide(color: borderColor)),
+            ),
+            child: Text(
+              previousSeasonPresence,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: valueStyle,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 18,
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+            child: editable
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _CompactIconButton(
+                        key: ValueKey(
+                          'waitlist-decrement-${entry.seasonPlayerId}',
+                        ),
+                        icon: Icons.remove_circle_outline,
+                        onPressed: !adjustingCount && waitlistCount > 0
+                            ? onDecrement
+                            : null,
+                      ),
+                      SizedBox(
+                        width: 26,
+                        child: Text(
+                          '$waitlistCount',
+                          key: ValueKey(
+                            'waitlist-count-${entry.seasonPlayerId}',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: valueStyle,
+                        ),
+                      ),
+                      _CompactIconButton(
+                        key: ValueKey(
+                          'waitlist-increment-${entry.seasonPlayerId}',
+                        ),
+                        icon: Icons.add_circle_outline,
+                        onPressed: adjustingCount ? null : onIncrement,
+                      ),
+                    ],
+                  )
+                : Text(
+                    '$waitlistCount',
+                    key: ValueKey('waitlist-count-${entry.seasonPlayerId}'),
+                    textAlign: TextAlign.center,
+                    style: valueStyle,
+                  ),
+          ),
+        ),
+      ],
+    );
+
+    return _WaitlistDropTarget(
+      entry: entry,
+      onReorderDrop: onReorderDrop,
+      child: content,
+    );
+  }
+}
+
+class _WaitlistDropTarget extends StatelessWidget {
+  const _WaitlistDropTarget({
+    required this.entry,
+    required this.onReorderDrop,
+    required this.child,
+  });
+
+  final SportWaitlistEntry entry;
+  final ValueChanged<SportWaitlistEntry>? onReorderDrop;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final cell = Container(
-      alignment: alignment,
-      padding: padding,
-      decoration: BoxDecoration(
-        border: drawRightBorder
-            ? Border(right: BorderSide(color: borderColor))
-            : null,
-      ),
-      child: child,
-    );
+    final onDrop = onReorderDrop;
+    if (onDrop == null) return child;
 
-    if (width != null) {
-      return SizedBox(width: width, child: cell);
-    }
-    return Expanded(flex: flex!, child: cell);
+    return DragTarget<SportWaitlistEntry>(
+      onWillAcceptWithDetails: (details) =>
+          details.data.seasonPlayerId != entry.seasonPlayerId,
+      onAcceptWithDetails: (details) => onDrop(details.data),
+      builder: (context, candidates, rejected) {
+        if (candidates.isEmpty) return child;
+        return ColoredBox(
+          color: Theme.of(context).colorScheme.primary.withAlpha(18),
+          child: child,
+        );
+      },
+    );
   }
 }
 
@@ -629,7 +634,7 @@ class _CompactIconButton extends StatelessWidget {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 38, height: 44),
+      constraints: const BoxConstraints.tightFor(width: 34, height: 44),
     );
   }
 }
