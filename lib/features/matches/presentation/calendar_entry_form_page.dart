@@ -144,7 +144,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   String get _matchType =>
       _kind == _CalendarEntryKind.amical ? 'amical' : 'championnat';
 
-  /// Journées déjà enregistrées sur la saison, pour proposer la suivante.
   Iterable<int?> _championshipRoundsOfSeason(List<MatchModel> matches) {
     return matches
         .where((match) =>
@@ -393,7 +392,25 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
     if (widget.event == null) {
       addCard(
-        _EntryKindPicker(value: _kind, enabled: !busy, onChanged: _changeKind),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _EntryKindPicker(
+              value: _kind,
+              enabled: !busy,
+              onChanged: _changeKind,
+            ),
+            if (_isChampionship) ...[
+              const SizedBox(height: 10),
+              ChampionshipRoundTile(
+                round: _championshipRound,
+                roundsOfSeason: seasonRounds,
+                enabled: !busy,
+                onTap: _pickChampionshipRound,
+              ),
+            ],
+          ],
+        ),
       );
     }
 
@@ -605,17 +622,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         ],
       ),
     );
-
-    if (_isChampionship) {
-      addCard(
-        ChampionshipRoundTile(
-          round: _championshipRound,
-          roundsOfSeason: seasonRounds,
-          enabled: !busy,
-          onTap: _pickChampionshipRound,
-        ),
-      );
-    }
 
     addCard(
       MatchMeetingTimePicker(
@@ -1077,8 +1083,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           matchType: _matchType,
           jerseyNote: _selectedJersey?.id,
         );
-        // La journée vient du calendrier de la ligue : on impose celle qui est
-        // affichée plutôt que de laisser la numérotation automatique décider.
         final chosenRound = _championshipRound;
         if (_isChampionship && chosenRound != null) {
           final matches = ref.read(matchesRepositoryProvider);
@@ -1284,7 +1288,7 @@ class _CriterionCard extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(18),
