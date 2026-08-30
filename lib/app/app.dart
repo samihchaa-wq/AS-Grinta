@@ -64,6 +64,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
     final router = ref.watch(appRouterProvider);
     final onlineAsync = ref.watch(onlineStatusProvider);
     final isOnline = onlineAsync.valueOrNull ?? true;
+    final baseTheme = AppTheme.dark;
 
     return MaterialApp.router(
       title: 'ASG',
@@ -75,10 +76,37 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: AppTheme.dark.copyWith(
+      theme: baseTheme.copyWith(
         scaffoldBackgroundColor: AppTheme.background,
         materialTapTargetSize: MaterialTapTargetSize.padded,
         visualDensity: VisualDensity.standard,
+        // Un état sélectionné se lit désormais avec le jaune club, sans
+        // modifier le fond bleu déjà utilisé par les boutons/onglets actifs.
+        segmentedButtonTheme: SegmentedButtonThemeData(
+          style: baseTheme.segmentedButtonTheme.style?.copyWith(
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppTheme.accent;
+              }
+              return baseTheme.segmentedButtonTheme.style?.foregroundColor
+                      ?.resolve(states) ??
+                  AppTheme.textSecondary;
+            }),
+          ),
+        ),
+        navigationBarTheme: baseTheme.navigationBarTheme.copyWith(
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            final inherited =
+                baseTheme.navigationBarTheme.labelTextStyle?.resolve(states);
+            return inherited?.copyWith(
+                  color: selected ? AppTheme.accent : AppTheme.textFaint,
+                ) ??
+                TextStyle(
+                  color: selected ? AppTheme.accent : AppTheme.textFaint,
+                );
+          }),
+        ),
       ),
       routerConfig: router,
       builder: (context, child) {
