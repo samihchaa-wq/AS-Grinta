@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
@@ -8,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-    'waitlist is displayed as a compact table',
+    'waitlist uses the sticky statistics table layout',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -21,15 +22,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Prénoms'), findsOneWidget);
-      expect(find.text('Présence saison précédente'), findsOneWidget);
-      expect(find.text('Liste d’attente cette saison'), findsOneWidget);
+      expect(find.byType(StickyHeaderTableCard), findsOneWidget);
+      expect(find.text('Joueurs'), findsOneWidget);
+      expect(find.text('Présence saison\nprécédente'), findsOneWidget);
+      expect(find.text('Liste d’attente cette\nsaison'), findsOneWidget);
+      expect(find.text('Prénoms'), findsNothing);
+      expect(find.text('#'), findsNothing);
       expect(find.text('Tours'), findsNothing);
       expect(find.text('Actions'), findsNothing);
       expect(find.text('Alice'), findsOneWidget);
       expect(find.text('Bruno'), findsOneWidget);
-      expect(find.byType(Card), findsNothing);
       expect(find.byType(CircleAvatar), findsNothing);
+
+      final table = tester.widget<StickyHeaderTableCard>(
+        find.byType(StickyHeaderTableCard),
+      );
+      expect(table.rows, hasLength(2));
     },
   );
 
@@ -48,10 +56,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final aliceDrag = find.byKey(const ValueKey('waitlist-drag-alice'));
-      final brunoRow = find.byKey(const ValueKey('waitlist-row-bruno'));
       final gesture = await tester.startGesture(tester.getCenter(aliceDrag));
       await tester.pump(const Duration(milliseconds: 600));
-      await gesture.moveTo(tester.getCenter(brunoRow));
+      await gesture.moveTo(tester.getCenter(find.text('Bruno')));
       await tester.pump();
       await gesture.up();
       await tester.pumpAndSettle();
@@ -99,11 +106,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final brunoRow = find.byKey(const ValueKey('waitlist-row-bruno'));
-      expect(
-        find.descendant(of: brunoRow, matching: find.text('2')),
-        findsOneWidget,
-      );
+      Text countText() => tester.widget<Text>(
+            find.byKey(const ValueKey('waitlist-count-bruno')),
+          );
+
+      expect(countText().data, '1');
 
       await tester.tap(
         find.byKey(const ValueKey('waitlist-increment-bruno')),
@@ -112,10 +119,7 @@ void main() {
 
       expect(repository.lastManualCountSeasonPlayerId, 'bruno');
       expect(repository.lastManualCount, 2);
-      expect(
-        find.descendant(of: brunoRow, matching: find.text('2')),
-        findsNWidgets(2),
-      );
+      expect(countText().data, '2');
     },
   );
 
