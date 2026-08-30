@@ -75,7 +75,10 @@ void main() {
     expect(repositorySource, contains("'admin_publish_match_effectif'"));
 
     expect(compositionSource, contains("label: const Text('Enregistrer')"));
-    expect(compositionSource, contains('puis appuie sur Enregistrer'));
+    expect(
+      compositionSource,
+      isNot(contains('puis appuie sur Enregistrer')),
+    );
     expect(
       compositionSource,
       isNot(contains("label: const Text('Publier la composition')")),
