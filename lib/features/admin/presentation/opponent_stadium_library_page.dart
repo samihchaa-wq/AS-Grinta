@@ -52,9 +52,11 @@ class _OpponentStadiumLibraryPageState
       if (!mounted) return;
       setState(() {
         _items = (rows as List)
-            .map((row) => _OpponentStadium.fromJson(
-                  Map<String, dynamic>.from(row as Map),
-                ))
+            .map(
+              (row) => _OpponentStadium.fromJson(
+                Map<String, dynamic>.from(row as Map),
+              ),
+            )
             .toList(growable: false);
       });
     } catch (error) {
@@ -99,9 +101,11 @@ class _OpponentStadiumLibraryPageState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(item == null
-              ? 'Équipe ajoutée à la bibliothèque.'
-              : 'Équipe et stade mis à jour.'),
+          content: Text(
+            item == null
+                ? 'Équipe ajoutée à la bibliothèque.'
+                : 'Équipe et stade mis à jour.',
+          ),
         ),
       );
     } catch (error) {
@@ -351,8 +355,8 @@ class _OpponentStadiumEditorState extends State<_OpponentStadiumEditor> {
               Text(
                 widget.item == null ? 'Nouvelle équipe' : 'Modifier l’équipe',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(
