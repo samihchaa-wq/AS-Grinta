@@ -5,7 +5,7 @@ on:
     branches: [ui/waitlist-stats-sticky-table]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -13,15 +13,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ui/waitlist-stats-sticky-table
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
           cache: true
-      - name: Format waitlist source
-        run: dart format lib/features/sports_management/presentation/admin_waitlist_page.dart
-      - name: Upload formatted source
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: waitlist-formatted-source
-          path: lib/features/sports_management/presentation/admin_waitlist_page.dart
+      - name: Apply exact Dart formatting and remove probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib/features/sports_management/presentation/admin_waitlist_page.dart
+          rm .github/workflows/waitlist_format_probe.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/sports_management/presentation/admin_waitlist_page.dart .github/workflows/waitlist_format_probe.yml
+          git commit -m 'Apply exact Dart formatting'
+          git push origin HEAD:ui/waitlist-stats-sticky-table
