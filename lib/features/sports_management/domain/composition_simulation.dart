@@ -1,15 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_affinity.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
-
-/// Portée de l'affinité entre deux postes, en unités de terrain.
-///
-/// Deux postes voisins d'une même ligne (DCD et DC, MOG et AG) sont distants
-/// d'environ .18 : à cette distance un joueur garde un peu plus du tiers de
-/// son affinité. Un poste d'une autre ligne tombe sous les 10 %, un poste de
-/// l'autre bout du terrain à zéro.
-const double _affinityRange = .18;
 
 /// Affinité minimale pour qu'un glissement reste crédible.
 ///
@@ -264,21 +255,10 @@ bool _isGoalkeeperSlot(FootballFormationSlot slot) => slot.label == 'GB';
 
 /// Proximité d'un joueur avec un poste, d'après les postes qu'il occupe.
 ///
-/// Les buts sont ignorés : un joueur de champ qui a dépanné au but ne doit pas
-/// en devenir plus proche des postes du bas du terrain.
-double _affinity(SimulationCandidate candidate, FootballFormationSlot slot) {
-  final profile = candidate.profile;
-  if (profile == null) return 0;
-  var total = 0.0;
-  for (final sample in profile.samples) {
-    if (sample.slotLabel == 'GB') continue;
-    final origin = matchSheetSlotPositions[sample.slotLabel];
-    if (origin == null) continue;
-    final distance = (origin - slot.position).distance / _affinityRange;
-    total += profile.shareOf(sample.slotLabel) * math.exp(-distance * distance);
-  }
-  return total;
-}
+/// Le calcul vit dans [playerPositionAffinity] afin que la simulation et les
+/// regroupements des matchs entre nous ne puissent pas diverger.
+double _affinity(SimulationCandidate candidate, FootballFormationSlot slot) =>
+    playerPositionAffinity(candidate.profile, slot.position);
 
 /// Le joueur le plus souvent resté sur le banc passe devant.
 int _byRotationThenName(SimulationCandidate a, SimulationCandidate b) {
