@@ -411,7 +411,7 @@ class SortableHeaderCell extends StatelessWidget {
           child: Text(
             label,
             style: style?.copyWith(
-              color: active ? AppTheme.primaryBright : style?.color,
+              color: active ? AppTheme.accent : style?.color,
             ),
             overflow: TextOverflow.ellipsis,
             textAlign: align,
@@ -422,7 +422,7 @@ class SortableHeaderCell extends StatelessWidget {
           Icon(
             descending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
             size: 15,
-            color: AppTheme.primaryBright,
+            color: AppTheme.accent,
           ),
         ],
       ],
