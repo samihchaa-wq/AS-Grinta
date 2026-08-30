@@ -2,23 +2,37 @@ name: Temporary internal composition formatter
 
 on:
   pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  format-diff:
+  format-and-commit:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout feature branch
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/internal-match-composition-ui
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           channel: stable
           cache: true
-      - name: Show formatter diff
+      - name: Format and commit
+        shell: bash
         run: |
-          dart format lib/features/sports_management/presentation/widgets/internal_team_composition_view.dart
-          git diff -- lib/features/sports_management/presentation/widgets/internal_team_composition_view.dart
-          git diff --quiet -- lib/features/sports_management/presentation/widgets/internal_team_composition_view.dart
+          set -euo pipefail
+          target=lib/features/sports_management/presentation/widgets/internal_team_composition_view.dart
+          dart format "$target"
+          if git diff --quiet -- "$target"; then
+            echo "Already formatted."
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$target"
+          git commit -m "Format internal match composition UI"
+          git push origin HEAD:feat/internal-match-composition-ui
