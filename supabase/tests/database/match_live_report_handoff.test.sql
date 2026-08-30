@@ -27,8 +27,10 @@ select ok(
 
 select ok(
   position(
-    'session.score_as_grinta' in pg_get_functiondef(
-      'public.admin_get_match_sport_report(uuid)'::regprocedure
+    'score_as_grinta' in (
+      select prosrc
+      from pg_proc
+      where oid = 'public.admin_get_match_sport_report(uuid)'::regprocedure
     )
   ) > 0,
   'le brouillon reprend le score AS Grinta de la session Live'
@@ -36,8 +38,10 @@ select ok(
 
 select ok(
   position(
-    'session.score_adverse' in pg_get_functiondef(
-      'public.admin_get_match_sport_report(uuid)'::regprocedure
+    'score_adverse' in (
+      select prosrc
+      from pg_proc
+      where oid = 'public.admin_get_match_sport_report(uuid)'::regprocedure
     )
   ) > 0,
   'le brouillon reprend le score adverse de la session Live'
@@ -45,8 +49,10 @@ select ok(
 
 select ok(
   position(
-    'not coalesce(v_live_exported, false)' in pg_get_functiondef(
-      'public.admin_get_match_sport_report(uuid)'::regprocedure
+    'v_live_exported' in (
+      select prosrc
+      from pg_proc
+      where oid = 'public.admin_get_match_sport_report(uuid)'::regprocedure
     )
   ) > 0,
   'la projection Live ne s applique qu avant la validation durable'
