@@ -32,16 +32,20 @@ class ChampionshipRoundTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.format_list_numbered_rounded),
-      title: const Text('Journée de championnat'),
-      subtitle: Text(
-        current == null
-            ? 'Numéro automatique'
-            : duplicated
-                ? 'J$current · déjà utilisée cette saison'
-                : 'J$current',
-        style: duplicated
-            ? TextStyle(color: Theme.of(context).colorScheme.error)
-            : null,
+      title: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          current == null
+              ? 'Journée de championnat · Numéro automatique'
+              : duplicated
+                  ? 'Journée de championnat J$current · déjà utilisée cette saison'
+                  : 'Journée de championnat J$current',
+          maxLines: 1,
+          style: duplicated
+              ? TextStyle(color: Theme.of(context).colorScheme.error)
+              : null,
+        ),
       ),
       trailing: const Icon(Icons.unfold_more_rounded),
       onTap: enabled ? onTap : null,

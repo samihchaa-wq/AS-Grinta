@@ -678,7 +678,12 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                   : (value) => setState(
                         () => _rememberAddressAsDefault = value ?? false,
                       ),
-              title: const Text('Garder cette adresse pour cette équipe'),
+              title: Text(
+                'Mémorise cette adresse',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               controlAffinity: ListTileControlAffinity.leading,
             ),
         ],
@@ -690,9 +695,13 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.groups_2_outlined),
-          title: const Text('Nombre de joueurs convoqués'),
-          subtitle: Text(
-            '${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
+          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Nombre de joueurs convoqués ${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
+              maxLines: 1,
+            ),
           ),
           trailing: const Icon(Icons.unfold_more_rounded),
           onTap: busy ? null : _pickSquadSize,
