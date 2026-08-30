@@ -16,27 +16,27 @@ const int _minimumPositionAppearances = 5;
 
 final _internalPositionProfilesProvider =
     FutureProvider.autoDispose<Map<String, PlayerPositionProfile>>((ref) async {
-  final repository = ref.watch(matchCompositionRepositoryProvider);
-  try {
-    return mergePlayerPositionProfiles(
-      history: await repository.fetchPlayerPositionHistory(
-        kLivePositionHistoryStart,
-      ),
-    );
-  } catch (_) {
-    return kPlayerPositionProfiles;
-  }
-});
+      final repository = ref.watch(matchCompositionRepositoryProvider);
+      try {
+        return mergePlayerPositionProfiles(
+          history: await repository.fetchPlayerPositionHistory(
+            kLivePositionHistoryStart,
+          ),
+        );
+      } catch (_) {
+        return kPlayerPositionProfiles;
+      }
+    });
 
 enum _InternalPlayerCategory { defender, midfielder, attacker, other }
 
 extension on _InternalPlayerCategory {
   String get label => switch (this) {
-        _InternalPlayerCategory.defender => 'Défenseurs',
-        _InternalPlayerCategory.midfielder => 'Milieux',
-        _InternalPlayerCategory.attacker => 'Attaquants',
-        _InternalPlayerCategory.other => 'Autre',
-      };
+    _InternalPlayerCategory.defender => 'Défenseurs',
+    _InternalPlayerCategory.midfielder => 'Milieux',
+    _InternalPlayerCategory.attacker => 'Attaquants',
+    _InternalPlayerCategory.other => 'Autre',
+  };
 }
 
 /// Composition d'un « match entre nous » : pas de terrain ni de formation,
@@ -179,8 +179,7 @@ class _InternalTeamCompositionViewState
     final canonicalId = entry.canonicalPlayerId;
     if (canonicalId == null) return _InternalPlayerCategory.other;
     final profile = positionProfiles[canonicalId];
-    if (profile == null ||
-        profile.appearances < _minimumPositionAppearances) {
+    if (profile == null || profile.appearances < _minimumPositionAppearances) {
       return _InternalPlayerCategory.other;
     }
 
@@ -205,8 +204,7 @@ class _InternalTeamCompositionViewState
     return _InternalPlayerCategory.midfielder;
   }
 
-  Map<_InternalPlayerCategory, List<InternalCompositionEntry>>
-      _groupUnassigned(
+  Map<_InternalPlayerCategory, List<InternalCompositionEntry>> _groupUnassigned(
     List<InternalCompositionEntry> entries,
     Map<String, PlayerPositionProfile> positionProfiles,
   ) {
@@ -219,9 +217,8 @@ class _InternalTeamCompositionViewState
     }
     for (final values in grouped.values) {
       values.sort(
-        (a, b) => a.displayName.toLowerCase().compareTo(
-              b.displayName.toLowerCase(),
-            ),
+        (a, b) =>
+            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
       );
     }
     return grouped;
@@ -232,19 +229,20 @@ class _InternalTeamCompositionViewState
     if (entries == null || _saving) return;
     setState(() => _saving = true);
     try {
-      final saved =
-          await ref.read(internalMatchCompositionRepositoryProvider).save(
-        matchId: widget.matchId,
-        team1Name: _team1Controller.text,
-        team2Name: _team2Controller.text,
-        team1JerseyId: _team1Jersey.id,
-        team2JerseyId: _team2Jersey.id,
-        entries: [
-          for (final entry in entries.where((e) => e.teamNo == null)) entry,
-          for (final entry in entries.where((e) => e.teamNo == 1)) entry,
-          for (final entry in entries.where((e) => e.teamNo == 2)) entry,
-        ],
-      );
+      final saved = await ref
+          .read(internalMatchCompositionRepositoryProvider)
+          .save(
+            matchId: widget.matchId,
+            team1Name: _team1Controller.text,
+            team2Name: _team2Controller.text,
+            team1JerseyId: _team1Jersey.id,
+            team2JerseyId: _team2Jersey.id,
+            entries: [
+              for (final entry in entries.where((e) => e.teamNo == null)) entry,
+              for (final entry in entries.where((e) => e.teamNo == 1)) entry,
+              for (final entry in entries.where((e) => e.teamNo == 2)) entry,
+            ],
+          );
       if (!mounted) return;
       setState(() {
         _initFrom(saved);
@@ -256,9 +254,8 @@ class _InternalTeamCompositionViewState
       ).showSnackBar(const SnackBar(content: Text('Composition enregistrée.')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur : $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Erreur : $error')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -269,7 +266,7 @@ class _InternalTeamCompositionViewState
     final async = ref.watch(internalMatchCompositionProvider(widget.matchId));
     final positionProfiles =
         ref.watch(_internalPositionProfilesProvider).valueOrNull ??
-            kPlayerPositionProfiles;
+        kPlayerPositionProfiles;
 
     return async.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -313,9 +310,8 @@ class _InternalTeamCompositionViewState
             if (unassigned.isNotEmpty || widget.editable) ...[
               Text(
                 'Non affectés (${unassigned.length})',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context).textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               Container(
@@ -344,8 +340,7 @@ class _InternalTeamCompositionViewState
                                 title: category.label,
                                 entries: grouped[category]!,
                                 editable: widget.editable,
-                                selectedParticipantId:
-                                    _selectedParticipantId,
+                                selectedParticipantId: _selectedParticipantId,
                                 onPlayerTap: _togglePlayerSelection,
                               ),
                         ],
@@ -445,9 +440,9 @@ class _PlayerCategorySection extends StatelessWidget {
             child: Text(
               '$title (${entries.length})',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textFaint,
-                  ),
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textFaint,
+              ),
             ),
           ),
           Wrap(
@@ -543,9 +538,8 @@ class _TeamColumn extends StatelessWidget {
         Text(
           '${entries.length} joueur${entries.length == 1 ? '' : 's'}',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(context).textTheme.labelMedium
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         if (editable) ...[
           const SizedBox(height: 6),
@@ -719,8 +713,10 @@ class _PlayerChip extends StatelessWidget {
                   onPressed: onRemove,
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
                   icon: const Icon(Icons.close_rounded, size: 16),
                 ),
               ],
