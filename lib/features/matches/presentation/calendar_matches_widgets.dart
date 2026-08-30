@@ -69,7 +69,7 @@ class _CalendarToolbar extends StatelessWidget {
           tooltip: 'Ajouter au calendrier ics',
           icon: const Icon(Icons.calendar_month_outlined),
         );
-        final createIconButton = IconButton.filledTonal(
+        final createIconButton = IconButton.outlined(
           onPressed: onCreate,
           tooltip: 'Ajouter un événement',
           icon: const Icon(Icons.add_rounded),
