@@ -409,19 +409,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Effectif',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Touche un joueur pour voir sa disponibilité et son rang. '
-                  'Glisse-le pour changer de colonne. Chaque changement reste '
-                  'sur cet écran jusqu’à ce que tu appuies sur Enregistrer.',
-                ),
-                const SizedBox(height: 14),
                 TextField(
                   controller: _limitController,
                   enabled: !_busy && !_locked,
@@ -443,19 +430,38 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   ),
                 ],
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _busy || _locked ? null : _addGuest,
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                  label: const Text('Ajouter un invité'),
-                ),
-                if (!_isInternalMatch) ...[
-                  const SizedBox(height: 10),
+                if (!_isInternalMatch)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.push('/admin/waitlist'),
+                          icon: const Icon(Icons.format_list_numbered_rounded),
+                          label: const Text(
+                            'Voir la liste d’attente',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _busy || _locked ? null : _addGuest,
+                          icon: const Icon(Icons.person_add_alt_1_outlined),
+                          label: const Text(
+                            'Ajouter un invité',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else
                   OutlinedButton.icon(
-                    onPressed: () => context.push('/admin/waitlist'),
-                    icon: const Icon(Icons.format_list_numbered_rounded),
-                    label: const Text('Voir la liste d’attente'),
+                    onPressed: _busy || _locked ? null : _addGuest,
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                    label: const Text('Ajouter un invité'),
                   ),
-                ],
               ],
             ),
           ),
