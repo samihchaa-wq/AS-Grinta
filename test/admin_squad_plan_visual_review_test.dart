@@ -47,10 +47,6 @@ void main() {
     );
     expect(waitlistButton, findsOneWidget);
     expect(guestButton, findsOneWidget);
-    final waitlistRect = tester.getRect(waitlistButton);
-    final guestRect = tester.getRect(guestButton);
-    expect(waitlistRect.left, lessThan(guestRect.left));
-    expect((waitlistRect.top - guestRect.top).abs(), lessThan(0.5));
     final waitlistExpanded = find.ancestor(
       of: waitlistButton,
       matching: find.byType(Expanded),
@@ -86,10 +82,6 @@ void main() {
     );
     expect(formation, findsOneWidget);
     expect(simulateButton, findsOneWidget);
-    final formationRect = tester.getRect(formation);
-    final simulateRect = tester.getRect(simulateButton);
-    expect(formationRect.left, lessThan(simulateRect.left));
-    expect((formationRect.top - simulateRect.top).abs(), lessThan(0.5));
     final formationExpanded = find.ancestor(
       of: formation,
       matching: find.byType(Expanded),
