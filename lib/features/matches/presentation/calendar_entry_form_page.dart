@@ -397,16 +397,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       );
     }
 
-    if (_isInternal) {
-      addCard(
-        const ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.groups_outlined),
-          title: Text('Match entre nous'),
-          subtitle: Text('Sans adversaire.'),
-        ),
-      );
-    } else {
+    if (!_isInternal) {
       addCard(
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
