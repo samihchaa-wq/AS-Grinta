@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-/// Compact modal wheel pickers used by the match/event forms.
+/// Compact pickers used by the match/event forms.
 ///
-/// Cupertino pickers are intentionally used on every platform so the gesture
-/// stays identical in the PWA and on iPhone: tap once, then scroll the wheels.
+/// Dates use a month calendar so the user can see the surrounding days at a
+/// glance. Time and numeric values keep the Cupertino wheels so their gesture
+/// remains identical in the PWA and on iPhone.
 class MatchWheelPicker {
   const MatchWheelPicker._();
 
@@ -16,13 +17,53 @@ class MatchWheelPicker {
     String title = 'Date',
   }) {
     final initial = _clampDate(initialDate, firstDate, lastDate);
-    return _showDateTimeSheet(
+    final minimum = DateUtils.dateOnly(firstDate);
+    final maximum = DateUtils.dateOnly(lastDate);
+    final scheme = Theme.of(context).colorScheme;
+
+    return showDatePicker(
       context: context,
-      title: title,
-      initialDateTime: initial,
-      mode: CupertinoDatePickerMode.date,
-      minimumDate: firstDate,
-      maximumDate: lastDate,
+      initialDate: initial,
+      firstDate: minimum,
+      lastDate: maximum,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      helpText: title,
+      cancelText: 'Annuler',
+      confirmText: 'Valider',
+      builder: (pickerContext, child) {
+        final theme = Theme.of(pickerContext);
+        return Theme(
+          data: theme.copyWith(
+            datePickerTheme: theme.datePickerTheme.copyWith(
+              backgroundColor: scheme.surface,
+              surfaceTintColor: Colors.transparent,
+              headerBackgroundColor: scheme.surface,
+              headerForegroundColor: scheme.onSurface,
+              dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return scheme.secondary;
+                }
+                return null;
+              }),
+              dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return scheme.onSecondary;
+                }
+                if (states.contains(WidgetState.disabled)) {
+                  return scheme.onSurface.withValues(alpha: .38);
+                }
+                return scheme.onSurface;
+              }),
+              todayForegroundColor: WidgetStateProperty.all(scheme.secondary),
+              todayBorder: BorderSide(color: scheme.secondary, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 
