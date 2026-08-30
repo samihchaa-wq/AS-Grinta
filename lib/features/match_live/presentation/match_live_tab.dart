@@ -138,7 +138,7 @@ class _LiveAddPlayerAction extends ConsumerWidget {
     final realtimeDegraded = ref.watch(
       matchLiveRealtimeDegradedProvider(matchId),
     );
-    final action = compact
+    final Widget? action = compact
         ? Align(
             alignment: Alignment.centerRight,
             child: SizedBox.square(
@@ -156,18 +156,7 @@ class _LiveAddPlayerAction extends ConsumerWidget {
               ),
             ),
           )
-        : SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => showMatchLiveAddPlayerSheet(
-                context,
-                ref,
-                matchId: matchId,
-              ),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('Ajouter un joueur'),
-            ),
-          );
+        : null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -178,12 +167,11 @@ class _LiveAddPlayerAction extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(12, 6, 12, 2),
             child: _RealtimeFallbackNotice(),
           ),
-        Padding(
-          padding: compact
-              ? const EdgeInsets.fromLTRB(12, 4, 12, 0)
-              : const EdgeInsets.fromLTRB(16, 10, 16, 0),
-          child: action,
-        ),
+        if (action != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: action,
+          ),
         child,
       ],
     );
