@@ -78,6 +78,138 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     await _refreshModernMatches();
   }
 
+  Future<void> _copyCalendarLink(Uri httpsUri) async {
+    await Clipboard.setData(ClipboardData(text: httpsUri.toString()));
+  }
+
+  Future<void> _openAppleCalendar(Uri httpsUri) async {
+    await _copyCalendarLink(httpsUri);
+    final webcalUri = httpsUri.replace(scheme: 'webcal');
+    try {
+      await launchUrl(webcalUri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Some iOS/PWA combinations report a handled URL without displaying the
+      // subscription screen. The HTTPS feed is already copied as a reliable
+      // manual fallback.
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 8),
+        content: Text(
+          'Si Apple Calendrier ne propose pas l’abonnement, le lien est copié : Calendrier > Calendriers > Ajouter > Ajouter un calendrier avec abonnement.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _useGoogleCalendar(Uri httpsUri) async {
+    await _copyCalendarLink(httpsUri);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 8),
+        content: Text(
+          'Lien copié. Google Agenda permet l’abonnement par URL depuis un navigateur sur ordinateur : Autres agendas > + > À partir de l’URL.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _useOutlookCalendar(Uri httpsUri) async {
+    await _copyCalendarLink(httpsUri);
+    try {
+      await launchUrl(
+        Uri.parse('https://outlook.live.com/calendar/0/view/month'),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      // The copied URL is sufficient if Outlook cannot be opened directly.
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        duration: Duration(seconds: 8),
+        content: Text(
+          'Lien copié. Dans Outlook : Ajouter un calendrier > S’abonner à partir du web, puis colle le lien.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCalendarSubscriptionChoices(Uri httpsUri) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        Future<void> choose(Future<void> Function() action) async {
+          Navigator.of(sheetContext).pop();
+          await action();
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'S’abonner au calendrier',
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choisis ton calendrier. Il restera lié à AS Grinta : les ajouts, changements, annulations et suppressions de matchs seront récupérés lors de la prochaine synchronisation du service choisi.',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  leading: const Icon(Icons.calendar_month_rounded),
+                  title: const Text('Apple Calendrier'),
+                  subtitle: const Text('iPhone, iPad et Mac'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => choose(() => _openAppleCalendar(httpsUri)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.event_rounded),
+                  title: const Text('Google Agenda'),
+                  subtitle: const Text(
+                    'Abonnement par URL à faire dans Google Agenda sur ordinateur',
+                  ),
+                  trailing: const Icon(Icons.content_copy_rounded),
+                  onTap: () => choose(() => _useGoogleCalendar(httpsUri)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.mail_outline_rounded),
+                  title: const Text('Outlook'),
+                  subtitle: const Text('Outlook.com ou Outlook sur le web'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => choose(() => _useOutlookCalendar(httpsUri)),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.link_rounded),
+                  title: const Text('Copier le lien du calendrier'),
+                  subtitle: const Text('Pour toute autre application compatible ICS'),
+                  trailing: const Icon(Icons.content_copy_rounded),
+                  onTap: () => choose(() async {
+                    await _copyCalendarLink(httpsUri);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lien du calendrier copié.')),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _subscribeCurrentSeason() async {
     try {
       final client = ref.read(supabaseClientProvider);
@@ -92,39 +224,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       final httpsUri = Uri.parse(
         '${AppConfig.supabaseUrl}/functions/v1/calendar-feed',
       ).replace(queryParameters: {'token': token});
-      final webcalUri = httpsUri.replace(scheme: 'webcal');
-
-      var launched = false;
-      try {
-        launched = await launchUrl(
-          webcalUri,
-          mode: LaunchMode.externalApplication,
-        );
-      } catch (_) {
-        launched = false;
-      }
 
       if (!mounted) return;
-      if (launched) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Abonnement calendrier ouvert. Les prochains changements se synchroniseront automatiquement.',
-            ),
-          ),
-        );
-        return;
-      }
-
-      await Clipboard.setData(ClipboardData(text: httpsUri.toString()));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Lien ICS copié. Ajoute-le comme calendrier par URL dans Google Calendar ou Outlook.',
-          ),
-        ),
-      );
+      await _showCalendarSubscriptionChoices(httpsUri);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
