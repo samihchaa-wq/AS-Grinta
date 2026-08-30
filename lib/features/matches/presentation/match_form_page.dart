@@ -1103,7 +1103,7 @@ class _JerseyOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
+    final accent = Theme.of(context).colorScheme.secondary;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
