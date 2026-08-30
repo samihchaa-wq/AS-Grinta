@@ -1,0 +1,27 @@
+name: Waitlist format probe
+
+on:
+  push:
+    branches: [ui/waitlist-stats-sticky-table]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format waitlist source
+        run: dart format lib/features/sports_management/presentation/admin_waitlist_page.dart
+      - name: Upload formatted source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: waitlist-formatted-source
+          path: lib/features/sports_management/presentation/admin_waitlist_page.dart
