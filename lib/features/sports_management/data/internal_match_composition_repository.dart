@@ -20,6 +20,8 @@ class InternalMatchCompositionRepository {
     required String matchId,
     required String team1Name,
     required String team2Name,
+    required String team1JerseyId,
+    required String team2JerseyId,
     required List<InternalCompositionEntry> entries,
   }) async {
     final response = await _client.rpc(
@@ -29,6 +31,8 @@ class InternalMatchCompositionRepository {
         'p_team1_name': team1Name,
         'p_team2_name': team2Name,
         'p_entries': [for (final entry in entries) entry.toRpcJson()],
+        'p_team1_jersey': team1JerseyId,
+        'p_team2_jersey': team2JerseyId,
       },
     );
     final saved = InternalMatchComposition.tryFromRpc(response);
