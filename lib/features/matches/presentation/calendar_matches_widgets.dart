@@ -46,12 +46,10 @@ class _CalendarToolbar extends StatelessWidget {
           segments: const [
             ButtonSegment(
               value: _CalendarDisplayMode.scroll,
-              icon: Icon(Icons.view_agenda_outlined, size: 18),
               label: Text('Défilé'),
             ),
             ButtonSegment(
               value: _CalendarDisplayMode.month,
-              icon: Icon(Icons.calendar_view_month_outlined, size: 18),
               label: Text('Par mois'),
             ),
           ],
