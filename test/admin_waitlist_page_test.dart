@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-    'dragging the first player onto the second reorders and saves the list',
+    'waitlist is displayed as a compact table',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -21,27 +21,37 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Prénoms'), findsOneWidget);
+      expect(find.text('Présence saison précédente'), findsOneWidget);
+      expect(find.text('Liste d’attente cette saison'), findsOneWidget);
+      expect(find.text('Tours'), findsNothing);
+      expect(find.text('Actions'), findsNothing);
       expect(find.text('Alice'), findsOneWidget);
       expect(find.text('Bruno'), findsOneWidget);
-      expect(find.text('Présence saison précédente : 2'), findsOneWidget);
-      expect(
-        find.text('Liste d’attente cette saison : 3 fois'),
-        findsOneWidget,
-      );
+      expect(find.byType(Card), findsNothing);
+      expect(find.byType(CircleAvatar), findsNothing);
+    },
+  );
 
-      final aliceCard = find.ancestor(
-        of: find.text('Alice'),
-        matching: find.byType(Card),
+  testWidgets(
+    'dragging the first table row onto the second reorders and saves the list',
+    (tester) async {
+      final repository = _FakeSportWaitlistRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sportWaitlistRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(home: AdminWaitlistPage()),
+        ),
       );
-      final aliceDragHandle = find.descendant(
-        of: aliceCard,
-        matching: find.byIcon(Icons.drag_indicator),
-      );
-      final gesture = await tester.startGesture(
-        tester.getCenter(aliceDragHandle),
-      );
+      await tester.pumpAndSettle();
+
+      final aliceDrag = find.byKey(const ValueKey('waitlist-drag-alice'));
+      final brunoRow = find.byKey(const ValueKey('waitlist-row-bruno'));
+      final gesture = await tester.startGesture(tester.getCenter(aliceDrag));
       await tester.pump(const Duration(milliseconds: 600));
-      await gesture.moveTo(tester.getCenter(find.text('Bruno')));
+      await gesture.moveTo(tester.getCenter(brunoRow));
       await tester.pump();
       await gesture.up();
       await tester.pumpAndSettle();
@@ -72,7 +82,6 @@ void main() {
       expect(find.text('Recalculer'), findsOneWidget);
       expect(find.text('Saison 2026-2027'), findsNothing);
       expect(find.textContaining('L’application commence'), findsNothing);
-      expect(find.byType(CircleAvatar), findsNothing);
     },
   );
 
@@ -90,29 +99,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final brunoCard = find.ancestor(
-        of: find.text('Bruno'),
-        matching: find.byType(Card),
+      final brunoRow = find.byKey(const ValueKey('waitlist-row-bruno'));
+      expect(
+        find.descendant(of: brunoRow, matching: find.text('2')),
+        findsOneWidget,
       );
-      final incrementButtonFinder = find.descendant(
-        of: brunoCard,
-        matching: find.byWidgetPredicate(
-          (widget) =>
-              widget is IconButton &&
-              (widget.icon as Icon).icon == Icons.add_circle_outline,
-        ),
+
+      await tester.tap(
+        find.byKey(const ValueKey('waitlist-increment-bruno')),
       );
-      await tester.tap(incrementButtonFinder);
       await tester.pumpAndSettle();
 
       expect(repository.lastManualCountSeasonPlayerId, 'bruno');
       expect(repository.lastManualCount, 2);
       expect(
-        find.descendant(
-          of: brunoCard,
-          matching: find.text('Liste d’attente cette saison : 2 fois'),
-        ),
-        findsOneWidget,
+        find.descendant(of: brunoRow, matching: find.text('2')),
+        findsNWidgets(2),
       );
     },
   );
@@ -132,9 +134,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(OutlinedButton, 'Recalculer'));
-      await tester.pumpAndSettle();
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
       await tester.pumpAndSettle();
 
       expect(repository.savedOrder, ['bruno', 'alice']);
