@@ -1,0 +1,28 @@
+name: Sync yellow selection PR with main
+
+'on':
+  push:
+    branches:
+      - agent/yellow-meeting-convocation-jersey
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/yellow-meeting-convocation-jersey
+          fetch-depth: 0
+      - name: Merge latest main and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge origin/main --no-edit
+          rm .github/workflows/agent_sync_yellow_pr.yml
+          git add -A
+          git commit -m "Sync selected yellow changes with latest main"
+          git push origin HEAD:agent/yellow-meeting-convocation-jersey
