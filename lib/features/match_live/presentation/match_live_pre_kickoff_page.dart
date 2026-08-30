@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/match_squad_editing.dart';
@@ -137,35 +138,17 @@ class _MatchLivePreKickoffPageState
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        if (widget.canEdit) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _durationController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Temps de jeu (minutes)',
-                  prefixIcon: Icon(Icons.timer_outlined),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-        ],
         // Exactement le même bloc terrain/banc que le compte rendu
         // d'après-match : un seul éditeur d'effectif dans toute l'application.
         MatchSquadEditor(
           lineup: lineup,
           editable: widget.canEdit,
-          header: widget.canEdit ? _buildHint(lineup) : null,
+          header: widget.canEdit ? _buildSetupControls(lineup) : null,
           onDroppedOnSlot: (moving, slot) => _dropOnSlot(lineup, moving, slot),
           onMoveToBench: (entry) => _moveToBench(lineup, entry),
-          // Le dispositif se change aussi une fois le match lancé. L'avoir ici
-          // évite d'attendre le coup d'envoi pour corriger un mauvais choix,
-          // alors que l'écran Composition est déjà figé à ce stade.
-          onFormationChanged: (code) => _changeFormation(lineup, code),
+          // Le dispositif est rendu dans la ligne compacte ci-dessus : on
+          // désactive donc le contrôle intégré de MatchSquadEditor ici.
+          onFormationChanged: null,
           formationBusy: _busy || _savingFormation,
         ),
         if (widget.canEdit) ...[
@@ -180,28 +163,78 @@ class _MatchLivePreKickoffPageState
     );
   }
 
-  Widget _buildHint(MatchComposition lineup) {
-    final empty = lineup.entriesFor(MatchCompositionZone.field).isEmpty;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                empty
-                    ? 'Aucun titulaire n’est encore placé. Choisis un '
-                        'dispositif, puis glisse les joueurs du banc sur '
-                        'le terrain.'
-                    : 'Vérifie la composition ci-dessous. Tu peux encore '
-                        'la corriger : dispositif, terrain et banc.',
+  Widget _buildSetupControls(MatchComposition lineup) {
+    final formation = formationForCode(lineup.formationCode);
+    final controlsDisabled = _busy || _savingFormation;
+
+    return Row(
+      key: const ValueKey('live-pre-kickoff-controls'),
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _durationController,
+            keyboardType: TextInputType.number,
+            enabled: !_busy,
+            decoration: const InputDecoration(
+              labelText: 'Temps de jeu',
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 16,
               ),
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            key: ValueKey('squad-formation-${lineup.formationCode}'),
+            initialValue: formation.code,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Dispositif',
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 16,
+              ),
+            ),
+            items: [
+              for (final item in footballFormations)
+                DropdownMenuItem(value: item.code, child: Text(item.code)),
+            ],
+            onChanged: controlsDisabled
+                ? null
+                : (value) {
+                    if (value != null) _changeFormation(lineup, value);
+                  },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SizedBox(
+            height: 56,
+            child: OutlinedButton(
+              onPressed: controlsDisabled
+                  ? null
+                  : () => showMatchLiveAddPlayerSheet(
+                        context,
+                        ref,
+                        matchId: widget.matchId,
+                      ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('Ajouter un joueur'),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
