@@ -87,7 +87,7 @@ class MatchLiveTab extends ConsumerWidget {
           );
           if (!canEdit) return page;
           if (bundle.session.state == MatchLiveState.finished) {
-            return _FinishedLiveViewport(child: page);
+            return MatchLiveFinishedViewport(child: page);
           }
           return _LiveRealtimeBoundary(matchId: matchId, child: page);
         } catch (error, stackTrace) {
@@ -114,14 +114,14 @@ class MatchLiveTab extends ConsumerWidget {
   }
 }
 
-/// Le compte rendu final contient un `Expanded` et suppose donc une hauteur
-/// bornée. L'onglet Admin, lui, est placé dans le `ListView` du gestionnaire de
-/// match et lui transmet une hauteur infinie. LimitedBox ne contraint le child
-/// que dans ce cas non borné : sur une page déjà bornée, il reste transparent.
-/// On garde ainsi le scroll interne du compte rendu et son bouton de validation
-/// réellement au bas de son viewport, sans hauteur fixe dépendante du téléphone.
-class _FinishedLiveViewport extends StatelessWidget {
-  const _FinishedLiveViewport({required this.child});
+/// Borne le compte rendu final lorsqu'il est imbriqué dans le `ListView` de
+/// l'administration. `LimitedBox` ne contraint le child que si son parent est
+/// non borné ; sur une page déjà bornée, ce wrapper reste transparent.
+///
+/// Cette classe est publique uniquement pour verrouiller ce contrat de layout
+/// par un widget test sans devoir fabriquer tout l'état d'un Live.
+class MatchLiveFinishedViewport extends StatelessWidget {
+  const MatchLiveFinishedViewport({super.key, required this.child});
 
   final Widget child;
 
