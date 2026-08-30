@@ -200,7 +200,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                     await _copyCalendarLink(httpsUri);
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Lien du calendrier copié.')),
+                      const SnackBar(
+                          content: Text('Lien du calendrier copié.')),
                     );
                   }),
                 ),
