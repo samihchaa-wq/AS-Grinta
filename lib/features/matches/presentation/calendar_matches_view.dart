@@ -184,7 +184,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final canGoPrevious = bounds != null && _monthCursor.isAfter(bounds.$1);
     final canGoNext = bounds != null && _monthCursor.isBefore(bounds.$2);
 
-    final exportAction = currentSeasonName != null ? _subscribeCurrentSeason : null;
+    final exportAction =
+        currentSeasonName != null ? _subscribeCurrentSeason : null;
 
     return Column(
       children: [
