@@ -51,7 +51,18 @@ void main() {
     final guestRect = tester.getRect(guestButton);
     expect(waitlistRect.left, lessThan(guestRect.left));
     expect((waitlistRect.top - guestRect.top).abs(), lessThan(0.5));
-    expect((waitlistRect.width - guestRect.width).abs(), lessThan(0.5));
+    final waitlistExpanded = find.ancestor(
+      of: waitlistButton,
+      matching: find.byType(Expanded),
+    );
+    final guestExpanded = find.ancestor(
+      of: guestButton,
+      matching: find.byType(Expanded),
+    );
+    expect(waitlistExpanded, findsOneWidget);
+    expect(guestExpanded, findsOneWidget);
+    expect(tester.widget<Expanded>(waitlistExpanded).flex, 1);
+    expect(tester.widget<Expanded>(guestExpanded).flex, 1);
     expect(find.byType(ActionChip), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(find.textContaining('Brouillon'), findsNothing);
@@ -79,7 +90,18 @@ void main() {
     final simulateRect = tester.getRect(simulateButton);
     expect(formationRect.left, lessThan(simulateRect.left));
     expect((formationRect.top - simulateRect.top).abs(), lessThan(0.5));
-    expect((formationRect.width - simulateRect.width).abs(), lessThan(0.5));
+    final formationExpanded = find.ancestor(
+      of: formation,
+      matching: find.byType(Expanded),
+    );
+    final simulateExpanded = find.ancestor(
+      of: simulateButton,
+      matching: find.byType(Expanded),
+    );
+    expect(formationExpanded, findsOneWidget);
+    expect(simulateExpanded, findsOneWidget);
+    expect(tester.widget<Expanded>(formationExpanded).flex, 1);
+    expect(tester.widget<Expanded>(simulateExpanded).flex, 1);
     expect(find.text('Remplaçants (3)'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(
