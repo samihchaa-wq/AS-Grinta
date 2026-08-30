@@ -21,13 +21,17 @@ class InternalMatchCompositionRepository {
     required String team1Name,
     required String team2Name,
     required List<InternalCompositionEntry> entries,
+    String team1JerseyId = 'orange',
+    String team2JerseyId = 'blue',
   }) async {
     final response = await _client.rpc(
-      'admin_save_internal_composition',
+      'admin_save_internal_composition_v2',
       params: {
         'p_match_id': matchId,
         'p_team1_name': team1Name,
         'p_team2_name': team2Name,
+        'p_team1_jersey': team1JerseyId,
+        'p_team2_jersey': team2JerseyId,
         'p_entries': [for (final entry in entries) entry.toRpcJson()],
       },
     );
