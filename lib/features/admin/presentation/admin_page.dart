@@ -127,9 +127,8 @@ class _UsersAdminSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final groups = groupAdminProfiles(dashboard.profiles);
-    final profiles = selected == _UsersSection.validated
-        ? groups.validated
-        : groups.pending;
+    final profiles =
+        selected == _UsersSection.validated ? groups.validated : groups.pending;
     final emptyMessage = selected == _UsersSection.validated
         ? 'Aucun compte validé.'
         : 'Aucun compte en attente.';
@@ -266,13 +265,13 @@ class _SegmentedBar<T> extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: selected == items[index].$1
-                          ? FontWeight.w800
-                          : FontWeight.w600,
-                      color: selected == items[index].$1
-                          ? scheme.onPrimaryContainer
-                          : scheme.onSurfaceVariant,
-                    ),
+                          fontWeight: selected == items[index].$1
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          color: selected == items[index].$1
+                              ? scheme.onPrimaryContainer
+                              : scheme.onSurfaceVariant,
+                        ),
                   ),
                 ),
               ),
