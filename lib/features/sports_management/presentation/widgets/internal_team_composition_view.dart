@@ -84,14 +84,13 @@ class _InternalTeamCompositionViewState
   }
 
   void _ensurePositionProfiles(List<InternalCompositionEntry> entries) {
-    final seasonPlayerIds =
-        entries
-            .map((entry) => entry.seasonPlayerId?.trim())
-            .whereType<String>()
-            .where((id) => id.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final seasonPlayerIds = entries
+        .map((entry) => entry.seasonPlayerId?.trim())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
     final key = seasonPlayerIds.join(',');
     if (_positionLoadKey == key) return;
     _positionLoadKey = key;
@@ -196,20 +195,19 @@ class _InternalTeamCompositionViewState
     if (entries == null || _saving) return;
     setState(() => _saving = true);
     try {
-      final saved = await ref
-          .read(internalMatchCompositionRepositoryProvider)
-          .save(
-            matchId: widget.matchId,
-            team1Name: _team1Controller.text,
-            team2Name: _team2Controller.text,
-            team1JerseyId: _team1Jersey.id,
-            team2JerseyId: _team2Jersey.id,
-            entries: [
-              for (final entry in entries.where((e) => e.teamNo == null)) entry,
-              for (final entry in entries.where((e) => e.teamNo == 1)) entry,
-              for (final entry in entries.where((e) => e.teamNo == 2)) entry,
-            ],
-          );
+      final saved =
+          await ref.read(internalMatchCompositionRepositoryProvider).save(
+        matchId: widget.matchId,
+        team1Name: _team1Controller.text,
+        team2Name: _team2Controller.text,
+        team1JerseyId: _team1Jersey.id,
+        team2JerseyId: _team2Jersey.id,
+        entries: [
+          for (final entry in entries.where((e) => e.teamNo == null)) entry,
+          for (final entry in entries.where((e) => e.teamNo == 1)) entry,
+          for (final entry in entries.where((e) => e.teamNo == 2)) entry,
+        ],
+      );
       if (!mounted) return;
       setState(() {
         _initFrom(saved);
@@ -232,12 +230,10 @@ class _InternalTeamCompositionViewState
   _PositionGroup _positionGroup(InternalCompositionEntry entry) {
     if (entry.isGoalkeeper || entry.isGuest) return _PositionGroup.other;
     final seasonPlayerId = entry.seasonPlayerId?.trim();
-    final canonicalPlayerId = seasonPlayerId == null
-        ? null
-        : _canonicalPlayerIds[seasonPlayerId];
-    final profile = canonicalPlayerId == null
-        ? null
-        : _positionProfiles[canonicalPlayerId];
+    final canonicalPlayerId =
+        seasonPlayerId == null ? null : _canonicalPlayerIds[seasonPlayerId];
+    final profile =
+        canonicalPlayerId == null ? null : _positionProfiles[canonicalPlayerId];
 
     // En-dessous de quatre titularisations, le poste moyen bouge trop vite
     // pour constituer une catégorie utile. Ces joueurs restent volontairement
@@ -453,8 +449,8 @@ class _SelectionHint extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: selected == null ? FontWeight.w600 : FontWeight.w800,
-        ),
+              fontWeight: selected == null ? FontWeight.w600 : FontWeight.w800,
+            ),
       ),
     );
   }
@@ -517,7 +513,9 @@ class _UnassignedPanel extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Non affectés (${entries.length})',
-                      style: Theme.of(context).textTheme.titleSmall
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
                           ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
@@ -570,11 +568,11 @@ class _PositionGroupSection extends StatelessWidget {
   final ValueChanged<InternalCompositionEntry> onSelect;
 
   String get label => switch (group) {
-    _PositionGroup.defenders => 'Défenseurs',
-    _PositionGroup.midfielders => 'Milieux',
-    _PositionGroup.attackers => 'Attaquants',
-    _PositionGroup.other => 'Autre',
-  };
+        _PositionGroup.defenders => 'Défenseurs',
+        _PositionGroup.midfielders => 'Milieux',
+        _PositionGroup.attackers => 'Attaquants',
+        _PositionGroup.other => 'Autre',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -586,10 +584,12 @@ class _PositionGroupSection extends StatelessWidget {
           child: Text(
             '$label (${entries.length})',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: Theme.of(context).colorScheme.onSurface
-                  .withValues(alpha: .72),
-            ),
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: .72),
+                ),
           ),
         ),
         Wrap(
@@ -694,7 +694,9 @@ class _TeamColumn extends StatelessWidget {
                       ),
                       child: Text(
                         '${entries.length}',
-                        style: Theme.of(context).textTheme.labelMedium
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
                             ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -731,7 +733,9 @@ class _TeamColumn extends StatelessWidget {
             child: Text(
               '$semanticName · ${_playerCount(entries.length)}',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
@@ -755,8 +759,7 @@ class _TeamColumn extends StatelessWidget {
                         entry: entries[index],
                         editable: editable,
                         expand: true,
-                        selected:
-                            selectedParticipantId ==
+                        selected: selectedParticipantId ==
                             entries[index].participantId,
                         onTap: () => onSelectPlayer(entries[index]),
                       ),
@@ -783,18 +786,18 @@ class _JerseyPicker extends StatelessWidget {
       children: [
         Text(
           'Maillot',
-          style: Theme.of(context).textTheme.labelSmall
+          style: Theme.of(context)
+              .textTheme
+              .labelSmall
               ?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            for (
-              var index = 0;
-              index < JerseyOption.values.length;
-              index++
-            ) ...[
+            for (var index = 0;
+                index < JerseyOption.values.length;
+                index++) ...[
               _JerseyChoice(
                 option: JerseyOption.values[index],
                 selected: JerseyOption.values[index] == selected,
