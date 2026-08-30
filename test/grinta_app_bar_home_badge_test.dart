@@ -60,6 +60,56 @@ void main() {
       expect(find.byKey(const ValueKey<String>('details-body')), findsNothing);
     },
   );
+
+  testWidgets(
+    'club badge closes an imperative page when GoRouter is already on calendar',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/matches',
+        routes: [
+          GoRoute(
+            path: '/matches',
+            builder: (_, __) => const _ImperativeRouteHost(),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/matches');
+      expect(
+        find.byKey(const ValueKey<String>('calendar-body')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('open-edit-page')));
+      await tester.pumpAndSettle();
+
+      // Navigator.push n'altère pas la location GoRouter : c'est exactement le
+      // cas où un simple context.go('/matches') ne faisait rien auparavant.
+      expect(router.routeInformationProvider.value.uri.path, '/matches');
+      expect(
+        find.byKey(const ValueKey<String>('imperative-edit-body')),
+        findsOneWidget,
+      );
+      expect(find.byType(BackButton), findsOneWidget);
+
+      await tester.tap(find.byKey(grintaClubHomeBadgeKey));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/matches');
+      expect(
+        find.byKey(const ValueKey<String>('calendar-body')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('imperative-edit-body')),
+        findsNothing,
+      );
+    },
+  );
 }
 
 class _TestPage extends StatelessWidget {
@@ -73,6 +123,34 @@ class _TestPage extends StatelessWidget {
     return Scaffold(
       appBar: GrintaAppBar(title: Text(title)),
       body: SizedBox(key: bodyKey),
+    );
+  }
+}
+
+class _ImperativeRouteHost extends StatelessWidget {
+  const _ImperativeRouteHost();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: GrintaAppBar(title: const Text('Calendrier')),
+      body: Column(
+        children: [
+          const SizedBox(key: ValueKey<String>('calendar-body')),
+          FilledButton(
+            key: const ValueKey<String>('open-edit-page'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const _TestPage(
+                  title: 'Modifier',
+                  bodyKey: ValueKey<String>('imperative-edit-body'),
+                ),
+              ),
+            ),
+            child: const Text('Modifier'),
+          ),
+        ],
+      ),
     );
   }
 }
