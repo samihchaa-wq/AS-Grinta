@@ -140,8 +140,8 @@ class _UsersAdminSection extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
+          SizedBox(
+            width: double.infinity,
             child: FilledButton.tonalIcon(
               onPressed: () async {
                 await Clipboard.setData(
