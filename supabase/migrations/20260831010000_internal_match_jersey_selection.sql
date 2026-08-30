@@ -201,6 +201,13 @@ end;
 $$;
 
 revoke all on function public.admin_save_internal_composition(
+  uuid, text, text, jsonb
+) from public, anon;
+grant execute on function public.admin_save_internal_composition(
+  uuid, text, text, jsonb
+) to authenticated, service_role;
+
+revoke all on function public.admin_save_internal_composition(
   uuid, text, text, jsonb, text, text
 ) from public, anon;
 grant execute on function public.admin_save_internal_composition(
