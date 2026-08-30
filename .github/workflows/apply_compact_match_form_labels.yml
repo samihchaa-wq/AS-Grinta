@@ -1,0 +1,107 @@
+name: Apply compact match form labels
+
+on:
+  push:
+    branches:
+      - fix/compact-match-form-labels
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/compact-match-form-labels
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Apply requested UI changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          form = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
+          text = form.read_text()
+
+          old = """              title: const Text('Garder cette adresse pour cette équipe'),
+              controlAffinity: ListTileControlAffinity.leading,
+"""
+          new = """              title: Text(
+                'Mémorise cette adresse',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+"""
+          assert old in text, 'remember-address block not found'
+          text = text.replace(old, new, 1)
+
+          old = """          title: const Text('Nombre de joueurs convoqués'),
+          subtitle: Text(
+            '${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
+          ),
+          trailing: const Icon(Icons.unfold_more_rounded),
+"""
+          new = """          title: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Nombre de joueurs convoqués ${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
+              maxLines: 1,
+            ),
+          ),
+          trailing: const Icon(Icons.unfold_more_rounded),
+"""
+          assert old in text, 'squad-size block not found'
+          text = text.replace(old, new, 1)
+          form.write_text(text)
+
+          round_tile = Path('lib/features/matches/presentation/widgets/championship_round_tile.dart')
+          text = round_tile.read_text()
+          old = """      title: const Text('Journée de championnat'),
+      subtitle: Text(
+        current == null
+            ? 'Numéro automatique'
+            : duplicated
+                ? 'J$current · déjà utilisée cette saison'
+                : 'J$current',
+        style: duplicated
+            ? TextStyle(color: Theme.of(context).colorScheme.error)
+            : null,
+      ),
+      trailing: const Icon(Icons.unfold_more_rounded),
+"""
+          new = """      title: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          current == null
+              ? 'Journée de championnat · Numéro automatique'
+              : duplicated
+                  ? 'Journée de championnat J$current · déjà utilisée cette saison'
+                  : 'Journée de championnat J$current',
+          maxLines: 1,
+          style: duplicated
+              ? TextStyle(color: Theme.of(context).colorScheme.error)
+              : null,
+        ),
+      ),
+      trailing: const Icon(Icons.unfold_more_rounded),
+"""
+          assert old in text, 'championship-round block not found'
+          text = text.replace(old, new, 1)
+          round_tile.write_text(text)
+          PY
+      - name: Remove temporary workflow and commit
+        run: |
+          git rm .github/workflows/apply_compact_match_form_labels.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart lib/features/matches/presentation/widgets/championship_round_tile.dart
+          git commit -m "Compact match form labels"
+          git push origin HEAD:fix/compact-match-form-labels
