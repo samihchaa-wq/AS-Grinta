@@ -26,6 +26,7 @@ class _SeasonCard extends ConsumerWidget {
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.error,
+                  textStyle: Theme.of(context).textTheme.titleLarge,
                 ),
                 onPressed: () => _changeStatus(
                   context,
