@@ -37,8 +37,10 @@ void main() {
       find.textContaining('jusqu’à ce que tu appuies sur Enregistrer.'),
       findsNothing,
     );
-    final waitlistButton =
-        find.widgetWithText(OutlinedButton, 'Voir la liste d’attente');
+    final waitlistButton = find.widgetWithText(
+      OutlinedButton,
+      'Voir la liste d’attente',
+    );
     final guestButton = find.widgetWithText(OutlinedButton, 'Ajouter un invité');
     expect(waitlistButton, findsOneWidget);
     expect(guestButton, findsOneWidget);
