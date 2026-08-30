@@ -267,7 +267,7 @@ class _SegmentedBar<T> extends StatelessWidget {
                               ? FontWeight.w800
                               : FontWeight.w600,
                           color: selected == items[index].$1
-                              ? scheme.onPrimaryContainer
+                              ? scheme.secondary
                               : scheme.onSurfaceVariant,
                         ),
                   ),
