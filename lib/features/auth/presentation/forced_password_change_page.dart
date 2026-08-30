@@ -3,6 +3,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:go_router/go_router.dart';
 
 class ForcedPasswordChangePage extends ConsumerStatefulWidget {
   const ForcedPasswordChangePage({super.key});
@@ -43,6 +44,8 @@ class _ForcedPasswordChangePageState
       return;
     }
 
+    final isRecovery =
+        GoRouterState.of(context).uri.queryParameters['recovery'] == '1';
     final success = await ref
         .read(authControllerProvider.notifier)
         .updatePassword(password);
@@ -50,12 +53,17 @@ class _ForcedPasswordChangePageState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nouveau mot de passe enregistré.')),
       );
+      if (isRecovery) {
+        context.go('/matches');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(authControllerProvider);
+    final isRecovery =
+        GoRouterState.of(context).uri.queryParameters['recovery'] == '1';
 
     return Scaffold(
       body: SafeArea(
@@ -78,9 +86,11 @@ class _ForcedPasswordChangePageState
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Tu es connecté avec un mot de passe temporaire. '
-                        'Choisis maintenant ton mot de passe définitif.',
+                      Text(
+                        isRecovery
+                            ? 'Choisis maintenant ton nouveau mot de passe.'
+                            : 'Tu es connecté avec un mot de passe temporaire. '
+                                'Choisis maintenant ton mot de passe définitif.',
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
