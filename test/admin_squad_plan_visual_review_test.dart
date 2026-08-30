@@ -35,15 +35,37 @@ void main() {
 
     expect(
       find.textContaining('jusqu’à ce que tu appuies sur Enregistrer.'),
-      findsOneWidget,
+      findsNothing,
     );
+    final waitlistButton = find.widgetWithText(
+      OutlinedButton,
+      'Voir la liste d’attente',
+    );
+    final guestButton = find.widgetWithText(
+      OutlinedButton,
+      'Ajouter un invité',
+    );
+    expect(waitlistButton, findsOneWidget);
+    expect(guestButton, findsOneWidget);
+    final waitlistExpanded = find.ancestor(
+      of: waitlistButton,
+      matching: find.byType(Expanded),
+    );
+    final guestExpanded = find.ancestor(
+      of: guestButton,
+      matching: find.byType(Expanded),
+    );
+    expect(waitlistExpanded, findsOneWidget);
+    expect(guestExpanded, findsOneWidget);
+    expect(tester.widget<Expanded>(waitlistExpanded).flex, 1);
+    expect(tester.widget<Expanded>(guestExpanded).flex, 1);
     expect(find.byType(ActionChip), findsWidgets);
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'effectif_compact_enregistrer.png');
   });
 
-  testWidgets('captures the composition with explicit save', (tester) async {
+  testWidgets('captures the compact composition controls', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
@@ -51,7 +73,27 @@ void main() {
       initialStep: 'composition',
     );
 
-    expect(find.textContaining('puis appuie sur Enregistrer.'), findsOneWidget);
+    expect(find.text('Composition'), findsNothing);
+    expect(find.textContaining('Choisis un dispositif'), findsNothing);
+    final formation = find.byType(DropdownButtonFormField<String>);
+    final simulateButton = find.widgetWithText(
+      OutlinedButton,
+      'Simuler une composition',
+    );
+    expect(formation, findsOneWidget);
+    expect(simulateButton, findsOneWidget);
+    final formationExpanded = find.ancestor(
+      of: formation,
+      matching: find.byType(Expanded),
+    );
+    final simulateExpanded = find.ancestor(
+      of: simulateButton,
+      matching: find.byType(Expanded),
+    );
+    expect(formationExpanded, findsOneWidget);
+    expect(simulateExpanded, findsOneWidget);
+    expect(tester.widget<Expanded>(formationExpanded).flex, 1);
+    expect(tester.widget<Expanded>(simulateExpanded).flex, 1);
     expect(find.text('Remplaçants (3)'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(

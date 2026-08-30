@@ -37,31 +37,16 @@ class MatchInfoTab extends ConsumerWidget {
               children: [
                 if (info.kickoffAt != null) ...[
                   _InfoRow(
-                    icon: Icons.sports_soccer_rounded,
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Coup d’envoi  ',
-                            style: TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          TextSpan(
-                            text: AppFormats.dateTime(info.kickoffAt!),
-                            style: const TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
+                    child: Text(
+                      AppFormats.dateTime(info.kickoffAt!),
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.contentGap),
                   _InfoRow(
-                    icon: Icons.groups_rounded,
                     child: Text.rich(
                       TextSpan(
                         children: [
@@ -92,8 +77,6 @@ class MatchInfoTab extends ConsumerWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: _InfoRow(
-                        icon: Icons.place_outlined,
-                        iconColor: const Color(0xFF9B6CFF),
                         child: Text(
                           info.address!,
                           maxLines: 2,
@@ -111,7 +94,6 @@ class MatchInfoTab extends ConsumerWidget {
                   )
                 else
                   _InfoRow(
-                    icon: Icons.place_outlined,
                     child: Text(
                       'Adresse non renseignée.',
                       style: TextStyle(
@@ -122,27 +104,11 @@ class MatchInfoTab extends ConsumerWidget {
                   ),
                 const SizedBox(height: AppSpacing.contentGap),
                 _InfoRow(
-                  icon: info.isFriendly
-                      ? Icons.handshake_outlined
-                      : Icons.emoji_events_outlined,
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        const TextSpan(
-                          text: 'Type de match  ',
-                          style: TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        TextSpan(
-                          text: info.matchTypeLabel,
-                          style: const TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
+                  child: Text(
+                    info.matchTypeLabel,
+                    style: const TextStyle(
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -153,7 +119,6 @@ class MatchInfoTab extends ConsumerWidget {
                       final jersey = JerseyOption.fromId(info.jerseyNote);
                       if (jersey == null) {
                         return _InfoRow(
-                          icon: Icons.checkroom_outlined,
                           child: Text.rich(
                             TextSpan(
                               children: [
@@ -177,7 +142,6 @@ class MatchInfoTab extends ConsumerWidget {
                         );
                       }
                       return _InfoRow(
-                        icon: Icons.checkroom_outlined,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -259,22 +223,13 @@ class MatchInfoTab extends ConsumerWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.child, this.iconColor});
+  const _InfoRow({required this.child});
 
-  final IconData icon;
   final Widget child;
-  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, size: 21, color: iconColor),
-        const SizedBox(width: AppSpacing.contentGap),
-        Expanded(child: child),
-      ],
-    );
+    return Row(children: [Expanded(child: child)]);
   }
 }
 

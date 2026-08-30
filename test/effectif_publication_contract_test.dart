@@ -69,13 +69,16 @@ void main() {
     expect(effectifSource, contains("label: const Text('Enregistrer')"));
     expect(
       effectifSource,
-      contains('jusqu’à ce que tu appuies sur Enregistrer'),
+      isNot(contains('jusqu’à ce que tu appuies sur Enregistrer')),
     );
     expect(effectifSource, contains('.publishEffectif('));
     expect(repositorySource, contains("'admin_publish_match_effectif'"));
 
     expect(compositionSource, contains("label: const Text('Enregistrer')"));
-    expect(compositionSource, contains('puis appuie sur Enregistrer'));
+    expect(
+      compositionSource,
+      isNot(contains('puis appuie sur Enregistrer')),
+    );
     expect(
       compositionSource,
       isNot(contains("label: const Text('Publier la composition')")),

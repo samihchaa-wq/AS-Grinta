@@ -621,30 +621,54 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Composition',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  _postMatch
-                      ? 'Choisis le dispositif réellement joué, puis appuie sur Enregistrer.'
-                      : 'Choisis un dispositif, glisse les joueurs sur les postes, puis appuie sur Enregistrer.',
-                ),
-                const SizedBox(height: 14),
-                _FormationDropdown(
-                  value: formationForCode(composition.formationCode).code,
-                  onChanged: _compositionLocked ? null : _applyFormation,
-                ),
-                if (!_postMatch) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _compositionLocked ? null : _simulateComposition,
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('Simuler une composition'),
+                if (_postMatch)
+                  _FormationDropdown(
+                    value: formationForCode(composition.formationCode).code,
+                    onChanged: _compositionLocked ? null : _applyFormation,
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _FormationDropdown(
+                          value:
+                              formationForCode(composition.formationCode).code,
+                          onChanged:
+                              _compositionLocked ? null : _applyFormation,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 56,
+                          child: OutlinedButton(
+                            onPressed: _compositionLocked
+                                ? null
+                                : _simulateComposition,
+                            style: OutlinedButton.styleFrom(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.auto_awesome_outlined, size: 18),
+                                SizedBox(width: 5),
+                                Flexible(
+                                  child: Text(
+                                    'Simuler une composition',
+                                    maxLines: 2,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                if (!_postMatch) ...[
                   const SizedBox(height: 6),
                   Text(
                     'Place les convoqués à leur poste habituel, en '
