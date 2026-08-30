@@ -19,9 +19,6 @@ alter table public.match_internal_compositions
   add constraint match_internal_compositions_distinct_jerseys_check
     check (team1_jersey_id <> team2_jersey_id);
 
--- Le lecteur public aux profils actifs renvoie aussi l'identité canonique du
--- joueur. Le client réutilise ainsi exactement les profils de postes de la
--- simulation de composition, sans deuxième source métier.
 create or replace function public.get_internal_composition(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -67,7 +64,6 @@ begin
       'participant_id', participant.id,
       'season_player_id', participant.season_player_id,
       'guest_player_id', participant.guest_player_id,
-      'canonical_player_id', player.player_id,
       'display_name', coalesce(
         nullif(btrim(profile.surnom), ''),
         nullif(btrim(profile.first_name), ''),
