@@ -57,6 +57,10 @@ jobs:
             exit 0
           fi
 
+          # GitHub peut exposer le nouveau commit de squash avant que
+          # /commits/{sha}/pulls ne connaisse son association. Dans ce cas,
+          # vérifier le numéro de PR inscrit par GitHub dans le titre du squash
+          # et exiger que cette PR pointe exactement vers le SHA poussé.
           subject=$(git log -1 --pretty=%s)
           pr_number=$(sed -nE 's/.*\(#([0-9]+)\)$/\1/p' <<<"$subject")
           if [ -z "$pr_number" ]; then
@@ -194,13 +198,14 @@ jobs:
       - name: Check formatting of all Dart files
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           mapfile -t files < <(git ls-files '*.dart')
           if [ "${#files[@]}" -eq 0 ]; then
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
-          dart format "${files[@]}" 2>&1 | tee format.log
+          dart format --output=none --set-exit-if-changed "${files[@]}" \
+            2>&1 | tee format.log
 
       - name: Analyze with fatal warnings and infos
         shell: bash
@@ -320,7 +325,6 @@ jobs:
             dependency-graph.stderr.log
             dependency-summary.txt
             format.log
-            lib/features/matches/presentation/calendar_matches_view.dart
             analyze.log
             test.log
             coverage/lcov.info
