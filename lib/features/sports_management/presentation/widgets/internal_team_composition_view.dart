@@ -116,12 +116,18 @@ class _InternalTeamCompositionViewState
 
   void _changeJersey(int teamNo, JerseyOption jersey) {
     if (!widget.editable) return;
-    if (teamNo == 1 && jersey == _team2Jersey) return;
-    if (teamNo == 2 && jersey == _team1Jersey) return;
     setState(() {
       if (teamNo == 1) {
+        if (jersey == _team1Jersey) return;
+        if (jersey == _team2Jersey) {
+          _team2Jersey = _team1Jersey;
+        }
         _team1Jersey = jersey;
       } else {
+        if (jersey == _team2Jersey) return;
+        if (jersey == _team1Jersey) {
+          _team1Jersey = _team2Jersey;
+        }
         _team2Jersey = jersey;
       }
       _dirty = true;
@@ -616,7 +622,6 @@ class _JerseyAssignmentTile extends StatelessWidget {
                     for (final option in JerseyOption.values)
                       PopupMenuItem<JerseyOption>(
                         value: option,
-                        enabled: option != unavailableJersey,
                         child: Row(
                           children: [
                             SizedBox(
@@ -628,7 +633,11 @@ class _JerseyAssignmentTile extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(option.label),
+                            Text(
+                              option == unavailableJersey
+                                  ? '${option.label} · échanger'
+                                  : option.label,
+                            ),
                           ],
                         ),
                       ),
