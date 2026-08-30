@@ -28,13 +28,51 @@ void main() {
     );
 
     testWidgets(
-      'un terrain vide explique comment placer les titulaires',
+      'regroupe temps de jeu, dispositif et ajout joueur sur une ligne',
       (tester) async {
-        await _pump(tester, bundle: _bundle(fieldPlayers: 0));
+        await _pump(tester, bundle: _bundle(fieldPlayers: 1));
 
+        final controls = find.byKey(
+          const ValueKey('live-pre-kickoff-controls'),
+        );
+        final durationField = find.byType(TextField);
+        final formation = find.byType(DropdownButtonFormField<String>);
+        final addPlayer = find.widgetWithText(
+          OutlinedButton,
+          'Ajouter un joueur',
+        );
+
+        expect(controls, findsOneWidget);
+        expect(
+          find.descendant(of: controls, matching: durationField),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: controls, matching: formation),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: controls, matching: addPlayer),
+          findsOneWidget,
+        );
+        expect(
+          tester.widget<TextField>(durationField).decoration?.labelText,
+          'Temps de jeu',
+        );
+
+        for (final control in [durationField, formation, addPlayer]) {
+          final expanded = find.ancestor(
+            of: control,
+            matching: find.byType(Expanded),
+          );
+          expect(expanded, findsOneWidget);
+          expect(tester.widget<Expanded>(expanded).flex, 1);
+        }
+
+        expect(find.textContaining('Vérifie la composition'), findsNothing);
         expect(
           find.textContaining('Aucun titulaire n’est encore placé'),
-          findsOneWidget,
+          findsNothing,
         );
       },
     );
@@ -49,6 +87,7 @@ void main() {
         );
 
         expect(find.text('Dispositif'), findsNothing);
+        expect(find.text('Ajouter un joueur'), findsNothing);
         expect(find.text('Démarrer le match'), findsNothing);
       },
     );
