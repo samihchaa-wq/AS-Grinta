@@ -1,9 +1,13 @@
 part of 'admin_page.dart';
 
 class _SeasonCard extends ConsumerWidget {
-  const _SeasonCard({required this.dashboard});
+  const _SeasonCard({
+    required this.dashboard,
+    required this.onSeasonCreated,
+  });
 
   final AdminDashboardData dashboard;
+  final VoidCallback onSeasonCreated;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -15,104 +19,116 @@ class _SeasonCard extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (openSeason != null) ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: () => _changeStatus(
+                  context,
+                  ref,
+                  openSeason,
+                  'archived',
+                  title: 'Finir la saison ?',
+                  message: 'La saison « ${openSeason.name} » sera archivée '
+                      'immédiatement et le classement final figé. '
+                      'C’est définitif. Tu pourras ensuite créer une '
+                      'nouvelle saison.',
+                ),
+                icon: const Icon(Icons.flag_outlined),
+                label: const Text('Finir la saison'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Paris Buteurs',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 10),
-                if (openSeason == null)
-                  FilledButton.icon(
-                    onPressed: () => _createSeason(context, ref),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Créer une saison'),
+            child: openSeason == null
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Paris buteur',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => _createSeason(context, ref),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Créer une saison'),
+                      ),
+                    ],
                   )
-                else ...[
-                  Text('Saison ouverte : ${openSeason.name}'),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      openSeason.predictionsLocked
-                          ? 'Paris de saison fermés'
-                          : 'Paris de saison ouverts',
-                    ),
-                    value: openSeason.predictionsLocked,
-                    onChanged: (lock) async {
-                      if (lock) {
-                        final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('Fermer les paris ?'),
-                                content: const Text(
-                                  'Les pronostics de saison de tout le monde '
-                                  'deviendront visibles et ne pourront plus être '
-                                  'modifiés. Le classement de saison démarre.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, false),
-                                    child: const Text('Annuler'),
+                : Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Paris buteur',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      Switch.adaptive(
+                        value: !openSeason.predictionsLocked,
+                        onChanged: (enabled) async {
+                          final lock = !enabled;
+                          if (lock) {
+                            final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (dialogContext) => AlertDialog(
+                                    title: const Text('Fermer les paris ?'),
+                                    content: const Text(
+                                      'Les pronostics de saison de tout le '
+                                      'monde deviendront visibles et ne '
+                                      'pourront plus être modifiés. Le '
+                                      'classement de saison démarre.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(
+                                          dialogContext,
+                                          false,
+                                        ),
+                                        child: const Text('Annuler'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () => Navigator.pop(
+                                          dialogContext,
+                                          true,
+                                        ),
+                                        child: const Text('Fermer'),
+                                      ),
+                                    ],
                                   ),
-                                  FilledButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, true),
-                                    child: const Text('Fermer'),
-                                  ),
-                                ],
-                              ),
-                            ) ??
-                            false;
-                        if (!confirmed) return;
-                      }
-                      try {
-                        await ref
-                            .read(adminRepositoryProvider)
-                            .setSeasonPredictionsLock(
-                              seasonId: openSeason.id,
-                              locked: lock,
-                            );
-                        ref.invalidate(adminDashboardProvider);
-                      } catch (error) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(humanizeError(error))),
-                          );
-                        }
-                      }
-                    },
+                                ) ??
+                                false;
+                            if (!confirmed) return;
+                          }
+                          try {
+                            await ref
+                                .read(adminRepositoryProvider)
+                                .setSeasonPredictionsLock(
+                                  seasonId: openSeason.id,
+                                  locked: lock,
+                                );
+                            ref.invalidate(adminDashboardProvider);
+                          } catch (error) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(humanizeError(error))),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ],
-            ),
           ),
         ),
-        if (openSeason != null) ...[
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: () => _changeStatus(
-              context,
-              ref,
-              openSeason,
-              'archived',
-              title: 'Finir la saison ?',
-              message: 'La saison « ${openSeason.name} » sera archivée '
-                  'immédiatement et le classement final figé. '
-                  'C’est définitif. Tu pourras ensuite créer une '
-                  'nouvelle saison.',
-            ),
-            icon: const Icon(Icons.flag_outlined),
-            label: const Text('Finir la saison'),
-          ),
-        ],
       ],
     );
   }
@@ -197,8 +213,7 @@ class _SeasonCard extends ConsumerWidget {
             ),
           ),
         );
-        // Enchaîne sur la saisie de l'effectif (la liste des joueurs).
-        context.push('/players');
+        onSeasonCreated();
       }
     } catch (error) {
       if (context.mounted) {
