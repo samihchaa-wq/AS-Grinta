@@ -102,7 +102,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
         padding: grintaTablePinnedHeaderPadding,
         child: SortableHeaderCell(
           label: 'Joueurs',
-          align: TextAlign.start,
+          align: TextAlign.center,
           active: _sort == _LbCol.name,
           descending: _desc,
           onTap: () => _onSort(_LbCol.name),

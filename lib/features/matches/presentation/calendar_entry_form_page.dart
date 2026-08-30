@@ -598,7 +598,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             child: MatchFormPickerTile(
               label: 'Date',
               value: _formatDate(_startsAt),
-              icon: Icons.calendar_today_outlined,
               enabled: !busy,
               onTap: _pickDate,
             ),
@@ -608,7 +607,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             child: MatchFormPickerTile(
               label: 'Heure',
               value: _formatTime(_startsAt),
-              icon: Icons.schedule_outlined,
               enabled: !busy,
               onTap: _pickTime,
             ),
@@ -665,13 +663,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             decoration: const InputDecoration(
               labelText: 'Adresse (facultatif)',
               hintText: 'Terrain, rue, ville…',
-              prefixIcon: Icon(Icons.place_outlined),
               alignLabelWithHint: true,
             ),
           ),
           if (_isNormalMatch)
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -4),
               value: _rememberAddressAsDefault,
               onChanged: busy
                   ? null
@@ -694,7 +693,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       addCard(
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.groups_2_outlined),
           title: FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,

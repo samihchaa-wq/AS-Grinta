@@ -88,14 +88,14 @@ class MatchFormPickerTile extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
-    required this.icon,
+    this.icon,
     required this.onTap,
     this.enabled = true,
   });
 
   final String label;
   final String value;
-  final IconData icon;
+  final IconData? icon;
   final VoidCallback onTap;
   final bool enabled;
 
@@ -120,21 +120,13 @@ class MatchFormPickerTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(icon, size: 16, color: colors.onSurfaceVariant),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 6),
               Row(
