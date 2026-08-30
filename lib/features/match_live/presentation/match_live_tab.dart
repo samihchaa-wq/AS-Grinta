@@ -128,8 +128,10 @@ class MatchLiveFinishedViewport extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final viewportHeight =
-        (media.size.height - media.padding.vertical).clamp(1.0, double.infinity);
+    final viewportHeight = (media.size.height - media.padding.vertical).clamp(
+      1.0,
+      double.infinity,
+    );
     return LimitedBox(maxHeight: viewportHeight, child: child);
   }
 }
