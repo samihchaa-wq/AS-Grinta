@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/router/initial_app_location_parser.dart';
 import 'package:web/web.dart' as web;
 
 String? _capturedInitialLocation;
@@ -10,10 +11,5 @@ String initialAppLocation() =>
     _capturedInitialLocation ?? _readWindowLocation();
 
 String _readWindowLocation() {
-  final hash = web.window.location.hash;
-  if (hash.startsWith('#/')) {
-    final location = hash.substring(1);
-    if (location.isNotEmpty) return location;
-  }
-  return '/matches';
+  return initialLocationFromBrowserHash(web.window.location.hash);
 }

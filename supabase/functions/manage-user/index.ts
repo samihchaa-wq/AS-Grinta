@@ -160,7 +160,10 @@ Deno.serve(async (req: Request) => {
           type: "recovery",
           email: targetUser.user.email,
           options: {
-            redirectTo: `${PUBLIC_APP_URL}#/auth/new-password?recovery=1`,
+            // Supabase et GoRouter utilisent tous les deux le fragment URL.
+            // On redirige donc vers la racine : l'app reconnaît ensuite le
+            // fragment Supabase `type=recovery` avant d'initialiser le routeur.
+            redirectTo: PUBLIC_APP_URL,
           },
         });
       if (linkError) throw linkError;
