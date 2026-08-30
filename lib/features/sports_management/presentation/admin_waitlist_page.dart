@@ -124,8 +124,10 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
   /// Remet la liste dans l'ordre équitable : d'abord les joueurs les moins
   /// souvent mis en liste d'attente cette saison, puis, à égalité, les
-  /// joueurs les moins présents la saison précédente.
-  void _recalculateOrder() {
+  /// joueurs les moins présents la saison précédente. Le nouvel ordre est
+  /// enregistré immédiatement afin que Recalculer soit une action complète.
+  Future<void> _recalculateOrder() async {
+    if (_saving) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries)
         ..sort((a, b) {
@@ -138,9 +140,12 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       _entries = entries;
       _dirty = true;
     });
+    await _save(reason: 'Ordre recalculé automatiquement');
   }
 
-  Future<void> _save() async {
+  Future<void> _save({
+    String reason = 'Ordre modifié depuis les paramètres',
+  }) async {
     final waitlist = _waitlist;
     if (waitlist == null || !_dirty) return;
     setState(() => _saving = true);
@@ -150,7 +155,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
                 seasonId: waitlist.seasonId,
                 orderedPlayerIds:
                     _entries.map((entry) => entry.seasonPlayerId).toList(),
-                reason: 'Ordre modifié depuis les paramètres',
+                reason: reason,
               );
       if (!mounted) return;
       setState(() {
@@ -237,7 +242,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       children: [
         if (widget.editable) ...[
           OutlinedButton.icon(
-            onPressed: _recalculateOrder,
+            onPressed: _saving ? null : _recalculateOrder,
             icon: const Icon(Icons.auto_fix_high_outlined),
             label: const Text('Recalculer'),
           ),
