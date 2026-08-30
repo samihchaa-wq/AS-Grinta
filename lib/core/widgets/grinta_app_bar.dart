@@ -32,6 +32,19 @@ class GrintaAppBar extends AppBar {
         );
 }
 
+void _returnToCalendar(BuildContext context) {
+  final router = GoRouter.of(context);
+  final navigator = Navigator.of(context);
+
+  // Les écrans ouverts directement avec Navigator.push(MaterialPageRoute(...))
+  // ne font pas partie de la pile déclarative de GoRouter. Si le routeur est
+  // déjà sur /matches derrière eux, router.go('/matches') est donc un no-op et
+  // l'écran impératif reste visible. On retire uniquement ces routes pageless
+  // avant d'effectuer la navigation absolue vers le Calendrier.
+  navigator.popUntil((route) => route.settings is Page || route.isFirst);
+  router.go('/matches');
+}
+
 /// Badge AS Grinta réutilisable pour les en-têtes hors [GrintaAppBar].
 ///
 /// Sa destination est volontairement absolue : quel que soit l'historique de
@@ -50,7 +63,7 @@ class GrintaClubHomeButton extends StatelessWidget {
           type: MaterialType.transparency,
           child: InkResponse(
             key: grintaClubHomeBadgeKey,
-            onTap: () => context.go('/matches'),
+            onTap: () => _returnToCalendar(context),
             radius: 24,
             containedInkWell: true,
             child: SizedBox(
