@@ -1,0 +1,23 @@
+name: Temporary Dart formatter dump
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+      - name: Dump exact formatted source
+        shell: bash
+        run: dart format -o show lib/features/admin/presentation/opponent_stadium_library_page.dart
