@@ -66,8 +66,10 @@ void main() {
     expect(find.text('Composition'), findsNothing);
     expect(find.textContaining('Choisis un dispositif'), findsNothing);
     final formation = find.byType(DropdownButtonFormField<String>);
-    final simulateButton =
-        find.widgetWithText(OutlinedButton, 'Simuler une composition');
+    final simulateButton = find.widgetWithText(
+      OutlinedButton,
+      'Simuler une composition',
+    );
     expect(formation, findsOneWidget);
     expect(simulateButton, findsOneWidget);
     final formationRect = tester.getRect(formation);
