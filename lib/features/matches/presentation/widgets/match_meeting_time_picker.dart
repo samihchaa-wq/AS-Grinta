@@ -128,6 +128,9 @@ class _ChoiceButton extends StatelessWidget {
   Widget build(BuildContext context) {
     if (selected) {
       return FilledButton(
+        style: FilledButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.secondary,
+        ),
         onPressed: enabled ? onPressed : null,
         child: Text(label),
       );
