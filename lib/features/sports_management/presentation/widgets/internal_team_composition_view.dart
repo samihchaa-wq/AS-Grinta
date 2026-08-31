@@ -91,7 +91,7 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  void _moveSelectedTo(int teamNo) {
+  void _moveSelectedTo(int? teamNo) {
     final entries = _entries;
     final selectedId = _selectedParticipantId;
     if (!widget.editable || entries == null || selectedId == null) return;
@@ -102,9 +102,10 @@ class _InternalTeamCompositionViewState
 
     setState(() {
       final entry = entries[index];
-      // Toucher le maillot de son équipe actuelle retire le joueur. Toucher
-      // l'autre maillot le transfère directement, sans étape intermédiaire.
-      final nextTeam = entry.teamNo == teamNo ? null : teamNo;
+      // « Non affectés » retire explicitement le joueur de son équipe. Toucher
+      // le maillot de son équipe actuelle le retire aussi ; l'autre le transfère.
+      final nextTeam =
+          teamNo == null || entry.teamNo == teamNo ? null : teamNo;
       entries[index] = entry.copyWith(
         teamNo: nextTeam,
         clearTeam: nextTeam == null,
@@ -248,6 +249,13 @@ class _InternalTeamCompositionViewState
         final team1 = entries.where((e) => e.teamNo == 1).toList();
         final team2 = entries.where((e) => e.teamNo == 2).toList();
         final hasAssignedPlayers = team1.isNotEmpty || team2.isNotEmpty;
+        final canMoveSelectedToUnassigned = widget.editable &&
+            _selectedParticipantId != null &&
+            entries.any(
+              (entry) =>
+                  entry.participantId == _selectedParticipantId &&
+                  entry.teamNo != null,
+            );
         final profiles = profilesAsync.valueOrNull;
 
         return Column(
@@ -266,7 +274,9 @@ class _InternalTeamCompositionViewState
                 entries: unassigned,
                 profiles: profiles,
                 editable: widget.editable,
+                assignmentEnabled: canMoveSelectedToUnassigned,
                 selectedParticipantId: _selectedParticipantId,
+                onAssignmentTap: () => _moveSelectedTo(null),
                 onPlayerTap: _selectPlayer,
               ),
               const SizedBox(height: 16),
@@ -346,46 +356,69 @@ class _UnassignedPlayers extends StatelessWidget {
     required this.entries,
     required this.profiles,
     required this.editable,
+    required this.assignmentEnabled,
     required this.selectedParticipantId,
+    required this.onAssignmentTap,
     required this.onPlayerTap,
   });
 
   final List<InternalCompositionEntry> entries;
   final Map<String, PlayerPositionProfile>? profiles;
   final bool editable;
+  final bool assignmentEnabled;
   final String? selectedParticipantId;
+  final VoidCallback onAssignmentTap;
   final ValueChanged<InternalCompositionEntry> onPlayerTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 56),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppTheme.surface.withValues(alpha: .5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
-      ),
-      child: entries.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(2),
-              child: Text(
-                'Aucun joueur à répartir.',
-                style: Theme.of(context).textTheme.bodySmall,
+    final playerCountLabel =
+        '${entries.length} joueur${entries.length > 1 ? 's' : ''}';
+    return Semantics(
+      button: assignmentEnabled,
+      label: 'Non affectés, $playerCountLabel',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const Key('internal-unassigned-assignment-target'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: assignmentEnabled ? onAssignmentTap : null,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 56),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.surface.withValues(alpha: .5),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: assignmentEnabled
+                    ? AppTheme.accent
+                    : AppTheme.outline.withValues(alpha: .3),
+                width: assignmentEnabled ? 2 : 1,
               ),
-            )
-          : profiles == null
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: LinearProgressIndicator(minHeight: 2),
-                )
-              : _GroupedPlayerChips(
-                  entries: entries,
-                  profiles: profiles!,
-                  editable: editable,
-                  selectedParticipantId: selectedParticipantId,
-                  onPlayerTap: onPlayerTap,
-                ),
+            ),
+            child: entries.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Text(
+                      'Aucun joueur à répartir.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  )
+                : profiles == null
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      )
+                    : _GroupedPlayerChips(
+                        entries: entries,
+                        profiles: profiles!,
+                        editable: editable,
+                        selectedParticipantId: selectedParticipantId,
+                        onPlayerTap: onPlayerTap,
+                      ),
+          ),
+        ),
+      ),
     );
   }
 }
