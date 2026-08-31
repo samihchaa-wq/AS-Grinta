@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
@@ -25,7 +26,23 @@ class CalendarFeedEventCard extends ConsumerWidget {
       final changed = await Navigator.of(context).push<bool>(
         MaterialPageRoute(builder: (_) => CalendarEntryFormPage(event: event)),
       );
-      if (changed == true) ref.invalidate(clubEventsProvider);
+      if (changed != true) return;
+
+      // CalendarEntryFormPage invalide déjà clubEventsProvider après une
+      // mutation réussie. Attendre ici le snapshot rafraîchi évite une seconde
+      // invalidation qui pouvait brièvement vider/reconstruire le flux et
+      // clamper le ScrollController au tout début de l'historique.
+      final refreshedEvents = await ref.read(clubEventsProvider.future);
+      if (!context.mounted) return;
+
+      final wasDeleted =
+          !refreshedEvents.any((candidate) => candidate.id == event.id);
+      if (wasDeleted) {
+        // Même invariant que pour la suppression d'un match : une fois le
+        // contenu réellement rechargé, redemander l'ancrage calendrier natif
+        // afin de revenir sur l'entrée pertinente plutôt qu'au premier item.
+        ref.read(matchesFocusRequestProvider.notifier).state++;
+      }
     }
 
     return Card(
