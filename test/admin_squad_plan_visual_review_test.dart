@@ -59,7 +59,18 @@ void main() {
     expect(guestExpanded, findsOneWidget);
     expect(tester.widget<Expanded>(waitlistExpanded).flex, 1);
     expect(tester.widget<Expanded>(guestExpanded).flex, 1);
-    expect(find.byType(ActionChip), findsWidgets);
+    expect(
+      find.byType(LongPressDraggable<ConvocationPlayer>),
+      findsNWidgets(5),
+    );
+    expect(
+      find.byKey(const ValueKey('effectif-player-p1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('effectif-player-p5')),
+      findsOneWidget,
+    );
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'effectif_compact_enregistrer.png');
@@ -105,7 +116,7 @@ void main() {
   });
 
   testWidgets(
-    'moves absent and unanswered players without losing their colors',
+    'moves absent and unanswered players through avatar tiles',
     (tester) async {
       await _setWideViewport(tester);
       final convocations = _convocations();
@@ -129,18 +140,12 @@ void main() {
       await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
       expect(find.text('Convoqués (4)'), findsOneWidget);
       expect(find.text('Absents (0)'), findsOneWidget);
-      expect(
-        _playerChip(tester, 'Diego').side?.color,
-        _effectifColor(AppTheme.availabilityOut),
-      );
+      expect(find.text('Diego'), findsOneWidget);
 
       await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
       expect(find.text('Liste d’attente (1)'), findsOneWidget);
       expect(find.text('Sans réponse (0)'), findsOneWidget);
-      expect(
-        _playerChip(tester, 'Emma').side?.color,
-        _effectifColor(AppTheme.availabilityUnknown),
-      );
+      expect(find.text('Emma'), findsOneWidget);
 
       // Le retour vers la colonne de disponibilité d'origine doit rester
       // possible, puis le joueur peut être replacé parmi les convoqués.
@@ -221,7 +226,11 @@ Future<void> _dragPlayerToColumn(
   required String playerName,
   required int columnIndex,
 }) async {
-  final player = find.widgetWithText(ActionChip, playerName);
+  final player = find.ancestor(
+    of: find.text(playerName),
+    matching: find.byType(LongPressDraggable<ConvocationPlayer>),
+  );
+  expect(player, findsOneWidget);
   final target = find.byType(DragTarget<ConvocationPlayer>).at(columnIndex);
   final gesture = await tester.startGesture(tester.getCenter(player));
   await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
@@ -230,11 +239,6 @@ Future<void> _dragPlayerToColumn(
   await gesture.up();
   await _pumpFrames(tester, count: 4);
 }
-
-ActionChip _playerChip(WidgetTester tester, String playerName) =>
-    tester.widget<ActionChip>(find.widgetWithText(ActionChip, playerName));
-
-Color _effectifColor(Color color) => color.withValues(alpha: .72);
 
 Future<void> _pumpFrames(WidgetTester tester, {int count = 10}) async {
   for (var index = 0; index < count; index += 1) {
