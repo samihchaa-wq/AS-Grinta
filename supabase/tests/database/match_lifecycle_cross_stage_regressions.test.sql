@@ -214,12 +214,14 @@ select lives_ok(
  'Live starts with reconciled current convocations'
 );
 
+-- Keep this fixture away from the live-match date. Near Paris midnight,
+-- now()+10 minutes and now()+1 day can otherwise resolve to the same date.
 select set_config(
  'test.internal_match',
  public.create_internal_match(
    'fa200000-0000-0000-0000-000000000001',
-   ((now()+interval '1 day') at time zone 'Europe/Paris')::date,
-   ((now()+interval '1 day') at time zone 'Europe/Paris')::time,
+   ((now()+interval '7 days') at time zone 'Europe/Paris')::date,
+   ((now()+interval '7 days') at time zone 'Europe/Paris')::time,
    null
  )::text,
  true
