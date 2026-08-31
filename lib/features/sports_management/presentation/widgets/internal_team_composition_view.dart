@@ -465,7 +465,15 @@ class _GroupedPlayerChips extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var index = 0; index < visibleGroups.length; index += 1) ...[
-          if (index > 0) const SizedBox(height: 10),
+          if (index > 0) ...[
+            const SizedBox(height: 10),
+            Divider(
+              height: 1,
+              thickness: .5,
+              color: AppTheme.outline.withValues(alpha: .3),
+            ),
+            const SizedBox(height: 10),
+          ],
           Wrap(
             spacing: 8,
             runSpacing: 8,
