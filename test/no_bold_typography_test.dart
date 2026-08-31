@@ -12,8 +12,11 @@ void main() {
 
       final lines = entity.readAsLinesSync();
       for (var index = 0; index < lines.length; index++) {
-        if (boldWeight.hasMatch(lines[index])) {
-          offenders.add('${entity.path}:${index + 1}: ${lines[index].trim()}');
+        final line = lines[index];
+        if (boldWeight.hasMatch(line)) {
+          offenders.add(
+            '${entity.path}:${index + 1}: ${line.trim()}',
+          );
         }
       }
     }
