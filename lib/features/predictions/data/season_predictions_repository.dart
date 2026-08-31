@@ -408,22 +408,6 @@ class SeasonPredictionsRepository {
       },
     );
   }
-
-  Future<void> save(SeasonPredictionItem item) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
-    if (item.value < 0) throw ArgumentError('La valeur doit être positive.');
-
-    await _client.from('season_predictions').upsert({
-      'season_id': item.seasonId,
-      'predictor_profile_id': userId,
-      'season_player_id': item.playerId,
-      'category': item.category,
-      'predicted_value_30': item.value,
-      'is_filled': true,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }, onConflict: 'season_id,predictor_profile_id,season_player_id,category');
-  }
 }
 
 final seasonPredictionsRepositoryProvider =
