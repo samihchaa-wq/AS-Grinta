@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ForcedPasswordChangePage extends ConsumerStatefulWidget {
   const ForcedPasswordChangePage({super.key});
@@ -18,12 +19,73 @@ class _ForcedPasswordChangePageState
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _obscure = true;
+  bool _isVerifyingRecovery = false;
+  bool _recoveryTokenVerified = false;
+  String? _recoveryError;
 
   @override
   void dispose() {
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
+  }
+
+  Future<bool> _verifyRecoveryToken(Uri uri) async {
+    if (_recoveryTokenVerified) return true;
+
+    final tokenHash = uri.queryParameters['token_hash'];
+    if (tokenHash == null || tokenHash.isEmpty) {
+      // Compatibilité avec les anciens liens Supabase implicites : après leur
+      // redirection, Supabase Flutter a déjà créé la session depuis le fragment
+      // `access_token`. Sans session, la route recovery seule ne donne aucun
+      // droit de modifier un mot de passe.
+      if (Supabase.instance.client.auth.currentSession != null) return true;
+      setState(() {
+        _recoveryError =
+            'Ce lien de réinitialisation est incomplet ou n’est plus valide. '
+            'Demande un nouveau lien à un administrateur.';
+      });
+      return false;
+    }
+
+    setState(() {
+      _isVerifyingRecovery = true;
+      _recoveryError = null;
+    });
+    try {
+      final response = await Supabase.instance.client.auth.verifyOTP(
+        tokenHash: tokenHash,
+        type: OtpType.recovery,
+      );
+      if (response.session == null) {
+        throw const AuthException(
+          'Aucune session créée après validation du lien de récupération.',
+        );
+      }
+      if (!mounted) return false;
+      setState(() {
+        _isVerifyingRecovery = false;
+        _recoveryTokenVerified = true;
+      });
+      return true;
+    } on AuthException {
+      if (!mounted) return false;
+      setState(() {
+        _isVerifyingRecovery = false;
+        _recoveryError =
+            'Ce lien de réinitialisation a expiré ou a déjà été utilisé. '
+            'Demande un nouveau lien à un administrateur.';
+      });
+      return false;
+    } catch (_) {
+      if (!mounted) return false;
+      setState(() {
+        _isVerifyingRecovery = false;
+        _recoveryError =
+            'Le lien n’a pas pu être vérifié. Vérifie ta connexion et réessaie.';
+      });
+      return false;
+    }
   }
 
   Future<void> _submit() async {
@@ -44,8 +106,11 @@ class _ForcedPasswordChangePageState
       return;
     }
 
-    final isRecovery =
-        GoRouterState.of(context).uri.queryParameters['recovery'] == '1';
+    final uri = GoRouterState.of(context).uri;
+    final isRecovery = uri.queryParameters['recovery'] == '1';
+    if (isRecovery && !await _verifyRecoveryToken(uri)) return;
+    if (!mounted) return;
+
     final success = await ref
         .read(authControllerProvider.notifier)
         .updatePassword(password);
@@ -64,6 +129,8 @@ class _ForcedPasswordChangePageState
     final state = ref.watch(authControllerProvider);
     final isRecovery =
         GoRouterState.of(context).uri.queryParameters['recovery'] == '1';
+    final isBusy = state.isBusy || _isVerifyingRecovery;
+    final error = _recoveryError ?? state.error;
 
     return Scaffold(
       body: SafeArea(
@@ -136,27 +203,33 @@ class _ForcedPasswordChangePageState
                                 labelText: 'Confirmer le mot de passe',
                                 prefixIcon: Icon(Icons.lock_outline),
                               ),
-                              onSubmitted: (_) => _submit(),
+                              onSubmitted: (_) {
+                                if (!isBusy) _submit();
+                              },
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: state.isBusy ? null : _submit,
-                        icon: state.isBusy
+                        onPressed: isBusy ? null : _submit,
+                        icon: isBusy
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: GrintaProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check_circle_outline),
-                        label: const Text('Enregistrer mon mot de passe'),
+                        label: Text(
+                          _isVerifyingRecovery
+                              ? 'Vérification du lien…'
+                              : 'Enregistrer mon mot de passe',
+                        ),
                       ),
-                      if ((state.error ?? '').isNotEmpty) ...[
+                      if ((error ?? '').isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Text(
-                          state.error!,
+                          error!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.error,

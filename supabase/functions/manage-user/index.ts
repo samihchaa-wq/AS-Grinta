@@ -32,6 +32,27 @@ function isUserNotFound(error: {
     error.message?.toLowerCase().includes("user not found") === true;
 }
 
+function scannerSafeRecoveryLink(actionLink: string): string {
+  const actionUrl = new URL(actionLink);
+  // Dans l'action_link Supabase, `token` est déjà le token hash attendu par
+  // POST /verify. Ne jamais exposer l'action_link lui-même : les robots
+  // d'aperçu des messageries suivent les GET et consomment les liens à usage
+  // unique avant le joueur.
+  const tokenHash = actionUrl.searchParams.get("token");
+  if (!tokenHash) {
+    throw new Error("Recovery action link has no token hash");
+  }
+
+  const appRoute = new URLSearchParams({
+    recovery: "1",
+    token_hash: tokenHash,
+  });
+  // Le token reste dans le fragment. Un fragment URL n'est jamais envoyé dans
+  // la requête HTTP vers GitHub Pages : un scanner peut précharger l'app sans
+  // pouvoir consommer le token Supabase.
+  return `${PUBLIC_APP_URL}#/auth/new-password?${appRoute.toString()}`;
+}
+
 async function deleteProfileWithRetry(
   admin: ReturnType<typeof createClient>,
   userId: string,
@@ -160,15 +181,15 @@ Deno.serve(async (req: Request) => {
           type: "recovery",
           email: targetUser.user.email,
           options: {
-            // Supabase et GoRouter utilisent tous les deux le fragment URL.
-            // On redirige donc vers la racine : l'app reconnaît ensuite le
-            // fragment Supabase `type=recovery` avant d'initialiser le routeur.
             redirectTo: PUBLIC_APP_URL,
           },
         });
       if (linkError) throw linkError;
 
-      return jsonResponse({ reset: true, resetLink: linkData.properties.action_link });
+      return jsonResponse({
+        reset: true,
+        resetLink: scannerSafeRecoveryLink(linkData.properties.action_link),
+      });
     }
 
     if (action === "delete") {
