@@ -10,7 +10,16 @@ void main() {
       );
     });
 
-    test('sends a successful recovery fragment to the password screen', () {
+    test('keeps a scanner-safe recovery route and its token hash', () {
+      expect(
+        initialLocationFromBrowserHash(
+          '#/auth/new-password?recovery=1&token_hash=abc123',
+        ),
+        '/auth/new-password?recovery=1&token_hash=abc123',
+      );
+    });
+
+    test('sends a successful legacy recovery fragment to the password screen', () {
       expect(
         initialLocationFromBrowserHash('#type=recovery&expires_in=3600'),
         passwordRecoveryLocation,
