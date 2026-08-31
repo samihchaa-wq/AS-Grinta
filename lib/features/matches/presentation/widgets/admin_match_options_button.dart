@@ -99,6 +99,17 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         'définitivement supprimés.';
   }
 
+  void _restoreScrollPosition(ScrollPosition position, double offset) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!position.hasContentDimensions) return;
+      final target = offset
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((position.pixels - target).abs() < 0.5) return;
+      position.jumpTo(target);
+    });
+  }
+
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final warning = _deleteWarning(DateTime.now());
     final confirmed = await showDialog<bool>(
@@ -120,12 +131,26 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         ) ??
         false;
     if (!confirmed || !context.mounted) return;
+
+    // deleteMatch recharge les données et remplace momentanément le contenu du
+    // calendrier par son état de chargement. Le viewport est alors clampé à 0
+    // (la saison 2014). On mémorise donc la position avant la suppression et
+    // on la restaure dès que la liste rechargée a été mise en page.
+    final scrollPosition = Scrollable.maybeOf(context)?.position;
+    final scrollOffset = scrollPosition?.hasPixels == true
+        ? scrollPosition!.pixels
+        : null;
     final messenger = ScaffoldMessenger.of(context);
     final failure = await ref
         .read(matchesControllerProvider.notifier)
         .deleteMatch(match.id);
     ref.invalidate(matchDetailsProvider(match.id));
-    if (failure == null) return;
+    if (failure == null) {
+      if (scrollPosition != null && scrollOffset != null) {
+        _restoreScrollPosition(scrollPosition, scrollOffset);
+      }
+      return;
+    }
     messenger.showSnackBar(SnackBar(content: Text(failure)));
   }
 
