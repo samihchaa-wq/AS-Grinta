@@ -12,7 +12,10 @@ void main() {
       source,
       contains('final scrollPosition = Scrollable.maybeOf(context)?.position;'),
     );
-    expect(source, contains('_restoreScrollPosition(scrollPosition, scrollOffset)'));
+    expect(
+      source,
+      contains('_restoreScrollPosition(scrollPosition, scrollOffset)'),
+    );
     expect(source, contains('position.jumpTo(target)'));
   });
 }
