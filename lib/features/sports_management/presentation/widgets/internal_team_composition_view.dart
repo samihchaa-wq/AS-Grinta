@@ -465,36 +465,38 @@ class _GroupedPlayerChips extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (var index = 0; index < visibleGroups.length; index += 1) ...[
-          if (index > 0) ...[
-            const SizedBox(height: 10),
-            Divider(
-              height: 1,
-              thickness: .5,
-              color: AppTheme.outline.withValues(alpha: .3),
+          if (index > 0) const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: index.isEven
+                  ? AppTheme.surfaceHigh.withValues(alpha: .34)
+                  : AppTheme.background.withValues(alpha: .22),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(height: 10),
-          ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                '${_groupLabel(visibleGroups[index])} '
-                '(${groups[visibleGroups[index]]!.length})',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w400),
-              ),
-              for (final entry in groups[visibleGroups[index]]!)
-                _PlayerChip(
-                  entry: entry,
-                  editable: editable,
-                  selected: selectedParticipantId == entry.participantId,
-                  onTap: () => onPlayerTap(entry),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  '${_groupLabel(visibleGroups[index])} '
+                  '(${groups[visibleGroups[index]]!.length})',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelLarge
+                      ?.copyWith(fontWeight: FontWeight.w400),
                 ),
-            ],
+                for (final entry in groups[visibleGroups[index]]!)
+                  _PlayerChip(
+                    entry: entry,
+                    editable: editable,
+                    selected: selectedParticipantId == entry.participantId,
+                    onTap: () => onPlayerTap(entry),
+                  ),
+              ],
+            ),
           ),
         ],
       ],
