@@ -1,4 +1,5 @@
 -- Permet de tester chaque rendu de notification sans dépendre d'un vrai match.
+-- Données synthétiques figées : FC Exemple, 12/09, 20h30.
 -- L'ancienne RPC send_test_push() est conservée pour les anciens clients.
 
 create or replace function public.send_test_push_kind(p_kind text)
