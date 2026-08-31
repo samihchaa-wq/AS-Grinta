@@ -10,7 +10,7 @@ void main() {
       );
     });
 
-    test('keeps a scanner-safe recovery route and its token hash', () {
+    test('keeps scanner-safe recovery hash route', () {
       expect(
         initialLocationFromBrowserHash(
           '#/auth/new-password?recovery=1&token_hash=abc123',
@@ -19,7 +19,7 @@ void main() {
       );
     });
 
-    test('sends a successful legacy recovery fragment to the password screen', () {
+    test('routes a successful legacy recovery fragment', () {
       expect(
         initialLocationFromBrowserHash('#type=recovery&expires_in=3600'),
         passwordRecoveryLocation,
