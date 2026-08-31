@@ -316,9 +316,7 @@ class _EffectifPlayerChip extends StatelessWidget {
     final chip = ActionChip(
       avatar: player.isGuest
           ? const Icon(Icons.person_add_alt_1_outlined, size: 15)
-          : selected
-              ? Icon(Icons.check_rounded, size: 15, color: selectionColor)
-              : null,
+          : null,
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
