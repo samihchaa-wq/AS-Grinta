@@ -144,18 +144,26 @@ jobs:
           set -euo pipefail
           # Supabase-managed Storage tables evolve independently of the app schema.
           # Their object bytes are restored through the Storage API below, so skip
-          # only storage.* COPY payloads and storage sequence setvals here.
+          # only storage.* COPY payloads and Storage sequence setvals here. Handle
+          # both unquoted and quoted pg_dump identifiers.
           awk '
             BEGIN { skip = 0 }
             skip == 1 {
               if ($0 == "\\.") skip = 0
               next
             }
-            /^COPY storage\./ { skip = 1; next }
-            /setval\(.storage\./ { next }
+            /^COPY / && (index($0, "storage.") > 0 || index($0, "\"storage\".") > 0) {
+              skip = 1
+              next
+            }
+            /setval/ && (index($0, "storage.") > 0 || index($0, "\"storage\".") > 0) { next }
             { print }
           ' "$BACKUP_ROOT/database/data.sql" > "$RUNNER_TEMP/data-without-storage.sql"
           test -s "$RUNNER_TEMP/data-without-storage.sql"
+          if grep -Eq '^COPY (storage\.|"storage"\.)' "$RUNNER_TEMP/data-without-storage.sql"; then
+            echo "::error::Storage COPY block remained after filtering."
+            exit 1
+          fi
 
       - name: Restore database backup
         env:
