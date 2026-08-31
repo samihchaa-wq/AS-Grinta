@@ -466,19 +466,19 @@ class _GroupedPlayerChips extends StatelessWidget {
       children: [
         for (var index = 0; index < visibleGroups.length; index += 1) ...[
           if (index > 0) const SizedBox(height: 10),
-          Text(
-            '${_groupLabel(visibleGroups[index])} '
-            '(${groups[visibleGroups[index]]!.length})',
-            style: Theme.of(context)
-                .textTheme
-                .labelLarge
-                ?.copyWith(fontWeight: FontWeight.w400),
-          ),
-          const SizedBox(height: 6),
           Wrap(
             spacing: 8,
             runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              Text(
+                '${_groupLabel(visibleGroups[index])} '
+                '(${groups[visibleGroups[index]]!.length})',
+                style: Theme.of(context)
+                    .textTheme
+                    .labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w400),
+              ),
               for (final entry in groups[visibleGroups[index]]!)
                 _PlayerChip(
                   entry: entry,
