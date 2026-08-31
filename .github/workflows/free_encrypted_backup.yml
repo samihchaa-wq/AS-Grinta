@@ -60,7 +60,7 @@ jobs:
 
           for bucket in app-assets badge-images profile-photos; do
             mkdir -p "$work/storage/$bucket"
-            supabase storage cp "ss://$bucket" "$work/storage/$bucket" \
+            supabase storage cp "ss:///$bucket" "$work/storage/$bucket" \
               --recursive --experimental --linked
           done
 
