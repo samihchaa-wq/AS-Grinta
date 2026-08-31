@@ -1,0 +1,35 @@
+name: Format notification test once
+
+on:
+  push:
+    branches:
+      - feat/typed-notification-tests
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/typed-notification-tests
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Format target and remove one-shot workflow
+        run: |
+          dart format lib/features/notifications/presentation/notifications_page.dart
+          rm .github/workflows/format_notification_test_once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/notifications/presentation/notifications_page.dart .github/workflows/format_notification_test_once.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "style: appliquer le format CI aux tests de notifications"
+          git push origin HEAD:feat/typed-notification-tests
