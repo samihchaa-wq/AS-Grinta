@@ -471,9 +471,14 @@ class _GroupedPlayerChips extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               color: index.isEven
-                  ? AppTheme.surfaceHigh.withValues(alpha: .34)
-                  : AppTheme.background.withValues(alpha: .22),
+                  ? AppTheme.surfaceHero.withValues(alpha: .58)
+                  : AppTheme.background.withValues(alpha: .76),
               borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: index.isEven
+                    ? AppTheme.outline.withValues(alpha: .55)
+                    : AppTheme.outline.withValues(alpha: .22),
+              ),
             ),
             child: Wrap(
               spacing: 8,
