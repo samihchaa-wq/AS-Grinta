@@ -186,7 +186,8 @@ class SeasonPredictionsRepository {
           'id,profile_id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)',
         )
         .eq('season_id', seasonId)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('is_coach', false);
     final predictions = await _client
         .from('season_predictions')
         .select('season_player_id,category,predicted_value_30,is_filled')
