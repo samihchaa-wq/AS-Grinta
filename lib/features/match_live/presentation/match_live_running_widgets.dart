@@ -280,7 +280,7 @@ class _ScoreCard extends ConsumerWidget {
                 '–',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                     ),
               ),
             ),
@@ -320,7 +320,7 @@ class _ScoreTeamControl extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 3),
@@ -343,7 +343,7 @@ class _ScoreTeamControl extends StatelessWidget {
                 '$score',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -413,7 +413,7 @@ class _BenchColumn extends StatelessWidget {
                 'Banc (${bench.length})',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
               const SizedBox(height: AppSpacing.contentGap),
@@ -515,7 +515,7 @@ class _PendingSubstitutions extends StatelessWidget {
                         ? 'Changement en attente'
                         : '${pending.length} changements en attente',
                     style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w400,
                       color: theme.colorScheme.onPrimaryContainer,
                     ),
                   ),
@@ -625,7 +625,7 @@ class _LiveJournal extends StatelessWidget {
                     child: Text(
                       'Journal du match',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ),
@@ -747,7 +747,7 @@ class _JournalEventRow extends StatelessWidget {
               "${event.minute}'",
               textAlign: TextAlign.center,
               style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -766,7 +766,7 @@ class _JournalEventRow extends StatelessWidget {
                   style: canChooseScorer
                       ? theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                           decoration: TextDecoration.underline,
                         )
                       : theme.textTheme.bodyMedium,
@@ -780,7 +780,7 @@ class _JournalEventRow extends StatelessWidget {
               '${event.scoreAsGrintaAfter} - ${event.scoreAdverseAfter}',
               textAlign: TextAlign.center,
               style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],

@@ -57,7 +57,7 @@ class _MandatoryNotificationsCard extends StatelessWidget {
               'Notifications essentielles',
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 12),
             _line(
@@ -90,7 +90,7 @@ class _MandatoryNotificationsCard extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              style: const TextStyle(fontWeight: FontWeight.w400),
             ),
           ),
         ],

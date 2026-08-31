@@ -93,7 +93,7 @@ class _MatchLiveAddPlayerSheetState
                   child: Text(
                     'Ajouter un joueur',
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
@@ -198,7 +198,7 @@ class _MatchLiveAddPlayerSheetState
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.error,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -351,7 +351,7 @@ class _GuestPicker extends StatelessWidget {
           Text(
             'Invités déjà connus',
             style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 4),
@@ -368,7 +368,7 @@ class _GuestPicker extends StatelessWidget {
         Text(
           'Nouvel invité',
           style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 8),

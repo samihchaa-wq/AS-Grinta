@@ -158,7 +158,7 @@ class _FactLine extends StatelessWidget {
       subtitle: row.scoreLabel == null ? null : Text(row.scoreLabel!),
       trailing: Text(
         row.minuteLabel,
-        style: const TextStyle(fontWeight: FontWeight.w800),
+        style: const TextStyle(fontWeight: FontWeight.w400),
       ),
     );
   }

@@ -247,7 +247,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 player.displayName,
                 style: Theme.of(
                   sheetContext,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 16),
               _PlayerInfoRow(
@@ -425,7 +425,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     '${_convokedPlayers.length} joueurs pour une limite de $limit.',
                     style: const TextStyle(
                       color: Colors.orange,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],

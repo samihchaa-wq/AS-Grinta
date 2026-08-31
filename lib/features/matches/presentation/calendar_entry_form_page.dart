@@ -421,7 +421,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 8),
               Row(
@@ -540,7 +540,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               style: Theme.of(context)
                   .textTheme
                   .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 8),
             Row(
@@ -653,7 +653,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               style: Theme.of(context)
                   .textTheme
                   .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -1190,7 +1190,7 @@ class _EntryKindPicker extends StatelessWidget {
           style: Theme.of(context)
               .textTheme
               .titleSmall
-              ?.copyWith(fontWeight: FontWeight.w800),
+              ?.copyWith(fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 8),
         Row(
@@ -1262,7 +1262,7 @@ class _CompactChoiceButton extends StatelessWidget {
         const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       ),
       textStyle: WidgetStateProperty.all(
-        const TextStyle(fontWeight: FontWeight.w700),
+        const TextStyle(fontWeight: FontWeight.w400),
       ),
     );
     final child = Text(

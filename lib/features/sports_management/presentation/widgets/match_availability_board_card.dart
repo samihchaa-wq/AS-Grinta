@@ -89,7 +89,7 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
                 'Effectif',
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
               ),
             ),
             if (overLimit)
@@ -193,7 +193,7 @@ class _BoardGroup extends StatelessWidget {
                   '$title (${players.length})',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         color: color,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w400,
                       ),
                 ),
               ),

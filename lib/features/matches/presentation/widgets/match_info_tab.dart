@@ -41,7 +41,7 @@ class MatchInfoTab extends ConsumerWidget {
                       AppFormats.dateTime(info.kickoffAt!),
                       style: const TextStyle(
                         fontSize: 15.5,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -54,14 +54,14 @@ class MatchInfoTab extends ConsumerWidget {
                             text: 'Rendez-vous  ',
                             style: TextStyle(
                               fontSize: 15.5,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           TextSpan(
                             text: AppFormats.time(info.effectiveMeetingAt!),
                             style: const TextStyle(
                               fontSize: 15.5,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -84,7 +84,7 @@ class MatchInfoTab extends ConsumerWidget {
                           style: const TextStyle(
                             fontSize: 15.5,
                             color: Color(0xFF9B6CFF),
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                             decoration: TextDecoration.underline,
                             decorationColor: Color(0xFF9B6CFF),
                           ),
@@ -108,7 +108,7 @@ class MatchInfoTab extends ConsumerWidget {
                     info.matchTypeLabel,
                     style: const TextStyle(
                       fontSize: 15.5,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
@@ -126,14 +126,14 @@ class MatchInfoTab extends ConsumerWidget {
                                   text: 'Maillot  ',
                                   style: TextStyle(
                                     fontSize: 15.5,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                                 TextSpan(
                                   text: info.jerseyNote!,
                                   style: const TextStyle(
                                     fontSize: 15.5,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ],
@@ -149,7 +149,7 @@ class MatchInfoTab extends ConsumerWidget {
                               'Maillot  ',
                               style: TextStyle(
                                 fontSize: 15.5,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                             SizedBox(
@@ -186,7 +186,7 @@ class MatchInfoTab extends ConsumerWidget {
                     style: Theme.of(context)
                         .textTheme
                         .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                        ?.copyWith(fontWeight: FontWeight.w400),
                   ),
                 if (!info.isInternal)
                   const SizedBox(height: AppSpacing.contentGap),
@@ -262,7 +262,7 @@ class _EncounterChip extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 color: color,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
                 fontSize: 15,
               ),
             ),
@@ -277,7 +277,7 @@ class _EncounterChip extends StatelessWidget {
                 style: TextStyle(
                   color: color.withValues(alpha: .82),
                   fontSize: 9,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),

@@ -70,13 +70,13 @@ class _MatchLiveClockState extends State<MatchLiveClock> {
     };
     final timeStyle = TextStyle(
       fontSize: widget.compact ? 27 : 44,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w400,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
     final labelStyle = (widget.compact
             ? Theme.of(context).textTheme.labelMedium
             : Theme.of(context).textTheme.labelLarge)
-        ?.copyWith(fontWeight: FontWeight.w700);
+        ?.copyWith(fontWeight: FontWeight.w400);
 
     return Column(
       mainAxisSize: MainAxisSize.min,

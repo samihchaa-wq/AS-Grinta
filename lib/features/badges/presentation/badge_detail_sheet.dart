@@ -146,7 +146,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w900),
+                                ?.copyWith(fontWeight: FontWeight.w400),
                           ),
                           if (currentBadge.description.isNotEmpty) ...[
                             const SizedBox(height: 6),
@@ -296,7 +296,7 @@ class _TierRow extends StatelessWidget {
                 Text(
                   tier.name,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                         color: highlighted
                             ? AppTheme.reward
                             : AppTheme.textPrimary,

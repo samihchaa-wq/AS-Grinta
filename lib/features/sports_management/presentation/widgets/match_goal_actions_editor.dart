@@ -144,7 +144,7 @@ class _GoalActionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w400,
                       color: sideColor,
                     ),
                   ),
@@ -338,7 +338,7 @@ class _MinuteFieldState extends State<_MinuteField> {
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppTheme.textPrimary,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w400,
           ),
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
@@ -447,7 +447,7 @@ class _AttributionTile extends StatelessWidget {
                         style: const TextStyle(
                           color: AppTheme.textPrimary,
                           fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                         ).copyWith(
                           color:
                               muted ? AppTheme.warning : AppTheme.textPrimary,

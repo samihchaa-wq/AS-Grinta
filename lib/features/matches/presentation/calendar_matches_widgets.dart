@@ -197,7 +197,7 @@ class _MonthNavigator extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
             ),
           ),
           IconButton(
@@ -460,7 +460,7 @@ class ClubEventCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontSize: 17,
                             height: 1.1,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                     const SizedBox(height: 7),
@@ -484,7 +484,7 @@ class ClubEventCard extends ConsumerWidget {
                                 .labelMedium
                                 ?.copyWith(
                                   color: AppTheme.textSecondary,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w400,
                                 ),
                           ),
                         ),
@@ -496,7 +496,7 @@ class ClubEventCard extends ConsumerWidget {
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: CalendarCardPalette.eventBorder,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ],
@@ -581,7 +581,7 @@ class _MonthlyMatchCard extends StatelessWidget {
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontSize: 17,
                                     height: 1.1,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w400,
                                     color: AppTheme.textPrimary,
                                   ),
                         )
@@ -607,7 +607,7 @@ class _MonthlyMatchCard extends StatelessWidget {
                         style:
                             Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: statusColor,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w400,
                                 ),
                       ),
                     ],

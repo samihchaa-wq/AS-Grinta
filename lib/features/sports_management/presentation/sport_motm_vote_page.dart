@@ -448,7 +448,7 @@ class _MessageCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                   const SizedBox(height: 4),
@@ -479,7 +479,7 @@ class _CandidateExploit extends StatelessWidget {
         cleanSheet ? 'Clean sheet' : 'A encaissé',
         style: TextStyle(
           color: cleanSheet ? const Color(0xFF52D08A) : Colors.white,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w400,
           fontSize: 13,
         ),
       );
@@ -489,7 +489,7 @@ class _CandidateExploit extends StatelessWidget {
       goals <= 1 ? '$goals but' : '$goals buts',
       style: TextStyle(
         color: goals > 0 ? const Color(0xFFCAB5FF) : Colors.white,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w400,
         fontSize: 13,
       ),
     );

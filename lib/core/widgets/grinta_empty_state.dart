@@ -76,7 +76,7 @@ class GrintaEmptyState extends StatelessWidget {
                           ? theme.textTheme.titleMedium
                           : theme.textTheme.titleLarge)
                       ?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w400,
                     color: AppTheme.textPrimary,
                   ),
                 ),

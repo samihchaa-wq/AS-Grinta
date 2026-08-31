@@ -159,7 +159,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   .textTheme
                                   .titleLarge
                                   ?.copyWith(
-                                    fontWeight: FontWeight.w900,
+                                    fontWeight: FontWeight.w400,
                                     letterSpacing: -.25,
                                   ),
                             ),
@@ -508,7 +508,7 @@ class _SectionHeading extends StatelessWidget {
           style: Theme.of(context)
               .textTheme
               .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w900),
+              ?.copyWith(fontWeight: FontWeight.w400),
         ),
       ],
     );
@@ -539,7 +539,7 @@ class _ProfileMetaChip extends StatelessWidget {
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
           ),
         ],

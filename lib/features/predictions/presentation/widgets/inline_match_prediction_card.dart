@@ -133,7 +133,7 @@ class _InlineMatchPredictionCardState
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -151,7 +151,7 @@ class _InlineMatchPredictionCardState
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -299,7 +299,7 @@ class _StatusChip extends StatelessWidget {
         label,
         style: TextStyle(
           color: highlighted ? const Color(0xFF69E99B) : AppTheme.textSecondary,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
@@ -319,7 +319,7 @@ class _HeadToHead extends StatelessWidget {
       children: [
         const Text(
           'Les 5 dernières rencontres',
-          style: TextStyle(fontWeight: FontWeight.w800),
+          style: TextStyle(fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: AppSpacing.contentGap),
         if (matches.isEmpty)
@@ -385,7 +385,7 @@ class _ScorePicker extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
             IconButton(
               tooltip: 'Ajouter un but pour $label',
@@ -433,7 +433,7 @@ class _Odd extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w400,
               color: selected ? accent : null,
             ),
           ),
@@ -441,7 +441,7 @@ class _Odd extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w400,
               color: selected ? accent : null,
             ),
           ),

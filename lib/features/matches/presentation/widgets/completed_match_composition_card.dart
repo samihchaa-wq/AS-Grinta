@@ -99,7 +99,7 @@ class CompletedCompositionCard extends StatelessWidget {
                   : 'Joueurs (${fallbackPlayers.length})',
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 12),
             if (fallbackPlayers.isEmpty)
@@ -137,7 +137,7 @@ class _MpgCompletedCard extends StatelessWidget {
               'Composition et résumé',
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
             ),
             if (hasVacantSlots) ...[
               const SizedBox(height: 4),
@@ -162,7 +162,7 @@ class _MpgCompletedCard extends StatelessWidget {
                 'Remplaçants (${bench.length})',
                 style: Theme.of(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -205,7 +205,7 @@ class CompletedPlayersList extends StatelessWidget {
                     child: Text(
                       players[index].name,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ),
@@ -216,7 +216,7 @@ class CompletedPlayersList extends StatelessWidget {
                           ? '⚽'
                           : '⚽ ×${players[index].goals}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ],

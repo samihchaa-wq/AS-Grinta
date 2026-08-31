@@ -31,7 +31,7 @@ class ConvocationLaunchPicker extends StatelessWidget {
           style: Theme.of(context)
               .textTheme
               .titleSmall
-              ?.copyWith(fontWeight: FontWeight.w800),
+              ?.copyWith(fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 8),
         Row(
@@ -161,7 +161,7 @@ class _ChoiceButton extends StatelessWidget {
         const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       ),
       textStyle: WidgetStateProperty.all(
-        const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        const TextStyle(fontWeight: FontWeight.w400, fontSize: 13),
       ),
     );
     if (selected) {

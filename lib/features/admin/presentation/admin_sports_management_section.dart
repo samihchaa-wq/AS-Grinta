@@ -24,7 +24,7 @@ class AdminSportsManagementSection extends ConsumerWidget {
               leading: Icon(Icons.sports_soccer_outlined),
               title: Text(
                 'Module de gestion sportive',
-                style: TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(fontWeight: FontWeight.w400),
               ),
               subtitle: Text('Activé en permanence'),
             ),

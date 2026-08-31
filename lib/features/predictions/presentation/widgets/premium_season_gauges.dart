@@ -64,7 +64,7 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w400,
                         letterSpacing: -.3,
                       ),
                 ),
@@ -317,7 +317,7 @@ class _GaugeValueLabel extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -329,7 +329,7 @@ class _GaugeValueLabel extends StatelessWidget {
           style: TextStyle(
             color: color,
             fontSize: 13,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -409,7 +409,7 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                       style: Theme.of(context)
                           .textTheme
                           .headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                          ?.copyWith(fontWeight: FontWeight.w400),
                     ),
                     Text(
                       gauge.isGoalkeeper
@@ -425,7 +425,7 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                             ),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -518,7 +518,7 @@ class _PredictionRow extends StatelessWidget {
                   : prediction.predictorName.trim()[0].toUpperCase(),
               style: TextStyle(
                 color: isMine ? _green : Colors.white,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -533,7 +533,7 @@ class _PredictionRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isMine ? _green : Colors.white,
-                fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: isMine ? FontWeight.w400 : FontWeight.w400,
               ),
             ),
           ),
@@ -558,7 +558,7 @@ class _PredictionRow extends StatelessWidget {
               style: TextStyle(
                 color: isMine ? _green : Colors.white,
                 fontSize: 17,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -596,7 +596,7 @@ class _RankBadge extends StatelessWidget {
         style: const TextStyle(
           color: Color(0xFF071326),
           fontSize: 12,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );

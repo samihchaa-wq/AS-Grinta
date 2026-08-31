@@ -44,7 +44,7 @@ class HomeNextMatchCard extends StatelessWidget {
                   textAlign: TextAlign.start,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                         color: AppTheme.textPrimary,
                       ),
                 )
@@ -55,7 +55,7 @@ class HomeNextMatchCard extends StatelessWidget {
                   nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontSize: 16,
                         height: 1.1,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                   foreground: AppTheme.textPrimary,
                   textAlign: TextAlign.start,
@@ -101,7 +101,7 @@ class HomeNextMatchCard extends StatelessWidget {
             match.calendarTypeLabel,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: cardBorder,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                 ),
           ),
           if (match.address case final address?) ...[
@@ -123,7 +123,7 @@ class HomeNextMatchCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w400,
                             ),
                       ),
                     ),

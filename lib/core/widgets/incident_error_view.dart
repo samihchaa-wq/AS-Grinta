@@ -39,7 +39,7 @@ class IncidentErrorView extends StatelessWidget {
                       title,
                       textAlign: TextAlign.center,
                       style: headlineStyle?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 12),

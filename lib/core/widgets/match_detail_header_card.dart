@@ -125,7 +125,7 @@ class MatchDetailHeaderCard extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 14),
             MatchFixture(
@@ -206,7 +206,7 @@ class _MetadataLine extends StatelessWidget {
             text,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: foregroundColor,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w400,
                 ),
           ),
         ),

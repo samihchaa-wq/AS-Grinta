@@ -233,7 +233,7 @@ class _OpponentStadiumLibraryPageState
                       contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
                       title: Text(
                         item.name,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontWeight: FontWeight.w400),
                       ),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -243,7 +243,7 @@ class _OpponentStadiumLibraryPageState
                             Text(
                               item.stadiumName ?? 'Stade non renseigné',
                               style: TextStyle(
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w400,
                                 color: item.stadiumName == null
                                     ? Theme.of(context)
                                         .colorScheme
@@ -356,7 +356,7 @@ class _OpponentStadiumEditorState extends State<_OpponentStadiumEditor> {
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 16),
               TextFormField(

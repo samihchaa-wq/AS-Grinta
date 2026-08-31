@@ -565,11 +565,11 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
           dividerColor: AppTheme.outline.withValues(alpha: .45),
           labelStyle: const TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w400,
           ),
           unselectedLabelStyle: const TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
           tabs: const [
             Tab(height: 42, text: 'Effectif'),
@@ -779,7 +779,7 @@ class _ScoreLine extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Theme.of(
               context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
           ),
         ),
         IconButton.filledTonal(
@@ -793,7 +793,7 @@ class _ScoreLine extends StatelessWidget {
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w400),
           ),
         ),
         IconButton.filledTonal(
@@ -908,7 +908,7 @@ class _SheetSection extends StatelessWidget {
       child: Text(
         label.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w400,
               letterSpacing: .6,
             ),
       ),
