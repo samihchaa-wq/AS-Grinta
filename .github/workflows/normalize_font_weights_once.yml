@@ -1,0 +1,82 @@
+name: Normalize typography once
+
+on:
+  push:
+    branches: [style/normal-weight-typography]
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Normalize font weights and remove the global text outline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          bold_weight = re.compile(r'FontWeight\.(?:bold|w500|w600|w700|w800|w900)')
+          changed = []
+
+          for path in Path('lib').rglob('*.dart'):
+              original = path.read_text()
+              updated = bold_weight.sub('FontWeight.w400', original)
+
+              if path.as_posix() == 'lib/core/theme/app_theme.dart':
+                  start_marker = '  // Très fin liseré noir appliqué au texte clair pour qu’il reste\n'
+                  if start_marker not in updated:
+                      start_marker = "  // Très fin liseré noir appliqué au texte clair pour qu'il reste\n"
+                  end_marker = '  // Grille de 8 px et niveaux de surfaces communs.\n'
+                  start = updated.find(start_marker)
+                  end = updated.find(end_marker, start + 1) if start >= 0 else -1
+                  if start >= 0 and end >= 0:
+                      replacement = (
+                          '  // Les textes utilisent leur graisse native sans contour artificiel.\n'
+                          '  static const List<Shadow> textOutline = [];\n\n'
+                      )
+                      updated = updated[:start] + replacement + updated[end:]
+
+              if updated != original:
+                  path.write_text(updated)
+                  changed.append(path.as_posix())
+
+          print(f'{len(changed)} fichiers Dart modifiés')
+          for path in changed:
+              print(path)
+          PY
+
+          git diff --check
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Verify no bold typography remains
+        run: flutter test test/no_bold_typography_test.dart
+
+      - name: Commit normalized typography and remove this one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/normalize_font_weights_once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Use regular text weight across the app'
+          git push
