@@ -28,6 +28,8 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
       - name: Format changed Dart files
         run: |
           dart format \
