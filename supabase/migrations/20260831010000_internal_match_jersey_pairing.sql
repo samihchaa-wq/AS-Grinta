@@ -188,7 +188,7 @@ begin
     );
   end loop;
 
-  return public.admin_get_internal_composition(p_match_id);
+  return public.get_internal_composition(p_match_id);
 end;
 $function$;
 
