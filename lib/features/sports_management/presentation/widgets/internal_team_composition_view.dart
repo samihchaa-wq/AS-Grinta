@@ -178,9 +178,8 @@ class _InternalTeamCompositionViewState
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
       ref.invalidate(_internalPlayerProfilesProvider(widget.matchId));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(successMessage)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(successMessage)));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -551,8 +550,9 @@ class _TeamColumn extends StatelessWidget {
     final semanticName = controllerName != null && controllerName.isNotEmpty
         ? controllerName
         : name;
-    final countLabel =
-        '${entries.length} joueur${entries.length > 1 ? 's' : ''}';
+    final countLabel = entries.isEmpty
+        ? ''
+        : '${entries.length} joueur${entries.length > 1 ? 's' : ''}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -577,7 +577,6 @@ class _TeamColumn extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               decoration: InputDecoration(
-                labelText: 'Nom de l’équipe $teamNo',
                 hintText: 'Équipe $teamNo',
                 counterText: '',
                 isDense: true,
@@ -661,7 +660,11 @@ class _JerseyAssignmentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       button: assignmentEnabled,
-      label: '$semanticName, $playerCountLabel, maillot ${jersey.label}',
+      label: [
+        semanticName,
+        if (playerCountLabel.isNotEmpty) playerCountLabel,
+        'maillot ${jersey.label}',
+      ].join(', '),
       child: Container(
         height: 96,
         decoration: BoxDecoration(
@@ -689,32 +692,33 @@ class _JerseyAssignmentTile extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              left: 7,
-              bottom: 7,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppTheme.surface.withValues(alpha: .92),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: AppTheme.outline.withValues(alpha: .35),
+            if (playerCountLabel.isNotEmpty)
+              Positioned(
+                left: 7,
+                bottom: 7,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppTheme.outline.withValues(alpha: .35),
+                    ),
                   ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
-                  ),
-                  child: Text(
-                    playerCountLabel,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(fontWeight: FontWeight.w400),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    child: Text(
+                      playerCountLabel,
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(fontWeight: FontWeight.w400),
+                    ),
                   ),
                 ),
               ),
-            ),
             if (editable)
               Positioned(
                 top: 2,
