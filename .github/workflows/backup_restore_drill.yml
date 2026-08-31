@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: production-backup-restore-drill
@@ -54,7 +54,10 @@ jobs:
           release_name='AS Grinta encrypted production backups'
           release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
             --jq ".[] | select(.draft == true and .name == \"$release_name\") | .id" | head -n 1)
-          test -n "$release_id"
+          if [ -z "$release_id" ]; then
+            echo "::error::Backup draft release is not visible to this workflow token."
+            exit 1
+          fi
 
           assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100")
           archive_id=$(printf '%s' "$assets" | jq -r \
@@ -71,10 +74,18 @@ jobs:
 
           archive="$RUNNER_TEMP/$archive_name"
           checksum="$RUNNER_TEMP/$checksum_name"
-          gh api -H 'Accept: application/octet-stream' \
-            "repos/$GITHUB_REPOSITORY/releases/assets/$archive_id" > "$archive"
-          gh api -H 'Accept: application/octet-stream' \
-            "repos/$GITHUB_REPOSITORY/releases/assets/$checksum_id" > "$checksum"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/octet-stream' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$archive_id" \
+            --output "$archive"
+          curl --fail-with-body --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/octet-stream' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/$checksum_id" \
+            --output "$checksum"
 
           expected=$(awk '{print $1}' "$checksum")
           actual=$(sha256sum "$archive" | awk '{print $1}')
@@ -183,9 +194,6 @@ jobs:
             test "$files" -gt 0
           done
 
-          # The database backup restores Storage metadata but not object bytes.
-          # Clear metadata only in this disposable local instance, then exercise the
-          # documented Storage upload path from the recovered files.
           psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'delete from storage.objects;'
 
           cd "$RUNNER_TEMP/supabase-restore-drill"
