@@ -114,6 +114,22 @@ class _InternalTeamCompositionViewState
     });
   }
 
+  void _moveSelectedToUnassigned() {
+    final entries = _entries;
+    final selectedId = _selectedParticipantId;
+    if (!widget.editable || entries == null || selectedId == null) return;
+    final index = entries.indexWhere(
+      (entry) => entry.participantId == selectedId,
+    );
+    if (index == -1 || entries[index].teamNo == null) return;
+
+    setState(() {
+      entries[index] = entries[index].copyWith(clearTeam: true);
+      _selectedParticipantId = null;
+      _dirty = true;
+    });
+  }
+
   void _changeJersey(int teamNo, JerseyOption jersey) {
     if (!widget.editable) return;
     setState(() {
@@ -248,6 +264,12 @@ class _InternalTeamCompositionViewState
         final team1 = entries.where((e) => e.teamNo == 1).toList();
         final team2 = entries.where((e) => e.teamNo == 2).toList();
         final hasAssignedPlayers = team1.isNotEmpty || team2.isNotEmpty;
+        final selectedIsAssigned = _selectedParticipantId != null &&
+            entries.any(
+              (entry) =>
+                  entry.participantId == _selectedParticipantId &&
+                  entry.teamNo != null,
+            );
         final profiles = profilesAsync.valueOrNull;
 
         return Column(
@@ -266,7 +288,9 @@ class _InternalTeamCompositionViewState
                 entries: unassigned,
                 profiles: profiles,
                 editable: widget.editable,
+                assignmentEnabled: selectedIsAssigned,
                 selectedParticipantId: _selectedParticipantId,
+                onTap: _moveSelectedToUnassigned,
                 onPlayerTap: _selectPlayer,
               ),
               const SizedBox(height: 16),
@@ -346,46 +370,55 @@ class _UnassignedPlayers extends StatelessWidget {
     required this.entries,
     required this.profiles,
     required this.editable,
+    required this.assignmentEnabled,
     required this.selectedParticipantId,
+    required this.onTap,
     required this.onPlayerTap,
   });
 
   final List<InternalCompositionEntry> entries;
   final Map<String, PlayerPositionProfile>? profiles;
   final bool editable;
+  final bool assignmentEnabled;
   final String? selectedParticipantId;
+  final VoidCallback onTap;
   final ValueChanged<InternalCompositionEntry> onPlayerTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 56),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppTheme.surface.withValues(alpha: .5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
-      ),
-      child: entries.isEmpty
-          ? Padding(
-              padding: const EdgeInsets.all(2),
-              child: Text(
-                'Aucun joueur à répartir.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            )
-          : profiles == null
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: LinearProgressIndicator(minHeight: 2),
-                )
-              : _GroupedPlayerChips(
-                  entries: entries,
-                  profiles: profiles!,
-                  editable: editable,
-                  selectedParticipantId: selectedParticipantId,
-                  onPlayerTap: onPlayerTap,
+    return GestureDetector(
+      key: const ValueKey('internal-unassigned-pool'),
+      behavior: HitTestBehavior.opaque,
+      onTap: assignmentEnabled ? onTap : null,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppTheme.surface.withValues(alpha: .5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
+        ),
+        child: entries.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(2),
+                child: Text(
+                  'Aucun joueur à répartir.',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
+              )
+            : profiles == null
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: LinearProgressIndicator(minHeight: 2),
+                  )
+                : _GroupedPlayerChips(
+                    entries: entries,
+                    profiles: profiles!,
+                    editable: editable,
+                    selectedParticipantId: selectedParticipantId,
+                    onPlayerTap: onPlayerTap,
+                  ),
+      ),
     );
   }
 }
