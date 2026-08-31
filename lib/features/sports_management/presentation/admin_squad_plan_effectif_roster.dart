@@ -181,6 +181,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
 
   Color _playerColor(ConvocationPlayer player) =>
       switch (player.availabilityStatus) {
+        'available' => _effectifConvokedColor,
         'absent' => _effectifAbsentColor,
         'no_response' => _effectifNoResponseColor,
         _ => color,
@@ -334,7 +335,8 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                   player.shortName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
+                    color: color,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w400,
                   ),
