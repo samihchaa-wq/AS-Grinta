@@ -1,0 +1,29 @@
+name: Format probe temp
+
+on:
+  push:
+    branches: [ui/hide-internal-squad-limit]
+
+permissions:
+  contents: read
+
+jobs:
+  format-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Show exact Dart formatter diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart'
+          cp "$target" /tmp/original.dart
+          dart format "$target"
+          diff -u /tmp/original.dart "$target" || true
