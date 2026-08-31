@@ -471,7 +471,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = [
-              _EffectifColumn(
+              _EffectifAvatarColumn(
                 title: 'Convoqués',
                 color: _effectifConvokedColor,
                 icon: Icons.check_circle_outline,
@@ -485,7 +485,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 locked: _locked || _busy,
               ),
               if (!_isInternalMatch)
-                _EffectifColumn(
+                _EffectifAvatarColumn(
                   title: 'Liste d’attente',
                   color: _effectifWaitlistColor,
                   icon: Icons.hourglass_top_rounded,
@@ -497,7 +497,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   onShowInfo: _showPlayerInfo,
                   locked: _locked || _busy,
                 ),
-              _EffectifColumn(
+              _EffectifAvatarColumn(
                 title: 'Absents',
                 color: _effectifAbsentColor,
                 icon: Icons.cancel_outlined,
@@ -510,7 +510,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 onShowInfo: _showPlayerInfo,
                 locked: _busy || _locked,
               ),
-              _EffectifColumn(
+              _EffectifAvatarColumn(
                 title: 'Sans réponse',
                 color: _effectifNoResponseColor,
                 icon: Icons.schedule_outlined,

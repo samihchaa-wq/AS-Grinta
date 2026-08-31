@@ -34,6 +34,7 @@ import 'package:go_router/go_router.dart';
 
 part 'admin_squad_plan_page_state.dart';
 part 'admin_squad_plan_page_effectif.dart';
+part 'admin_squad_plan_effectif_roster.dart';
 part 'admin_squad_plan_page_composition.dart';
 part 'admin_squad_plan_page_widgets.dart';
 
