@@ -136,6 +136,27 @@ jobs:
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector
           psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc 'select version();'
 
+      - name: Prepare portable database data dump
+        env:
+          BACKUP_ROOT: ${{ steps.unpack.outputs.backup_root }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Supabase-managed Storage tables evolve independently of the app schema.
+          # Their object bytes are restored through the Storage API below, so skip
+          # only storage.* COPY payloads and storage sequence setvals here.
+          awk '
+            BEGIN { skip = 0 }
+            skip == 1 {
+              if ($0 == "\\.") skip = 0
+              next
+            }
+            /^COPY storage\./ { skip = 1; next }
+            /setval\(.storage\./ { next }
+            { print }
+          ' "$BACKUP_ROOT/database/data.sql" > "$RUNNER_TEMP/data-without-storage.sql"
+          test -s "$RUNNER_TEMP/data-without-storage.sql"
+
       - name: Restore database backup
         env:
           BACKUP_ROOT: ${{ steps.unpack.outputs.backup_root }}
@@ -148,7 +169,7 @@ jobs:
             --file "$BACKUP_ROOT/database/roles.sql" \
             --file "$BACKUP_ROOT/database/schema.sql" \
             --command 'SET session_replication_role = replica' \
-            --file "$BACKUP_ROOT/database/data.sql" \
+            --file "$RUNNER_TEMP/data-without-storage.sql" \
             --dbname "$DB_URL"
 
       - name: Validate restored application data
@@ -161,12 +182,18 @@ jobs:
             test "$count" -gt 0
           done
 
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.profiles;')" -eq 16
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.seasons;')" -eq 14
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.matches;')" -eq 4
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.match_predictions;')" -eq 30
+          test "$(psql "$DB_URL" -Atc 'select count(*) from public.season_predictions;')" -eq 300
+
           invalid_fk=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
             "select count(*) from public.match_predictions mp left join public.matches m on m.id=mp.match_id left join public.profiles p on p.id=mp.profile_id where m.id is null or p.id is null;")
           echo "orphan_match_predictions=$invalid_fk"
           test "$invalid_fk" -eq 0
 
-      - name: Validate and restore Storage files locally
+      - name: Recreate Storage buckets and restore files
         env:
           BACKUP_ROOT: ${{ steps.unpack.outputs.backup_root }}
         shell: bash
@@ -182,32 +209,41 @@ jobs:
             fi
           }
 
-          declare -A expected
-          for bucket in app-assets badge-images profile-photos; do
-            expected[$bucket]=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
-              "select count(*) from storage.objects where bucket_id='$bucket';")
-            src=$(canonical_dir "$bucket")
-            test -d "$src"
-            files=$(find "$src" -type f | wc -l | tr -d ' ')
-            echo "$bucket backup_files=$files metadata_objects=${expected[$bucket]}"
-            test "$files" -eq "${expected[$bucket]}"
-            test "$files" -gt 0
-          done
-
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'delete from storage.objects;'
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+          values
+            ('app-assets', 'app-assets', true, 10485760, array['image/png','image/jpeg','image/webp']::text[]),
+            ('badge-images', 'badge-images', true, 5242880, array['image/jpeg','image/png','image/webp']::text[]),
+            ('profile-photos', 'profile-photos', false, 5242880, array['image/jpeg','image/png','image/webp']::text[])
+          on conflict (id) do update set
+            name = excluded.name,
+            public = excluded.public,
+            file_size_limit = excluded.file_size_limit,
+            allowed_mime_types = excluded.allowed_mime_types;
+          SQL
 
           cd "$RUNNER_TEMP/supabase-restore-drill"
           for bucket in app-assets badge-images profile-photos; do
             src=$(canonical_dir "$bucket")
+            test -d "$src"
+            expected=$(find "$src" -type f | wc -l | tr -d ' ')
+            echo "$bucket backup_files=$expected"
+            test "$expected" -gt 0
+
             (
               cd "$src"
               supabase storage cp . "ss:///$bucket" --recursive --experimental --local --jobs 8
             )
+
             restored=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
               "select count(*) from storage.objects where bucket_id='$bucket';")
             echo "$bucket restored_objects=$restored"
-            test "$restored" -eq "${expected[$bucket]}"
+            test "$restored" -eq "$expected"
           done
+
+          test "$(psql "$DB_URL" -Atc "select count(*) from storage.objects where bucket_id='app-assets';")" -eq 4
+          test "$(psql "$DB_URL" -Atc "select count(*) from storage.objects where bucket_id='badge-images';")" -eq 65
+          test "$(psql "$DB_URL" -Atc "select count(*) from storage.objects where bucket_id='profile-photos';")" -eq 4
 
       - name: Stop isolated local Supabase
         if: always()
