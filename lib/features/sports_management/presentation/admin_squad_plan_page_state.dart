@@ -60,8 +60,19 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     }
   }
 
+  void _clearEffectifTapSelection() {
+    if (_EffectifTapSelection.selectedFor(
+          owner: this,
+          matchId: _selectedMatchId,
+        ) !=
+        null) {
+      _EffectifTapSelection.clear();
+    }
+  }
+
   @override
   void dispose() {
+    _clearEffectifTapSelection();
     _limitController.dispose();
     super.dispose();
   }
@@ -94,6 +105,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
           : (matches.isEmpty ? null : matches.first.id);
+      if (selected != _selectedMatchId) {
+        _clearEffectifTapSelection();
+      }
       setState(() {
         _matches = matches;
         _selectedMatchId = selected;
