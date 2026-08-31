@@ -143,9 +143,9 @@ jobs:
         run: |
           set -euo pipefail
           # Supabase-managed Storage tables evolve independently of the app schema.
-          # Their object bytes are restored through the Storage API below, so skip
-          # only storage.* COPY payloads and Storage sequence setvals here. Handle
-          # both unquoted and quoted pg_dump identifiers.
+          # Object bytes are restored through the Storage API below, so skip only
+          # storage.* COPY payloads and Storage sequence setvals. Handle quoted and
+          # unquoted pg_dump identifiers.
           awk '
             BEGIN { skip = 0 }
             skip == 1 {
@@ -181,25 +181,65 @@ jobs:
             --dbname "$DB_URL"
 
       - name: Validate restored application data
+        env:
+          BACKUP_ROOT: ${{ steps.unpack.outputs.backup_root }}
         shell: bash
         run: |
           set -euo pipefail
-          for table in profiles seasons matches match_predictions season_predictions; do
-            count=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from public.$table;")
-            echo "$table=$count"
-            test "$count" -gt 0
+
+          dump_count() {
+            local schema="$1"
+            local table="$2"
+            awk -v schema="$schema" -v table="$table" '
+              BEGIN { active = 0; found = 0; count = 0 }
+              /^COPY / {
+                plain = schema "." table " "
+                quoted = "\"" schema "\".\"" table "\" "
+                if (index($0, plain) > 0 || index($0, quoted) > 0) {
+                  active = 1
+                  found = 1
+                  next
+                }
+              }
+              active == 1 {
+                if ($0 == "\\.") {
+                  print count
+                  exit
+                }
+                count++
+              }
+              END {
+                if (found == 0) print 0
+              }
+            ' "$BACKUP_ROOT/database/data.sql"
+          }
+
+          for spec in \
+            public:profiles \
+            public:seasons \
+            public:matches \
+            public:match_predictions \
+            public:season_predictions \
+            auth:users; do
+            schema=${spec%%:*}
+            table=${spec#*:}
+            expected=$(dump_count "$schema" "$table")
+            actual=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
+              "select count(*) from $schema.$table;")
+            echo "$schema.$table expected=$expected restored=$actual"
+            test "$expected" -gt 0
+            test "$actual" -eq "$expected"
           done
 
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.profiles;')" -eq 16
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.seasons;')" -eq 14
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.matches;')" -eq 4
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.match_predictions;')" -eq 30
-          test "$(psql "$DB_URL" -Atc 'select count(*) from public.season_predictions;')" -eq 300
-
-          invalid_fk=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
+          orphan_predictions=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
             "select count(*) from public.match_predictions mp left join public.matches m on m.id=mp.match_id left join public.profiles p on p.id=mp.profile_id where m.id is null or p.id is null;")
-          echo "orphan_match_predictions=$invalid_fk"
-          test "$invalid_fk" -eq 0
+          echo "orphan_match_predictions=$orphan_predictions"
+          test "$orphan_predictions" -eq 0
+
+          orphan_profiles=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
+            "select count(*) from public.profiles p left join auth.users u on u.id=p.id where u.id is null;")
+          echo "profiles_without_auth_user=$orphan_profiles"
+          test "$orphan_profiles" -eq 0
 
       - name: Recreate Storage buckets and restore files
         env:
@@ -248,10 +288,6 @@ jobs:
             echo "$bucket restored_objects=$restored"
             test "$restored" -eq "$expected"
           done
-
-          test "$(psql "$DB_URL" -Atc "select count(*) from storage.objects where bucket_id='app-assets';")" -eq 4
-          test "$(psql "$DB_URL" -Atc "select count(*) from storage.objects where bucket_id='badge-images';")" -eq 65
-          test "$(psql "$DB_URL" -Atc "select count(*) from storage.objects where bucket_id='profile-photos';")" -eq 4
 
       - name: Stop isolated local Supabase
         if: always()
