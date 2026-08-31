@@ -55,9 +55,10 @@ class _MandatoryNotificationsCard extends StatelessWidget {
           children: [
             Text(
               'Notifications essentielles',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 12),
             _line(
@@ -76,11 +77,7 @@ class _MandatoryNotificationsCard extends StatelessWidget {
     );
   }
 
-  Widget _line(
-    IconData icon,
-    String title, {
-    double bottomPadding = 10,
-  }) {
+  Widget _line(IconData icon, String title, {double bottomPadding = 10}) {
     return Padding(
       padding: EdgeInsets.only(bottom: bottomPadding),
       child: Row(
@@ -206,6 +203,37 @@ class _NotificationActionsRow extends ConsumerWidget {
   }
 }
 
+class _TestNotificationOption {
+  const _TestNotificationOption(
+    this.kind,
+    this.label, {
+    this.adminOnly = false,
+  });
+
+  final String kind;
+  final String label;
+  final bool adminOnly;
+}
+
+const _testNotificationOptions = <_TestNotificationOption>[
+  _TestNotificationOption('test', 'Test technique'),
+  _TestNotificationOption('availability_open', 'Disponibilités ouvertes'),
+  _TestNotificationOption('availability_manual', 'Relance disponibilité'),
+  _TestNotificationOption('convocation_promoted', 'Passage en convoqué'),
+  _TestNotificationOption('prediction_j5', 'Pronostic'),
+  _TestNotificationOption('match_cancelled', 'Match annulé'),
+  _TestNotificationOption('match_rescheduled_date', 'Match reporté'),
+  _TestNotificationOption('match_rescheduled_time', 'Horaire modifié'),
+  _TestNotificationOption('motm_open', 'Vote Homme du match'),
+  _TestNotificationOption('motm_result_general', 'Résultat Homme du match'),
+  _TestNotificationOption('motm_result_winner', 'Élu Homme du match'),
+  _TestNotificationOption(
+    'admin_pending_signup',
+    'Nouveau compte en attente',
+    adminOnly: true,
+  ),
+];
+
 class _TestPushButton extends ConsumerStatefulWidget {
   const _TestPushButton();
 
@@ -216,12 +244,14 @@ class _TestPushButton extends ConsumerStatefulWidget {
 class _TestPushButtonState extends ConsumerState<_TestPushButton> {
   bool _sending = false;
 
-  Future<void> _send() async {
+  Future<void> _send(_TestNotificationOption option) async {
     setState(() => _sending = true);
-    var message = 'Test envoyé — regarde tes notifications.';
+    var message =
+        'Test « ${option.label} » envoyé — regarde tes notifications.';
     try {
-      final result =
-          await ref.read(supabaseClientProvider).rpc('send_test_push');
+      final result = await ref
+          .read(supabaseClientProvider)
+          .rpc('send_test_push_kind', params: {'p_kind': option.kind});
       final data = result is Map ? Map<String, dynamic>.from(result) : null;
       if (data != null && data['sent'] != true) {
         message = switch (data['reason']?.toString()) {
@@ -230,6 +260,8 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
           'notifications_paused' =>
             'Les notifications du club sont en pause : rien n’a été envoyé.',
           'not_configured' => 'Les notifications push ne sont pas configurées.',
+          'rate_limited' =>
+            'Trop de tests rapprochés : réessaie dans quelques minutes.',
           _ => 'Impossible d’envoyer le test.',
         };
       }
@@ -238,22 +270,52 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
     }
     if (!mounted) return;
     setState(() => _sending = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: _sending ? null : _send,
-      child: _sending
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: GrintaProgressIndicator(strokeWidth: 2),
-            )
-          : const Text('Test'),
+    final isAdmin = ref.watch(isAdminViewProvider);
+    final options = [
+      for (final option in _testNotificationOptions)
+        if (!option.adminOnly || isAdmin) option,
+    ];
+
+    return PopupMenuButton<_TestNotificationOption>(
+      enabled: !_sending,
+      tooltip: 'Choisir une notification à tester',
+      onSelected: _send,
+      itemBuilder: (context) => [
+        for (final option in options)
+          PopupMenuItem<_TestNotificationOption>(
+            value: option,
+            child: Text(option.label),
+          ),
+      ],
+      child: IgnorePointer(
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _sending ? null : () {},
+            child: _sending
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: GrintaProgressIndicator(strokeWidth: 2),
+                  )
+                : const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Test'),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_drop_down_rounded, size: 20),
+                    ],
+                  ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -297,9 +359,8 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
     }
     if (!mounted) return;
     setState(() => _updating = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -349,9 +410,8 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     ref.invalidate(pushStatusProvider);
     if (!mounted) return;
     setState(() => _enabling = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -409,10 +469,7 @@ class _CompactPushStatus extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
-        child: ListTile(
-          leading: Icon(icon),
-          title: Text(label),
-        ),
+        child: ListTile(leading: Icon(icon), title: Text(label)),
       ),
     );
   }
