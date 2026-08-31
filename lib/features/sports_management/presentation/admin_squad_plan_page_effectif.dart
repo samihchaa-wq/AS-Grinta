@@ -6,9 +6,8 @@ const _effectifAbsentColor = AppTheme.availabilityOut;
 const _effectifNoResponseColor = AppTheme.availabilityUnknown;
 
 extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
-  bool get _isInternalMatch => _matches.any(
-        (match) => match.id == _selectedMatchId && match.isInternal,
-      );
+  bool get _isInternalMatch =>
+      _matches.any((match) => match.id == _selectedMatchId && match.isInternal);
 
   ConvocationStatus _desiredEffectifStatus(ConvocationPlayer player) =>
       _desiredEffectifStatuses[player.participantId] ??
@@ -245,9 +244,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             children: [
               Text(
                 player.displayName,
-                style: Theme.of(
-                  sheetContext,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 16),
               _PlayerInfoRow(
@@ -409,17 +409,18 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: _limitController,
-                  enabled: !_busy && !_locked,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de joueurs souhaité',
-                    border: OutlineInputBorder(),
+                if (!_isInternalMatch)
+                  TextField(
+                    controller: _limitController,
+                    enabled: !_busy && !_locked,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre de joueurs souhaité',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => _updateState(() => _effectifDirty = true),
                   ),
-                  onChanged: (_) => _updateState(() => _effectifDirty = true),
-                ),
-                if (over) ...[
+                if (!_isInternalMatch && over) ...[
                   const SizedBox(height: 10),
                   Text(
                     '${_convokedPlayers.length} joueurs pour une limite de $limit.',
@@ -429,7 +430,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
+                if (!_isInternalMatch) const SizedBox(height: 12),
                 if (!_isInternalMatch)
                   Row(
                     children: [
