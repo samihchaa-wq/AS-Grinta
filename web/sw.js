@@ -1,5 +1,5 @@
-// Service worker AS La Grinta : navigation fraîche, fichiers statiques locaux,
-// mise à jour contrôlée et réception des notifications Web Push.
+// Service worker AS La Grinta : navigation fraîche, bundle applicatif frais,
+// fichiers statiques locaux, mise à jour contrôlée et réception des notifications Web Push.
 const workerUrl = new URL(self.location.href);
 const WEB_VERSION = workerUrl.searchParams.get('v') || 'dev';
 const CACHE_NAME = `as-grinta-${WEB_VERSION.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
@@ -102,15 +102,16 @@ self.addEventListener('fetch', (event) => {
       const mustStayFresh =
           path.endsWith('/build_version.js') ||
           path.endsWith('/sw.js') ||
-          path.endsWith('/index.html');
+          path.endsWith('/index.html') ||
+          path.endsWith('/main.dart.js');
 
       if (mustStayFresh) {
         return networkFirst(request, cache);
       }
 
-      // Les bundles, images, polices et autres ressources versionnées sont
-      // rendus immédiatement depuis le cache. Une vérification réseau se fait
-      // en arrière-plan sans bloquer l'interface.
+      // Les images, polices et autres ressources statiques sont rendues
+      // immédiatement depuis le cache. Une vérification réseau se fait en
+      // arrière-plan sans bloquer l'interface.
       return staleWhileRevalidate(request, cache, event);
     })(),
   );
