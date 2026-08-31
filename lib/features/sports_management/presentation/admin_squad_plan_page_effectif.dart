@@ -131,9 +131,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
     _updateState(() => _busy = true);
     try {
-      await ref
-          .read(sportWaitlistRepositoryProvider)
-          .publishEffectif(
+      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
             matchId: convocations.matchId,
             squadSizeLimit: limit,
             decisions: _effectifDecisions(convocations),
@@ -169,8 +167,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text(
         isCollective
             ? '${reminders.noResponseCount} joueur'
-                  '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                  'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
+                '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
             : 'Une notification de disponibilité sera envoyée. Un second envoi est bloqué pendant dix minutes.',
       ),
     );
@@ -224,13 +222,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final availabilityDetail = player.isGuest
         ? 'Invité ajouté manuellement.'
         : hasResponded && updatedAt != null
-        ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
-        : 'Aucune réponse enregistrée pour l’instant.';
+            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+            : 'Aucune réponse enregistrée pour l’instant.';
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
-    final canRelance =
-        !player.isGuest &&
+    final canRelance = !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
         (_reminders?.canRemind ?? false);
@@ -247,7 +244,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             children: [
               Text(
                 player.displayName,
-                style: Theme.of(sheetContext).textTheme.titleLarge
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 16),
@@ -357,9 +356,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (input == null) return;
     _updateState(() => _busy = true);
     try {
-      await ref
-          .read(guestPlayersRepositoryProvider)
-          .createAndAddGuest(
+      await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
             matchId: matchId,
             firstName: input.firstName,
             lastName: input.lastName,
@@ -386,9 +383,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!confirmed || !mounted) return;
     _updateState(() => _busy = true);
     try {
-      await ref
-          .read(guestPlayersRepositoryProvider)
-          .removeGuest(
+      await ref.read(guestPlayersRepositoryProvider).removeGuest(
             matchId: matchId,
             participantId: player.participantId,
             reason: 'Retrait depuis Effectif',
@@ -559,9 +554,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: _busy || _locked || !_effectifDirty
-              ? null
-              : _persistEffectif,
+          onPressed:
+              _busy || _locked || !_effectifDirty ? null : _persistEffectif,
           icon: const Icon(Icons.save_outlined),
           label: const Text('Enregistrer'),
         ),
