@@ -56,7 +56,7 @@ class MatchFormSection extends StatelessWidget {
                     Text(
                       title,
                       style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -137,7 +137,7 @@ class MatchFormPickerTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),

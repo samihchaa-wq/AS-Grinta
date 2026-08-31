@@ -517,7 +517,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 9,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],

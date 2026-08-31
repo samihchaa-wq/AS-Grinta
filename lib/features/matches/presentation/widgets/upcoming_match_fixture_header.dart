@@ -66,7 +66,7 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                   child: Text(
                     '⚽ Match entre nous',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                 ),
@@ -98,7 +98,7 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                       child: Text(
                         'VS',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
+                              fontWeight: FontWeight.w400,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                       ),
@@ -142,7 +142,7 @@ class _FixtureTeam extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: textAlign,
       style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: isGrinta ? FontWeight.w900 : FontWeight.w800,
+        fontWeight: isGrinta ? FontWeight.w400 : FontWeight.w400,
       ),
     );
   }

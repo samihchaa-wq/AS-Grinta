@@ -258,7 +258,7 @@ class _CalendarMatchCard extends ConsumerWidget {
                     statusLabel,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: statusColor,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                 ],

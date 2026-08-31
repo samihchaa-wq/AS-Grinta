@@ -30,7 +30,7 @@ class NameWithBadges extends ConsumerWidget {
   TextStyle _resolvedStyle(BuildContext context) {
     final base = grintaTableCellTextStyle(
       context,
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w400,
     );
     return style == null ? base : base.merge(style);
   }

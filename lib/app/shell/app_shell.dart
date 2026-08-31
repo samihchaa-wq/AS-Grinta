@@ -326,7 +326,7 @@ class _PreviewBanner extends StatelessWidget {
                   'Aperçu utilisateur',
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -338,7 +338,7 @@ class _PreviewBanner extends StatelessWidget {
                 ),
                 child: const Text(
                   'Revenir en admin',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w400),
                 ),
               ),
             ],

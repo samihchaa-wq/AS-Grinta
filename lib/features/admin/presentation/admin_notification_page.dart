@@ -186,7 +186,7 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w900),
+                                    ?.copyWith(fontWeight: FontWeight.w400),
                               ),
                             ),
                             TextButton(

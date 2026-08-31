@@ -215,7 +215,7 @@ class _InternalTeamCompositionViewState
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 8),
               _UnassignedPlayers(
@@ -388,7 +388,7 @@ class _GroupedPlayerChips extends StatelessWidget {
             style: Theme.of(context)
                 .textTheme
                 .labelLarge
-                ?.copyWith(fontWeight: FontWeight.w800),
+                ?.copyWith(fontWeight: FontWeight.w400),
           ),
           const SizedBox(height: 6),
           Wrap(
@@ -494,7 +494,7 @@ class _TeamColumn extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w800),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
           ),
         Container(
@@ -611,7 +611,7 @@ class _JerseyAssignmentTile extends StatelessWidget {
                     style: Theme.of(context)
                         .textTheme
                         .labelSmall
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                        ?.copyWith(fontWeight: FontWeight.w400),
                   ),
                 ),
               ),
@@ -706,7 +706,7 @@ class _PlayerChip extends StatelessWidget {
               entry.displayName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: const TextStyle(fontWeight: FontWeight.w400),
             ),
           ),
         ],

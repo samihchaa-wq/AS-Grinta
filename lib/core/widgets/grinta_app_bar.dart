@@ -144,7 +144,7 @@ class _GrintaTitleBar extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.left,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w400,
                     letterSpacing: -.3,
                   ),
               child: pageName,

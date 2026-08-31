@@ -303,7 +303,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                       'Composition',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: foreground,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ),
@@ -312,7 +312,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                       composition.formationCode!,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                             color: secondary,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                 ],
@@ -322,7 +322,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                 'Composition publiée',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: secondary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                     ),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
@@ -339,7 +339,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                 'Remplaçants (${composition.benchCount})',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: foreground,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w400,
                     ),
               ),
               const SizedBox(height: AppSpacing.contentGap),
@@ -373,7 +373,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                     'Voir les listes',
                     style: TextStyle(
                       color: foreground,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   children: [

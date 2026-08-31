@@ -195,7 +195,7 @@ class _Header extends StatelessWidget {
                   'Ma collection',
                   style: Theme.of(
                     context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -235,7 +235,7 @@ class _SectionTitle extends StatelessWidget {
           title,
           style: Theme.of(
             context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
         ),
         const Spacer(),
         Container(
@@ -248,7 +248,7 @@ class _SectionTitle extends StatelessWidget {
           child: Text(
             '$count',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                   color: AppTheme.textSecondary,
                 ),
           ),
@@ -340,7 +340,7 @@ class _BadgeTile extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: AppTheme.textFaint,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w400,
                   ),
             ),
           ],
@@ -441,7 +441,7 @@ class _BadgeTile extends ConsumerWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                   height: 1.15,
                 ),
           ),
@@ -494,7 +494,7 @@ class _InProgressTile extends StatelessWidget {
                   Text(
                     badge.def.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                   if (badge.def.description.isNotEmpty) ...[
@@ -531,7 +531,7 @@ class _InProgressTile extends StatelessWidget {
                           style:
                               Theme.of(context).textTheme.labelSmall?.copyWith(
                                     color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w900,
+                                    fontWeight: FontWeight.w400,
                                   ),
                         ),
                       ],

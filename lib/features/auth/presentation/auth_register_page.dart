@@ -85,7 +85,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
               SelectableText(
                 username,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w400,
                   fontSize: 20,
                 ),
               ),

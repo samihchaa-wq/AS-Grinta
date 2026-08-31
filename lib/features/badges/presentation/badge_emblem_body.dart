@@ -163,7 +163,7 @@ class _BandText extends StatelessWidget {
       color: fill,
       foreground: foreground,
       fontSize: fontSize,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w400,
       letterSpacing: letterSpacing,
       height: 1,
     );

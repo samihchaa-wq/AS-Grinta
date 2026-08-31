@@ -41,7 +41,7 @@ class MatchResultScoreChip extends StatelessWidget {
         '$scoreGrinta–$scoreOpponent',
         style: (textStyle ?? Theme.of(context).textTheme.bodyMedium)?.copyWith(
           color: color,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );

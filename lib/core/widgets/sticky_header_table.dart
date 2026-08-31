@@ -29,7 +29,7 @@ TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
   return TextStyle(
     color: color ?? AppTheme.textSecondary,
     fontSize: grintaTableHeaderFontSize,
-    fontWeight: FontWeight.w800,
+    fontWeight: FontWeight.w400,
     letterSpacing: .55,
     height: 1,
   );
@@ -38,7 +38,7 @@ TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
 TextStyle grintaTableCellTextStyle(
   BuildContext context, {
   Color? color,
-  FontWeight fontWeight = FontWeight.w700,
+  FontWeight fontWeight = FontWeight.w400,
 }) {
   return TextStyle(
     color: color ?? Theme.of(context).colorScheme.onSurface,
@@ -53,7 +53,7 @@ TextStyle grintaTableRankTextStyle(BuildContext context, {Color? color}) {
   return TextStyle(
     color: color ?? AppTheme.textFaint,
     fontSize: grintaTableRankFontSize,
-    fontWeight: FontWeight.w900,
+    fontWeight: FontWeight.w400,
     fontFeatures: const [FontFeature.tabularFigures()],
   );
 }
@@ -82,7 +82,7 @@ double grintaTablePinnedWidthForNames(
   final style = DefaultTextStyle.of(context).style.merge(
         grintaTableCellTextStyle(
           context,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w400,
         ),
       );
   final textDirection = Directionality.of(context);

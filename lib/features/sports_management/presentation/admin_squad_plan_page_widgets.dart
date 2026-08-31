@@ -66,7 +66,7 @@ class _EffectifColumn extends StatelessWidget {
                     '$title (${players.length})',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: color,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                 ),
@@ -212,7 +212,7 @@ class _EffectifPlayerChip extends StatelessWidget {
               maxLines: 1,
               style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -312,7 +312,7 @@ class _PlayerInfoRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w400)),
               const SizedBox(height: 2),
               Text(detail, style: Theme.of(context).textTheme.bodySmall),
             ],

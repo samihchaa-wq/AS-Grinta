@@ -423,7 +423,7 @@ class _WaitlistPinnedRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: grintaTableCellTextStyle(
                   context,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -459,7 +459,7 @@ class _WaitlistPinnedRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: grintaTableCellTextStyle(
                       context,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),

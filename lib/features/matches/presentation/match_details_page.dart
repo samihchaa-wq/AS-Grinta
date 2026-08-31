@@ -415,7 +415,7 @@ class _MatchModule extends StatelessWidget {
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                    ?.copyWith(fontWeight: FontWeight.w400),
               ),
               const SizedBox(height: 6),
               Text(
@@ -598,7 +598,7 @@ class _PredictionsTable extends StatelessWidget {
             child: Text(
               prediction.points.round().toString(),
               textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w900),
+              style: const TextStyle(fontWeight: FontWeight.w400),
             ),
           ),
         ],
@@ -643,7 +643,7 @@ class _X2Badge extends StatelessWidget {
         '×2',
         style: TextStyle(
           color: AppTheme.accent,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w400,
           fontSize: 11,
         ),
       ),

@@ -83,7 +83,7 @@ class _PrivacySection extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                   const SizedBox(height: 6),
