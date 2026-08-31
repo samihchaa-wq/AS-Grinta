@@ -206,11 +206,19 @@ def main() -> int:
         '.eq("profiles.status", "active")',
         'Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")',
         'from("matches")',
-        'from("calendar_match_tombstones")',
-        'STATUS:${cancelled ? "CANCELLED" : "CONFIRMED"}',
+        'String(row.status ?? "") === "annule"',
+        'STATUS:CONFIRMED',
         'Cache-Control": "no-cache, no-store, must-revalidate"',
     ):
         require(marker in calendar, f"calendar-feed: garde absente: {marker}")
+    require(
+        'from("calendar_match_tombstones")' not in calendar,
+        "calendar-feed ne doit pas republier les matchs supprimés comme événements annulés",
+    )
+    require(
+        'STATUS:CANCELLED' not in calendar and 'ANNULÉ —' not in calendar,
+        "calendar-feed ne doit pas exposer d’événement annulé dans le calendrier synchronisé",
+    )
     require_in_order(
         calendar,
         "UUID_RE.test(token)",
