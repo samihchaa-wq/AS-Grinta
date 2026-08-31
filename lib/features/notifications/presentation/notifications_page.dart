@@ -55,7 +55,9 @@ class _MandatoryNotificationsCard extends StatelessWidget {
           children: [
             Text(
               'Notifications essentielles',
-              style: Theme.of(context).textTheme.titleMedium
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 12),
@@ -253,7 +255,8 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
       final data = result is Map ? Map<String, dynamic>.from(result) : null;
       if (data != null && data['sent'] != true) {
         message = switch (data['reason']?.toString()) {
-          'no_subscription' => 'Aucun appareil abonné : active les notifications sur cet appareil.',
+          'no_subscription' =>
+            'Aucun appareil abonné : active les notifications sur cet appareil.',
           'notifications_paused' =>
             'Les notifications du club sont en pause : rien n’a été envoyé.',
           'not_configured' => 'Les notifications push ne sont pas configurées.',
@@ -398,9 +401,8 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     setState(() => _enabling = true);
     var message = 'Notifications activées sur cet appareil.';
     try {
-      final enabled = await ref
-          .read(pushSubscriptionsRepositoryProvider)
-          .enable();
+      final enabled =
+          await ref.read(pushSubscriptionsRepositoryProvider).enable();
       if (!enabled) message = 'Autorisation refusée par le navigateur.';
     } catch (_) {
       message = 'Impossible d’activer les notifications.';
