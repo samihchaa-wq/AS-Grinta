@@ -134,7 +134,9 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  Future<void> _save() async {
+  Future<void> _save({
+    String successMessage = 'Composition enregistrée.',
+  }) async {
     final entries = _entries;
     if (entries == null || _saving) return;
     setState(() => _saving = true);
@@ -162,7 +164,7 @@ class _InternalTeamCompositionViewState
       ref.invalidate(_internalPlayerProfilesProvider(widget.matchId));
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Composition enregistrée.')));
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -170,6 +172,47 @@ class _InternalTeamCompositionViewState
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _resetComposition() async {
+    final entries = _entries;
+    if (entries == null ||
+        _saving ||
+        !entries.any((entry) => entry.teamNo != null)) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Réinitialiser les compositions ?'),
+        content: const Text(
+          'Tous les joueurs des deux équipes seront remis dans '
+          '« Non affectés ». Les noms d’équipe et les maillots seront conservés.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Réinitialiser'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      for (var index = 0; index < entries.length; index += 1) {
+        entries[index] = entries[index].copyWith(clearTeam: true);
+      }
+      _selectedParticipantId = null;
+      _dirty = true;
+    });
+
+    await _save(successMessage: 'Compositions remises à zéro.');
   }
 
   @override
@@ -204,6 +247,7 @@ class _InternalTeamCompositionViewState
         final unassigned = entries.where((e) => e.teamNo == null).toList();
         final team1 = entries.where((e) => e.teamNo == 1).toList();
         final team2 = entries.where((e) => e.teamNo == 2).toList();
+        final hasAssignedPlayers = team1.isNotEmpty || team2.isNotEmpty;
         final profiles = profilesAsync.valueOrNull;
 
         return Column(
@@ -271,8 +315,16 @@ class _InternalTeamCompositionViewState
             ),
             if (widget.editable) ...[
               const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _saving || !hasAssignedPlayers
+                    ? null
+                    : _resetComposition,
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: const Text('Réinitialiser'),
+              ),
+              const SizedBox(height: 8),
               FilledButton.icon(
-                onPressed: _saving ? null : _save,
+                onPressed: _saving ? null : () => _save(),
                 icon: _saving
                     ? const SizedBox(
                         width: 16,
