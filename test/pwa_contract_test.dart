@@ -67,7 +67,15 @@ void main() {
     });
 
     test(
-      'les ressources statiques ne bloquent plus systématiquement sur le réseau',
+      'le bundle Flutter principal reste frais après un déploiement',
+      () {
+        expect(worker, contains("path.endsWith('/main.dart.js')"));
+        expect(worker, contains('return networkFirst(request, cache)'));
+      },
+    );
+
+    test(
+      'les autres ressources statiques ne bloquent plus systématiquement sur le réseau',
       () {
         expect(worker, contains('staleWhileRevalidate'));
         expect(worker, contains('if (cached)'));
