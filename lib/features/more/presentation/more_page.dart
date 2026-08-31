@@ -61,7 +61,7 @@ class MorePage extends ConsumerWidget {
                 leading: const Icon(Icons.stadium_outlined),
                 title: const Text(
                   'Équipes & stades',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w400),
                 ),
                 subtitle: const Text('Adversaires, stades et adresses'),
                 trailing: const Icon(Icons.chevron_right),
@@ -85,7 +85,7 @@ class MorePage extends ConsumerWidget {
                 leading: const Icon(Icons.admin_panel_settings_outlined),
                 title: const Text(
                   'Administration',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w400),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/admin'),
@@ -99,7 +99,7 @@ class MorePage extends ConsumerWidget {
                 secondary: const Icon(Icons.visibility_outlined),
                 title: const Text(
                   'Aperçu utilisateur',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(fontWeight: FontWeight.w400),
                 ),
                 value: viewingAsUser,
                 onChanged: (value) => setViewAsUser(ref, value),

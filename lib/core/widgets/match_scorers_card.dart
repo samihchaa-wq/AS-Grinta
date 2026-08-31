@@ -42,7 +42,7 @@ class MatchScorersCard extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 12),
             if (effectiveScorers.isEmpty)
@@ -50,7 +50,7 @@ class MatchScorersCard extends StatelessWidget {
                 teamGoals == 0 ? 'Aucun buteur' : 'Buteurs non renseignés',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: AppTheme.textSecondary,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
               )
             else
@@ -66,7 +66,7 @@ class MatchScorersCard extends StatelessWidget {
                           scorer.name,
                           style:
                               Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w400,
                                   ),
                         ),
                       ),
@@ -76,7 +76,7 @@ class MatchScorersCard extends StatelessWidget {
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w900,
+                                    fontWeight: FontWeight.w400,
                                   ),
                         ),
                     ],

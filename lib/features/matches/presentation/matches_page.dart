@@ -317,7 +317,7 @@ class _MatchCard extends StatelessWidget {
                       _scoreLine(),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontSize: isPast ? 18 : 17,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w400,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -337,7 +337,7 @@ class _MatchCard extends StatelessWidget {
                       style: TextStyle(
                         color: badgeColor,
                         fontSize: 12,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -349,7 +349,7 @@ class _MatchCard extends StatelessWidget {
                 style: const TextStyle(
                   color: AppTheme.textFaint,
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
               if (isAdmin) ...[

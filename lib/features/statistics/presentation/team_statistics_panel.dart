@@ -67,7 +67,7 @@ class TeamStatisticsPanel extends ConsumerWidget {
                 'Répartition des matchs selon le score final',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w400,
                     ),
               ),
               const SizedBox(height: 10),
@@ -96,7 +96,7 @@ class _TeamSectionTitle extends StatelessWidget {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w400,
           ),
     );
   }
@@ -126,7 +126,7 @@ class _TeamResultsCard extends StatelessWidget {
               '${statistics.matchesPlayed}',
               textAlign: TextAlign.center,
               style: theme.textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
               ),
             ),
             Text(
@@ -134,7 +134,7 @@ class _TeamResultsCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(height: 24),
@@ -242,7 +242,7 @@ class _ResultRing extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: valueFontSize,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                       const SizedBox(height: 1),
@@ -359,7 +359,7 @@ class _GoalValue extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   color: color,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -371,7 +371,7 @@ class _GoalValue extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -511,7 +511,7 @@ class _ResultBubble extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
                 fontSize: dimension * .46,
               ),
             ),
@@ -592,7 +592,7 @@ class _AverageValue extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: color,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
               ),
         ),
         const SizedBox(height: AppSpacing.microGap),
@@ -600,7 +600,7 @@ class _AverageValue extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
         ),
       ],
@@ -783,7 +783,7 @@ class _MarginSummaryItem extends StatelessWidget {
             maxLines: 1,
             style: theme.textTheme.titleMedium?.copyWith(
               color: color,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 1),
@@ -794,7 +794,7 @@ class _MarginSummaryItem extends StatelessWidget {
               maxLines: 1,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ),
@@ -818,7 +818,7 @@ class _MarginGroupLabel extends StatelessWidget {
       textAlign: TextAlign.center,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: color,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w400,
             letterSpacing: .5,
           ),
     );
@@ -852,7 +852,7 @@ class _MarginBar extends StatelessWidget {
                 '${bucket.count}',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -886,7 +886,7 @@ class _MarginBar extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -987,7 +987,7 @@ class _StreakGroupCard extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w400,
                   ),
             ),
             const SizedBox(height: 18),
@@ -1023,7 +1023,7 @@ class _StreakRow extends StatelessWidget {
         Text(
           title,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 10),
@@ -1043,7 +1043,7 @@ class _StreakRow extends StatelessWidget {
             Text(
               '${streak.length} / $scale',
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w400,
               ),
             ),
           ],

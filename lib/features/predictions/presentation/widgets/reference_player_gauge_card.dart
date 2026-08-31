@@ -179,7 +179,7 @@ class _PlayerIdentity extends ConsumerWidget {
                 color: Colors.white,
                 fontSize: 58,
                 height: 1,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w400,
                 letterSpacing: -1.8,
               ),
             ),
@@ -373,7 +373,7 @@ class _GaugeValueLabel extends StatelessWidget {
           color: color,
           fontSize: 54,
           height: 1,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w400,
           shadows: [
             Shadow(color: color.withValues(alpha: .28), blurRadius: 12),
           ],

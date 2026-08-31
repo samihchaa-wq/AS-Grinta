@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_deletion_window.dart';
@@ -125,7 +126,13 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         .read(matchesControllerProvider.notifier)
         .deleteMatch(match.id);
     ref.invalidate(matchDetailsProvider(match.id));
-    if (failure == null) return;
+    if (failure == null) {
+      // La suppression recharge brièvement la liste complète. Pendant ce
+      // rafraîchissement le ScrollController peut être clampé à 0 ; on force
+      // donc un nouvel ancrage sur le match pertinent une fois la liste prête.
+      ref.read(matchesFocusRequestProvider.notifier).state++;
+      return;
+    }
     messenger.showSnackBar(SnackBar(content: Text(failure)));
   }
 

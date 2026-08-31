@@ -75,7 +75,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
                 TextStyle(
                   fontSize: 12.5,
                   height: 1,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w400,
                   letterSpacing: .05,
                 ),
               ),

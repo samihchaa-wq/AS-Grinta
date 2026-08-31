@@ -31,7 +31,7 @@ class MatchMeetingTimePicker extends StatelessWidget {
           style: Theme.of(context)
               .textTheme
               .titleSmall
-              ?.copyWith(fontWeight: FontWeight.w800),
+              ?.copyWith(fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 8),
         Row(

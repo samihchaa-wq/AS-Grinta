@@ -59,7 +59,7 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                       style: Theme.of(context)
                           .textTheme
                           .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                          ?.copyWith(fontWeight: FontWeight.w400),
                     ),
                     const SizedBox(height: 12),
                     const Text(
@@ -129,7 +129,7 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     'Compte en attente de validation',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                   const SizedBox(height: 12),

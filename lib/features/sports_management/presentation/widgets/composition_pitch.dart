@@ -90,7 +90,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ),
@@ -254,7 +254,7 @@ class CompositionDropZone extends StatelessWidget {
                     child: Text(
                       '$title (${entries.length})',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ),
@@ -384,7 +384,7 @@ class VacantSlotMarker extends StatelessWidget {
                   '\u2014',
                   style: TextStyle(
                     color: Colors.white70,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w400,
                     fontSize: 18,
                     height: 1,
                   ),
@@ -431,7 +431,7 @@ class GoalBadge extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 8,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                   height: 1,
                 ),
               ),
@@ -472,7 +472,7 @@ class AssistBadge extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 8,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                   height: 1,
                 ),
               ),
@@ -503,7 +503,7 @@ class SubstituteHistoryBadge extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontSize: 9,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w400,
           height: 1,
         ),
       ),
@@ -673,7 +673,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
           initials,
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w400,
             fontSize: visualSize * 0.32,
             shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
           ),

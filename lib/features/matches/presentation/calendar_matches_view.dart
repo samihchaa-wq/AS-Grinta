@@ -158,7 +158,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                   'S’abonner au calendrier',
                   style: Theme.of(
                     sheetContext,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
                 ),
                 const SizedBox(height: 6),
                 Text(

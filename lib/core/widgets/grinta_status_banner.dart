@@ -79,7 +79,7 @@ class GrintaStatusBanner extends StatelessWidget {
                       value,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                     const SizedBox(height: 2),

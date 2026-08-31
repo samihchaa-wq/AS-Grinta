@@ -54,7 +54,7 @@ class MatchHistoryCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontSize: 16,
                             height: 1.1,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w400,
                             color: AppTheme.textPrimary,
                           ),
                     )
@@ -72,7 +72,7 @@ class MatchHistoryCard extends ConsumerWidget {
                           Theme.of(context).textTheme.titleSmall?.copyWith(
                                 fontSize: 16,
                                 height: 1.1,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w400,
                               ),
                       textAlign: TextAlign.start,
                     ),
@@ -82,7 +82,7 @@ class MatchHistoryCard extends ConsumerWidget {
                       match.calendarTypeLabel,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: border,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w400,
                           ),
                     ),
                   ],
@@ -104,7 +104,7 @@ class MatchHistoryCard extends ConsumerWidget {
                                 .labelMedium
                                 ?.copyWith(
                                   color: AppTheme.textSecondary,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w400,
                                 ),
                           ),
                         ),

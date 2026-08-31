@@ -264,8 +264,8 @@ class _SegmentedBar<T> extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: selected == items[index].$1
-                              ? FontWeight.w800
-                              : FontWeight.w600,
+                              ? FontWeight.w400
+                              : FontWeight.w400,
                           color: selected == items[index].$1
                               ? scheme.secondary
                               : scheme.onSurfaceVariant,

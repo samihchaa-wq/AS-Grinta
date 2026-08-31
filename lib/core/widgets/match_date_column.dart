@@ -33,7 +33,7 @@ class MatchDateColumn extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: color ?? (bold ? main : soft),
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+            fontWeight: bold ? FontWeight.w400 : FontWeight.w400,
             fontSize: 14,
             height: 1.15,
           ),
@@ -103,7 +103,7 @@ class MatchDateHeader extends StatelessWidget {
             color: dateColor,
             fontSize: 12,
             height: 1.15,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w400,
           ),
         ),
         const SizedBox(height: 7),

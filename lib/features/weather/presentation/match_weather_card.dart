@@ -86,7 +86,7 @@ class _WeatherBody extends StatelessWidget {
                     'Météo au coup d’envoi',
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: AppTheme.textPrimary,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
@@ -116,7 +116,7 @@ class _WeatherBody extends StatelessWidget {
                                 maxLines: 1,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   color: AppTheme.textPrimary,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w400,
                                   height: 1,
                                 ),
                               ),
@@ -131,7 +131,7 @@ class _WeatherBody extends StatelessWidget {
                         style: const TextStyle(
                           color: AppTheme.primaryBright,
                           fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w400,
                           height: 1.15,
                         ),
                       ),
@@ -219,7 +219,7 @@ class _Metric extends StatelessWidget {
             style: const TextStyle(
               color: AppTheme.textPrimary,
               fontSize: 11.5,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

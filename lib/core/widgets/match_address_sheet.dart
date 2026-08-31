@@ -89,7 +89,7 @@ Future<MatchGpsApp?> _showGpsPicker(BuildContext context) {
                     style: Theme.of(pickerContext)
                         .textTheme
                         .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                        ?.copyWith(fontWeight: FontWeight.w400),
                   ),
                 ),
               ],
@@ -101,7 +101,7 @@ Future<MatchGpsApp?> _showGpsPicker(BuildContext context) {
                 leading: Icon(_gpsAppIcon(app)),
                 title: Text(
                   _gpsAppLabel(app),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: const TextStyle(fontWeight: FontWeight.w400),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.pop(pickerContext, app),
@@ -168,7 +168,7 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
                     style: Theme.of(sheetContext)
                         .textTheme
                         .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                        ?.copyWith(fontWeight: FontWeight.w400),
                   ),
                 ),
               ],

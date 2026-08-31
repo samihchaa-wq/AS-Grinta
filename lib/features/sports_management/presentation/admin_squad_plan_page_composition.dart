@@ -708,7 +708,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                   Text(
                     'Remplaçants (${bench.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                   const SizedBox(height: 8),

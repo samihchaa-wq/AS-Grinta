@@ -26,7 +26,7 @@ class AdminBadge extends StatelessWidget {
             label,
             style: TextStyle(
               color: AppTheme.accent,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w400,
               fontSize: 11,
             ),
           ),

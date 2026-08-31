@@ -58,7 +58,7 @@ class MatchFixture extends StatelessWidget {
     final baseName = (nameStyle ??
             Theme.of(context).textTheme.titleMedium ??
             const TextStyle())
-        .copyWith(fontWeight: FontWeight.w800, color: foreground);
+        .copyWith(fontWeight: FontWeight.w400, color: foreground);
     final scoreColor = _scoreColor;
 
     Widget line(String name, int? score) {
@@ -93,7 +93,7 @@ class MatchFixture extends StatelessWidget {
                 key: ValueKey(scoreText),
                 style: baseName.copyWith(
                   color: scoreColor,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w400,
                   fontSize: scoreFontSize,
                   height: 1,
                 ),

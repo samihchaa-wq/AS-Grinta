@@ -256,7 +256,7 @@ class _SheetHeader extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
+                  ?.copyWith(fontWeight: FontWeight.w400),
             ),
           ),
           FilledButton(onPressed: onDone, child: const Text('Valider')),

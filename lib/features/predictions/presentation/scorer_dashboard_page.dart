@@ -214,7 +214,7 @@ class _GaugeSection extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w400,
                     ),
               ),
             ],

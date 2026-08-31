@@ -279,7 +279,7 @@ class _AvailabilityPanel extends StatelessWidget {
                   'Gestion du match',
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: secondary,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
                 const SizedBox(width: 8),

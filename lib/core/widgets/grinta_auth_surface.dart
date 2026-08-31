@@ -64,7 +64,7 @@ class GrintaAuthSurface extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   color: AppTheme.textPrimary,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ],

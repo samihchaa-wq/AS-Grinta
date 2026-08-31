@@ -70,7 +70,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                       gauge.playerName,
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w400,
                               ),
                     ),
                     Text(
@@ -87,7 +87,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                             ),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
@@ -115,7 +115,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                     'Médiane des pronos',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w400,
                         ),
                   ),
                   const Spacer(),
@@ -124,7 +124,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                     style: const TextStyle(
                       color: Color(0xFFC58BFF),
                       fontSize: 22,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ],
@@ -205,7 +205,7 @@ class _PredictionRow extends StatelessWidget {
               badgeSize: badgeSize,
               style: TextStyle(
                 color: isMine ? mine : Colors.white,
-                fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: isMine ? FontWeight.w400 : FontWeight.w400,
               ),
             ),
           ),
@@ -216,7 +216,7 @@ class _PredictionRow extends StatelessWidget {
             style: TextStyle(
               color: isMine ? mine : Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -253,7 +253,7 @@ class _RankBadge extends StatelessWidget {
         style: const TextStyle(
           color: Color(0xFF071326),
           fontSize: 12,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w400,
         ),
       ),
     );
