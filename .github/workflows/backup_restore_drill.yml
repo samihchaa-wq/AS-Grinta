@@ -1,0 +1,212 @@
+name: Production backup restore drill
+
+on:
+  push:
+    branches:
+      - ci/backup-restore-drill-20260901
+    paths:
+      - '.github/workflows/backup_restore_drill.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-backup-restore-drill
+  cancel-in-progress: false
+
+jobs:
+  restore-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      EXPECTED_PROJECT_REF: ovzijmqrnsgcmryinkfa
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require decryption credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_ENCRYPTION_PASSPHRASE:-}" ] && \
+             { [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_DB_PASSWORD:-}" ]; }; then
+            echo "::error::Restore drill requires BACKUP_ENCRYPTION_PASSPHRASE or the two Supabase CI secrets used by the backup fallback key."
+            exit 1
+          fi
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.111.0
+
+      - name: Download latest encrypted backup
+        id: backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_name='AS Grinta encrypted production backups'
+          release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq ".[] | select(.draft == true and .name == \"$release_name\") | .id" | head -n 1)
+          test -n "$release_id"
+
+          assets=$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100")
+          archive_id=$(printf '%s' "$assets" | jq -r \
+            '[.[] | select(.name | endswith(".tar.gz.enc"))] | sort_by(.created_at) | last | .id')
+          archive_name=$(printf '%s' "$assets" | jq -r \
+            '[.[] | select(.name | endswith(".tar.gz.enc"))] | sort_by(.created_at) | last | .name')
+          test "$archive_id" != "null"
+          test -n "$archive_name"
+
+          checksum_name="${archive_name}.sha256"
+          checksum_id=$(printf '%s' "$assets" | jq -r --arg name "$checksum_name" \
+            '.[] | select(.name == $name) | .id' | head -n 1)
+          test -n "$checksum_id"
+
+          archive="$RUNNER_TEMP/$archive_name"
+          checksum="$RUNNER_TEMP/$checksum_name"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/$GITHUB_REPOSITORY/releases/assets/$archive_id" > "$archive"
+          gh api -H 'Accept: application/octet-stream' \
+            "repos/$GITHUB_REPOSITORY/releases/assets/$checksum_id" > "$checksum"
+
+          expected=$(awk '{print $1}' "$checksum")
+          actual=$(sha256sum "$archive" | awk '{print $1}')
+          test "$actual" = "$expected"
+
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "name=$archive_name" >> "$GITHUB_OUTPUT"
+
+      - name: Decrypt and inspect backup
+        id: unpack
+        env:
+          ARCHIVE: ${{ steps.backup.outputs.archive }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${BACKUP_ENCRYPTION_PASSPHRASE:-}" ]; then
+            backup_key="$BACKUP_ENCRYPTION_PASSPHRASE"
+          else
+            backup_key=$(printf '%s\0%s' "$SUPABASE_DB_PASSWORD" "$SUPABASE_ACCESS_TOKEN" \
+              | sha256sum | awk '{print $1}')
+          fi
+          export BACKUP_KEY="$backup_key"
+
+          restore_root="$RUNNER_TEMP/restore-unpacked"
+          mkdir -p "$restore_root"
+          openssl enc -d -aes-256-cbc -pbkdf2 -pass env:BACKUP_KEY -in "$ARCHIVE" \
+            | tar -xzf - -C "$restore_root"
+
+          backup_root="$restore_root/as-grinta-backup"
+          test -s "$backup_root/database/roles.sql"
+          test -s "$backup_root/database/schema.sql"
+          test -s "$backup_root/database/data.sql"
+          grep -q "project_ref=$EXPECTED_PROJECT_REF" "$backup_root/MANIFEST.txt"
+
+          echo "backup_root=$backup_root" >> "$GITHUB_OUTPUT"
+
+      - name: Start isolated local Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          local_root="$RUNNER_TEMP/supabase-restore-drill"
+          mkdir -p "$local_root"
+          cd "$local_root"
+          supabase init
+          if grep -q '^major_version = ' supabase/config.toml; then
+            sed -i 's/^major_version = .*/major_version = 17/' supabase/config.toml
+          fi
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc 'select version();'
+
+      - name: Restore database backup
+        env:
+          BACKUP_ROOT: ${{ steps.unpack.outputs.backup_root }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql \
+            --single-transaction \
+            --variable ON_ERROR_STOP=1 \
+            --file "$BACKUP_ROOT/database/roles.sql" \
+            --file "$BACKUP_ROOT/database/schema.sql" \
+            --command 'SET session_replication_role = replica' \
+            --file "$BACKUP_ROOT/database/data.sql" \
+            --dbname "$DB_URL"
+
+      - name: Validate restored application data
+        shell: bash
+        run: |
+          set -euo pipefail
+          for table in profiles seasons matches match_predictions season_predictions; do
+            count=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc "select count(*) from public.$table;")
+            echo "$table=$count"
+            test "$count" -gt 0
+          done
+
+          invalid_fk=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
+            "select count(*) from public.match_predictions mp left join public.matches m on m.id=mp.match_id left join public.profiles p on p.id=mp.profile_id where m.id is null or p.id is null;")
+          echo "orphan_match_predictions=$invalid_fk"
+          test "$invalid_fk" -eq 0
+
+      - name: Validate and restore Storage files locally
+        env:
+          BACKUP_ROOT: ${{ steps.unpack.outputs.backup_root }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          canonical_dir() {
+            local bucket="$1"
+            if [ -d "$BACKUP_ROOT/storage/$bucket/$bucket" ]; then
+              printf '%s\n' "$BACKUP_ROOT/storage/$bucket/$bucket"
+            else
+              printf '%s\n' "$BACKUP_ROOT/storage/$bucket"
+            fi
+          }
+
+          declare -A expected
+          for bucket in app-assets badge-images profile-photos; do
+            expected[$bucket]=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
+              "select count(*) from storage.objects where bucket_id='$bucket';")
+            src=$(canonical_dir "$bucket")
+            test -d "$src"
+            files=$(find "$src" -type f | wc -l | tr -d ' ')
+            echo "$bucket backup_files=$files metadata_objects=${expected[$bucket]}"
+            test "$files" -eq "${expected[$bucket]}"
+            test "$files" -gt 0
+          done
+
+          # The database backup restores Storage metadata but not object bytes.
+          # Clear metadata only in this disposable local instance, then exercise the
+          # documented Storage upload path from the recovered files.
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -c 'delete from storage.objects;'
+
+          cd "$RUNNER_TEMP/supabase-restore-drill"
+          for bucket in app-assets badge-images profile-photos; do
+            src=$(canonical_dir "$bucket")
+            (
+              cd "$src"
+              supabase storage cp . "ss:///$bucket" --recursive --experimental --local --jobs 8
+            )
+            restored=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -Atc \
+              "select count(*) from storage.objects where bucket_id='$bucket';")
+            echo "$bucket restored_objects=$restored"
+            test "$restored" -eq "${expected[$bucket]}"
+          done
+
+      - name: Stop isolated local Supabase
+        if: always()
+        shell: bash
+        run: |
+          local_root="$RUNNER_TEMP/supabase-restore-drill"
+          if [ -d "$local_root/supabase" ]; then
+            cd "$local_root"
+            supabase stop --no-backup || true
+          fi
