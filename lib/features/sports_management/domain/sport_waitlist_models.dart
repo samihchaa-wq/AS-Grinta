@@ -167,6 +167,7 @@ class ConvocationPlayer {
     this.isGuest = false,
     this.isGoalkeeper = false,
     this.serverName,
+    this.photoUrl,
   });
 
   factory ConvocationPlayer.fromJson(Map<String, dynamic> json) {
@@ -180,6 +181,7 @@ class ConvocationPlayer {
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
       serverName: _nullableText(json['display_name']),
+      photoUrl: _nullableText(json['photo_url']),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
       availabilityStatus:
@@ -210,6 +212,10 @@ class ConvocationPlayer {
   final bool isGuest;
   final bool isGoalkeeper;
   final String availabilityStatus;
+
+  /// Chemin ou URL de la photo de profil. Les photos permanentes viennent du
+  /// profil du joueur ; les invités utilisent leur photo de catalogue.
+  final String? photoUrl;
 
   /// Date/heure de la dernière indication (ou modification) de disponibilité.
   final DateTime? availabilityUpdatedAt;
