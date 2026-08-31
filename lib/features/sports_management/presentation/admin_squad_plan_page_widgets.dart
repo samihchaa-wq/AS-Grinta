@@ -1,5 +1,43 @@
 part of 'admin_squad_plan_page.dart';
 
+class _EffectifTapSelection {
+  _EffectifTapSelection._();
+
+  static Object? _owner;
+  static String? _matchId;
+  static final ValueNotifier<ConvocationPlayer?> selectedPlayer =
+      ValueNotifier<ConvocationPlayer?>(null);
+
+  static ConvocationPlayer? selectedFor({
+    required Object owner,
+    required String? matchId,
+  }) {
+    if (!identical(_owner, owner) || _matchId != matchId) return null;
+    return selectedPlayer.value;
+  }
+
+  static void toggle({
+    required Object owner,
+    required String? matchId,
+    required ConvocationPlayer player,
+  }) {
+    final current = selectedFor(owner: owner, matchId: matchId);
+    if (current?.participantId == player.participantId) {
+      clear();
+      return;
+    }
+    _owner = owner;
+    _matchId = matchId;
+    selectedPlayer.value = player;
+  }
+
+  static void clear() {
+    _owner = null;
+    _matchId = null;
+    if (selectedPlayer.value != null) selectedPlayer.value = null;
+  }
+}
+
 class _EffectifColumn extends StatelessWidget {
   const _EffectifColumn({
     required this.title,
@@ -31,79 +69,124 @@ class _EffectifColumn extends StatelessWidget {
   final VoidCallback? onRelanceAll;
   final ValueChanged<ConvocationPlayer>? onRelance;
 
+  bool _canAccept(ConvocationPlayer player) =>
+      acceptsDrops &&
+      !locked &&
+      !player.isGuest &&
+      (acceptsPlayer?.call(player) ?? true);
+
   @override
   Widget build(BuildContext context) {
-    return DragTarget<ConvocationPlayer>(
-      onWillAcceptWithDetails: (details) =>
-          acceptsDrops &&
-          !locked &&
-          !details.data.isGuest &&
-          (acceptsPlayer?.call(details.data) ?? true),
-      onAcceptWithDetails: (details) => onAccept?.call(details.data),
-      builder: (context, candidates, rejected) => AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Color.alphaBlend(
-            color.withValues(alpha: candidates.isNotEmpty ? .22 : .13),
-            Theme.of(context).colorScheme.surfaceContainer,
-          ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: candidates.isNotEmpty ? color : color.withValues(alpha: .55),
-            width: candidates.isNotEmpty ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    '$title (${players.length})',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.w400,
-                        ),
-                  ),
+    final owner = context.findAncestorStateOfType<_AdminSquadPlanPageState>();
+    final matchId = owner?._selectedMatchId;
+    return ValueListenableBuilder<ConvocationPlayer?>(
+      valueListenable: _EffectifTapSelection.selectedPlayer,
+      builder: (context, _, __) {
+        final selectedPlayer = owner == null
+            ? null
+            : _EffectifTapSelection.selectedFor(
+                owner: owner,
+                matchId: matchId,
+              );
+        final canTapTarget =
+            selectedPlayer != null && _canAccept(selectedPlayer);
+        return DragTarget<ConvocationPlayer>(
+          onWillAcceptWithDetails: (details) => _canAccept(details.data),
+          onAcceptWithDetails: (details) {
+            onAccept?.call(details.data);
+            _EffectifTapSelection.clear();
+          },
+          builder: (context, candidates, rejected) {
+            final highlightedTarget =
+                candidates.isNotEmpty ||
+                (selectedPlayer != null && canTapTarget);
+            final column = AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  color.withValues(alpha: highlightedTarget ? .22 : .13),
+                  Theme.of(context).colorScheme.surfaceContainer,
                 ),
-                if (onRelanceAll != null && players.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: locked ? null : onRelanceAll,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    icon: const Icon(
-                      Icons.notifications_active_outlined,
-                      size: 16,
-                    ),
-                    label: const Text('Relancer tous'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 9),
-            if (players.isEmpty)
-              Text(
-                'Aucun joueur.',
-                style: Theme.of(context).textTheme.bodySmall,
-              )
-            else
-              _EffectifPlayerGrid(
-                players: players,
-                color: color,
-                locked: locked,
-                draggable: !locked && draggable,
-                onRemoveGuest: onRemoveGuest,
-                onShowInfo: onShowInfo,
-                onRelance: onRelance,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: highlightedTarget
+                      ? color
+                      : color.withValues(alpha: .55),
+                  width: highlightedTarget ? 2 : 1,
+                ),
               ),
-          ],
-        ),
-      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, size: 18, color: color),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          '$title (${players.length})',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.w400,
+                              ),
+                        ),
+                      ),
+                      if (onRelanceAll != null && players.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: locked ? null : onRelanceAll,
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          icon: const Icon(
+                            Icons.notifications_active_outlined,
+                            size: 16,
+                          ),
+                          label: const Text('Relancer tous'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 9),
+                  if (players.isEmpty)
+                    Text(
+                      'Aucun joueur.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    )
+                  else
+                    _EffectifPlayerGrid(
+                      players: players,
+                      color: color,
+                      locked: locked,
+                      draggable: !locked && draggable,
+                      onRemoveGuest: onRemoveGuest,
+                      onShowInfo: onShowInfo,
+                      onRelance: onRelance,
+                    ),
+                ],
+              ),
+            );
+            if (!canTapTarget) return column;
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (owner == null) return;
+                  final selected = _EffectifTapSelection.selectedFor(
+                    owner: owner,
+                    matchId: matchId,
+                  );
+                  if (selected == null || !_canAccept(selected)) return;
+                  onAccept?.call(selected);
+                  _EffectifTapSelection.clear();
+                },
+                child: column,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -134,16 +217,46 @@ class _EffectifPlayerGrid extends StatelessWidget {
         _ => color,
       };
 
-  Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
-        player: player,
-        color: _chipColor(player),
-        draggable: draggable && !player.isGuest,
-        onTap: player.isGuest
-            ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
-            : (onShowInfo == null ? null : () => onShowInfo!(player)),
-        onRelance: (player.isGuest || onRelance == null)
-            ? null
-            : () => onRelance!(player),
+  Widget _chip(ConvocationPlayer player) =>
+      ValueListenableBuilder<ConvocationPlayer?>(
+        valueListenable: _EffectifTapSelection.selectedPlayer,
+        builder: (context, _, __) {
+          final owner =
+              context.findAncestorStateOfType<_AdminSquadPlanPageState>();
+          final selectedPlayer = owner == null
+              ? null
+              : _EffectifTapSelection.selectedFor(
+                  owner: owner,
+                  matchId: owner._selectedMatchId,
+                );
+          final selected =
+              selectedPlayer?.participantId == player.participantId;
+          final chip = _EffectifPlayerChip(
+            key: ValueKey('effectif-player-${player.participantId}'),
+            player: player,
+            color: _chipColor(player),
+            draggable: draggable && !player.isGuest,
+            selected: selected,
+            onTap: player.isGuest
+                ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
+                : locked || owner == null
+                    ? null
+                    : () => _EffectifTapSelection.toggle(
+                          owner: owner,
+                          matchId: owner._selectedMatchId,
+                          player: player,
+                        ),
+            onRelance: (player.isGuest || onRelance == null)
+                ? null
+                : () => onRelance!(player),
+          );
+          return Semantics(
+            hint: onShowInfo == null
+                ? null
+                : 'Touchez pour sélectionner le joueur',
+            child: chip,
+          );
+        },
       );
 
   static const int _columns = 4;
@@ -183,9 +296,11 @@ class _EffectifPlayerGrid extends StatelessWidget {
 
 class _EffectifPlayerChip extends StatelessWidget {
   const _EffectifPlayerChip({
+    super.key,
     required this.player,
     required this.color,
     required this.draggable,
+    required this.selected,
     this.onTap,
     this.onRelance,
   });
@@ -193,15 +308,19 @@ class _EffectifPlayerChip extends StatelessWidget {
   final ConvocationPlayer player;
   final Color color;
   final bool draggable;
+  final bool selected;
   final VoidCallback? onTap;
   final VoidCallback? onRelance;
 
   @override
   Widget build(BuildContext context) {
+    final selectionColor = selected ? AppTheme.accent : color;
     final chip = ActionChip(
       avatar: player.isGuest
           ? const Icon(Icons.person_add_alt_1_outlined, size: 15)
-          : null,
+          : selected
+              ? Icon(Icons.check_rounded, size: 15, color: selectionColor)
+              : null,
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -223,9 +342,12 @@ class _EffectifPlayerChip extends StatelessWidget {
         ],
       ),
       onPressed: onTap,
-      side: BorderSide(color: color.withValues(alpha: .72)),
+      side: BorderSide(
+        color: selected ? selectionColor : color.withValues(alpha: .72),
+        width: selected ? 2 : 1,
+      ),
       backgroundColor: Color.alphaBlend(
-        color.withValues(alpha: .24),
+        selectionColor.withValues(alpha: selected ? .34 : .24),
         Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -233,7 +355,22 @@ class _EffectifPlayerChip extends StatelessWidget {
       visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
-    Widget content = chip;
+    Widget content = AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: selectionColor.withValues(alpha: .45),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      child: chip,
+    );
     if (draggable) {
       final autoScroll = DragAutoScroller(context);
       content = LongPressDraggable<ConvocationPlayer>(
@@ -243,7 +380,7 @@ class _EffectifPlayerChip extends StatelessWidget {
         onDragUpdate: (details) => autoScroll.update(details.globalPosition),
         onDragEnd: (_) => autoScroll.stop(),
         onDraggableCanceled: (_, __) => autoScroll.stop(),
-        child: chip,
+        child: content,
       );
     }
     if (onRelance == null) return content;
