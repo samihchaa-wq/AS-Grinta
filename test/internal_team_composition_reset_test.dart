@@ -45,7 +45,8 @@ void main() {
 
       expect(find.text('Réinitialiser les compositions ?'), findsOneWidget);
       expect(
-        find.textContaining('Les noms d’équipe et les maillots seront conservés'),
+        find.textContaining(
+            'Les noms d’équipe et les maillots seront conservés'),
         findsOneWidget,
       );
 
@@ -54,7 +55,8 @@ void main() {
 
       expect(repository.saveCalls, 1);
       expect(repository.savedEntries, hasLength(3));
-      expect(repository.savedEntries.every((entry) => entry.teamNo == null), isTrue);
+      expect(repository.savedEntries.every((entry) => entry.teamNo == null),
+          isTrue);
       expect(repository.savedTeam1Name, 'Orange mécanique');
       expect(repository.savedTeam2Name, 'Bleu nuit');
       expect(repository.savedTeam1JerseyId, 'orange');

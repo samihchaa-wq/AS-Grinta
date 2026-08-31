@@ -316,9 +316,8 @@ class _InternalTeamCompositionViewState
             if (widget.editable) ...[
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: _saving || !hasAssignedPlayers
-                    ? null
-                    : _resetComposition,
+                onPressed:
+                    _saving || !hasAssignedPlayers ? null : _resetComposition,
                 icon: const Icon(Icons.restart_alt_rounded),
                 label: const Text('Réinitialiser'),
               ),
