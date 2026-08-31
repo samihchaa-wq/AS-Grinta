@@ -46,7 +46,8 @@ PlayerPositionBand? playerPositionBandForSlot(String slotLabel) {
     'MD' ||
     'MOG' ||
     'MOC' ||
-    'MOD' => PlayerPositionBand.midfielder,
+    'MOD' =>
+      PlayerPositionBand.midfielder,
     'AG' || 'AD' || 'BUG' || 'BU' || 'BUD' => PlayerPositionBand.attacker,
     _ => null,
   };
