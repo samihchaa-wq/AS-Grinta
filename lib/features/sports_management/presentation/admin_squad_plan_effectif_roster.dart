@@ -91,11 +91,11 @@ class _EffectifAvatarColumn extends StatelessWidget {
                           '$title (${players.length})',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: color,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.w400,
+                              ),
                         ),
                       ),
                       if (onRelanceAll != null && players.isNotEmpty)
@@ -235,12 +235,12 @@ class _EffectifAvatarGrid extends StatelessWidget {
         final onTap = player.isGuest
             ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
             : locked || owner == null
-                ? null
-                : () => _EffectifTapSelection.toggle(
-                      owner: owner,
-                      matchId: owner._selectedMatchId,
-                      player: player,
-                    );
+            ? null
+            : () => _EffectifTapSelection.toggle(
+                owner: owner,
+                matchId: owner._selectedMatchId,
+                player: player,
+              );
 
         final tile = _EffectifAvatarPlayerTile(
           key: ValueKey('effectif-player-${player.participantId}'),
@@ -256,7 +256,9 @@ class _EffectifAvatarGrid extends StatelessWidget {
         Widget content = Semantics(
           button: onTap != null,
           label: player.displayName,
-          hint: onShowInfo == null ? null : 'Touchez pour sélectionner le joueur',
+          hint: onShowInfo == null
+              ? null
+              : 'Touchez pour sélectionner le joueur',
           child: tile,
         );
 
@@ -269,7 +271,8 @@ class _EffectifAvatarGrid extends StatelessWidget {
               child: SizedBox(width: 122, child: tile),
             ),
             childWhenDragging: Opacity(opacity: .30, child: tile),
-            onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+            onDragUpdate: (details) =>
+                autoScroll.update(details.globalPosition),
             onDragEnd: (_) => autoScroll.stop(),
             onDraggableCanceled: (_, __) => autoScroll.stop(),
             child: content,
