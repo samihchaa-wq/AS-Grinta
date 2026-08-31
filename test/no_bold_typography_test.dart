@@ -21,7 +21,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Le texte de l’application doit rester en graisse normale (w400).\n'
+      reason:
+          'Le texte de l’application doit rester en graisse normale (w400).\n'
           '${offenders.join('\n')}',
     );
   });
