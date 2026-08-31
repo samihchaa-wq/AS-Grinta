@@ -11,6 +11,61 @@ const _matchId = 'internal-composition-reset';
 
 void main() {
   testWidgets(
+    'un joueur affecté peut revenir dans Non affectés via le module',
+    (tester) async {
+      final repository = _FakeInternalMatchCompositionRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            internalMatchCompositionRepositoryProvider.overrideWithValue(
+              repository,
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: InternalTeamCompositionView(
+                  matchId: _matchId,
+                  editable: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alex'));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('internal-unassigned-pool')),
+      );
+      await tester.pump();
+
+      expect(find.text('Non affectés (2)'), findsOneWidget);
+
+      await tester.tap(find.text('Enregistrer la composition'));
+      await tester.pumpAndSettle();
+
+      expect(repository.saveCalls, 1);
+      expect(
+        repository.savedEntries
+            .singleWhere((entry) => entry.participantId == 'p1')
+            .teamNo,
+        isNull,
+      );
+      expect(
+        repository.savedEntries
+            .singleWhere((entry) => entry.participantId == 'p2')
+            .teamNo,
+        2,
+      );
+    },
+  );
+
+  testWidgets(
     'Réinitialiser remet les deux équipes dans Non affectés et sauvegarde',
     (tester) async {
       final repository = _FakeInternalMatchCompositionRepository();
