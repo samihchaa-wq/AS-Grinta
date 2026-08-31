@@ -84,10 +84,7 @@ class _EffectifColumn extends StatelessWidget {
       builder: (context, _, __) {
         final selectedPlayer = owner == null
             ? null
-            : _EffectifTapSelection.selectedFor(
-                owner: owner,
-                matchId: matchId,
-              );
+            : _EffectifTapSelection.selectedFor(owner: owner, matchId: matchId);
         final canTapTarget =
             selectedPlayer != null && _canAccept(selectedPlayer);
         return DragTarget<ConvocationPlayer>(
@@ -126,7 +123,8 @@ class _EffectifColumn extends StatelessWidget {
                       Expanded(
                         child: Text(
                           '$title (${players.length})',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
                                 color: color,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -217,47 +215,44 @@ class _EffectifPlayerGrid extends StatelessWidget {
         _ => color,
       };
 
-  Widget _chip(ConvocationPlayer player) =>
-      ValueListenableBuilder<ConvocationPlayer?>(
-        valueListenable: _EffectifTapSelection.selectedPlayer,
-        builder: (context, _, __) {
-          final owner =
-              context.findAncestorStateOfType<_AdminSquadPlanPageState>();
-          final selectedPlayer = owner == null
-              ? null
-              : _EffectifTapSelection.selectedFor(
-                  owner: owner,
-                  matchId: owner._selectedMatchId,
-                );
-          final selected =
-              selectedPlayer?.participantId == player.participantId;
-          final chip = _EffectifPlayerChip(
-            key: ValueKey('effectif-player-${player.participantId}'),
-            player: player,
-            color: _chipColor(player),
-            draggable: draggable && !player.isGuest,
-            selected: selected,
-            onTap: player.isGuest
-                ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
-                : locked || owner == null
-                    ? null
-                    : () => _EffectifTapSelection.toggle(
-                          owner: owner,
-                          matchId: owner._selectedMatchId,
-                          player: player,
-                        ),
-            onRelance: (player.isGuest || onRelance == null)
-                ? null
-                : () => onRelance!(player),
-          );
-          return Semantics(
-            hint: onShowInfo == null
-                ? null
-                : 'Touchez pour sélectionner le joueur',
-            child: chip,
-          );
-        },
+  Widget _chip(
+    ConvocationPlayer player,
+  ) => ValueListenableBuilder<ConvocationPlayer?>(
+    valueListenable: _EffectifTapSelection.selectedPlayer,
+    builder: (context, _, __) {
+      final owner = context.findAncestorStateOfType<_AdminSquadPlanPageState>();
+      final selectedPlayer = owner == null
+          ? null
+          : _EffectifTapSelection.selectedFor(
+              owner: owner,
+              matchId: owner._selectedMatchId,
+            );
+      final selected = selectedPlayer?.participantId == player.participantId;
+      final chip = _EffectifPlayerChip(
+        key: ValueKey('effectif-player-${player.participantId}'),
+        player: player,
+        color: _chipColor(player),
+        draggable: draggable && !player.isGuest,
+        selected: selected,
+        onTap: player.isGuest
+            ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
+            : locked || owner == null
+            ? null
+            : () => _EffectifTapSelection.toggle(
+                owner: owner,
+                matchId: owner._selectedMatchId,
+                player: player,
+              ),
+        onRelance: (player.isGuest || onRelance == null)
+            ? null
+            : () => onRelance!(player),
       );
+      return Semantics(
+        hint: onShowInfo == null ? null : 'Touchez pour sélectionner le joueur',
+        child: chip,
+      );
+    },
+  );
 
   static const int _columns = 4;
 
@@ -319,8 +314,8 @@ class _EffectifPlayerChip extends StatelessWidget {
       avatar: player.isGuest
           ? const Icon(Icons.person_add_alt_1_outlined, size: 15)
           : selected
-              ? Icon(Icons.check_rounded, size: 15, color: selectionColor)
-              : null,
+          ? Icon(Icons.check_rounded, size: 15, color: selectionColor)
+          : null,
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -329,10 +324,7 @@ class _EffectifPlayerChip extends StatelessWidget {
               player.shortName,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
             ),
           ),
           if (player.isGuest && onTap != null) ...[
@@ -477,10 +469,7 @@ class _FormationDropdown extends StatelessWidget {
       ),
       items: [
         for (final formation in footballFormations)
-          DropdownMenuItem(
-            value: formation.code,
-            child: Text(formation.code),
-          ),
+          DropdownMenuItem(value: formation.code, child: Text(formation.code)),
       ],
       onChanged: onChanged == null
           ? null
