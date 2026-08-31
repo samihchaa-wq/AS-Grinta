@@ -1,0 +1,33 @@
+name: Format internal composition once
+
+on:
+  push:
+    branches:
+      - agent/hide-internal-team-empty-labels
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/hide-internal-team-empty-labels
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+      - name: Format target and remove one-shot workflow
+        run: |
+          dart format lib/features/sports_management/presentation/widgets/internal_team_composition_view.dart
+          rm .github/workflows/format_internal_composition_once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/sports_management/presentation/widgets/internal_team_composition_view.dart .github/workflows/format_internal_composition_once.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "style: appliquer dart format"
+          git push origin HEAD:agent/hide-internal-team-empty-labels
