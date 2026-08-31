@@ -65,6 +65,7 @@ Future<_ProfileValidationChoice?> _askPlayerLink(
               DropdownButtonFormField<String>(
                 initialValue: selectedPlayerId,
                 isExpanded: true,
+                menuMaxHeight: MediaQuery.sizeOf(context).height * 0.45,
                 decoration: const InputDecoration(labelText: 'Joueur'),
                 items: [
                   const DropdownMenuItem(
@@ -197,6 +198,7 @@ Future<_HistoricalChoice?> _pickHistorical(
           child: DropdownButtonFormField<int?>(
             initialValue: selectedId,
             isExpanded: true,
+            menuMaxHeight: MediaQuery.sizeOf(context).height * 0.45,
             decoration: const InputDecoration(labelText: 'Fiche historique'),
             items: [
               const DropdownMenuItem<int?>(
