@@ -32,13 +32,13 @@ values
   (
     'e3000000-0000-0000-0000-000000000001',
     '2098-2099',
-    'archived',
+    'open',
     '2098-07-01T00:00:00Z'
   ),
   (
     'e3000000-0000-0000-0000-000000000002',
     '2099-2100',
-    'open',
+    'terminee',
     '2099-07-01T00:00:00Z'
   );
 
@@ -117,6 +117,18 @@ values (
   2,
   false
 );
+
+-- Clôture réelle : le match devient immuable avant l’archivage de sa saison,
+-- puis la saison suivante devient l’unique saison courante.
+update public.matches
+set status = 'archive'
+where id = 'e5000000-0000-0000-0000-000000000001';
+update public.seasons
+set status = 'archived'
+where id = 'e3000000-0000-0000-0000-000000000001';
+update public.seasons
+set status = 'open'
+where id = 'e3000000-0000-0000-0000-000000000002';
 
 -- Reproduit le vrai cycle de vie : le joueur participe d'abord à la saison,
 -- puis sa fiche historique est désactivée après que ses statistiques existent.
