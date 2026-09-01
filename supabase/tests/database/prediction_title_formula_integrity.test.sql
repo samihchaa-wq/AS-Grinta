@@ -94,6 +94,7 @@ select public.finalize_match_postgame(
   1
 );
 set local role authenticated;
+select public.archive_match(current_setting('test.overall_match')::uuid);
 select public.set_season_status('fe200000-0000-0000-0000-000000000001','archived');
 reset role;
 
@@ -186,6 +187,7 @@ select public.finalize_match_postgame(
   2
 );
 set local role authenticated;
+select public.archive_match(current_setting('test.bonus_match')::uuid);
 select public.set_season_status('fe200000-0000-0000-0000-000000000002','archived');
 reset role;
 
