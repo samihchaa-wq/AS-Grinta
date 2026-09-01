@@ -23,8 +23,9 @@ on public.seasons for delete to authenticated
 using ((select private.is_match_staff()));
 
 -- Contrat RLS actuel des pronostics saisonniers : chacun voit ses propres
--- pronostics, ceux des autres ne sont révélés qu'après verrou ou archivage,
--- et toute écriture est limitée à une saison ouverte et non verrouillée.
+-- pronostics, ceux des autres ne sont révélés qu'après verrou ou archivage.
+-- Les écritures authenticated passent exclusivement par le RPC batch
+-- save_my_season_predictions : aucun INSERT/UPDATE direct n'est accordé.
 drop policy if exists read_own_season_predictions
 on public.season_predictions;
 drop policy if exists own_season_predictions_insert
@@ -38,6 +39,10 @@ on public.season_predictions;
 drop policy if exists season_predictions_owner_update
 on public.season_predictions;
 
+revoke insert, update
+on table public.season_predictions
+from authenticated;
+
 create policy authenticated_read_season_predictions
 on public.season_predictions for select to authenticated
 using (
@@ -50,35 +55,6 @@ using (
         s.season_predictions_locked_at is not null
         or s.status = 'archived'
       )
-  )
-);
-
-create policy season_predictions_owner_insert
-on public.season_predictions for insert to authenticated
-with check (
-  predictor_profile_id = (select auth.uid())
-  and (select private.is_active_profile())
-  and exists (
-    select 1
-    from public.seasons s
-    where s.id = season_predictions.season_id
-      and s.status = 'open'
-      and s.season_predictions_locked_at is null
-  )
-);
-
-create policy season_predictions_owner_update
-on public.season_predictions for update to authenticated
-using (predictor_profile_id = (select auth.uid()))
-with check (
-  predictor_profile_id = (select auth.uid())
-  and (select private.is_active_profile())
-  and exists (
-    select 1
-    from public.seasons s
-    where s.id = season_predictions.season_id
-      and s.status = 'open'
-      and s.season_predictions_locked_at is null
   )
 );
 
@@ -184,6 +160,12 @@ begin
     raise exception 'Bootstrap assertion failed: season ACL differs from production';
   end if;
 
+  if not has_table_privilege('authenticated', 'public.season_predictions', 'SELECT')
+     or has_table_privilege('authenticated', 'public.season_predictions', 'INSERT')
+     or has_table_privilege('authenticated', 'public.season_predictions', 'UPDATE') then
+    raise exception 'Bootstrap assertion failed: season prediction ACL differs from production';
+  end if;
+
   if not (
     select relrowsecurity
     from pg_class
@@ -211,12 +193,15 @@ begin
     from pg_policies
     where schemaname = 'public'
       and tablename = 'season_predictions'
-      and policyname in (
-        'authenticated_read_season_predictions',
-        'season_predictions_owner_insert',
-        'season_predictions_owner_update'
-      )
-  ) <> 3 then
+      and policyname = 'authenticated_read_season_predictions'
+  ) <> 1
+  or exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'season_predictions'
+      and cmd in ('INSERT', 'UPDATE')
+  ) then
     raise exception 'Bootstrap assertion failed: season prediction policies differ from production';
   end if;
 

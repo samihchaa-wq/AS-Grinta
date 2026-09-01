@@ -460,6 +460,31 @@ select set_config(
 );
 set local role authenticated;
 
+select throws_ok(
+  $$update public.season_predictions
+    set predicted_value_30 = 8, is_filled = true
+    where season_id = 'b6200000-0000-0000-0000-000000000001'
+      and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
+      and season_player_id = 'b6300000-0000-0000-0000-000000000001'$$,
+  '42501',
+  'authenticated ne peut pas UPDATE season_predictions directement'
+);
+
+select throws_ok(
+  $$insert into public.season_predictions(
+      season_id, predictor_profile_id, season_player_id,
+      category, predicted_value_30, is_filled
+    )
+    values(
+      'b6200000-0000-0000-0000-000000000001',
+      'b6100000-0000-0000-0000-000000000002',
+      'b6300000-0000-0000-0000-000000000001',
+      'buts', 8, true
+    )$$,
+  '42501',
+  'authenticated ne peut pas INSERT season_predictions directement'
+);
+
 do $state_space$
 declare
   v_status text;
@@ -486,12 +511,27 @@ begin
         v_state := null;
         v_message := null;
         begin
-          update public.season_predictions
-          set predicted_value_30 = v_value, is_filled = true
-          where season_id = 'b6200000-0000-0000-0000-000000000001'
-            and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
-            and season_player_id = 'b6300000-0000-0000-0000-000000000001';
-          if not found then v_ok := false; end if;
+          perform public.save_my_season_predictions(
+            'b6200000-0000-0000-0000-000000000001'::uuid,
+            jsonb_build_array(
+              jsonb_build_object(
+                'season_player_id',
+                'b6300000-0000-0000-0000-000000000001',
+                'category',
+                'buts',
+                'predicted_value_30',
+                v_value
+              ),
+              jsonb_build_object(
+                'season_player_id',
+                'b6300000-0000-0000-0000-000000000002',
+                'category',
+                'clean_sheets',
+                'predicted_value_30',
+                0
+              )
+            )
+          );
         exception when others then
           v_ok := false;
           v_state := sqlstate;
@@ -519,7 +559,7 @@ $state_space$;
 
 reset role;
 select diag(format(
-  'STATE_SPACE season_write status=%s locked=%s value=%s expected=%s observed=%s persisted=%s/%s sqlstate=%s message=%s',
+  'STATE_SPACE season_rpc_write status=%s locked=%s value=%s expected=%s observed=%s persisted=%s/%s sqlstate=%s message=%s',
   season_status, locked, proposed_value, expected_success, observed_success,
   expected_value, observed_value, coalesce(sqlstate, '-'), coalesce(message, '-')
 ))
@@ -527,11 +567,11 @@ from pg_temp.season_prediction_write_state_space
 order by season_status, locked, proposed_value;
 
 select is((select count(*) from pg_temp.season_prediction_write_state_space), 24::bigint,
-  '24 écritures de pronostic saisonnier sont exécutées sous RLS');
+  '24 écritures de pronostic saisonnier sont exécutées via RPC');
 select is((select count(*) from pg_temp.season_prediction_write_state_space where expected_success), 2::bigint,
-  'seules deux valeurs passent sur une saison ouverte et déverrouillée');
+  'seules deux valeurs passent via RPC sur une saison ouverte et déverrouillée');
 select is((select count(*) from pg_temp.season_prediction_write_state_space where mismatch), 0::bigint,
-  'statut, verrou, propriété et bornes protègent les écritures');
+  'la RPC protège statut, verrou, roster et bornes');
 
 create temporary table pg_temp.season_prediction_validator_state_space(
   player_kind text not null,
