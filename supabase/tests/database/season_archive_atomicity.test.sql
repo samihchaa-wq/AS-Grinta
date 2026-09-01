@@ -34,8 +34,29 @@ select ok(
     'authenticated',
     'private.finalize_season_competition_transition()',
     'EXECUTE'
+  )
+  and not has_function_privilege(
+    'authenticated',
+    'private.guard_match_season_finality()',
+    'EXECUTE'
   ),
   'season finalization helpers are not client-callable'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_trigger match_trigger
+    where match_trigger.tgrelid = 'public.matches'::regclass
+      and match_trigger.tgname = 'trg_guard_match_season_finality'
+      and not match_trigger.tgisinternal
+  )
+  and position(
+    'for share' in lower(pg_get_functiondef(
+      'private.guard_match_season_finality()'::regprocedure
+    ))
+  ) > 0,
+  'match additions lock the parent season against a concurrent archive'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)
@@ -401,6 +422,18 @@ select is(
   'later lock captures the roster added after safe reopen'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a7100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select public.set_season_status(
+  'a7200000-0000-0000-0000-000000000003',
+  'archived'
+);
+reset role;
+
 -- No archive may award titles while a match is unfinished or still inside
 -- its 24-hour correction window. A failed archive is fully rolled back.
 insert into public.seasons(id, name, status)
@@ -496,6 +529,42 @@ select ok(
     where season_id = 'a7200000-0000-0000-0000-000000000004'
   ),
   'season archive succeeds atomically once the match is explicitly final'
+);
+
+select throws_ok(
+  format(
+    'update public.matches set status = %L where id = %L::uuid',
+    'a_venir',
+    current_setting('test.archive_match')
+  ),
+  '22023',
+  'Les matchs d''une saison archivée sont immuables.',
+  'a stale direct write cannot reopen a match after season archival'
+);
+
+select throws_ok(
+  $$
+    insert into public.matches(
+      season_id,
+      opponent_id,
+      match_date,
+      match_time,
+      location,
+      planned_duration_minutes,
+      status
+    ) values (
+      'a7200000-0000-0000-0000-000000000004'::uuid,
+      'a7400000-0000-0000-0000-000000000001'::uuid,
+      ((now() + interval '3 days') at time zone 'Europe/Paris')::date,
+      ((now() + interval '3 days') at time zone 'Europe/Paris')::time,
+      'domicile',
+      90,
+      'a_venir'
+    )
+  $$,
+  '22023',
+  'Un match ne peut être ajouté qu''à une saison ouverte.',
+  'a stale direct insert cannot add a match after season archival'
 );
 
 select * from finish();

@@ -53,6 +53,96 @@ $function$;
 revoke all on function private.assert_season_can_archive(uuid)
   from public, anon, authenticated;
 
+-- Match creation is the one mutation that an archive cannot discover by
+-- locking the season's existing match rows. A SHARE lock on the parent season
+-- serializes INSERT / moves into a season with its status update. Existing
+-- match UPDATE / DELETE statements are already serialized by the match-row
+-- locks taken by assert_season_can_archive(); after waiting, this trigger sees
+-- the committed archived status and rejects any late mutation.
+create or replace function private.guard_match_season_finality()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_source_status text;
+  v_target_status text;
+  v_archive_only boolean := false;
+begin
+  if tg_op = 'INSERT' then
+    select season.status
+    into v_target_status
+    from public.seasons season
+    where season.id = new.season_id
+    for share;
+
+    if not found or v_target_status <> 'open' then
+      raise exception 'Un match ne peut être ajouté qu''à une saison ouverte.'
+        using errcode = '22023';
+    end if;
+
+    return new;
+  end if;
+
+  select season.status
+  into v_source_status
+  from public.seasons season
+  where season.id = old.season_id;
+
+  if tg_op = 'DELETE' then
+    if v_source_status = 'archived' then
+      raise exception 'Les matchs d''une saison archivée sont immuables.'
+        using errcode = '22023';
+    end if;
+
+    return old;
+  end if;
+
+  if new.season_id is distinct from old.season_id then
+    if v_source_status = 'archived' then
+      raise exception 'Les matchs d''une saison archivée sont immuables.'
+        using errcode = '22023';
+    end if;
+
+    select season.status
+    into v_target_status
+    from public.seasons season
+    where season.id = new.season_id
+    for share;
+
+    if not found or v_target_status <> 'open' then
+      raise exception 'Un match ne peut être déplacé que vers une saison ouverte.'
+        using errcode = '22023';
+    end if;
+
+    return new;
+  end if;
+
+  if v_source_status = 'archived' then
+    -- Keep the harmless housekeeping transition supported when a season was
+    -- archived with a finished match after its correction window had closed.
+    v_archive_only := old.status = 'termine'
+      and new.status = 'archive'
+      and (
+        to_jsonb(new) - array['status', 'updated_at']::text[]
+      ) = (
+        to_jsonb(old) - array['status', 'updated_at']::text[]
+      );
+
+    if not v_archive_only then
+      raise exception 'Les matchs d''une saison archivée sont immuables.'
+        using errcode = '22023';
+    end if;
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke all on function private.guard_match_season_finality()
+  from public, anon, authenticated;
+
 create or replace function private.guard_season_competition_finality()
 returns trigger
 language plpgsql
@@ -220,10 +310,21 @@ on public.seasons
 for each row
 execute function private.finalize_season_competition_transition();
 
+drop trigger if exists trg_guard_match_season_finality on public.matches;
+
+create trigger trg_guard_match_season_finality
+before insert or update or delete
+on public.matches
+for each row
+execute function private.guard_match_season_finality();
+
 comment on function private.assert_season_can_archive(uuid) is
   'Serializes season archival with match mutations and rejects unfinished matches or an open post-match correction window.';
 
 comment on function private.finalize_season_competition_transition() is
   'Atomically maintains the season-prediction roster snapshot and awards titles only after the final snapshot exists.';
+
+comment on function private.guard_match_season_finality() is
+  'Serializes match additions with season archival and rejects mutations that would alter an archived season.';
 
 commit;

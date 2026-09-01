@@ -79,6 +79,7 @@ select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-00000000
 select public.finalize_match_postgame(current_setting('test.match')::uuid,1,'[]'::jsonb,null,2);
 set local role authenticated;
 select public.archive_match(current_setting('test.match')::uuid);
+select public.cancel_match(current_setting('test.internal')::uuid);
 select public.set_season_status('fc200000-0000-0000-0000-000000000001','archived');
 reset role;
 update public.profiles set status='archived' where id='fc100000-0000-0000-0000-000000000002';
