@@ -88,6 +88,15 @@ values (
   timestamptz '2026-02-01 00:00:00+00'
 );
 
+-- Reproduit un report inter-saisons valide : l’ancienne saison est fermée,
+-- puis la saison cible devient l’unique saison ouverte avant le déplacement.
+update public.seasons
+set status = 'terminee'
+where id = '43000000-0000-0000-0000-000000000010';
+update public.seasons
+set status = 'open'
+where id = '43000000-0000-0000-0000-000000000011';
+
 set local role authenticated;
 set local request.jwt.claim.sub = '43000000-0000-0000-0000-000000000001';
 

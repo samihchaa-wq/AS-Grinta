@@ -15,7 +15,7 @@ set role = 'admin', status = 'active', updated_at = now()
 where id = '95000000-0000-0000-0000-000000000001';
 
 insert into public.seasons (id, name, status)
-values ('95000000-0000-0000-0000-000000000010', '2098-2099', 'terminee');
+values ('95000000-0000-0000-0000-000000000010', '2098-2099', 'open');
 
 insert into public.opponents (id, name)
 values

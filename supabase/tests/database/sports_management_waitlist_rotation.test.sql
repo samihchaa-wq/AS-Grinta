@@ -82,8 +82,8 @@ where id between
 
 insert into public.seasons(id, name, status)
 values
-  ('72000000-0000-0000-0000-000000000001', '2094-2095', 'terminee'),
-  ('72000000-0000-0000-0000-000000000002', '2095-2096', 'open');
+  ('72000000-0000-0000-0000-000000000001', '2094-2095', 'open'),
+  ('72000000-0000-0000-0000-000000000002', '2095-2096', 'terminee');
 
 insert into public.opponents(id, name)
 values ('73000000-0000-0000-0000-000000000001', 'Rotation FC');
@@ -142,6 +142,15 @@ values
    '74000000-0000-0000-0000-000000000013'),
   ('75000000-0000-0000-0000-000000000012',
    '74000000-0000-0000-0000-000000000013');
+
+-- Les lignes historiques sont créées tant que leur saison est ouverte, puis
+-- la saison courante devient l’unique cible autorisée pour les nouveaux matchs.
+update public.seasons
+set status = 'terminee'
+where id = '72000000-0000-0000-0000-000000000001';
+update public.seasons
+set status = 'open'
+where id = '72000000-0000-0000-0000-000000000002';
 
 update private.app_feature_flags
 set enabled = true,

@@ -136,6 +136,10 @@ select is(
   'rouvrir une saison efface le bilan devenu faux'
 );
 
+update public.seasons
+set status = 'terminee'
+where id = '7f000000-0000-0000-0000-000000000002';
+
 -- Les parts par poste totalisent exactement cent.
 --
 -- Cas qui donnait 101 avant correction : huit titularisations reparties
@@ -149,10 +153,10 @@ values (
   '{"first_name":"Parts","last_name":"Bilan"}'::jsonb
 );
 
--- La base n autorise qu une seule saison ouverte : celle du test de
--- reouverture ci-dessus. Cette saison de calcul naît donc archivee.
+-- La saison de calcul suit le cycle réel : elle est ouverte pendant la saisie,
+-- puis ses matchs et la saison sont archivés avant de produire le bilan.
 insert into public.seasons (id, name, status)
-values ('7f000000-0000-0000-0000-000000000003', '2099-2100', 'archived');
+values ('7f000000-0000-0000-0000-000000000003', '2099-2100', 'open');
 
 insert into public.season_players (
   id, season_id, first_name, last_name, is_active
@@ -228,6 +232,14 @@ from generate_series(1, 8) n;
 update public.matches
 set status = 'termine', score_as_grinta = 1, score_adverse = 0
 where season_id = '7f000000-0000-0000-0000-000000000003';
+
+update public.matches
+set status = 'archive'
+where season_id = '7f000000-0000-0000-0000-000000000003';
+
+update public.seasons
+set status = 'archived'
+where id = '7f000000-0000-0000-0000-000000000003';
 
 select is(
   private.build_season_wrapped('7f000000-0000-0000-0000-000000000003'),

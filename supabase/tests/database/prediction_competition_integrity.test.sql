@@ -70,10 +70,23 @@ select public.admin_update_match_complete(
 reset role;
 select is((select predictions_closed_at from public.matches where id=current_setting('test.match')::uuid),
   null::timestamptz,'reschedule clears stale manual close');
+
+set local session_replication_role=replica;
+update public.matches set kickoff_at='2015-03-17 20:00:00+00',match_date='2015-03-17',match_time='21:00:00'
+where id=current_setting('test.match')::uuid;
+set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+select public.finalize_match_postgame(current_setting('test.match')::uuid,1,'[]'::jsonb,null,2);
 set local role authenticated;
+select public.archive_match(current_setting('test.match')::uuid);
+select public.cancel_match(current_setting('test.internal')::uuid);
 select public.set_season_status('fc200000-0000-0000-0000-000000000001','archived');
 reset role;
+update public.profiles set status='archived' where id='fc100000-0000-0000-0000-000000000002';
+select ok(exists(select 1 from public.v_classement_general
+  where profile_id='fc100000-0000-0000-0000-000000000002'),
+  'archived real predictor remains in leaderboard');
+update public.profiles set status='active' where id='fc100000-0000-0000-0000-000000000002';
 
 insert into public.seasons(id,name,status)
 values('fc200000-0000-0000-0000-000000000002','2086-2087','open');
@@ -99,18 +112,6 @@ select ok(exists(select 1 from public.season_prediction_roster_captures
   where season_id='fc200000-0000-0000-0000-000000000002'),
   'committed roster snapshot survives archive');
 
-set local session_replication_role=replica;
-update public.matches set kickoff_at='2015-03-17 20:00:00+00',match_date='2015-03-17',match_time='21:00:00'
-where id=current_setting('test.match')::uuid;
-set local session_replication_role=origin;
-select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-select public.finalize_match_postgame(current_setting('test.match')::uuid,1,'[]'::jsonb,null,2);
-update public.profiles set status='archived' where id='fc100000-0000-0000-0000-000000000002';
-select ok(exists(select 1 from public.v_classement_general
-  where profile_id='fc100000-0000-0000-0000-000000000002'),
-  'archived real predictor remains in leaderboard');
-
-update public.profiles set status='active' where id='fc100000-0000-0000-0000-000000000002';
 insert into public.seasons(id,name,status)
 values('fc200000-0000-0000-0000-000000000003','2085-2086','open');
 insert into public.opponents(id,name)
@@ -134,6 +135,7 @@ set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 select public.finalize_match_postgame(current_setting('test.title_match')::uuid,0,'[]'::jsonb,null,1);
 set local role authenticated;
+select public.archive_match(current_setting('test.title_match')::uuid);
 select public.set_season_status('fc200000-0000-0000-0000-000000000003','archived');
 reset role;
 select ok(not exists(select 1 from public.season_awards
