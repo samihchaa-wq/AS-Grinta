@@ -58,13 +58,15 @@ void main() {
 
   test('AvailabilityReminderResult parses server counters', () {
     final result = AvailabilityReminderResult.fromRpc({
-      'target_count': 5,
+      'target_count': 6,
       'created_count': 3,
       'skipped_recent_count': 2,
+      'skipped_no_subscription_count': 1,
     });
 
-    expect(result.targetCount, 5);
+    expect(result.targetCount, 6);
     expect(result.createdCount, 3);
     expect(result.skippedRecentCount, 2);
+    expect(result.skippedNoSubscriptionCount, 1);
   });
 }
