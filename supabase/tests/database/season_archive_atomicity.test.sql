@@ -182,15 +182,18 @@ select public.save_my_season_predictions(
 );
 reset role;
 
-update public.profiles
-set status = 'archived'
-where id = 'a7100000-0000-0000-0000-000000000003';
-
 select set_config(
   'request.jwt.claims',
   '{"sub":"a7100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
   true
 );
+
+-- L'archivage d'un compte est une action de staff : guard_sensitive_profile_fields()
+-- refuse cette ecriture tant que l'identite courante est celle d'un autre membre.
+update public.profiles
+set status = 'archived'
+where id = 'a7100000-0000-0000-0000-000000000003';
+
 set local role authenticated;
 select public.set_season_status(
   'a7200000-0000-0000-0000-000000000001',
