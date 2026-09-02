@@ -123,8 +123,16 @@ values
   (
     'a7300000-0000-0000-0000-000000000003',
     'a7200000-0000-0000-0000-000000000001',
-    'Inactive', 'Excluded', false, false, false, 3
+    'Inactive', 'Excluded', false, true, false, 3
   );
+
+-- Un joueur ne peut pas naître inactif : seed_season_predictions_for_player()
+-- crée aussitôt ses lignes de pronostic et validate_season_prediction_row()
+-- les refuse pour un joueur inactif. On suit donc le vrai cycle de vie, le
+-- joueur appartient d'abord à l'effectif puis en sort.
+update public.season_players
+set is_active = false
+where id = 'a7300000-0000-0000-0000-000000000003';
 
 select set_config(
   'request.jwt.claims',
