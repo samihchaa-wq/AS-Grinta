@@ -33,7 +33,14 @@ insert into public.season_players(
   ('c1300000-0000-0000-0000-000000000001', 'c1200000-0000-0000-0000-000000000001', 'Buteur', 'Direct', false, true, false, 1),
   ('c1300000-0000-0000-0000-000000000002', 'c1200000-0000-0000-0000-000000000001', 'Gardien', 'Direct', true, true, false, 2),
   ('c1300000-0000-0000-0000-000000000003', 'c1200000-0000-0000-0000-000000000001', 'Coach', 'Direct', false, true, true, 3),
-  ('c1300000-0000-0000-0000-000000000004', 'c1200000-0000-0000-0000-000000000001', 'Retraite', 'Direct', false, false, false, 4);
+  ('c1300000-0000-0000-0000-000000000004', 'c1200000-0000-0000-0000-000000000001', 'Retraite', 'Direct', false, true, false, 4);
+
+-- Un joueur ne peut pas être créé inactif : le préremplissage des pronostics
+-- refuse la ligne. On reproduit le vrai cycle de vie, il joue puis il sort de
+-- l'effectif actif.
+update public.season_players
+set is_active = false
+where id = 'c1300000-0000-0000-0000-000000000004';
 
 select set_config('request.jwt.claims', '{"sub":"c1100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}', true);
 set local role authenticated;
