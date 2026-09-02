@@ -89,6 +89,7 @@ class AvailabilityReminderResult {
     required this.targetCount,
     required this.createdCount,
     required this.skippedRecentCount,
+    required this.skippedNoSubscriptionCount,
   });
 
   factory AvailabilityReminderResult.fromRpc(dynamic value) {
@@ -100,12 +101,15 @@ class AvailabilityReminderResult {
       targetCount: (json['target_count'] as num?)?.toInt() ?? 0,
       createdCount: (json['created_count'] as num?)?.toInt() ?? 0,
       skippedRecentCount: (json['skipped_recent_count'] as num?)?.toInt() ?? 0,
+      skippedNoSubscriptionCount:
+          (json['skipped_no_subscription_count'] as num?)?.toInt() ?? 0,
     );
   }
 
   final int targetCount;
   final int createdCount;
   final int skippedRecentCount;
+  final int skippedNoSubscriptionCount;
 }
 
 DateTime? _dateOrNull(dynamic value) {
