@@ -76,18 +76,29 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
 
     setState(() => _sending = true);
     try {
-      final sent =
+      final selectedCount = _recipients.length;
+      final targetedCount =
           await ref.read(adminRepositoryProvider).sendCustomNotification(
                 title: title,
                 body: body,
                 profileIds: _recipients.toList(),
               );
       if (!mounted) return;
-      _showMessage(
-        sent <= 1
-            ? 'Notification envoyée à 1 personne.'
-            : 'Notification envoyée à $sent personnes.',
-      );
+      final skippedCount = selectedCount - targetedCount;
+      if (skippedCount > 0) {
+        _showMessage(
+          'Envoi lancé pour $targetedCount '
+          '${targetedCount > 1 ? 'personnes' : 'personne'}. '
+          '$skippedCount ${skippedCount > 1 ? 'personnes n’ont' : 'personne n’a'} '
+          'pas activé les notifications.',
+        );
+      } else {
+        _showMessage(
+          targetedCount == 1
+              ? 'Envoi lancé pour 1 personne.'
+              : 'Envoi lancé pour $targetedCount personnes.',
+        );
+      }
       setState(() {
         _titleController.clear();
         _bodyController.clear();
