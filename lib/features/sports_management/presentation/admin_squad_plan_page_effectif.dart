@@ -168,8 +168,11 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         isCollective
             ? '${reminders.noResponseCount} joueur'
                 '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
-            : 'Une notification de disponibilité sera envoyée. Un second envoi est bloqué pendant dix minutes.',
+                'ser${reminders.noResponseCount > 1 ? 'ont' : 'a'} relancé'
+                '${reminders.noResponseCount > 1 ? 's' : ''}. Les joueurs '
+                'sans notifications activées seront signalés après l’envoi.'
+            : 'La relance sera lancée si ce joueur a activé les notifications. '
+                'Un second envoi est bloqué pendant dix minutes.',
       ),
     );
     if (!confirmed || !mounted) return;
@@ -187,17 +190,31 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       final updated = await repository.fetchReminderSummary(matchId);
       if (!mounted) return;
       _updateState(() => _reminders = updated);
+
+      final messages = <String>[];
       if (result.createdCount > 0) {
-        _showMessage(
-          '${result.createdCount} notification'
-          '${result.createdCount > 1 ? 's' : ''} envoyée'
+        messages.add(
+          'Relance lancée pour ${result.createdCount} joueur'
           '${result.createdCount > 1 ? 's' : ''}.',
         );
-      } else if (result.skippedRecentCount > 0) {
-        _showMessage('Relance déjà effectuée il y a moins de dix minutes.');
-      } else {
-        _showMessage('Aucun joueur à relancer.');
       }
+      if (result.skippedNoSubscriptionCount > 0) {
+        messages.add(
+          '${result.skippedNoSubscriptionCount} joueur'
+          '${result.skippedNoSubscriptionCount > 1 ? 's n’ont' : ' n’a'} '
+          'pas activé les notifications.',
+        );
+      }
+      if (result.skippedRecentCount > 0) {
+        messages.add(
+          '${result.skippedRecentCount} joueur'
+          '${result.skippedRecentCount > 1 ? 's ont' : ' a'} déjà été relancé'
+          '${result.skippedRecentCount > 1 ? 's' : ''} il y a moins de dix minutes.',
+        );
+      }
+      _showMessage(
+        messages.isEmpty ? 'Aucun joueur à relancer.' : messages.join(' '),
+      );
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
