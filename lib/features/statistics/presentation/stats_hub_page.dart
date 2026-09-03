@@ -251,7 +251,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
         // colonne redevient une simple position dans la liste.
         final ranks = sort == null || sort == _PlayerStatCol.name
             ? [for (var index = 0; index < players.length; index++) index + 1]
-            : competitionRanks(players, (player) => _value(sort!, player));
+            : competitionRanks(players, (player) => _value(sort, player));
 
         final pinnedWidth = grintaTablePinnedWidthForNames(
           context,
