@@ -1,0 +1,151 @@
+name: Rebuild Supabase staging
+
+# Reconstruit entierement la base de test a partir des migrations du depot.
+#
+# Cette operation EFFACE la base de test : donnees, comptes et historique de
+# migrations. Elle n'existe que parce que la base de test a diverge au point de
+# ne plus pouvoir etre rattrapee — elle porte des migrations qui n'existent plus
+# nulle part, et il lui en manque des dizaines d'autres.
+#
+# Elle ne se declenche jamais toute seule : ni horaire, ni sur une fusion.
+# Il faut la lancer a la main et taper la phrase de confirmation exacte.
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Taper exactement : RECONSTRUIRE LA BASE DE TEST'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-staging
+  cancel-in-progress: false
+
+env:
+  SUPABASE_STAGING_PROJECT_ID: dhwrtdnjwdkvdyvojvjl
+  SUPABASE_PRODUCTION_PROJECT_ID: ovzijmqrnsgcmryinkfa
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require the exact confirmation phrase
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          if [ "${CONFIRMATION}" != "RECONSTRUIRE LA BASE DE TEST" ]; then
+            echo "::error::Phrase de confirmation incorrecte. Rien n'a ete touche."
+            exit 1
+          fi
+
+      # Trois gardes independants plutot qu'un seul : la cible doit etre le
+      # projet de test attendu, elle ne doit pas etre la production, et
+      # l'identifiant de production doit rester celui que l'on croit. Une seule
+      # variable mal renseignee ne suffit donc jamais a viser la production.
+      - name: Guard the target project
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${SUPABASE_STAGING_PROJECT_ID}" = "dhwrtdnjwdkvdyvojvjl"
+          test "${SUPABASE_PRODUCTION_PROJECT_ID}" = "ovzijmqrnsgcmryinkfa"
+          if [ "${SUPABASE_STAGING_PROJECT_ID}" = "${SUPABASE_PRODUCTION_PROJECT_ID}" ]; then
+            echo "::error::Refus de viser le projet de production."
+            exit 1
+          fi
+
+      - name: Require Supabase access token
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}" || {
+            echo "::error::SUPABASE_ACCESS_TOKEN est requis."
+            exit 1
+          }
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.111.0
+
+      # Le mot de passe de la base de production ne doit jamais entrer dans ce
+      # job : c'est une precaution de plus contre une cible mal reglee.
+      - name: Link the staging project
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          unset SUPABASE_DB_PASSWORD || true
+          supabase link --project-ref "${SUPABASE_STAGING_PROJECT_ID}"
+
+      - name: Record the inventory before the rebuild
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          unset SUPABASE_DB_PASSWORD || true
+          supabase migration list | tee migration-before.txt
+
+      - name: Rebuild the staging database from the repository migrations
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          unset SUPABASE_DB_PASSWORD || true
+          supabase db reset --linked --yes
+
+      - name: Record the inventory after the rebuild
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          unset SUPABASE_DB_PASSWORD || true
+          supabase migration list | tee migration-after.txt
+
+      # Sans cette verification, un rejeu partiel passerait pour un succes.
+      - name: Require the rebuilt inventory to match the repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
+            | sort -u > /tmp/repo-versions.txt
+          awk -F'|' '
+            {
+              remote=$2
+              gsub(/[^0-9]/, "", remote)
+              if (length(remote) == 14 && remote ~ /^[0-9]+$/) print remote
+            }
+          ' migration-after.txt | sort -u > /tmp/staging-versions.txt
+
+          expected=$(wc -l < /tmp/repo-versions.txt | tr -d ' ')
+          actual=$(wc -l < /tmp/staging-versions.txt | tr -d ' ')
+          printf 'Depot : %s migrations\nTest  : %s migrations\n' "$expected" "$actual"
+
+          if ! diff -u /tmp/repo-versions.txt /tmp/staging-versions.txt > /tmp/inventory.diff; then
+            echo "::error::L inventaire reconstruit ne correspond pas au depot."
+            cat /tmp/inventory.diff
+            exit 1
+          fi
+          echo "Inventaire identique au depot."
+
+      - name: Upload rebuild diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: supabase-staging-rebuild
+          path: |
+            migration-before.txt
+            migration-after.txt
+          if-no-files-found: warn
