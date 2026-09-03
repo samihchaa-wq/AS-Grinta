@@ -33,6 +33,16 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
   double _second(LeaderboardEntry e) =>
       widget.showMatchStats ? e.matchExacts.toDouble() : e.seasonPoints;
 
+  /// Valeur qui fait le classement dans la colonne actuellement triee. Le
+  /// depart d'egalite du tri en est exclu, sinon aucune egalite ne serait
+  /// jamais visible.
+  double _sortedColumnValue(LeaderboardEntry e) => switch (_sort) {
+        _LbCol.name => 0,
+        _LbCol.first => _first(e),
+        _LbCol.second => _second(e),
+        _LbCol.points => widget.points(e),
+      };
+
   void _onSort(_LbCol col) {
     setState(() {
       if (_sort == col) {
@@ -75,6 +85,13 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
         }
         return _desc ? -cmp : cmp;
       });
+
+    // Rang sportif sur la colonne triee : deux pronostiqueurs a egalite la
+    // partagent. Trie par nom, la colonne n'est plus un classement mais une
+    // simple position dans la liste, ou chaque ligne occupe une place propre.
+    final ranks = _sort == _LbCol.name
+        ? [for (var index = 0; index < sorted.length; index++) index + 1]
+        : competitionRanks(sorted, _sortedColumnValue);
 
     final style = grintaTableHeaderTextStyle(
       context,
@@ -145,7 +162,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
         for (var index = 0; index < sorted.length; index++)
           _leaderboardRow(
             context,
-            rank: index + 1,
+            rank: ranks[index],
             profileId: sorted[index].profileId,
             name: sorted[index].name,
             firstValue: '${_first(sorted[index]).round()}',
