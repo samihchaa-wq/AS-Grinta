@@ -153,6 +153,22 @@ void main() {
     expect(repository.submitted!.goalActions.length, 1);
     expect(repository.submitted!.lineup.entries.length, 3);
   });
+
+  testWidgets('la validation transmet la version affichee au depot', (
+    tester,
+  ) async {
+    // Sans cette version, une relecture apres coupure reseau ne pourrait pas
+    // distinguer notre ecriture d'un etat anterieur portant le meme score.
+    final repository = _repository(_report(isCorrection: true));
+    await _pump(tester, repository);
+
+    await tester.tap(find.text('VALIDER LE COMPTE RENDU'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Corriger'));
+    await tester.pumpAndSettle();
+
+    expect(repository.submittedKnownVersion, 1);
+  });
 }
 
 Future<void> _pump(
@@ -264,6 +280,7 @@ class _FakeReportRepository implements MatchSportReportRepository {
 
   final MatchSportReport report;
   _Submission? submitted;
+  int? submittedKnownVersion;
 
   @override
   Future<MatchSportReport> fetch(String matchId) async => report;
@@ -275,12 +292,14 @@ class _FakeReportRepository implements MatchSportReportRepository {
   @override
   Future<MatchSportReport> submit({
     required String matchId,
+    required int knownVersion,
     required int scoreAsGrinta,
     required int scoreAdverse,
     required MatchComposition lineup,
     required List<MatchGoalAction> goalActions,
     String? reason,
   }) async {
+    submittedKnownVersion = knownVersion;
     submitted = (
       scoreAsGrinta: scoreAsGrinta,
       scoreAdverse: scoreAdverse,
