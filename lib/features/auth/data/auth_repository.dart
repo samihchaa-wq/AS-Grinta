@@ -5,6 +5,7 @@ import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
+import 'package:as_grinta/core/storage/profile_photo_urls.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -177,6 +178,9 @@ class AuthRepository {
 
   Future<void> signOut() async {
     _profileFetchesInFlight.clear();
+    // Les URLs signées des photos appartiennent au compte qui se déconnecte :
+    // elles ne doivent pas survivre à la session suivante.
+    await ProfilePhotoUrlCache.instance.clear();
     await _client.auth.signOut();
   }
 
