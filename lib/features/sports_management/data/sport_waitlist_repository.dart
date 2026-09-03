@@ -170,8 +170,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
     return MatchConvocations.fromRpc(response);
   }
 
-  @override
-
   Map<String, Object?> _effectifParams({
     required String matchId,
     required int squadSizeLimit,
