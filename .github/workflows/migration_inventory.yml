@@ -1,16 +1,19 @@
 name: Supabase migration guard
 
 on:
+  # Ces deux verifications sont obligatoires pour fusionner. Un filtre de
+  # chemins les empechait de demarrer des que la modification ne touchait pas
+  # les migrations : elles ne rendaient alors jamais de verdict, et une
+  # verification obligatoire qui ne repond pas bloque la fusion pour toujours.
+  # Elles s'executent donc sur toute pull request. Les deux prennent moins de
+  # trente secondes.
   pull_request:
     branches: [main]
-    paths:
-      - 'supabase/migrations/**'
-      - 'supabase/production_migrations.lock'
-      - '.github/workflows/migration_inventory.yml'
   push:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/database/**'
       - 'supabase/production_migrations.lock'
       - '.github/workflows/migration_inventory.yml'
   schedule:
