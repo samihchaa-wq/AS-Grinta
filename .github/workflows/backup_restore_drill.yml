@@ -1,9 +1,17 @@
 name: Production backup restore drill
 
 on:
+  # Une sauvegarde jamais restauree n'est pas une sauvegarde : rien ne prouve
+  # qu'elle se dechiffre, ni qu'elle contient ce qu'on croit. L'exercice tourne
+  # donc tout seul chaque dimanche, une heure et demie apres la sauvegarde
+  # hebdomadaire, sur l'archive la plus recente.
+  #
+  # Il restaure dans une base jetable creee sur la machine d'execution
+  # (127.0.0.1:54322) et ne touche jamais la production.
+  schedule:
+    - cron: '13 6 * * 0'
   push:
-    branches:
-      - ci/backup-restore-drill-20260901
+    branches: [main]
     paths:
       - '.github/workflows/backup_restore_drill.yml'
   workflow_dispatch:
