@@ -285,9 +285,6 @@ class AdminRepository {
     }
   }
 
-  Future<void> archiveSeason(String seasonId) =>
-      setSeasonStatus(seasonId, 'archived');
-
   Future<void> setSeasonPredictionsLock({
     required String seasonId,
     required bool locked,

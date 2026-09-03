@@ -248,24 +248,6 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }
 
   @override
-  Future<MatchConvocations> configureMatch({
-    required String matchId,
-    required int squadSizeLimit,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MatchConvocations> saveEffectif({
-    required String matchId,
-    required int squadSizeLimit,
-    required Map<String, ConvocationStatus> decisions,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
   Future<MatchConvocations> publishEffectif({
     required String matchId,
     required int squadSizeLimit,
@@ -276,32 +258,5 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }
 
   @override
-  Future<MatchConvocations> recomputeMatch({
-    required String matchId,
-    bool resetOverrides = false,
-  }) {
-    throw UnimplementedError();
-  }
 
-  @override
-  Future<MatchConvocations> setConvocation({
-    required String matchId,
-    required String seasonPlayerId,
-    required ConvocationStatus status,
-    required bool turnShouldConsume,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MatchConvocations> publishMatch({
-    required String matchId,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<int> finalizeTurns(String matchId) async => 0;
 }

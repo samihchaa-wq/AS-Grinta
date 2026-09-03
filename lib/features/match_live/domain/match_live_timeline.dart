@@ -22,9 +22,6 @@ class MatchLiveTimeline {
   final String matchId;
   final List<MatchLiveEvent> events;
 
-  List<MatchLiveEvent> eventsForHalf(int half) =>
-      events.where((e) => e.half == half).toList();
-
   bool get hasSecondHalf => events.any((e) => e.half == 2);
 }
 

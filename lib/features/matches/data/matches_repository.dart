@@ -103,16 +103,6 @@ class MatchesRepository {
     );
   }
 
-  Future<void> setMatchType({
-    required String matchId,
-    required String matchType,
-  }) async {
-    await _client.rpc(
-      'admin_set_match_type',
-      params: {'p_match_id': matchId, 'p_match_type': matchType},
-    );
-  }
-
   /// Journée du championnat, telle que fixée par la ligue.
   ///
   /// [round] null rend la main au numéro automatique (journée suivante de la
@@ -127,16 +117,6 @@ class MatchesRepository {
         'p_match_id': matchId,
         'p_championship_round': round,
       },
-    );
-  }
-
-  Future<void> setMatchJersey({
-    required String matchId,
-    required String? jerseyNote,
-  }) async {
-    await _client.rpc(
-      'admin_set_match_jersey',
-      params: {'p_match_id': matchId, 'p_jersey_note': jerseyNote},
     );
   }
 
@@ -354,42 +334,6 @@ class MatchesRepository {
     }
   }
 
-  Future<void> finalizeMatchPostgame({
-    required String id,
-    required int grintaScore,
-    required int opponentScore,
-    required List<Map<String, dynamic>> scorers,
-    required String? cleanSheetProfileId,
-    required List<String> presentPlayerIds,
-    required String? manOfMatchPlayerId,
-  }) async {
-    final result = await _client.rpc(
-      'finalize_match_postgame_with_lineup',
-      params: {
-        'p_match_id': id,
-        'p_score_adverse': opponentScore,
-        'p_scorers': scorers,
-        'p_clean_sheet_player_id': cleanSheetProfileId,
-        'p_score_as_grinta': grintaScore,
-        'p_present': presentPlayerIds,
-        'p_man_of_match_player_id': manOfMatchPlayerId,
-      },
-    );
-    if (result != true) {
-      throw StateError('Le match n’a pas pu être validé.');
-    }
-  }
-
-  Future<void> closeMatchPredictions(String id) async {
-    final result = await _client.rpc(
-      'close_match_predictions',
-      params: {'p_match_id': id},
-    );
-    if (result != true) {
-      throw StateError('Les pronostics n’ont pas pu être fermés.');
-    }
-  }
-
   Future<Map<String, double>?> fetchMatchOdds(String matchId) async {
     final response = await _client
         .from('match_odds')
@@ -402,14 +346,6 @@ class MatchesRepository {
       'draw': (response['odds_nul'] as num).toDouble(),
       'loss': (response['odds_victoire_adverse'] as num).toDouble(),
     };
-  }
-
-  Future<int> fetchPredictionParticipantCount(String matchId) async {
-    final result = await _client.rpc(
-      'match_prediction_participant_count',
-      params: {'p_match_id': matchId},
-    );
-    return (result as num?)?.toInt() ?? 0;
   }
 
   Future<List<Map<String, dynamic>>> fetchMatchPredictions(
