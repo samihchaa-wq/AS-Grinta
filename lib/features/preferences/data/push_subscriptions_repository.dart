@@ -7,13 +7,35 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Gère l'abonnement du navigateur aux notifications push et sa copie
 /// dans la table push_subscriptions.
-class PushSubscriptionsRepository {
-  PushSubscriptionsRepository(this._client);
+///
+/// L'interface existe pour que l'écran des notifications soit testable sans
+/// navigateur ni serveur : le navigateur ne sait ni s'abonner ni se
+/// désabonner dans un test, et sans point de substitution le bouton
+/// « Désactiver » ne pourrait être vérifié qu'à la main.
+abstract interface class PushSubscriptionsRepository {
+  /// L'appareil sait-il recevoir des notifications push.
+  Future<bool> isSupported();
+
+  /// Cet appareil est-il déjà abonné.
+  Future<bool> isSubscribed();
+
+  /// Demande la permission puis enregistre l'abonnement.
+  Future<bool> enable();
+
+  /// Désabonne le navigateur et supprime l'abonnement enregistré.
+  Future<void> disable();
+}
+
+class SupabasePushSubscriptionsRepository
+    implements PushSubscriptionsRepository {
+  SupabasePushSubscriptionsRepository(this._client);
 
   final SupabaseClient _client;
 
+  @override
   Future<bool> isSupported() => pushSupported();
 
+  @override
   Future<bool> isSubscribed() async {
     final current = await pushCurrentSubscription();
     return current != null;
@@ -21,6 +43,7 @@ class PushSubscriptionsRepository {
 
   /// Demande la permission puis enregistre l'abonnement. Retourne false si
   /// la permission est refusée ou si le navigateur ne supporte pas le push.
+  @override
   Future<bool> enable() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return false;
@@ -49,6 +72,7 @@ class PushSubscriptionsRepository {
   }
 
   /// Désabonne le navigateur et supprime la ligne correspondante.
+  @override
   Future<void> disable() async {
     final json = await pushUnsubscribe();
     if (json == null) return;
@@ -63,7 +87,9 @@ class PushSubscriptionsRepository {
 
 final pushSubscriptionsRepositoryProvider =
     Provider<PushSubscriptionsRepository>((ref) {
-  return PushSubscriptionsRepository(ref.watch(supabaseClientProvider));
+  return SupabasePushSubscriptionsRepository(
+    ref.watch(supabaseClientProvider),
+  );
 });
 
 /// État courant de l'abonnement push du navigateur.
