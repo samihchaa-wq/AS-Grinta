@@ -24,8 +24,8 @@ void main() {
 
       expect(find.byType(StickyHeaderTableCard), findsOneWidget);
       expect(find.text('Joueurs'), findsOneWidget);
-      expect(find.text('Présence saison\nprécédente'), findsOneWidget);
-      expect(find.text('Liste d’attente cette\nsaison'), findsOneWidget);
+      expect(find.text('Saison\nprécédente'), findsOneWidget);
+      expect(find.text('Tour cette\nsaison'), findsOneWidget);
       expect(find.text('Prénoms'), findsNothing);
       expect(find.text('#'), findsNothing);
       expect(find.text('Tours'), findsNothing);
