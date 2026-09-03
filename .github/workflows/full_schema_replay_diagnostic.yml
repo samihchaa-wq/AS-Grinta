@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/database/**'
       - '.github/workflows/full_schema_replay_diagnostic.yml'
       - '.github/workflows/migration_inventory.yml'
   workflow_dispatch:

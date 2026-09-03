@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/database/**'
       - 'supabase/production_migrations.lock'
       - '.github/workflows/migration_inventory.yml'
   push:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/tests/database/**'
       - 'supabase/production_migrations.lock'
       - '.github/workflows/migration_inventory.yml'
   schedule:
