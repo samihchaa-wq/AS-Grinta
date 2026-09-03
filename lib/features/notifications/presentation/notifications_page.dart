@@ -395,10 +395,10 @@ class _PushActivationCard extends ConsumerStatefulWidget {
 }
 
 class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
-  bool _enabling = false;
+  bool _busy = false;
 
   Future<void> _enable() async {
-    setState(() => _enabling = true);
+    setState(() => _busy = true);
     var message = 'Notifications activées sur cet appareil.';
     try {
       final enabled =
@@ -409,9 +409,32 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     }
     ref.invalidate(pushStatusProvider);
     if (!mounted) return;
-    setState(() => _enabling = false);
+    setState(() => _busy = false);
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _disable() async {
+    setState(() => _busy = true);
+    var message = 'Notifications désactivées sur cet appareil.';
+    try {
+      await ref.read(pushSubscriptionsRepositoryProvider).disable();
+    } catch (_) {
+      message = 'Impossible de désactiver les notifications.';
+    }
+    ref.invalidate(pushStatusProvider);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _busyIndicator() {
+    return const SizedBox(
+      width: 18,
+      height: 18,
+      child: GrintaProgressIndicator(strokeWidth: 2),
+    );
   }
 
   @override
@@ -425,12 +448,31 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
         label: 'Notifications push indisponibles',
       ),
       data: (status) {
-        if (status.subscribed) return const SizedBox.shrink();
-
         if (!status.supported) {
           return const _CompactPushStatus(
             icon: Icons.notifications_off_outlined,
             label: 'Notifications indisponibles sur cet appareil',
+          );
+        }
+
+        // Les trois notifications essentielles ne se coupent pas une par une.
+        // Sans ce bouton, la seule sortie etait de retirer l'autorisation dans
+        // les reglages du navigateur, hors de l'application.
+        if (status.subscribed) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              child: ListTile(
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: const Text('Notifications actives sur cet appareil'),
+                trailing: _busy
+                    ? _busyIndicator()
+                    : TextButton(
+                        onPressed: _disable,
+                        child: const Text('Désactiver'),
+                      ),
+              ),
+            ),
           );
         }
 
@@ -440,12 +482,8 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
             child: ListTile(
               leading: const Icon(Icons.notifications_outlined),
               title: const Text('Notifications désactivées'),
-              trailing: _enabling
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: GrintaProgressIndicator(strokeWidth: 2),
-                    )
+              trailing: _busy
+                  ? _busyIndicator()
                   : TextButton(
                       onPressed: _enable,
                       child: const Text('Activer'),
