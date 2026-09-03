@@ -206,11 +206,25 @@ def main() -> int:
         '.eq("profiles.status", "active")',
         'Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")',
         'from("matches")',
-        'from("calendar_match_tombstones")',
-        'STATUS:${cancelled ? "CANCELLED" : "CONFIRMED"}',
+        'STATUS:CONFIRMED',
         'Cache-Control": "no-cache, no-store, must-revalidate"',
     ):
         require(marker in calendar, f"calendar-feed: garde absente: {marker}")
+    # Un match annule ou supprime ne doit jamais reparaitre dans le flux : le
+    # publier en evenement annule laissait une ligne barree dans l'agenda de
+    # l'abonne au lieu de l'en retirer.
+    require(
+        'if (String(row.status ?? "") === "annule") return "";' in calendar,
+        "calendar-feed doit omettre les matchs annules",
+    )
+    require(
+        "CANCELLED" not in calendar,
+        "calendar-feed ne doit republier aucun evenement annule",
+    )
+    require(
+        "calendar_match_tombstones" not in calendar,
+        "calendar-feed ne doit plus republier les matchs supprimes",
+    )
     require_in_order(
         calendar,
         "UUID_RE.test(token)",
