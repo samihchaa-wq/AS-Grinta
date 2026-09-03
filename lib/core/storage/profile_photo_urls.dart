@@ -208,7 +208,8 @@ class ProfilePhotoUrlCache {
       if (payload.isEmpty) {
         await prefs.remove(profilePhotoSignedUrlsPrefsKey);
       } else {
-        await prefs.setString(profilePhotoSignedUrlsPrefsKey, jsonEncode(payload));
+        await prefs.setString(
+            profilePhotoSignedUrlsPrefsKey, jsonEncode(payload));
       }
     } catch (_) {
       // Le cache disque est un confort : son absence ne casse rien.
