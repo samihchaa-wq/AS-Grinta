@@ -35,44 +35,12 @@ abstract interface class SportWaitlistRepository {
     String? reason,
   });
 
-  Future<MatchConvocations> configureMatch({
-    required String matchId,
-    required int squadSizeLimit,
-  });
-
-  Future<MatchConvocations> saveEffectif({
-    required String matchId,
-    required int squadSizeLimit,
-    required Map<String, ConvocationStatus> decisions,
-    String? reason,
-  });
-
   Future<MatchConvocations> publishEffectif({
     required String matchId,
     required int squadSizeLimit,
     required Map<String, ConvocationStatus> decisions,
     String? reason,
   });
-
-  Future<MatchConvocations> recomputeMatch({
-    required String matchId,
-    bool resetOverrides = false,
-  });
-
-  Future<MatchConvocations> setConvocation({
-    required String matchId,
-    required String seasonPlayerId,
-    required ConvocationStatus status,
-    required bool turnShouldConsume,
-    String? reason,
-  });
-
-  Future<MatchConvocations> publishMatch({
-    required String matchId,
-    String? reason,
-  });
-
-  Future<int> finalizeTurns(String matchId);
 }
 
 class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
@@ -184,37 +152,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   }
 
   @override
-  Future<MatchConvocations> configureMatch({
-    required String matchId,
-    required int squadSizeLimit,
-  }) async {
-    await _client.rpc(
-      'admin_configure_match_sport_workflow',
-      params: {'p_match_id': matchId, 'p_squad_size_limit': squadSizeLimit},
-    );
-    return fetchMatchConvocations(matchId);
-  }
-
-  @override
-  Future<MatchConvocations> saveEffectif({
-    required String matchId,
-    required int squadSizeLimit,
-    required Map<String, ConvocationStatus> decisions,
-    String? reason,
-  }) async {
-    final response = await _client.rpc(
-      'admin_save_match_effectif',
-      params: _effectifParams(
-        matchId: matchId,
-        squadSizeLimit: squadSizeLimit,
-        decisions: decisions,
-        reason: reason,
-      ),
-    );
-    return MatchConvocations.fromRpc(response);
-  }
-
-  @override
   Future<MatchConvocations> publishEffectif({
     required String matchId,
     required int squadSizeLimit,
@@ -231,60 +168,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       ),
     );
     return MatchConvocations.fromRpc(response);
-  }
-
-  @override
-  Future<MatchConvocations> recomputeMatch({
-    required String matchId,
-    bool resetOverrides = false,
-  }) async {
-    await _client.rpc(
-      'admin_recompute_match_convocations',
-      params: {'p_match_id': matchId, 'p_reset_overrides': resetOverrides},
-    );
-    return fetchMatchConvocations(matchId);
-  }
-
-  @override
-  Future<MatchConvocations> setConvocation({
-    required String matchId,
-    required String seasonPlayerId,
-    required ConvocationStatus status,
-    required bool turnShouldConsume,
-    String? reason,
-  }) async {
-    final response = await _client.rpc(
-      'admin_set_match_convocation',
-      params: {
-        'p_match_id': matchId,
-        'p_season_player_id': seasonPlayerId,
-        'p_status': status.wireValue,
-        'p_turn_should_consume': turnShouldConsume,
-        'p_reason': _clean(reason),
-      },
-    );
-    return MatchConvocations.fromRpc(response);
-  }
-
-  @override
-  Future<MatchConvocations> publishMatch({
-    required String matchId,
-    String? reason,
-  }) async {
-    final response = await _client.rpc(
-      'admin_publish_match_convocations',
-      params: {'p_match_id': matchId, 'p_reason': _clean(reason)},
-    );
-    return MatchConvocations.fromRpc(response);
-  }
-
-  @override
-  Future<int> finalizeTurns(String matchId) async {
-    final response = await _client.rpc(
-      'admin_finalize_match_waitlist_turns',
-      params: {'p_match_id': matchId},
-    );
-    return (response as num?)?.toInt() ?? 0;
   }
 
   Map<String, Object?> _effectifParams({

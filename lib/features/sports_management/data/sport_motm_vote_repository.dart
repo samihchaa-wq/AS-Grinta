@@ -45,19 +45,6 @@ class SportMotmVoteRepository {
       throw StateError('Le scrutin n’a pas pu être annulé.');
     }
   }
-
-  Future<void> restart({
-    required String matchId,
-    required String reason,
-  }) async {
-    final response = await _client.rpc(
-      'admin_restart_match_motm_vote',
-      params: {'p_match_id': matchId, 'p_reason': reason.trim()},
-    );
-    if (response is! Map || response['state'] != 'open') {
-      throw StateError('Le scrutin n’a pas pu être relancé.');
-    }
-  }
 }
 
 final sportMotmVoteRepositoryProvider = Provider<SportMotmVoteRepository>((

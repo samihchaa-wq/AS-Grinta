@@ -36,13 +36,16 @@ select is(
   'toute fonction privilégiée accessible aux connectés possède un garde approuvé'
 );
 
+-- Le schema private est aussi exposé : authenticated y a USAGE, et une
+-- fonction privilégiée peut lui y être ouverte. Ne surveiller que public
+-- laissait cette moitié sans garde.
 select diag(
   'fonctions SECURITY DEFINER exposées avec search_path non vide : '
   || string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text)
 )
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public'
+where n.nspname in ('public', 'private')
   and p.prosecdef
   and has_function_privilege('authenticated', p.oid, 'EXECUTE')
   and not coalesce(p.proconfig, '{}'::text[])
@@ -54,7 +57,7 @@ select is(
     select count(*)
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
+    where n.nspname in ('public', 'private')
       and p.prosecdef
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
       and not coalesce(p.proconfig, '{}'::text[])
