@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
+import 'package:as_grinta/core/utils/ranking.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
@@ -246,6 +247,12 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           });
         }
 
+        // Rang sportif sur la colonne triee. Trie par nom, ou sans tri, la
+        // colonne redevient une simple position dans la liste.
+        final ranks = sort == null || sort == _PlayerStatCol.name
+            ? [for (var index = 0; index < players.length; index++) index + 1]
+            : competitionRanks(players, (player) => _value(sort, player));
+
         final pinnedWidth = grintaTablePinnedWidthForNames(
           context,
           players.map(
@@ -283,7 +290,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
               for (var index = 0; index < players.length; index++)
                 _playersRow(
                   context,
-                  rank: index + 1,
+                  rank: ranks[index],
                   player: players[index],
                   isCurrentUser: currentProfileId != null &&
                       players[index].profileId == currentProfileId,

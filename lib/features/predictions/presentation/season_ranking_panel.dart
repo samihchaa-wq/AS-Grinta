@@ -2,6 +2,7 @@ export 'package:as_grinta/features/predictions/data/leaderboard_repository.dart'
 
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
+import 'package:as_grinta/core/utils/ranking.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
@@ -24,6 +25,16 @@ class SeasonRankingPanel extends ConsumerStatefulWidget {
 class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
   _SrCol _sort = _SrCol.points;
   bool _desc = true;
+
+  /// Valeur qui fait le classement dans la colonne actuellement triee. Le
+  /// depart d'egalite du tri en est exclu, sinon aucune egalite ne serait
+  /// jamais visible.
+  double _sortedColumnValue(LeaderboardEntry entry) => switch (_sort) {
+        _SrCol.name => 0,
+        _SrCol.closest => entry.seasonBons.toDouble(),
+        _SrCol.exact => entry.seasonExacts.toDouble(),
+        _SrCol.points => entry.seasonPoints,
+      };
 
   String _format(double value) {
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
@@ -94,6 +105,14 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
               )
             : grintaTablePinnedWidth;
 
+        // Classement sportif sur la colonne triee : deux pronostiqueurs a
+        // egalite partagent leur rang, le suivant reprend a la place
+        // reellement occupee. Trie par nom, la colonne redevient une simple
+        // position dans la liste.
+        final ranks = _sort == _SrCol.name
+            ? [for (var index = 0; index < sorted.length; index++) index + 1]
+            : competitionRanks(sorted, _sortedColumnValue);
+
         return StickyHeaderTableCard(
           onRefresh: widget.onRefresh,
           pinnedWidth: pinnedWidth,
@@ -103,7 +122,7 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
             for (var index = 0; index < sorted.length; index++)
               _buildRow(
                 context,
-                rank: index + 1,
+                rank: ranks[index],
                 entry: sorted[index],
                 points: _format(sorted[index].seasonPoints),
               ),
