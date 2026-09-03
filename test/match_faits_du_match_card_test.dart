@@ -204,6 +204,7 @@ class _GoalActionsOnlyRepository implements MatchSportReportRepository {
   @override
   Future<MatchSportReport> submit({
     required String matchId,
+    required int knownVersion,
     required int scoreAsGrinta,
     required int scoreAdverse,
     required MatchComposition lineup,

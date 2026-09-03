@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/network/confirmed_write.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -428,6 +430,7 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
     try {
       final saved = await ref.read(matchSportReportRepositoryProvider).submit(
             matchId: widget.matchId,
+            knownVersion: report.finalization.version,
             scoreAsGrinta: _scoreAsGrinta,
             scoreAdverse: _scoreAdverse,
             lineup: lineup,
@@ -446,6 +449,20 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
             : 'Correction enregistrée · version ${saved.finalization.version}.',
       );
       widget.onPublished?.call();
+    } on WriteOutcomeUnknown catch (error, stackTrace) {
+      // Renvoyer le compte rendu serait enregistré comme une correction, avec
+      // sa trace dans le journal d'administration et un second recalcul des
+      // statistiques. On demande donc une relecture plutôt qu'une nouvelle
+      // validation.
+      AppLogger.error('match_report.submit_outcome_unknown', error, stackTrace);
+      ref.invalidate(matchDetailsProvider(widget.matchId));
+      ref.invalidate(publishedSportMatchResultProvider(widget.matchId));
+      if (mounted) {
+        _showMessage(
+          'Connexion interrompue : le compte rendu a peut-être été '
+          'enregistré. Actualise la page avant de revalider.',
+        );
+      }
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
