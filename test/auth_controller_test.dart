@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -220,6 +221,77 @@ void main() {
       expect(controller.state.hasSession, isFalse);
       expect(controller.state.profile, isNull);
     });
+
+    test('un echec de deconnexion laisse une trace exploitable', () async {
+      final incidents = <AppIncident>[];
+      AppLogger.sink = incidents.add;
+      addTearDown(() => AppLogger.sink = null);
+
+      final repository = _FakeAuthRepository(
+        fetchResults: [_activeProfile],
+        hasSession: true,
+        signOutError: StateError('service d authentification indisponible'),
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      await _flushAsync();
+
+      await controller.signOut();
+
+      expect(controller.state.error, 'La déconnexion a échoué.');
+      expect(incidents, hasLength(1));
+      expect(incidents.single.operation, 'auth.sign_out');
+      expect(incidents.single.reference, isNotEmpty);
+    });
+
+    test('un echec de changement de mot de passe est trace', () async {
+      final incidents = <AppIncident>[];
+      AppLogger.sink = incidents.add;
+      addTearDown(() => AppLogger.sink = null);
+
+      final repository = _FakeAuthRepository(
+        fetchResults: [_activeProfile],
+        hasSession: true,
+        updatePasswordError: StateError('refus du serveur'),
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      await _flushAsync();
+
+      final saved = await controller.updatePassword('nouveau-mot-de-passe');
+
+      expect(saved, isFalse);
+      expect(
+        controller.state.error,
+        'Le mot de passe n’a pas pu être modifié.',
+      );
+      expect(incidents, hasLength(1));
+      expect(incidents.single.operation, 'auth.update_password');
+    });
+
+    test('un incident ne transporte jamais le message d erreur', () async {
+      final incidents = <AppIncident>[];
+      AppLogger.sink = incidents.add;
+      addTearDown(() => AppLogger.sink = null);
+
+      const secret = 'mot-de-passe-en-clair-a-ne-jamais-journaliser';
+      final repository = _FakeAuthRepository(
+        fetchResults: [_activeProfile],
+        hasSession: true,
+        updatePasswordError: StateError(secret),
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      await _flushAsync();
+
+      await controller.updatePassword('peu importe');
+
+      expect(incidents, hasLength(1));
+      final incident = incidents.single;
+      expect(incident.operation, isNot(contains(secret)));
+      expect(incident.errorType, isNot(contains(secret)));
+      expect(incident.reference, isNot(contains(secret)));
+    });
   });
 }
 
@@ -268,12 +340,16 @@ class _FakeAuthRepository implements AuthRepository {
   _FakeAuthRepository({
     required List<Object?> fetchResults,
     this.signInError,
+    this.signOutError,
+    this.updatePasswordError,
     this.hasSession = false,
     this.emitSignedOutDuringSignOut = false,
   }) : _fetchResults = List<Object?>.from(fetchResults);
 
   final List<Object?> _fetchResults;
   final Object? signInError;
+  final Object? signOutError;
+  final Object? updatePasswordError;
   final bool emitSignedOutDuringSignOut;
   final StreamController<supabase.AuthState> _authController =
       StreamController<supabase.AuthState>.broadcast();
@@ -314,6 +390,7 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     signOutCalls += 1;
+    if (signOutError != null) throw signOutError!;
     hasSession = false;
     if (emitSignedOutDuringSignOut) {
       emit(supabase.AuthChangeEvent.signedOut);
@@ -322,7 +399,9 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> updatePassword(String password) async {}
+  Future<void> updatePassword(String password) async {
+    if (updatePasswordError != null) throw updatePasswordError!;
+  }
 
   @override
   Future<AuthProfile> updateProfile({

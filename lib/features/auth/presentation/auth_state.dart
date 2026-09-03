@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -220,7 +221,8 @@ class AuthController extends StateNotifier<AuthState> {
           error: _inactiveAccountMessage,
         );
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('auth.refresh_session', error, stackTrace);
       if (refreshGeneration != _authGeneration) return;
       _loadingFallback?.cancel();
       final hasSession = _repository.hasSession;
@@ -275,7 +277,8 @@ class AuthController extends StateNotifier<AuthState> {
       await _refreshProfile();
       state = state.copyWith(isSaving: false);
       return true;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('auth.update_password', error, stackTrace);
       state = state.copyWith(
         isSaving: false,
         error: 'Le mot de passe n’a pas pu être modifié.',
@@ -290,7 +293,8 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _repository.signOut();
       state = const AuthState(isLoading: false);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('auth.sign_out', error, stackTrace);
       state = state.copyWith(
         isLoading: false,
         error: 'La déconnexion a échoué.',
@@ -317,7 +321,8 @@ class AuthController extends StateNotifier<AuthState> {
         profile: profile,
         clearError: true,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('auth.update_profile', error, stackTrace);
       state = state.copyWith(
         isSaving: false,
         error: 'Le profil n’a pas pu être enregistré.',
@@ -348,19 +353,22 @@ class AuthController extends StateNotifier<AuthState> {
         error: 'Photo enregistrée, mais le profil n’a pas pu être actualisé. '
             'Actualise la page.',
       );
-    } on ProfilePhotoUploadOutcomeUnknown {
+    } on ProfilePhotoUploadOutcomeUnknown catch (error, stackTrace) {
+      AppLogger.error('auth.upload_photo_outcome_unknown', error, stackTrace);
       state = state.copyWith(
         isSaving: false,
         error: 'Connexion interrompue pendant l’envoi de la photo. '
             'Actualise le profil avant de réessayer.',
       );
-    } on ProfilePhotoWriteOutcomeUnknown {
+    } on ProfilePhotoWriteOutcomeUnknown catch (error, stackTrace) {
+      AppLogger.error('auth.photo_write_outcome_unknown', error, stackTrace);
       state = state.copyWith(
         isSaving: false,
         error: 'Connexion interrompue : la photo a peut-être été enregistrée. '
             'Actualise le profil avant de réessayer.',
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('auth.upload_photo', error, stackTrace);
       state = state.copyWith(
         isSaving: false,
         error: 'La photo n’a pas pu être enregistrée.',
