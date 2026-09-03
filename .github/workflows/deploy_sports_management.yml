@@ -17,6 +17,11 @@ on:
         required: true
         default: false
         type: boolean
+      deploy_calendar_feed:
+        description: 'Deploy the calendar-feed Edge Function'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -119,6 +124,20 @@ jobs:
         run: |
           set -euo pipefail
           supabase functions deploy send-push \
+            --project-ref "$SUPABASE_PROJECT_ID" \
+            --no-verify-jwt \
+            --use-api
+
+      # Appelée par les agendas abonnés, qui ne présentent aucun jeton de
+      # session : l'autorisation repose sur le jeton d'abonnement passé en
+      # paramètre, vérifié par la fonction elle-même. Ce réglage reprend celui
+      # déjà déclaré dans supabase/config.toml.
+      - name: Deploy calendar-feed
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_calendar_feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy calendar-feed \
             --project-ref "$SUPABASE_PROJECT_ID" \
             --no-verify-jwt \
             --use-api
