@@ -146,6 +146,54 @@ void main() {
     },
   );
 
+  test(
+    'a Live write that never answers is cut short and resynchronised',
+    () async {
+      final repository = _ControlledMatchLiveRepository(_bundle(score: 0))
+        ..hangOnEndMatch = true;
+      final container = ProviderContainer(
+        overrides: [
+          matchLiveRepositoryProvider.overrideWithValue(repository),
+          matchLiveWriteTimeoutProvider.overrideWithValue(
+            const Duration(milliseconds: 40),
+          ),
+          matchLiveReadTimeoutProvider.overrideWithValue(
+            const Duration(seconds: 5),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(repository.dispose);
+
+      final provider = matchLiveStateProvider('match-1');
+      final subscription = container.listen(
+        provider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      await container.read(provider.future);
+      await _waitUntil(() => repository.pendingFetches.length == 1);
+      repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
+      await _flush();
+
+      final pending = container.read(provider.notifier).endMatch();
+      // La resynchronisation qui suit l'echec lit l'etat reel du serveur. Elle
+      // ne part qu'une fois le delai d'ecriture reellement expire.
+      await _waitUntilElapsed(() => repository.pendingFetches.length == 1);
+      repository.pendingFetches.removeAt(0).complete(_bundle(score: 3));
+
+      await expectLater(pending, throwsA(isA<TimeoutException>()));
+      expect(repository.endMatchCalls, 1);
+      expect(container.read(provider).value?.session.scoreAsGrinta, 3);
+      expect(
+        container.read(matchLiveActionMessageProvider('match-1')),
+        contains('rechargé'),
+      );
+    },
+  );
+
   test('saveLiveLineup forwards the rendered lineup revision', () async {
     final repository = _ControlledMatchLiveRepository(_bundle(score: 0));
     final container = ProviderContainer(
@@ -203,6 +251,16 @@ Future<void> _waitUntil(bool Function() predicate) async {
 
 Future<void> _flush() => Future<void>.delayed(Duration.zero);
 
+/// Attente qui laisse reellement s'ecouler le temps, pour les cas ou c'est un
+/// delai qui doit expirer et non une simple file de microtaches a vider.
+Future<void> _waitUntilElapsed(bool Function() predicate) async {
+  for (var attempt = 0; attempt < 400; attempt += 1) {
+    if (predicate()) return;
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  fail('Condition non atteinte dans le délai du test.');
+}
+
 class _ControlledMatchLiveRepository implements MatchLiveRepository {
   _ControlledMatchLiveRepository(
     this.initial, {
@@ -218,6 +276,8 @@ class _ControlledMatchLiveRepository implements MatchLiveRepository {
   final List<Completer<MatchLiveStateBundle>> pendingFetches = [];
   int? lastExpectedLineupRevision;
   var _fetchCount = 0;
+  var endMatchCalls = 0;
+  bool hangOnEndMatch = false;
 
   void emitChange() => _changes.add(null);
 
@@ -255,6 +315,20 @@ class _ControlledMatchLiveRepository implements MatchLiveRepository {
   }) async {
     lastExpectedLineupRevision = expectedLineupRevision;
     return initial;
+  }
+
+  @override
+  Future<MatchLiveStateBundle> endMatch({
+    required String matchId,
+    String? reason,
+  }) {
+    endMatchCalls += 1;
+    if (hangOnEndMatch) {
+      // Une requete qui ne repond jamais : le cas que seule une limite de
+      // temps peut trancher.
+      return Completer<MatchLiveStateBundle>().future;
+    }
+    return Future.value(initial);
   }
 
   @override

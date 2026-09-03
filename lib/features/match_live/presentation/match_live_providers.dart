@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/network/confirmed_write.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
@@ -69,6 +70,19 @@ final matchLiveTimelineProvider = FutureProvider.autoDispose
 /// Message transitoire affiché au coach lorsqu'une écriture Live n'a pas pu
 /// être confirmée. Le contrôleur relit d'abord l'état autoritaire du serveur :
 /// le message ne remplace donc jamais le snapshot par une supposition locale.
+/// Delais des ecritures et relectures du Live, injectables pour les tests.
+///
+/// Le Live se joue sur un terrain, souvent avec une reception mediocre : une
+/// requete sans limite de temps laisse le coach devant un ecran fige, sans
+/// erreur ni resynchronisation.
+final matchLiveWriteTimeoutProvider = Provider<Duration>(
+  (ref) => kConfirmedWriteTimeout,
+);
+
+final matchLiveReadTimeoutProvider = Provider<Duration>(
+  (ref) => kConfirmedReadTimeout,
+);
+
 final matchLiveActionMessageProvider =
     StateProvider.autoDispose.family<String?, String>((ref, matchId) => null);
 
@@ -139,8 +153,9 @@ class MatchLiveStateController
 
   Future<void> _mutate(
     Future<MatchLiveStateBundle> Function(MatchLiveRepository repository)
-        action,
-  ) async {
+        action, {
+    Duration? writeTimeout,
+  }) async {
     // Une écriture invalide toutes les lectures déjà en vol. Si une nouvelle
     // lecture ou une autre écriture démarre pendant celle-ci, son résultat est
     // considéré comme plus récent et le bundle de cette action ne remplace pas
@@ -148,7 +163,12 @@ class MatchLiveStateController
     final generation = ++_stateGeneration;
     final repository = ref.read(matchLiveRepositoryProvider);
     try {
-      final bundle = await action(repository);
+      // Sans limite de temps, une requete restee suspendue ne leve jamais
+      // d'erreur : ni la resynchronisation ci-dessous ni le retry du score ne
+      // se declenchent, et le coach reste bloque sur un ecran qui enregistre.
+      final bundle = await action(repository).timeout(
+        writeTimeout ?? ref.read(matchLiveWriteTimeoutProvider),
+      );
       if (generation != _stateGeneration) {
         unawaited(_refresh());
         return;
@@ -160,7 +180,9 @@ class MatchLiveStateController
       var resynced = false;
       if (generation == _stateGeneration) {
         try {
-          final authoritative = await repository.fetchLiveState(arg);
+          final authoritative = await repository
+              .fetchLiveState(arg)
+              .timeout(ref.read(matchLiveReadTimeoutProvider));
           if (generation == _stateGeneration) {
             state = AsyncData(authoritative);
             resynced = true;
@@ -233,24 +255,31 @@ class MatchLiveStateController
     String? scorerParticipantId,
   }) {
     final operationId = _newScoreOperationId();
+    final attemptTimeout = ref.read(matchLiveWriteTimeoutProvider);
+    // Deux tentatives bornees, plus une marge : le budget global ne doit pas
+    // expirer avant elles, sinon le retry serait coupe en plein vol.
+    final attemptBudget = attemptTimeout * 2 + const Duration(seconds: 1);
     return _mutate((repository) async {
-      Future<MatchLiveStateBundle> send() => repository.adjustScore(
+      Future<MatchLiveStateBundle> send() => repository
+          .adjustScore(
             matchId: arg,
             team: team,
             delta: delta,
             operationId: operationId,
             scorerParticipantId: scorerParticipantId,
-          );
+          )
+          .timeout(attemptTimeout);
 
       try {
         return await send();
       } catch (_) {
         // Le premier appel peut avoir ete committe alors que sa reponse reseau
         // a ete perdue. Un unique retry avec le meme UUID est sans effet double
-        // grace au ledger serveur.
+        // grace au ledger serveur. Chaque tentative est bornee, sans quoi une
+        // requete suspendue empecherait le retry de partir.
         return send();
       }
-    });
+    }, writeTimeout: attemptBudget);
   }
 
   Future<void> saveLiveLineup({
