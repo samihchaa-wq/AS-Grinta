@@ -41,7 +41,6 @@ abstract interface class SportWaitlistRepository {
     required Map<String, ConvocationStatus> decisions,
     String? reason,
   });
-
 }
 
 class SupabaseSportWaitlistRepository implements SportWaitlistRepository {

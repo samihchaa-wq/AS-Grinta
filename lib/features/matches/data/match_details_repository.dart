@@ -382,7 +382,6 @@ class MatchDetailsRepository {
     final text = value?.toString().trim();
     return text == null || text.isEmpty ? null : text;
   }
-
 }
 
 final matchDetailsRepositoryProvider = Provider<MatchDetailsRepository>((ref) {

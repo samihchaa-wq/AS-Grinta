@@ -256,7 +256,4 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }) {
     throw UnimplementedError();
   }
-
-  @override
-
 }

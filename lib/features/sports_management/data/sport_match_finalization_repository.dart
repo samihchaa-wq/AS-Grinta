@@ -32,7 +32,6 @@ class SupabaseSportMatchFinalizationRepository
     );
     return response == null ? null : SportMatchFinalization.fromRpc(response);
   }
-
 }
 
 final sportMatchFinalizationRepositoryProvider =

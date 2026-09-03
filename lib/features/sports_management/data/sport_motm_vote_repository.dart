@@ -45,7 +45,6 @@ class SportMotmVoteRepository {
       throw StateError('Le scrutin n’a pas pu être annulé.');
     }
   }
-
 }
 
 final sportMotmVoteRepositoryProvider = Provider<SportMotmVoteRepository>((
