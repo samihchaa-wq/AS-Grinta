@@ -222,7 +222,16 @@ jobs:
       - name: Enforce coverage baseline
         shell: bash
         env:
-          MIN_LINE_COVERAGE: '20.0'
+          # Cliquet, pas objectif. La couverture reelle est de 33,87 % : un
+          # plancher a 20 % laissait treize points de recul possibles sans que
+          # rien ne le signale. Le relever a 32 % verrouille le terrain acquis
+          # sans exiger un seul test de plus, et laisse pres de deux points de
+          # marge pour un ecran ajoute sans test.
+          #
+          # A remonter quand la couverture progresse, jamais a redescendre pour
+          # faire passer une PR : c'est exactement le recul que ce seuil existe
+          # pour empecher.
+          MIN_LINE_COVERAGE: '32.0'
         run: |
           set -euo pipefail
           python3 - <<'PY'
