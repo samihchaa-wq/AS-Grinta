@@ -1,8 +1,8 @@
+import 'package:as_grinta/core/storage/profile_photo_urls.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CompositionPitch extends StatefulWidget {
   const CompositionPitch({
@@ -549,14 +549,21 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     [Color(0xFF546E7A), Color(0xFF37474F)],
   ];
 
+  /// Une seule nouvelle signature après un échec de chargement. Au-delà, la
+  /// photo est considérée comme indisponible : réessayer en boucle ne faisait
+  /// que multiplier les requêtes sans jamais rien afficher.
+  static const _maxRetries = 1;
+
   int _attempt = 0;
   String? _resolvedPhotoUrl;
-  bool _resolvingPhoto = false;
 
   @override
   void initState() {
     super.initState();
-    _resolvePhoto();
+    // Une URL déjà signée est réutilisée immédiatement : la photo apparaît dès
+    // la première image, sans passer par les initiales.
+    _resolvedPhotoUrl = ProfilePhotoUrlCache.instance.cached(widget.photoUrl);
+    if (_resolvedPhotoUrl == null) _resolvePhoto();
   }
 
   @override
@@ -564,8 +571,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.photoUrl != widget.photoUrl) {
       _attempt = 0;
-      _resolvedPhotoUrl = null;
-      _resolvePhoto();
+      _resolvedPhotoUrl = ProfilePhotoUrlCache.instance.cached(widget.photoUrl);
+      if (_resolvedPhotoUrl == null) _resolvePhoto();
     }
   }
 
@@ -578,51 +585,13 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     return _avatarPalette[hash % _avatarPalette.length];
   }
 
-  String? _profilePhotoPath(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return null;
-    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-      return trimmed.replaceFirst(RegExp(r'^/+'), '');
-    }
-    final uri = Uri.tryParse(trimmed);
-    if (uri == null) return null;
-    const markers = [
-      '/storage/v1/object/public/profile-photos/',
-      '/storage/v1/object/sign/profile-photos/',
-      '/storage/v1/object/authenticated/profile-photos/',
-    ];
-    for (final marker in markers) {
-      final index = uri.path.indexOf(marker);
-      if (index >= 0) {
-        return Uri.decodeComponent(uri.path.substring(index + marker.length));
-      }
-    }
-    return null;
-  }
-
   Future<void> _resolvePhoto() async {
     final original = widget.photoUrl?.trim();
-    if (original == null || original.isEmpty || _resolvingPhoto) return;
-    final path = _profilePhotoPath(original);
-    if (path == null) {
-      if (mounted) setState(() => _resolvedPhotoUrl = original);
-      return;
-    }
-    _resolvingPhoto = true;
-    try {
-      final signed = await Supabase.instance.client.storage
-          .from('profile-photos')
-          .createSignedUrl(path, 3600);
-      if (mounted && widget.photoUrl?.trim() == original) {
-        setState(() => _resolvedPhotoUrl = signed);
-      }
-    } catch (_) {
-      if (mounted && widget.photoUrl?.trim() == original) {
-        setState(() => _resolvedPhotoUrl = null);
-      }
-    } finally {
-      _resolvingPhoto = false;
-    }
+    if (original == null || original.isEmpty) return;
+    final signed = await ProfilePhotoUrlCache.instance.resolve(original);
+    if (!mounted || widget.photoUrl?.trim() != original) return;
+    if (signed == _resolvedPhotoUrl) return;
+    setState(() => _resolvedPhotoUrl = signed);
   }
 
   @override
@@ -697,15 +666,17 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : _initials(fallbackSize),
       errorBuilder: (context, error, stack) {
-        if (_attempt < 3) {
+        if (_attempt < _maxRetries) {
+          // Une URL signée peut avoir expiré ou pointer vers un fichier
+          // supprimé : on l'oublie et on en redemande une neuve, une fois.
+          ProfilePhotoUrlCache.instance.invalidate(widget.photoUrl);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              setState(() {
-                _attempt += 1;
-                _resolvedPhotoUrl = null;
-              });
-              _resolvePhoto();
-            }
+            if (!mounted) return;
+            setState(() {
+              _attempt += 1;
+              _resolvedPhotoUrl = null;
+            });
+            _resolvePhoto();
           });
         }
         return _initials(fallbackSize);

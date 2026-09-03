@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/storage/avatar_image.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:as_grinta/features/sports_management/domain/guest_player_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -149,17 +150,21 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
     required Uint8List bytes,
     required String fileExt,
   }) async {
+    // La photo d'un invité ne passe pas par le recadrage : elle arrive telle
+    // que la galerie l'a fournie. On la ramène à la taille d'affichage avant
+    // l'envoi, sinon elle pèse cinq fois son utilité à chaque chargement.
     final image = validateImageUpload(bytes, fileExt: fileExt);
+    final prepared = downscaleAvatar(bytes);
+    final extension = prepared.reencoded ? 'jpg' : image.extension;
+    final contentType =
+        prepared.reencoded ? imageMimeForExt('jpg') : image.mimeType;
     final path =
-        'guest/$guestPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.${image.extension}';
+        'guest/$guestPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.$extension';
     final bucket = _client.storage.from('profile-photos');
     await bucket.uploadBinary(
       path,
-      bytes,
-      fileOptions: FileOptions(
-        contentType: image.mimeType,
-        upsert: false,
-      ),
+      prepared.bytes,
+      fileOptions: FileOptions(contentType: contentType, upsert: false),
     );
     try {
       // L'ancienne photo est supprimée du stockage côté serveur (trigger sur

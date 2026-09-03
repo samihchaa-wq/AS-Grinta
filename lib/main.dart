@@ -6,6 +6,7 @@ import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/storage/profile_photo_urls.dart';
 import 'package:as_grinta/core/widgets/grinta_animated_crest.dart';
 import 'package:as_grinta/core/widgets/grinta_background.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -96,6 +97,9 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         publishableKey: AppConfig.supabaseAnonKey,
       ).timeout(const Duration(seconds: 20));
       _installIncidentSink();
+      // Les URLs signées des photos déjà vues sont relues du disque pendant
+      // l'amorçage : les avatars s'affichent alors sans attente réseau.
+      unawaited(ProfilePhotoUrlCache.instance.warmUp());
     } catch (error, stackTrace) {
       _incidentReference = AppLogger.error(
         'bootstrap.supabase',

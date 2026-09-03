@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:as_grinta/core/storage/avatar_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
@@ -59,7 +60,10 @@ class _PhotoCropDialog extends StatefulWidget {
 
 class _PhotoCropDialogState extends State<_PhotoCropDialog> {
   static const double _cropSize = 180;
-  static const double _exportScale = 4;
+
+  /// Le rendu est calculé à la taille de stockage, pas à un multiple arbitraire
+  /// de l'aperçu : c'est ce qui décide du poids réel de la photo à télécharger.
+  static const double _exportScale = avatarStorageSide / _cropSize;
 
   final _transformationController = TransformationController();
   double _childWidth = _cropSize;
@@ -125,18 +129,13 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     canvas.transform(_transformationController.value.storage);
     canvas.drawImageRect(
       source,
-      ui.Rect.fromLTWH(
-        0,
-        0,
-        source.width.toDouble(),
-        source.height.toDouble(),
-      ),
+      ui.Rect.fromLTWH(0, 0, source.width.toDouble(), source.height.toDouble()),
       ui.Rect.fromLTWH(0, 0, _childWidth, _childHeight),
       ui.Paint()..filterQuality = ui.FilterQuality.high,
     );
 
     final picture = recorder.endRecording();
-    final side = (_cropSize * _exportScale).round();
+    const side = avatarStorageSide;
     final output = await picture.toImage(side, side);
     // dart:ui ne sait encoder que du PNG, sans perte : les avatars pesaient
     // 171 à 250 ko pièce, soit ~2,5 Mo pour une composition de onze joueurs.
@@ -158,7 +157,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
       numChannels: 4,
       order: img.ChannelOrder.rgba,
     );
-    return img.encodeJpg(raw, quality: 85);
+    return img.encodeJpg(raw, quality: avatarStorageJpegQuality);
   }
 
   Future<void> _confirm() async {
