@@ -337,13 +337,13 @@ class _WaitlistScrollableHeader extends StatelessWidget {
       children: [
         _WaitlistHeaderCell(
           flex: 16,
-          label: 'Présence saison\nprécédente',
+          label: 'Saison\nprécédente',
           style: style,
           borderColor: borderColor,
         ),
         _WaitlistHeaderCell(
           flex: 18,
-          label: 'Liste d’attente cette\nsaison',
+          label: 'Tour cette\nsaison',
           style: style,
           borderColor: borderColor,
           drawRightBorder: false,
