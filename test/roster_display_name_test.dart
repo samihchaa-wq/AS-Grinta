@@ -80,4 +80,5 @@ void main() {
 
       expect(profile.displayName, 'Romain');
     });
-  })}
+   });
+}
