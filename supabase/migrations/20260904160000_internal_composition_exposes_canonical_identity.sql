@@ -9,6 +9,9 @@
 -- On expose l'identité canonique directement dans la composition, pour
 -- l'effectif comme pour les invités. C'est la même cascade que le reste de la
 -- réponse : le joueur de l'effectif d'abord, l'invité ensuite.
+--
+-- Le reste du corps reprend la version de 20260904150500, `last_initial`
+-- compris : remplacer la fonction sans le réécrire l'effacerait.
 
 create or replace function public.get_internal_composition(p_match_id uuid)
 returns jsonb
@@ -62,6 +65,12 @@ begin
         nullif(btrim(player.first_name), ''),
         nullif(btrim(guest.first_name), '')
       ),
+      'last_initial', nullif(upper(left(coalesce(
+        nullif(btrim(guest.last_name), ''),
+        nullif(btrim(player.last_name), ''),
+        nullif(btrim(profile.last_name), ''),
+        ''
+      ), 1)), ''),
       'photo_url', coalesce(profile.photo_url, player.photo_url, guest.photo_url),
       'is_goalkeeper', coalesce(player.is_goalkeeper, guest.is_goalkeeper, false),
       'is_guest', participant.guest_player_id is not null,
