@@ -832,6 +832,11 @@ class _PlayerChip extends StatelessWidget {
 /// Profils indexés par participant du match. On réutilise exactement la même
 /// identité canonique, le même historique et la même fusion que « Simuler la
 /// compo » afin d'éviter deux logiques de poste qui dériveraient avec le temps.
+///
+/// La composition porte désormais l'identité canonique de chaque convoqué,
+/// invités compris : un joueur du club venu en invité garde donc son poste de
+/// référence. Le repli par `season_players` ne sert plus qu'aux serveurs qui
+/// n'ont pas encore le champ, et ne couvre que l'effectif.
 final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
   final composition = await ref.watch(
@@ -839,19 +844,41 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
   );
   if (composition == null) return const {};
 
-  final seasonPlayerIds = composition.entries
-      .map((entry) => entry.seasonPlayerId?.trim())
-      .whereType<String>()
-      .where((id) => id.isNotEmpty)
-      .toSet()
-      .toList(growable: false);
-  if (seasonPlayerIds.isEmpty) return const {};
+  String? cleaned(String? value) {
+    final trimmed = value?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+
+  final canonicalIds = <String, String>{
+    for (final entry in composition.entries)
+      if (cleaned(entry.playerId) case final playerId?)
+        entry.participantId: playerId,
+  };
+
+  final missingSeasonPlayerIds = <String>{
+    for (final entry in composition.entries)
+      if (!canonicalIds.containsKey(entry.participantId))
+        if (cleaned(entry.seasonPlayerId) case final seasonPlayerId?)
+          seasonPlayerId,
+  }.toList(growable: false);
 
   final repository = ref.watch(matchCompositionRepositoryProvider);
   try {
-    final canonicalIds = await repository.fetchCanonicalPlayerIds(
-      seasonPlayerIds,
-    );
+    if (missingSeasonPlayerIds.isNotEmpty) {
+      final resolved = await repository.fetchCanonicalPlayerIds(
+        missingSeasonPlayerIds,
+      );
+      for (final entry in composition.entries) {
+        if (canonicalIds.containsKey(entry.participantId)) continue;
+        if (cleaned(entry.seasonPlayerId) case final seasonPlayerId?) {
+          if (resolved[seasonPlayerId] case final canonicalId?) {
+            canonicalIds[entry.participantId] = canonicalId;
+          }
+        }
+      }
+    }
+    if (canonicalIds.isEmpty) return const {};
+
     var positionProfiles = kPlayerPositionProfiles;
     try {
       positionProfiles = mergePlayerPositionProfiles(
@@ -864,11 +891,9 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     }
 
     return {
-      for (final entry in composition.entries)
-        if (entry.seasonPlayerId case final seasonPlayerId?)
-          if (canonicalIds[seasonPlayerId] case final canonicalId?)
-            if (positionProfiles[canonicalId] case final profile?)
-              entry.participantId: profile,
+      for (final participant in canonicalIds.entries)
+        if (positionProfiles[participant.value] case final profile?)
+          participant.key: profile,
     };
   } catch (_) {
     return const {};
