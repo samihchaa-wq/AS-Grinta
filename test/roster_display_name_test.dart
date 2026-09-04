@@ -55,4 +55,31 @@ void main() {
       expect(player.displayName, 'Fernandez');
     });
   });
+
+  group('Nom affiché d’un compte à relier', () {
+    test('le surnom passe devant le prénom officiel', () {
+      const profile = LinkableProfile(
+        id: 'julien-vignard',
+        firstName: 'Julien',
+        lastName: 'Vignard',
+        surnom: 'julio',
+        username: 'julienv',
+      );
+
+      expect(profile.displayName, 'Julio');
+    });
+
+    test('le prénom officiel est capitalisé sans surnom', () {
+      const profile = LinkableProfile(
+        id: 'romain-spigolon',
+        firstName: 'romain',
+        lastName: 'Spigolon',
+        surnom: '',
+        username: 'romains2',
+      );
+
+      expect(profile.displayName, 'Romain');
+    });
+  });
+
 }
