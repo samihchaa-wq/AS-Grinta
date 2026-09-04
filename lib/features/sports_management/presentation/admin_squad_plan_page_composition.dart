@@ -453,13 +453,20 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       parts.add('poste${simulation.emptySlots.length > 1 ? 's' : ''} '
           'sans joueur : $labels');
     }
+    String named(List<SimulatedPlacement> placements) => placements
+        .map((placement) =>
+            '${placement.candidate.displayName} (${placement.slot.label})')
+        .join(', ');
+
     final stretched = simulation.stretchedPlacements;
     if (stretched.isNotEmpty) {
-      final names = stretched
-          .map((placement) =>
-              '${placement.candidate.displayName} (${placement.slot.label})')
-          .join(', ');
-      parts.add('hors poste habituel : $names');
+      parts.add('hors poste habituel : ${named(stretched)}');
+    }
+    // Un polyvalent occupe un poste sans y avoir de références : le dire évite
+    // de prendre la proposition pour argent comptant.
+    final unsettled = simulation.unsettledPlacements;
+    if (unsettled.isNotEmpty) {
+      parts.add('sans poste de référence : ${named(unsettled)}');
     }
     return '${parts.join(' · ')}. À toi d’ajuster.';
   }

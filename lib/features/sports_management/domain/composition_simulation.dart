@@ -92,6 +92,23 @@ class SimulatedComposition {
         (placement) => placement.reason == SimulatedPlacementReason.lastResort,
       )
       .toList(growable: false);
+
+  /// Les joueurs placés faute de poste de référence.
+  ///
+  /// Un onze doit être complet : contrairement au tri par poste, la simulation
+  /// ne peut pas laisser un polyvalent de côté, elle doit lui donner un poste.
+  /// Elle peut en revanche dire lesquels de ces placements ne reposent sur
+  /// rien de solide, pour que l'admin sache où regarder en premier.
+  ///
+  /// La liste se vide d'elle-même : chaque match enregistré fait monter la
+  /// part du poste principal, et un joueur qui se fixe finit par sortir de
+  /// cette catégorie sans que personne n'ait rien à faire.
+  List<SimulatedPlacement> get unsettledPlacements => placements
+      .where(
+        (placement) =>
+            placement.reason == SimulatedPlacementReason.versatileAdjustment,
+      )
+      .toList(growable: false);
 }
 
 /// Compose une équipe à partir des postes de référence des joueurs.
