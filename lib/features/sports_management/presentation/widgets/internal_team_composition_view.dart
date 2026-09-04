@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
@@ -862,8 +863,12 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
           seasonPlayerId,
   }.toList(growable: false);
 
-  final repository = ref.watch(matchCompositionRepositoryProvider);
+  // Aucun convoqué identifiable : rien à chercher, et surtout rien à
+  // demander au serveur.
+  if (canonicalIds.isEmpty && missingSeasonPlayerIds.isEmpty) return const {};
+
   try {
+    final repository = ref.watch(matchCompositionRepositoryProvider);
     if (missingSeasonPlayerIds.isNotEmpty) {
       final resolved = await repository.fetchCanonicalPlayerIds(
         missingSeasonPlayerIds,
@@ -879,15 +884,17 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     }
     if (canonicalIds.isEmpty) return const {};
 
-    var positionProfiles = kPlayerPositionProfiles;
+    final archive = await ref.watch(playerPositionArchiveProvider.future);
+    var positionProfiles = archive;
     try {
       positionProfiles = mergePlayerPositionProfiles(
         history: await repository.fetchPlayerPositionHistory(
           kLivePositionHistoryStart,
         ),
+        archive: archive,
       );
     } catch (_) {
-      positionProfiles = kPlayerPositionProfiles;
+      positionProfiles = archive;
     }
 
     return {

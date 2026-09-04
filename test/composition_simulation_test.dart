@@ -12,15 +12,15 @@ const String stephaneFernandez = '7fe67f9b-75c0-4606-8030-021b00900cc1';
 const String julienCesar = 'a1cac6b7-ef09-493f-9d3e-7078fcaa3d97';
 const String olivierMillet = 'b26acaab-3d33-4371-a80f-5692ffb6d026';
 const String alyounCherfi = '2c40dbe5-a804-4b9f-9256-432ab85ce495';
-const String julioVignard = '2e161341-e2b5-48d2-b852-717be71024aa';
-const String romainSpigolon = 'aba6998e-e020-4e62-9b35-4a9583ca5ad9';
+const String julioVignard = '6f81ca4f-cfd3-4711-a2e5-8f8112a2375d';
+const String romainSpigolon = 'bd469e77-23a2-4be4-98e4-2e85923fac69';
 const String floArnauduc = '1343e65c-63fa-4f8f-af56-56d3136962b5';
 const String lukaBrunel = 'b9f696f7-297d-4891-96f1-34a974c0f7a1';
 const String allanBamokena = '9af382c3-7df3-4109-8c07-601754f19f89';
 const String nicolasBelmonte = '4bbdab69-6f29-430d-8c05-eb8bc4b1e547';
 const String milanCouzin = '5c681291-ec75-47ed-8bee-1b538b69cefe';
 const String hakimCherfi = 'aaa132f5-1fca-47dc-a875-5c2aaa4a9ae9';
-const String simonReis = 'af7dfe56-0be5-4d5c-8dda-140a99df7dbf';
+const String simonReis = '0d8871eb-b369-4578-8ba6-17790623fceb';
 
 SimulationCandidate candidate(
   String name, {

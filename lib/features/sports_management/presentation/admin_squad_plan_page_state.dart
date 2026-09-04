@@ -186,14 +186,17 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             );
       var positionProfiles = kPlayerPositionProfiles;
       if (!postMatch) {
+        final archive = await ref.read(playerPositionArchiveProvider.future);
+        positionProfiles = archive;
         try {
           positionProfiles = mergePlayerPositionProfiles(
             history: await compositionRepository.fetchPlayerPositionHistory(
               kLivePositionHistoryStart,
             ),
+            archive: archive,
           );
         } catch (_) {
-          positionProfiles = kPlayerPositionProfiles;
+          positionProfiles = archive;
         }
       }
       // Une composition déjà enregistrée est la source de vérité, y compris

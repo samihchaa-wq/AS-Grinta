@@ -4,7 +4,7 @@ import 'package:as_grinta/features/sports_management/domain/player_position_prof
 import 'package:flutter_test/flutter_test.dart';
 
 /// Romain Spigolon : MDC très marqué dans l'archive.
-const String romainSpigolon = 'aba6998e-e020-4e62-9b35-4a9583ca5ad9';
+const String romainSpigolon = 'bd469e77-23a2-4be4-98e4-2e85923fac69';
 
 /// Un joueur inconnu de l'archive, comme une recrue.
 const String recrue = 'recrue-sans-archive';
@@ -151,7 +151,7 @@ void main() {
     test('un joueur polyvalent peut se fixer un poste', () {
       // Aki Salabee n'a aucun poste dominant dans l'archive ; une série de
       // titularisations au même poste doit finir par lui en donner un.
-      const aki = '6aa3588d-4131-444e-802c-5a0913244831';
+      const aki = 'a0a105a2-5041-4555-90bd-a75140ad701c';
       expect(kPlayerPositionProfiles[aki]!.isVersatile, isTrue);
 
       final merged = mergePlayerPositionProfiles(
