@@ -39,6 +39,7 @@ class MatchCompositionEntry {
     required this.displayName,
     required this.isGoalkeeper,
     required this.zone,
+    this.lastInitial,
     required this.sortOrder,
     required this.availabilityStatus,
     required this.convocationStatus,
@@ -64,6 +65,7 @@ class MatchCompositionEntry {
       displayName: capitalizePersonName(
         (json['display_name'] ?? 'Joueur').toString(),
       ),
+      lastInitial: _nullableText(json['last_initial']),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
       zone: MatchCompositionZone.fromWire(json['zone']),
@@ -87,6 +89,11 @@ class MatchCompositionEntry {
   final String seasonPlayerId;
   final String? guestPlayerId;
   final String displayName;
+
+  /// Initiale du nom de famille, quand le serveur la connaît. Le nom affiché
+  /// n'est qu'un prénom ou un surnom : sans cette lettre, deux joueurs
+  /// prénommés Julien auraient exactement la même pastille d'initiales.
+  final String? lastInitial;
   final bool isGuest;
   final bool isGoalkeeper;
   final MatchCompositionZone zone;
@@ -129,6 +136,7 @@ class MatchCompositionEntry {
       seasonPlayerId: seasonPlayerId,
       guestPlayerId: guestPlayerId,
       displayName: displayName,
+      lastInitial: lastInitial,
       isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
       zone: nextZone,
@@ -315,6 +323,7 @@ MatchCompositionEntry _initialEntry(
     seasonPlayerId: player.seasonPlayerId,
     guestPlayerId: player.guestPlayerId,
     displayName: player.displayName.trim(),
+    lastInitial: _initialOf(player.lastName),
     isGuest: player.isGuest,
     isGoalkeeper: player.isGoalkeeper ||
         goalkeeperSeasonPlayerIds.contains(player.seasonPlayerId),
@@ -338,6 +347,7 @@ MatchCompositionEntry _initialPostMatchEntry(
     seasonPlayerId: participant.seasonPlayerId ?? '',
     guestPlayerId: participant.guestPlayerId,
     displayName: participant.displayName.trim(),
+    lastInitial: participant.lastInitial,
     isGuest: participant.isGuest,
     isGoalkeeper: participant.isGoalkeeper,
     zone: selected
@@ -369,4 +379,11 @@ DateTime? _dateOrNull(Object? value) {
   final text = value?.toString();
   if (text == null || text.isEmpty) return null;
   return DateTime.tryParse(text)?.toLocal();
+}
+
+/// Première lettre d'un nom de famille, en majuscule, ou null quand l'écran ne
+/// le connaît pas.
+String? _initialOf(String? lastName) {
+  final trimmed = lastName?.trim() ?? '';
+  return trimmed.isEmpty ? null : trimmed[0].toUpperCase();
 }

@@ -183,6 +183,7 @@ class CompositionPlayerChip extends StatelessWidget {
       avatar: PlayerAvatar(
         photoUrl: entry.photoUrl,
         name: entry.displayName,
+        lastName: entry.lastInitial,
         isGoalkeeper: entry.isGoalkeeper,
         size: 24,
       ),
@@ -319,6 +320,7 @@ class CompositionPlayerTile extends StatelessWidget {
                   child: PlayerAvatar(
                     photoUrl: entry.photoUrl,
                     name: entry.displayName,
+                    lastName: entry.lastInitial,
                     isGoalkeeper: entry.isGoalkeeper,
                     size: 52,
                   ),
@@ -526,9 +528,10 @@ class PlayerAvatar extends StatefulWidget {
   final String? photoUrl;
   final String name;
 
-  /// Nom de famille, quand l'écran le connaît : sans photo, la pastille
-  /// affiche alors « Prénom + Nom » plutôt que les deux premières lettres du
-  /// prénom, ce qui distingue deux joueurs au même prénom.
+  /// Nom de famille — complet, ou réduit à son initiale quand c'est tout ce
+  /// que le serveur envoie. Sans photo, la pastille affiche alors
+  /// « Prénom + Nom » plutôt que les deux premières lettres du prénom, ce qui
+  /// distingue deux joueurs au même prénom.
   final String? lastName;
   final bool isGoalkeeper;
   final double size;

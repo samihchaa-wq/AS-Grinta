@@ -449,6 +449,7 @@ class _PlayerAvatar extends StatelessWidget {
     return PlayerAvatar(
       photoUrl: option.photoUrl,
       name: option.displayName,
+      lastName: option.lastInitial,
       isGoalkeeper: option.isGoalkeeper,
       size: 36,
     );

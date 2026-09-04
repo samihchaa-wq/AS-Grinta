@@ -800,6 +800,7 @@ class _PlayerChip extends StatelessWidget {
           PlayerAvatar(
             photoUrl: entry.photoUrl,
             name: entry.displayName,
+            lastName: entry.lastInitial,
             isGoalkeeper: entry.isGoalkeeper,
             size: 28,
           ),
