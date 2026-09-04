@@ -47,6 +47,7 @@ class HistoricalMatchDetail {
     required this.presentNames,
     required this.scorers,
     required this.motmNames,
+    this.archiveNameByLabel = const {},
   });
 
   final String? formation;
@@ -55,6 +56,11 @@ class HistoricalMatchDetail {
   final List<String> presentNames;
   final List<HistoricalScorer> scorers;
   final List<String> motmNames;
+
+  /// Nom écrit sur la feuille de match d'origine, par appellation affichée.
+  /// L'écran garde ainsi de quoi reconnaître un joueur d'archive même quand
+  /// l'application l'appelle désormais par son surnom.
+  final Map<String, String> archiveNameByLabel;
 
   /// Une composition n'a de sens que si l'archive connaît au moins un nom :
   /// un terrain rempli uniquement d'emplacements vides n'apprendrait rien,
@@ -107,20 +113,29 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
   final photoUrlsByName = Map<String, dynamic>.from(
     row['photo_urls'] as Map? ?? const {},
   );
+  final identitiesByName = Map<String, dynamic>.from(
+    row['display_names'] as Map? ?? const {},
+  );
 
-  // L'archive stocke le nom complet des joueurs, contrairement aux matchs
-  // courants où l'appli n'expose que le prénom (lié au profil). On applique
-  // ici la même réduction « prénom, + initiale du nom si homonyme exact »
-  // que la page Statistiques, pour que la composition d'un match archivé se
-  // lise exactement comme celle d'un match courant. Les emplacements vides
-  // n'entrent pas dans le calcul : ce ne sont pas des joueurs.
-  final shortName = _shortNameResolver({
+  // L'archive stocke le nom complet écrit sur la vieille feuille de match, où
+  // un joueur a pu être noté sous son surnom et un autre sous son prénom. Le
+  // Calendrier appelle tout le monde par son surnom : on part donc de
+  // l'identité du club quand l'archive est reliée à un joueur connu, et on
+  // retombe sur le prénom de la feuille sinon. Les homonymes reçoivent
+  // l'initiale de leur nom, comme ailleurs. Les emplacements vides n'entrent
+  // pas dans le calcul : ce ne sont pas des joueurs.
+  final archiveNames = {
     ...fieldPlayersRaw
         .map((entry) => (entry['name'] ?? '').toString())
         .where((name) => !isVacantArchiveSlotName(name)),
     ...benchPlayersRaw,
     ...presentNamesRaw,
-  });
+  };
+  final identity = _ArchiveIdentities(identitiesByName);
+  final shortName = _shortNameResolver(archiveNames, identity);
+  final archiveNameByLabel = {
+    for (final archiveName in archiveNames) shortName(archiveName): archiveName,
+  };
 
   final fieldPlayers = fieldPlayersRaw.map(
     (entry) {
@@ -128,7 +143,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
       final isVacant = isVacantArchiveSlotName(fullName);
       return HistoricalFieldPlayer(
         name: isVacant ? '' : shortName(fullName),
-        lastInitial: isVacant ? null : lastNameInitialOf(fullName),
+        lastInitial: isVacant ? null : identity.lastInitialOf(fullName),
         positionLabel: (entry['position_label'] ?? '').toString(),
         xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
         yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
@@ -147,7 +162,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
       .map(
         (fullName) => HistoricalFieldPlayer(
           name: shortName(fullName),
-          lastInitial: lastNameInitialOf(fullName),
+          lastInitial: identity.lastInitialOf(fullName),
           positionLabel: '',
           xPct: 50,
           yPct: 50,
@@ -176,6 +191,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
     presentNames: presentNamesRaw.map(shortName).toList(growable: false),
     scorers: scorers,
     motmNames: motmNamesRaw.map(shortName).toList(growable: false),
+    archiveNameByLabel: archiveNameByLabel,
   );
 }
 
@@ -199,24 +215,55 @@ bool isVacantArchiveSlotName(String name) {
   return normalized == vacantSlotName;
 }
 
-/// Construit un « prénom, + initiale si homonyme exact » à partir de
-/// l'ensemble des noms complets d'un même match : deux « Xavier » sur la
-/// même feuille de match deviennent « Xavier G. » / « Xavier L. », sinon un
-/// « Xavier » seul reste juste « Xavier ».
-String Function(String) _shortNameResolver(Iterable<String> fullNames) {
-  final firstNameCounts = <String, int>{};
-  for (final fullName in fullNames) {
-    final key = firstNameOf(fullName).toLowerCase();
-    if (key.isEmpty) continue;
-    firstNameCounts[key] = (firstNameCounts[key] ?? 0) + 1;
+/// Identités du club rattachées aux noms d'une feuille de match archivée :
+/// surnom (sinon prénom) et initiale du nom de famille, telles que la base
+/// les renvoie. Un joueur que l'archive ne relie à personne n'y figure pas.
+class _ArchiveIdentities {
+  _ArchiveIdentities(this._byArchiveName);
+
+  final Map<String, dynamic> _byArchiveName;
+
+  String? nameOf(String archiveName) => _read(archiveName, 'name');
+
+  /// Initiale du nom de famille : celle du club si on la connaît, sinon celle
+  /// que donne le nom complet de la feuille de match.
+  String? lastInitialOf(String archiveName) {
+    final initial = _read(archiveName, 'last_initial');
+    if (initial != null) return initial.toUpperCase();
+    return lastNameInitialOf(archiveName);
   }
-  return (fullName) {
-    final firstName = firstNameOf(fullName);
-    final isHomonym = (firstNameCounts[firstName.toLowerCase()] ?? 0) > 1;
-    final lastInitial = lastNameInitialOf(fullName);
-    return isHomonym && lastInitial != null
-        ? '$firstName $lastInitial.'
-        : firstName;
+
+  String? _read(String archiveName, String key) {
+    final entry = _byArchiveName[archiveName];
+    if (entry is! Map) return null;
+    final value = (entry[key] ?? '').toString().trim();
+    return value.isEmpty ? null : value;
+  }
+}
+
+/// Construit l'appellation d'un joueur d'archive : son surnom au club quand
+/// on le connaît, sinon le prénom écrit sur la feuille de match. Deux joueurs
+/// qui finissent avec la même appellation sur un même match reçoivent
+/// l'initiale de leur nom : deux « Xavier » deviennent « Xavier G. » et
+/// « Xavier L. », sinon un « Xavier » seul reste juste « Xavier ».
+String Function(String) _shortNameResolver(
+  Iterable<String> archiveNames,
+  _ArchiveIdentities identities,
+) {
+  String label(String archiveName) =>
+      identities.nameOf(archiveName) ?? firstNameOf(archiveName);
+
+  final labelCounts = <String, int>{};
+  for (final archiveName in archiveNames) {
+    final key = label(archiveName).toLowerCase();
+    if (key.isEmpty) continue;
+    labelCounts[key] = (labelCounts[key] ?? 0) + 1;
+  }
+  return (archiveName) {
+    final name = label(archiveName);
+    final isHomonym = (labelCounts[name.toLowerCase()] ?? 0) > 1;
+    final lastInitial = identities.lastInitialOf(archiveName);
+    return isHomonym && lastInitial != null ? '$name $lastInitial.' : name;
   };
 }
 
