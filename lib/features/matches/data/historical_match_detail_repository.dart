@@ -11,10 +11,16 @@ class HistoricalFieldPlayer {
     required this.yPct,
     required this.isGoalkeeper,
     required this.photoUrl,
+    this.lastInitial,
     this.isVacant = false,
   });
 
   final String name;
+
+  /// Initiale du nom de famille, tirée du nom complet gardé par l'archive :
+  /// l'écran n'affiche qu'un prénom, mais la pastille sans photo doit quand
+  /// même distinguer deux joueurs au même prénom.
+  final String? lastInitial;
   final String positionLabel;
   final double xPct;
   final double yPct;
@@ -122,6 +128,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
       final isVacant = isVacantArchiveSlotName(fullName);
       return HistoricalFieldPlayer(
         name: isVacant ? '' : shortName(fullName),
+        lastInitial: isVacant ? null : lastNameInitialOf(fullName),
         positionLabel: (entry['position_label'] ?? '').toString(),
         xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
         yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
@@ -140,6 +147,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
       .map(
         (fullName) => HistoricalFieldPlayer(
           name: shortName(fullName),
+          lastInitial: lastNameInitialOf(fullName),
           positionLabel: '',
           xPct: 50,
           yPct: 50,

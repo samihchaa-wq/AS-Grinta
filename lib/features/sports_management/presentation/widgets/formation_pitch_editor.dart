@@ -566,6 +566,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                         PlayerAvatar(
                           photoUrl: entry.photoUrl,
                           name: entry.displayName,
+                          lastName: entry.lastInitial,
                           isGoalkeeper: entry.isGoalkeeper,
                           size: avatarSize,
                         ),

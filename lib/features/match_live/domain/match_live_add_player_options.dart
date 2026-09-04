@@ -7,6 +7,7 @@ class MatchLiveAddPlayerOption {
     this.seasonPlayerId,
     this.guestPlayerId,
     this.photoUrl,
+    this.lastInitial,
   });
 
   factory MatchLiveAddPlayerOption.fromJson(Map<String, dynamic> json) {
@@ -15,6 +16,7 @@ class MatchLiveAddPlayerOption {
       seasonPlayerId: _nullableText(json['season_player_id']),
       guestPlayerId: _nullableText(json['guest_player_id']),
       displayName: (json['display_name'] ?? 'Joueur').toString().trim(),
+      lastInitial: _nullableText(json['last_initial']),
       photoUrl: _nullableText(json['photo_url']),
       isGoalkeeper: json['is_goalkeeper'] == true,
       isGuest: json['is_guest'] == true,
@@ -25,6 +27,9 @@ class MatchLiveAddPlayerOption {
   final String? seasonPlayerId;
   final String? guestPlayerId;
   final String displayName;
+
+  /// Initiale du nom de famille, pour la pastille des joueurs sans photo.
+  final String? lastInitial;
   final String? photoUrl;
   final bool isGoalkeeper;
   final bool isGuest;

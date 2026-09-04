@@ -232,6 +232,7 @@ MatchCompositionEntry _entryFromHistorical(
     participantId: 'historical-${zone.wireValue}-$sortOrder-${player.name}',
     seasonPlayerId: player.name,
     displayName: player.name,
+    lastInitial: player.lastInitial,
     isGoalkeeper: player.isGoalkeeper && !player.isVacant,
     zone: zone,
     sortOrder: sortOrder,
