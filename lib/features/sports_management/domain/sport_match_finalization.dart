@@ -39,6 +39,7 @@ class SportFinalParticipant {
     this.seasonPlayerId,
     this.guestPlayerId,
     this.photoUrl,
+    this.lastInitial,
     this.isMotm = false,
   });
 
@@ -59,6 +60,7 @@ class SportFinalParticipant {
       assists: (json['assists'] as num?)?.toInt() ?? 0,
       cleanSheet: json['clean_sheet'] == true,
       photoUrl: _nullableText(json['photo_url']),
+      lastInitial: _nullableText(json['last_initial']),
       isMotm: json['is_motm'] == true,
     );
   }
@@ -67,6 +69,9 @@ class SportFinalParticipant {
   final String? seasonPlayerId;
   final String? guestPlayerId;
   final String displayName;
+
+  /// Initiale du nom de famille, pour la pastille des joueurs sans photo.
+  final String? lastInitial;
   final bool isGuest;
   final bool isGoalkeeper;
   final String plannedZone;

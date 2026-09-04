@@ -67,18 +67,22 @@ class LinkableProfile {
     required this.id,
     required this.firstName,
     required this.lastName,
+    required this.surnom,
     required this.username,
   });
 
   final String id;
   final String firstName;
   final String lastName;
+  final String surnom;
   final String username;
 
   String get displayName {
-    final first = firstName.trim();
+    final nickname = capitalizePersonName(surnom);
+    if (nickname.isNotEmpty) return nickname;
+    final first = capitalizePersonName(firstName);
     if (first.isNotEmpty) return first;
-    final full = '$firstName $lastName'.trim();
+    final full = capitalizePersonName('$firstName $lastName');
     if (full.isNotEmpty) return full;
     final login = username.trim();
     return login.isEmpty ? 'Compte sans nom' : login;
@@ -153,7 +157,7 @@ class RosterRepository {
   Future<List<LinkableProfile>> fetchLinkableProfiles() async {
     final rows = await _client
         .from('profiles')
-        .select('id,first_name,status')
+        .select('id,first_name,surnom,status')
         .eq('status', 'active')
         .neq('id', '00000000-0000-0000-0000-000000000001')
         .order('first_name');
@@ -164,6 +168,7 @@ class RosterRepository {
             id: row['id'].toString(),
             firstName: (row['first_name'] ?? '').toString(),
             lastName: '',
+            surnom: (row['surnom'] ?? '').toString(),
             username: '',
           ),
         )

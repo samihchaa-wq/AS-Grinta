@@ -10,6 +10,7 @@ class InternalCompositionEntry {
     this.guestPlayerId,
     this.playerId,
     this.photoUrl,
+    this.lastInitial,
     this.teamNo,
     this.sortOrder = 0,
   });
@@ -22,6 +23,9 @@ class InternalCompositionEntry {
   /// ou des invités. C'est la clé de son historique de postes.
   final String? playerId;
   final String displayName;
+
+  /// Initiale du nom de famille, pour la pastille des joueurs sans photo.
+  final String? lastInitial;
   final String? photoUrl;
   final bool isGuest;
   final bool isGoalkeeper;
@@ -35,6 +39,7 @@ class InternalCompositionEntry {
       guestPlayerId: guestPlayerId,
       playerId: playerId,
       displayName: displayName,
+      lastInitial: lastInitial,
       photoUrl: photoUrl,
       isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
@@ -50,6 +55,7 @@ class InternalCompositionEntry {
       guestPlayerId: json['guest_player_id']?.toString(),
       playerId: json['player_id']?.toString(),
       displayName: (json['display_name'] ?? 'Joueur').toString(),
+      lastInitial: json['last_initial']?.toString(),
       photoUrl: json['photo_url']?.toString(),
       isGuest: json['is_guest'] == true,
       isGoalkeeper: json['is_goalkeeper'] == true,

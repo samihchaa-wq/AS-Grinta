@@ -40,6 +40,7 @@ class LiveBenchTile extends StatelessWidget {
               PlayerAvatar(
                 photoUrl: entry.photoUrl,
                 name: entry.displayName,
+                lastName: entry.lastInitial,
                 isGoalkeeper: entry.isGoalkeeper,
                 size: metrics.avatarSize,
               ),

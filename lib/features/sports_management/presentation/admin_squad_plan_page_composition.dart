@@ -37,6 +37,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 seasonPlayerId: base.seasonPlayerId,
                 guestPlayerId: base.guestPlayerId,
                 displayName: base.displayName,
+                lastInitial: base.lastInitial,
                 isGuest: base.isGuest,
                 isGoalkeeper: base.isGoalkeeper,
                 zone: previous.zone == MatchCompositionZone.field
@@ -87,6 +88,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 seasonPlayerId: base.seasonPlayerId,
                 guestPlayerId: base.guestPlayerId,
                 displayName: base.displayName,
+                lastInitial: base.lastInitial,
                 isGuest: base.isGuest,
                 isGoalkeeper: base.isGoalkeeper,
                 zone: base.canBeSelected
@@ -219,6 +221,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       seasonPlayerId: entry.seasonPlayerId,
       guestPlayerId: entry.guestPlayerId,
       displayName: entry.displayName,
+      lastInitial: entry.lastInitial,
       isGuest: entry.isGuest,
       isGoalkeeper: entry.isGoalkeeper,
       zone: zone,
