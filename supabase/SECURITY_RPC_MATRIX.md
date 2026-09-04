@@ -19,6 +19,7 @@ Audit préparatoire réalisé sur le projet de production le 20 juillet 2026, sa
 | `match_prediction_participant_count(uuid)` | profil actif, résultat agrégé | compter sans révéler les pronostics adverses |
 | `profile_badge_metrics(uuid)` | métriques agrégées uniquement | agréger des tables internes, dont `season_awards` |
 | `register_push_subscription(text,text,text,text)` | identité courante | écrire une souscription privée sans exposer la table |
+| `resolve_player_identities(text[])` | profil actif, ne rend que des identifiants pour des noms déjà fournis par l’appelant | lire `player_aliases` sans exposer la table, pour réancrer les postes de référence après une fusion d’identités |
 | `save_match_prediction(uuid,integer,integer,boolean)` | identité courante, profil actif, premier match ouvert | écriture atomique et contrôle concurrent du ×2 |
 | `set_badge_featured(text,boolean)` | `auth.uid()` propriétaire du badge | mise à jour limitée aux badges du compte courant |
 | `update_my_app_preferences(boolean,boolean,boolean)` | identité courante | mise à jour limitée aux préférences du compte |

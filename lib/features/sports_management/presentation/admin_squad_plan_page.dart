@@ -15,6 +15,7 @@ import 'package:as_grinta/features/predictions/presentation/widgets/inline_match
 import 'package:as_grinta/features/sports_management/data/guest_players_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';

@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
@@ -444,6 +445,7 @@ class _GroupedPlayerChips extends StatelessWidget {
     };
     for (final entry in entries) {
       groups[internalPlayerGroupFor(
+        isGuest: entry.isGuest,
         isGoalkeeper: entry.isGoalkeeper,
         profile: profiles[entry.participantId],
       )]!
@@ -833,6 +835,9 @@ class _PlayerChip extends StatelessWidget {
 /// Profils indexés par participant du match. On réutilise exactement la même
 /// identité canonique, le même historique et la même fusion que « Simuler la
 /// compo » afin d'éviter deux logiques de poste qui dériveraient avec le temps.
+///
+/// Seul l'effectif est concerné : un invité garde sa propre catégorie, quel
+/// que soit son passé au club, donc chercher son poste ne servirait à rien.
 final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
   final composition = await ref.watch(
@@ -841,6 +846,7 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
   if (composition == null) return const {};
 
   final seasonPlayerIds = composition.entries
+      .where((entry) => !entry.isGuest)
       .map((entry) => entry.seasonPlayerId?.trim())
       .whereType<String>()
       .where((id) => id.isNotEmpty)
@@ -848,28 +854,32 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
       .toList(growable: false);
   if (seasonPlayerIds.isEmpty) return const {};
 
-  final repository = ref.watch(matchCompositionRepositoryProvider);
   try {
+    final repository = ref.watch(matchCompositionRepositoryProvider);
     final canonicalIds = await repository.fetchCanonicalPlayerIds(
       seasonPlayerIds,
     );
-    var positionProfiles = kPlayerPositionProfiles;
+
+    final archive = await ref.watch(playerPositionArchiveProvider.future);
+    var positionProfiles = archive;
     try {
       positionProfiles = mergePlayerPositionProfiles(
         history: await repository.fetchPlayerPositionHistory(
           kLivePositionHistoryStart,
         ),
+        archive: archive,
       );
     } catch (_) {
-      positionProfiles = kPlayerPositionProfiles;
+      positionProfiles = archive;
     }
 
     return {
       for (final entry in composition.entries)
-        if (entry.seasonPlayerId case final seasonPlayerId?)
-          if (canonicalIds[seasonPlayerId] case final canonicalId?)
-            if (positionProfiles[canonicalId] case final profile?)
-              entry.participantId: profile,
+        if (!entry.isGuest)
+          if (entry.seasonPlayerId case final seasonPlayerId?)
+            if (canonicalIds[seasonPlayerId] case final canonicalId?)
+              if (positionProfiles[canonicalId] case final profile?)
+                entry.participantId: profile,
     };
   } catch (_) {
     return const {};

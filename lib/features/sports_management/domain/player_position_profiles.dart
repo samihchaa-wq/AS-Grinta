@@ -96,10 +96,17 @@ class PlayerPositionProfile {
 ///
 /// L'identité canonique traverse les saisons et les changements de nom,
 /// contrairement à `season_players.id` ou au nom affiché.
+///
+/// Elle ne survit pas à une fusion d'identités : `merge_player_identities`
+/// déplace l'historique sur l'identité gagnante puis supprime la perdante.
+/// Les clés relevées ici se périment donc à chaque fusion, et un joueur dont
+/// la clé a disparu retombe silencieusement dans « Autre ». Après toute
+/// fusion, revérifier `tool/player_identity_map.json` contre
+/// `public.player_aliases` et régénérer ce fichier.
 const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
     <String, PlayerPositionProfile>{
   // Aki Salabee — MOD 25%, DCG 16%, MDC 14%, MOG 14%, DCD 10%, DG 10%
-  '6aa3588d-4131-444e-802c-5a0913244831': PlayerPositionProfile(
+  'a0a105a2-5041-4555-90bd-a75140ad701c': PlayerPositionProfile(
     displayName: 'Aki Salabee',
     appearances: 20,
     totalWeight: 16.7782,
@@ -149,7 +156,7 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
     ],
   ),
   // Amine Salhi — DG 43%, DD 32%, AG 19%, AD 6%
-  '76090b90-b1e6-46e0-90ba-4e91445b7fbd': PlayerPositionProfile(
+  'c1fe7ae2-3dea-4981-9510-a61826e5341a': PlayerPositionProfile(
     displayName: 'Amine Salhi',
     appearances: 16,
     totalWeight: 15.7071,
@@ -270,7 +277,7 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
     ],
   ),
   // François De La Bourdonnaye — AG 56%, MG 23%, BU 7%, DG 7%, BUG 5%
-  '8998ddff-122c-414b-899d-757c1c4f170a': PlayerPositionProfile(
+  '0cd558f5-b283-4e7c-bc3d-ac09f63655f8': PlayerPositionProfile(
     displayName: 'François De La Bourdonnaye',
     appearances: 58,
     totalWeight: 26.7029,
@@ -332,7 +339,7 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
     ],
   ),
   // Julien Vignard — DD 55%, DG 10%, MDG 5%
-  '2e161341-e2b5-48d2-b852-717be71024aa': PlayerPositionProfile(
+  '6f81ca4f-cfd3-4711-a2e5-8f8112a2375d': PlayerPositionProfile(
     displayName: 'Julien Vignard',
     appearances: 75,
     totalWeight: 37.6003,
@@ -467,7 +474,7 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
     ],
   ),
   // Romain Spigolon — MDC 55%, MC 11%, MDD 10%, MDG 8%, MCD 4%
-  'aba6998e-e020-4e62-9b35-4a9583ca5ad9': PlayerPositionProfile(
+  'bd469e77-23a2-4be4-98e4-2e85923fac69': PlayerPositionProfile(
     displayName: 'Romain Spigolon',
     appearances: 110,
     totalWeight: 49.4271,
@@ -502,15 +509,6 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
       PlayerPositionSample('GB', 60.9381),
     ],
   ),
-  // Samih Châa — GB 100%
-  'f971cfdd-a07a-430f-93b4-d5373600a180': PlayerPositionProfile(
-    displayName: 'Samih Châa',
-    appearances: 117,
-    totalWeight: 60.9381,
-    samples: <PlayerPositionSample>[
-      PlayerPositionSample('GB', 60.9381),
-    ],
-  ),
   // Samuel Granier — DD 53%, GB 21%, AD 9%, AG 6%, DG 5%
   'c5ba5eda-9cb3-4ec5-aa68-eef33b84a3ad': PlayerPositionProfile(
     displayName: 'Samuel Granier',
@@ -536,7 +534,7 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
     ],
   ),
   // Simon Reis — DCD 24%, DCG 17%, AG 10%, DG 9%, MOC 8%, MDC 7%
-  'af7dfe56-0be5-4d5c-8dda-140a99df7dbf': PlayerPositionProfile(
+  '0d8871eb-b369-4578-8ba6-17790623fceb': PlayerPositionProfile(
     displayName: 'Simon Reis',
     appearances: 41,
     totalWeight: 20.7708,

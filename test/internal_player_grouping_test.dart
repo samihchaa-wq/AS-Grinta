@@ -19,6 +19,7 @@ void main() {
     test('classe selon la moyenne pondérée des positions', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 8,
@@ -32,6 +33,7 @@ void main() {
       );
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 8,
@@ -45,6 +47,7 @@ void main() {
       );
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 8,
@@ -58,9 +61,65 @@ void main() {
       );
     });
 
+    test('un invité reste dans Autre, même avec tout un passé au poste', () {
+      expect(
+        internalPlayerGroupFor(
+          isGuest: true,
+          isGoalkeeper: false,
+          profile: profile(
+            appearances: 50,
+            samples: const [PlayerPositionSample('MDC', 50)],
+          ),
+        ),
+        InternalPlayerGroup.other,
+      );
+    });
+
+    test('un poste principal sous 30 % ne suffit pas à classer', () {
+      // Le meilleur poste ne pèse que 25 % : le ranger sous une ligne
+      // afficherait une certitude que l'historique n'a pas.
+      expect(
+        internalPlayerGroupFor(
+          isGuest: false,
+          isGoalkeeper: false,
+          profile: profile(
+            appearances: 20,
+            samples: const [
+              PlayerPositionSample('MOD', 5),
+              PlayerPositionSample('DCG', 4),
+              PlayerPositionSample('MDC', 4),
+              PlayerPositionSample('DCD', 4),
+              PlayerPositionSample('DG', 3),
+            ],
+          ),
+        ),
+        InternalPlayerGroup.other,
+      );
+    });
+
+    test('juste au-dessus de 30 %, le classement reprend', () {
+      expect(
+        internalPlayerGroupFor(
+          isGuest: false,
+          isGoalkeeper: false,
+          profile: profile(
+            appearances: 20,
+            samples: const [
+              PlayerPositionSample('MDC', 31),
+              PlayerPositionSample('MDG', 25),
+              PlayerPositionSample('MCD', 24),
+              PlayerPositionSample('MC', 20),
+            ],
+          ),
+        ),
+        InternalPlayerGroup.midfielders,
+      );
+    });
+
     test('un gardien reste dans Autre', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: true,
           profile: profile(
             appearances: 30,
@@ -74,6 +133,7 @@ void main() {
     test('un joueur avec trop peu de matchs reste dans Autre', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: kMinimumInternalPositionAppearances - 1,
@@ -83,7 +143,8 @@ void main() {
         InternalPlayerGroup.other,
       );
       expect(
-        internalPlayerGroupFor(isGoalkeeper: false, profile: null),
+        internalPlayerGroupFor(
+            isGuest: false, isGoalkeeper: false, profile: null),
         InternalPlayerGroup.other,
       );
     });
@@ -91,6 +152,7 @@ void main() {
     test('ignore les passages au but dans la moyenne d’un joueur de champ', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 6,
