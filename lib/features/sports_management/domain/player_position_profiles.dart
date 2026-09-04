@@ -331,9 +331,9 @@ const Map<String, PlayerPositionProfile> kPlayerPositionProfiles =
       PlayerPositionSample('DG', 1.3839),
     ],
   ),
-  // Julio Vignard — DD 55%, DG 10%, MDG 5%
+  // Julien Vignard — DD 55%, DG 10%, MDG 5%
   '2e161341-e2b5-48d2-b852-717be71024aa': PlayerPositionProfile(
-    displayName: 'Julio Vignard',
+    displayName: 'Julien Vignard',
     appearances: 75,
     totalWeight: 37.6003,
     samples: <PlayerPositionSample>[

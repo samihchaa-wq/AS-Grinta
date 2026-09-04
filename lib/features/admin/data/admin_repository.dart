@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,6 +8,7 @@ class AdminProfileItem {
     required this.id,
     required this.firstName,
     required this.lastName,
+    required this.surnom,
     required this.username,
     required this.passwordSet,
     required this.role,
@@ -16,15 +18,19 @@ class AdminProfileItem {
   final String id;
   final String firstName;
   final String lastName;
+  final String surnom;
   final String username;
   final bool passwordSet;
   final String role;
   final String status;
 
-  String get fullName => '$firstName $lastName'.trim();
+  String get fullName => capitalizePersonName('$firstName $lastName');
 
   String get displayName {
-    if (firstName.trim().isNotEmpty) return firstName.trim();
+    final nickname = capitalizePersonName(surnom);
+    if (nickname.isNotEmpty) return nickname;
+    final first = capitalizePersonName(firstName);
+    if (first.isNotEmpty) return first;
     return fullName.isEmpty ? 'Compte sans nom' : fullName;
   }
 }
@@ -104,6 +110,7 @@ class AdminRepository {
         id: row['id'].toString(),
         firstName: (row['first_name'] ?? '').toString(),
         lastName: (row['last_name'] ?? '').toString(),
+        surnom: (row['surnom'] ?? '').toString(),
         username: (row['username'] ?? '').toString(),
         passwordSet: row['password_set'] != false,
         // Compatibilité pendant la transition de production : l'ancien

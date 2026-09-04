@@ -30,6 +30,30 @@ void main() {
     });
   });
 
+  group('AdminProfileItem.displayName', () {
+    test('prefers the nickname over the official first name', () {
+      final profile = _profile(
+        id: 'julien',
+        status: 'active',
+        firstName: 'Julien',
+        surnom: 'julio',
+      );
+
+      expect(profile.displayName, 'Julio');
+      expect(profile.fullName, 'Julien User');
+    });
+
+    test('capitalizes the official first name when no nickname exists', () {
+      final profile = _profile(
+        id: 'romain',
+        status: 'active',
+        firstName: 'romain',
+      );
+
+      expect(profile.displayName, 'Romain');
+    });
+  });
+
   group('adminProfileActionPolicy', () {
     test('pending accounts can only be validated or rejected', () {
       final policy = adminProfileActionPolicy(
@@ -91,11 +115,14 @@ void main() {
 AdminProfileItem _profile({
   required String id,
   required String status,
+  String? firstName,
+  String surnom = '',
 }) {
   return AdminProfileItem(
     id: id,
-    firstName: id,
+    firstName: firstName ?? id,
     lastName: 'User',
+    surnom: surnom,
     username: id,
     passwordSet: true,
     role: 'pronostiqueur',
