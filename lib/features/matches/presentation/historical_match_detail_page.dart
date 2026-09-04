@@ -258,7 +258,15 @@ List<CompletedPlayerSummary> historicalFallbackPlayers(
 
   void addPlayer(String rawName, int goals) {
     final name = rawName.trim();
-    if (name.isEmpty || _isHistoricalCoachName(name)) return;
+    // Le coach est reconnu sur son appellation actuelle comme sur le nom écrit
+    // à l'époque : lui donner un surnom ne doit pas le faire réapparaître dans
+    // l'effectif de secours.
+    final archiveName = detail.archiveNameByLabel[name] ?? '';
+    if (name.isEmpty ||
+        _isHistoricalCoachName(name) ||
+        _isHistoricalCoachName(archiveName)) {
+      return;
+    }
     final key = name.toLowerCase();
     final existing = playersByName[key];
     if (existing == null || goals > existing.goals) {

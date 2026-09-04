@@ -76,3 +76,19 @@ String avatarInitials(String name, {String? lastName}) {
   if (last.isNotEmpty) return '${first[0]}${last[0]}'.toUpperCase();
   return (first.length >= 2 ? first.substring(0, 2) : first).toUpperCase();
 }
+
+/// Appellation d'un joueur ou d'un membre dans les statistiques : son vrai
+/// prénom, suivi de l'initiale de son nom de famille seulement quand un
+/// homonyme figure dans le même classement. Les surnoms restent réservés au
+/// Calendrier.
+String statisticsName(
+  String firstName, {
+  String? lastInitial,
+  bool isHomonym = false,
+}) {
+  final name = firstName.trim();
+  final initial = (lastInitial ?? '').trim();
+  if (name.isEmpty) return initial.isEmpty ? '' : initial[0].toUpperCase();
+  if (!isHomonym || initial.isEmpty) return name;
+  return '$name ${initial[0].toUpperCase()}.';
+}

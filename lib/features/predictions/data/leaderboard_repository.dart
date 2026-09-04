@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -46,7 +47,6 @@ class LeaderboardRepository {
         .select('''
           profile_id,
           first_name,
-          surnom,
           match_points,
           season_points,
           total_points,
@@ -59,16 +59,38 @@ class LeaderboardRepository {
         .order('match_points', ascending: false)
         .order('first_name');
 
-    return (response as List).map((row) {
-      final map = Map<String, dynamic>.from(row);
-      final surnom = (map['surnom'] ?? '').toString().trim();
+    final rows = (response as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList(growable: false);
+
+    // Les statistiques nomment tout le monde par son vrai prénom, et n'ajoutent
+    // l'initiale du nom que pour départager deux homonymes. Le surnom reste
+    // réservé au Calendrier.
+    final lastInitials = await _lastInitialsByProfile(
+      rows.map((row) => row['profile_id'].toString()).toSet(),
+    );
+    final firstNameCounts = <String, int>{};
+    for (final row in rows) {
+      final key = (row['first_name'] ?? '').toString().trim().toLowerCase();
+      if (key.isEmpty) continue;
+      firstNameCounts[key] = (firstNameCounts[key] ?? 0) + 1;
+    }
+
+    return rows.map((map) {
+      final profileId = map['profile_id'].toString();
       final firstName = (map['first_name'] ?? '').toString().trim();
-      final displayName = surnom.isNotEmpty
-          ? surnom
-          : (firstName.isNotEmpty ? firstName : 'Compte sans nom');
+      final lastInitial = lastInitials[profileId];
+      final isHomonym = (firstNameCounts[firstName.toLowerCase()] ?? 0) > 1;
+      final displayName = firstName.isEmpty
+          ? 'Compte sans nom'
+          : statisticsName(
+              firstName,
+              lastInitial: lastInitial,
+              isHomonym: isHomonym,
+            );
 
       return LeaderboardEntry(
-        profileId: map['profile_id'].toString(),
+        profileId: profileId,
         name: displayName,
         matchPoints: (map['match_points'] as num?)?.toDouble() ?? 0,
         seasonPoints: (map['season_points'] as num?)?.toDouble() ?? 0,
@@ -79,6 +101,30 @@ class LeaderboardRepository {
         seasonExacts: (map['season_exacts'] as num?)?.toInt() ?? 0,
       );
     }).toList();
+  }
+
+  /// Initiale du nom de famille des membres qui sont aussi joueurs, lue sur
+  /// l'effectif : le profil ne publie pas le nom de famille. Un pronostiqueur
+  /// qui n'a jamais été inscrit à l'effectif n'en a pas, il reste alors
+  /// affiché sous son seul prénom.
+  Future<Map<String, String>> _lastInitialsByProfile(
+    Set<String> profileIds,
+  ) async {
+    if (profileIds.isEmpty) return const {};
+    final response = await _client
+        .from('season_players')
+        .select('profile_id,last_name')
+        .inFilter('profile_id', profileIds.toList(growable: false));
+
+    final initials = <String, String>{};
+    for (final row in response as List) {
+      final map = Map<String, dynamic>.from(row as Map);
+      final profileId = map['profile_id']?.toString();
+      final lastName = (map['last_name'] ?? '').toString().trim();
+      if (profileId == null || profileId.isEmpty || lastName.isEmpty) continue;
+      initials.putIfAbsent(profileId, () => lastName[0].toUpperCase());
+    }
+    return initials;
   }
 }
 
