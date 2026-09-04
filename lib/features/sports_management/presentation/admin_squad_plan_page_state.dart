@@ -88,6 +88,16 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       _postMatch ||
       (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));
 
+  bool get _effectifNeedsPublication =>
+      !(_convocations?.isReadyForComposition ?? false);
+
+  bool get _canPersistEffectif => canPersistEffectif(
+        busy: _busy,
+        locked: _locked,
+        dirty: _effectifDirty,
+        readyForComposition: !_effectifNeedsPublication,
+      );
+
   bool get _compositionLocked =>
       _busy || (!_postMatch && (_locked || !_effectifReadyForComposition));
 
@@ -375,11 +385,18 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               isInternal &&
               _selectedMatchId != null)
             !_effectifReadyForComposition && !_postMatch
-                ? const GrintaEmptyState(
+                ? GrintaEmptyState(
                     icon: Icons.groups_rounded,
                     title: 'Effectif à valider',
                     message:
                         'Valide d’abord l’effectif pour préparer la composition.',
+                    action: FilledButton.icon(
+                      onPressed: _busy
+                          ? null
+                          : () => setState(() => _step = _AdminStep.effectif),
+                      icon: const Icon(Icons.groups_rounded),
+                      label: const Text('Aller à l’effectif'),
+                    ),
                   )
                 : InternalTeamCompositionView(
                     matchId: _selectedMatchId!,
