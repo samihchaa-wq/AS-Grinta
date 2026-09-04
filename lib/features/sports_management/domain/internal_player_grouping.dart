@@ -3,7 +3,10 @@ import 'package:as_grinta/features/sports_management/domain/player_position_prof
 
 /// Catégories compactes utilisées pour répartir visuellement les joueurs
 /// d'un match entre nous.
-enum InternalPlayerGroup { defenders, midfielders, attackers, guests, other }
+///
+/// [other] n'est pas un fourre-tout par défaut : c'est la catégorie de tous
+/// ceux qui n'ont pas de poste moyen, et d'eux seuls.
+enum InternalPlayerGroup { defenders, midfielders, attackers, other }
 
 /// En dessous de trois titularisations connues, le poste de référence serait
 /// trop fragile pour classer le joueur automatiquement.
@@ -16,18 +19,18 @@ const int kMinimumInternalPositionAppearances = 3;
 /// partagés ; ce fichier ne conserve que la traduction vers les groupes
 /// d'affichage propres aux matchs entre nous.
 ///
-/// Un invité reste un invité, même quand c'est un joueur du club qui a tout un
-/// passé au poste : il n'est pas de l'effectif du jour, et l'admin a besoin de
-/// le voir comme tel pour composer. C'est la même convention que la feuille de
-/// match, qui leur réserve déjà leur propre section.
+/// Quatre familles n'ont pas de poste moyen et partagent donc la même
+/// catégorie : les invités, qui n'appartiennent pas à l'effectif et n'ont par
+/// définition aucun historique à ce titre ; les gardiens, dont les passages au
+/// but ne disent rien d'un poste de champ ; ceux dont l'échantillon est trop
+/// mince pour conclure ; et ceux qu'on ne parvient pas à rattacher à une ligne.
 InternalPlayerGroup internalPlayerGroupFor({
   required bool isGuest,
   required bool isGoalkeeper,
   required PlayerPositionProfile? profile,
 }) {
-  if (isGuest) return InternalPlayerGroup.guests;
-
-  if (isGoalkeeper ||
+  if (isGuest ||
+      isGoalkeeper ||
       profile == null ||
       profile.appearances < kMinimumInternalPositionAppearances) {
     return InternalPlayerGroup.other;

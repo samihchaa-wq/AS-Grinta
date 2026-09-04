@@ -61,7 +61,7 @@ void main() {
       );
     });
 
-    test('un invité garde sa catégorie, même avec tout un passé au poste', () {
+    test('un invité reste dans Autre, même avec tout un passé au poste', () {
       expect(
         internalPlayerGroupFor(
           isGuest: true,
@@ -71,18 +71,7 @@ void main() {
             samples: const [PlayerPositionSample('MDC', 50)],
           ),
         ),
-        InternalPlayerGroup.guests,
-      );
-    });
-
-    test('un invité sans profil n’atterrit pas dans Autre', () {
-      expect(
-        internalPlayerGroupFor(
-          isGuest: true,
-          isGoalkeeper: false,
-          profile: null,
-        ),
-        InternalPlayerGroup.guests,
+        InternalPlayerGroup.other,
       );
     });
 

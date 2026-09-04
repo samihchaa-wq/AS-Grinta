@@ -513,7 +513,6 @@ class _GroupedPlayerChips extends StatelessWidget {
         InternalPlayerGroup.defenders => 'Défenseurs',
         InternalPlayerGroup.midfielders => 'Milieux',
         InternalPlayerGroup.attackers => 'Attaquants',
-        InternalPlayerGroup.guests => 'Invités',
         InternalPlayerGroup.other => 'Autre',
       };
 }
