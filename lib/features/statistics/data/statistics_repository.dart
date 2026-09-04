@@ -216,9 +216,11 @@ class StatisticsRepository {
       final firstName = firstNames[i];
       final lastNameInitial = lastNameInitialOf(fullName);
       final isHomonym = firstNameCounts[firstName.toLowerCase()]! > 1;
-      final name = isHomonym && lastNameInitial != null
-          ? '$firstName $lastNameInitial.'
-          : firstName;
+      final name = statisticsName(
+        firstName,
+        lastInitial: lastNameInitial,
+        isHomonym: isHomonym,
+      );
       players.add(
         PlayerStatistics(
           period: period,
