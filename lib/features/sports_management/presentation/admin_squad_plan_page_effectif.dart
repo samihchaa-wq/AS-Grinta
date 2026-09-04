@@ -123,7 +123,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   Future<void> _persistEffectif() async {
     final convocations = _convocations;
-    if (convocations == null || _busy || _locked || !_effectifDirty) {
+    if (convocations == null || !_canPersistEffectif) {
       return;
     }
     final limit = _validatedSquadLimit();
@@ -571,11 +571,18 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed:
-              _busy || _locked || !_effectifDirty ? null : _persistEffectif,
+          onPressed: _canPersistEffectif ? _persistEffectif : null,
           icon: const Icon(Icons.save_outlined),
           label: const Text('Enregistrer'),
         ),
+        if (!_locked && !_effectifDirty && _effectifNeedsPublication)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text(
+              'Effectif pas encore validé : enregistre-le pour débloquer la '
+              'composition.',
+            ),
+          ),
         if (_locked)
           const Padding(
             padding: EdgeInsets.only(top: 10),

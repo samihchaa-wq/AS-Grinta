@@ -556,11 +556,24 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final effectifReady = _effectifReadyForComposition;
 
     if (!effectifReady && !_postMatch) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            'Enregistre d’abord l’effectif pour préparer la composition.',
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Enregistre d’abord l’effectif pour préparer la composition.',
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => _updateState(() => _step = _AdminStep.effectif),
+                icon: const Icon(Icons.groups_rounded),
+                label: const Text('Aller à l’effectif'),
+              ),
+            ],
           ),
         ),
       );

@@ -163,6 +163,42 @@ void main() {
       expect(repository.lastDecisions?['sp5'], ConvocationStatus.notConvoked);
     },
   );
+
+  testWidgets('un effectif jamais validé garde Enregistrer actionnable', (
+    tester,
+  ) async {
+    await _setPhoneViewport(tester);
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(published: false),
+      initialStep: 'effectif',
+    );
+
+    final saveButton = find.widgetWithText(FilledButton, 'Enregistrer');
+    expect(saveButton, findsOneWidget);
+    expect(tester.widget<FilledButton>(saveButton).onPressed, isNotNull);
+    expect(
+      find.textContaining('enregistre-le pour débloquer la composition'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('la compo bloquée renvoie vers l’effectif', (tester) async {
+    await _setPhoneViewport(tester);
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(published: false),
+      initialStep: 'composition',
+    );
+
+    final shortcut = find.widgetWithText(FilledButton, 'Aller à l’effectif');
+    expect(shortcut, findsOneWidget);
+    await tester.ensureVisible(shortcut);
+    await tester.tap(shortcut);
+    await _pumpFrames(tester, count: 10);
+
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
+  });
 }
 
 Future<void> _setPhoneViewport(WidgetTester tester) async {
@@ -263,7 +299,7 @@ Future<void> _capture(WidgetTester tester, String fileName) async {
   });
 }
 
-MatchConvocations _convocations() {
+MatchConvocations _convocations({bool published = true}) {
   final players = [
     _player(
       id: 'p1',
@@ -310,9 +346,9 @@ MatchConvocations _convocations() {
     seasonId: 'season-visual',
     squadSizeLimit: 14,
     publishedSquadSizeLimit: 14,
-    convocationState: 'published',
-    convocationVersion: 2,
-    hasUnpublishedChanges: false,
+    convocationState: published ? 'published' : 'draft',
+    convocationVersion: published ? 2 : 0,
+    hasUnpublishedChanges: !published,
     lateWithdrawalCutoffAt: null,
     availableCount: players.where((player) => player.isAvailable).length,
     convokedCount: players.where((player) => player.isConvoked).length,
