@@ -90,6 +90,7 @@ class _RosterList extends ConsumerWidget {
                     leading: PlayerAvatar(
                       photoUrl: player.photoUrl,
                       name: player.displayName,
+                      lastName: player.lastName,
                       isGoalkeeper: player.isGoalkeeper,
                       size: 44,
                     ),

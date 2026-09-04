@@ -498,6 +498,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                         leading: PlayerAvatar(
                           photoUrl: guest.photoUrl,
                           name: guest.firstName,
+                          lastName: guest.lastName,
                           isGoalkeeper: guest.isGoalkeeper,
                           size: 40,
                         ),
