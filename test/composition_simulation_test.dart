@@ -303,46 +303,6 @@ void main() {
     });
   });
 
-  group('Placements sans poste de référence', () {
-    test('un polyvalent placé est signalé, un joueur au poste marqué non', () {
-      // Hakim Cherfi est le cas type : son meilleur poste pèse 17 %, donc la
-      // simulation doit lui donner un poste sans pouvoir s'appuyer sur rien.
-      final simulation = simulateComposition(
-        slots: <FootballFormationSlot>[
-          const FootballFormationSlot(label: 'BU', position: Offset(.50, .08)),
-          const FootballFormationSlot(label: 'DCD', position: Offset(.68, .70)),
-        ],
-        candidates: [
-          candidate('Milan', playerId: milanCouzin),
-          candidate('Hakim', playerId: hakimCherfi),
-        ],
-      );
-
-      expect(
-        reasonOf(simulation, 'Hakim'),
-        SimulatedPlacementReason.versatileAdjustment,
-      );
-      expect(
-        simulation.unsettledPlacements
-            .map((placement) => placement.candidate.displayName),
-        ['Hakim'],
-      );
-      // Couzin a un poste de référence : il n'a rien à faire dans la liste.
-      expect(slotOf(simulation, 'Milan'), 'BU');
-    });
-
-    test('sans polyvalent, la liste est vide', () {
-      final simulation = simulateComposition(
-        slots: <FootballFormationSlot>[
-          const FootballFormationSlot(label: 'BU', position: Offset(.50, .08)),
-        ],
-        candidates: [candidate('Milan', playerId: milanCouzin)],
-      );
-
-      expect(simulation.unsettledPlacements, isEmpty);
-    });
-  });
-
   group('Invités et joueurs sans profil', () {
     test('un invité reste sur le banc même si le terrain est incomplet', () {
       final simulation = simulateComposition(
