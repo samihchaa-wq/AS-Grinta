@@ -445,6 +445,7 @@ class _GroupedPlayerChips extends StatelessWidget {
     };
     for (final entry in entries) {
       groups[internalPlayerGroupFor(
+        isGuest: entry.isGuest,
         isGoalkeeper: entry.isGoalkeeper,
         profile: profiles[entry.participantId],
       )]!
@@ -512,6 +513,7 @@ class _GroupedPlayerChips extends StatelessWidget {
         InternalPlayerGroup.defenders => 'Défenseurs',
         InternalPlayerGroup.midfielders => 'Milieux',
         InternalPlayerGroup.attackers => 'Attaquants',
+        InternalPlayerGroup.guests => 'Invités',
         InternalPlayerGroup.other => 'Autre',
       };
 }
@@ -835,10 +837,8 @@ class _PlayerChip extends StatelessWidget {
 /// identité canonique, le même historique et la même fusion que « Simuler la
 /// compo » afin d'éviter deux logiques de poste qui dériveraient avec le temps.
 ///
-/// La composition porte désormais l'identité canonique de chaque convoqué,
-/// invités compris : un joueur du club venu en invité garde donc son poste de
-/// référence. Le repli par `season_players` ne sert plus qu'aux serveurs qui
-/// n'ont pas encore le champ, et ne couvre que l'effectif.
+/// Seul l'effectif est concerné : un invité garde sa propre catégorie, quel
+/// que soit son passé au club, donc chercher son poste ne servirait à rien.
 final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
   final composition = await ref.watch(
@@ -846,44 +846,20 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
   );
   if (composition == null) return const {};
 
-  String? cleaned(String? value) {
-    final trimmed = value?.trim();
-    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
-  }
-
-  final canonicalIds = <String, String>{
-    for (final entry in composition.entries)
-      if (cleaned(entry.playerId) case final playerId?)
-        entry.participantId: playerId,
-  };
-
-  final missingSeasonPlayerIds = <String>{
-    for (final entry in composition.entries)
-      if (!canonicalIds.containsKey(entry.participantId))
-        if (cleaned(entry.seasonPlayerId) case final seasonPlayerId?)
-          seasonPlayerId,
-  }.toList(growable: false);
-
-  // Aucun convoqué identifiable : rien à chercher, et surtout rien à
-  // demander au serveur.
-  if (canonicalIds.isEmpty && missingSeasonPlayerIds.isEmpty) return const {};
+  final seasonPlayerIds = composition.entries
+      .where((entry) => !entry.isGuest)
+      .map((entry) => entry.seasonPlayerId?.trim())
+      .whereType<String>()
+      .where((id) => id.isNotEmpty)
+      .toSet()
+      .toList(growable: false);
+  if (seasonPlayerIds.isEmpty) return const {};
 
   try {
     final repository = ref.watch(matchCompositionRepositoryProvider);
-    if (missingSeasonPlayerIds.isNotEmpty) {
-      final resolved = await repository.fetchCanonicalPlayerIds(
-        missingSeasonPlayerIds,
-      );
-      for (final entry in composition.entries) {
-        if (canonicalIds.containsKey(entry.participantId)) continue;
-        if (cleaned(entry.seasonPlayerId) case final seasonPlayerId?) {
-          if (resolved[seasonPlayerId] case final canonicalId?) {
-            canonicalIds[entry.participantId] = canonicalId;
-          }
-        }
-      }
-    }
-    if (canonicalIds.isEmpty) return const {};
+    final canonicalIds = await repository.fetchCanonicalPlayerIds(
+      seasonPlayerIds,
+    );
 
     final archive = await ref.watch(playerPositionArchiveProvider.future);
     var positionProfiles = archive;
@@ -899,9 +875,12 @@ final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     }
 
     return {
-      for (final participant in canonicalIds.entries)
-        if (positionProfiles[participant.value] case final profile?)
-          participant.key: profile,
+      for (final entry in composition.entries)
+        if (!entry.isGuest)
+          if (entry.seasonPlayerId case final seasonPlayerId?)
+            if (canonicalIds[seasonPlayerId] case final canonicalId?)
+              if (positionProfiles[canonicalId] case final profile?)
+                entry.participantId: profile,
     };
   } catch (_) {
     return const {};

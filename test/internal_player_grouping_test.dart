@@ -19,6 +19,7 @@ void main() {
     test('classe selon la moyenne pondérée des positions', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 8,
@@ -32,6 +33,7 @@ void main() {
       );
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 8,
@@ -45,6 +47,7 @@ void main() {
       );
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 8,
@@ -58,9 +61,35 @@ void main() {
       );
     });
 
+    test('un invité garde sa catégorie, même avec tout un passé au poste', () {
+      expect(
+        internalPlayerGroupFor(
+          isGuest: true,
+          isGoalkeeper: false,
+          profile: profile(
+            appearances: 50,
+            samples: const [PlayerPositionSample('MDC', 50)],
+          ),
+        ),
+        InternalPlayerGroup.guests,
+      );
+    });
+
+    test('un invité sans profil n’atterrit pas dans Autre', () {
+      expect(
+        internalPlayerGroupFor(
+          isGuest: true,
+          isGoalkeeper: false,
+          profile: null,
+        ),
+        InternalPlayerGroup.guests,
+      );
+    });
+
     test('un gardien reste dans Autre', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: true,
           profile: profile(
             appearances: 30,
@@ -74,6 +103,7 @@ void main() {
     test('un joueur avec trop peu de matchs reste dans Autre', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: kMinimumInternalPositionAppearances - 1,
@@ -83,7 +113,8 @@ void main() {
         InternalPlayerGroup.other,
       );
       expect(
-        internalPlayerGroupFor(isGoalkeeper: false, profile: null),
+        internalPlayerGroupFor(
+            isGuest: false, isGoalkeeper: false, profile: null),
         InternalPlayerGroup.other,
       );
     });
@@ -91,6 +122,7 @@ void main() {
     test('ignore les passages au but dans la moyenne d’un joueur de champ', () {
       expect(
         internalPlayerGroupFor(
+          isGuest: false,
           isGoalkeeper: false,
           profile: profile(
             appearances: 6,

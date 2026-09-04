@@ -8,7 +8,6 @@ class InternalCompositionEntry {
     required this.isGoalkeeper,
     this.seasonPlayerId,
     this.guestPlayerId,
-    this.playerId,
     this.photoUrl,
     this.lastInitial,
     this.teamNo,
@@ -18,10 +17,6 @@ class InternalCompositionEntry {
   final String participantId;
   final String? seasonPlayerId;
   final String? guestPlayerId;
-
-  /// Identité canonique du joueur (`players.id`), qu'il vienne de l'effectif
-  /// ou des invités. C'est la clé de son historique de postes.
-  final String? playerId;
   final String displayName;
 
   /// Initiale du nom de famille, pour la pastille des joueurs sans photo.
@@ -37,7 +32,6 @@ class InternalCompositionEntry {
       participantId: participantId,
       seasonPlayerId: seasonPlayerId,
       guestPlayerId: guestPlayerId,
-      playerId: playerId,
       displayName: displayName,
       lastInitial: lastInitial,
       photoUrl: photoUrl,
@@ -53,7 +47,6 @@ class InternalCompositionEntry {
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString(),
       guestPlayerId: json['guest_player_id']?.toString(),
-      playerId: json['player_id']?.toString(),
       displayName: (json['display_name'] ?? 'Joueur').toString(),
       lastInitial: json['last_initial']?.toString(),
       photoUrl: json['photo_url']?.toString(),
