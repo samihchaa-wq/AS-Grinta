@@ -131,6 +131,7 @@ Les documents à maintenir comme références actuelles sont :
 
 - `docs/NOTIFICATIONS_V2.md` — contrat des notifications ;
 - `docs/MATCH_WEATHER.md` — météo du prochain match ;
+- `docs/appellation-des-joueurs.md` — surnoms et règle de nom affiché ;
 - `docs/business-security-matrix.md` — invariants de sécurité métier ;
 - `docs/privacy-and-retention.md` — données personnelles et conservation ;
 - `docs/database-release-process.md` — livraison Supabase et migrations ;

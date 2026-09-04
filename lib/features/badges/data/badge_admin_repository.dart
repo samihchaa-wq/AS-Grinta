@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
+import 'package:as_grinta/core/utils/display_name.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -27,15 +28,14 @@ class BadgeAdminRepository {
     for (final r in (res as List? ?? const [])) {
       final m = Map<String, dynamic>.from(r as Map);
       if ((m['status'] ?? 'active').toString() != 'active') continue;
-      final surnom = (m['surnom'] ?? '').toString().trim();
-      final first = (m['first_name'] ?? '').toString().trim();
-      final name = surnom.isNotEmpty
-          ? surnom
-          : (first.isNotEmpty ? first : 'Compte sans nom');
       people.add(
         AdminPerson(
           id: m['id'].toString(),
-          name: name,
+          name: resolveDisplayName(
+            surnom: m['surnom'],
+            profileFirstName: m['first_name'],
+            fallback: 'Compte sans nom',
+          ),
           isGoalkeeper: m['is_goalkeeper'] == true,
         ),
       );

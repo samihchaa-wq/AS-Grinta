@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/display_name.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -146,22 +147,23 @@ class SeasonPredictionsRepository {
 
   /// Surnom s'il est renseigné, sinon prénom.
   String _displayName(Map<String, dynamic> profile, String fallback) {
-    final nickname = (profile['surnom'] ?? '').toString().trim();
-    if (nickname.isNotEmpty) return nickname;
-    final firstName = (profile['first_name'] ?? '').toString().trim();
-    if (firstName.isNotEmpty) return firstName;
-    return fallback;
+    return resolveDisplayName(
+      surnom: profile['surnom'],
+      profileFirstName: profile['first_name'],
+      fallback: fallback,
+    );
   }
 
   /// Nom d'un joueur d'effectif : surnom du compte lié en priorité, sinon
   /// prénom de la fiche.
   String _playerDisplayName(Map<String, dynamic> playerRow) {
     final linked = playerRow['profiles'];
-    if (linked is Map) {
-      final surnom = (linked['surnom'] ?? '').toString().trim();
-      if (surnom.isNotEmpty) return surnom;
-    }
-    return _displayName(playerRow, 'Joueur');
+    return resolveDisplayName(
+      surnom: linked is Map ? linked['surnom'] : null,
+      profileFirstName: linked is Map ? linked['first_name'] : null,
+      fallbackFirstName: playerRow['first_name'],
+      fallbackLastName: playerRow['last_name'],
+    );
   }
 
   Future<List<SeasonPredictionItem>> fetchMine() async {
@@ -183,7 +185,7 @@ class SeasonPredictionsRepository {
     final players = await _client
         .from('season_players')
         .select(
-          'id,profile_id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)',
+          'id,profile_id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(first_name,surnom)',
         )
         .eq('season_id', seasonId)
         .eq('is_active', true)
@@ -267,10 +269,12 @@ class SeasonPredictionsRepository {
     // Compte lié à chaque joueur d'effectif (pour ses badges + son surnom).
     final roster = await _client
         .from('season_players')
-        .select('id,profile_id,profiles!season_players_profile_id_fkey(surnom)')
+        .select(
+          'id,profile_id,profiles!season_players_profile_id_fkey(first_name,surnom)',
+        )
         .eq('season_id', seasonId);
     final profileByPlayer = <String, String>{};
-    final surnomByPlayer = <String, String>{};
+    final accountNameByPlayer = <String, String>{};
     for (final row in roster as List) {
       final map = Map<String, dynamic>.from(row);
       final pid = map['profile_id']?.toString();
@@ -279,8 +283,14 @@ class SeasonPredictionsRepository {
       }
       final linked = map['profiles'];
       if (linked is Map) {
-        final surnom = (linked['surnom'] ?? '').toString().trim();
-        if (surnom.isNotEmpty) surnomByPlayer[map['id'].toString()] = surnom;
+        final accountName = resolveDisplayName(
+          surnom: linked['surnom'],
+          profileFirstName: linked['first_name'],
+          fallback: '',
+        );
+        if (accountName.isNotEmpty) {
+          accountNameByPlayer[map['id'].toString()] = accountName;
+        }
       }
     }
 
@@ -354,8 +364,8 @@ class SeasonPredictionsRepository {
       gauges.add(
         PlayerGauge(
           playerId: playerId,
-          playerName:
-              surnomByPlayer[playerId] ?? _displayName(map, 'Joueur sans nom'),
+          playerName: accountNameByPlayer[playerId] ??
+              _displayName(map, 'Joueur sans nom'),
           profileId: profileByPlayer[playerId],
           isGoalkeeper: isGoalkeeper,
           actual: actual,

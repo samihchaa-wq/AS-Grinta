@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/display_name.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -213,7 +214,7 @@ class MatchDetailsRepository {
     if (isValidated) {
       final statRows = await _client.from('match_player_stats').select('''
         season_player_id,goals,assists,clean_sheet,
-        season_players(first_name,last_name,profiles(surnom))
+        season_players(first_name,last_name,profiles(first_name,surnom))
       ''').eq('match_id', matchId);
       final statsByPlayerId = <String, MatchStatLine>{};
       playerStats = (statRows as List).map((row) {
@@ -225,10 +226,11 @@ class MatchDetailsRepository {
             ? Map<String, dynamic>.from(player['profiles'] as Map)
             : const <String, dynamic>{};
         final stat = MatchStatLine(
-          name: _resolveName(
-            playerProfile['surnom'],
-            player['first_name'],
-            player['last_name'],
+          name: resolveDisplayName(
+            surnom: playerProfile['surnom'],
+            profileFirstName: playerProfile['first_name'],
+            fallbackFirstName: player['first_name'],
+            fallbackLastName: player['last_name'],
           ),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           assists: (map['assists'] as num?)?.toInt() ?? 0,
@@ -315,7 +317,10 @@ class MatchDetailsRepository {
             : const <String, dynamic>{};
         return MatchPredictionResult(
           profileId: profileId,
-          name: _resolveName(profile['surnom'], profile['first_name']),
+          name: resolveDisplayName(
+            surnom: profile['surnom'],
+            profileFirstName: profile['first_name'],
+          ),
           scoreGrinta: (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
           scoreOpponent: (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
           points: pointsByProfile[profileId] ?? 0,
@@ -361,21 +366,6 @@ class MatchDetailsRepository {
       startingLineup: startingLineup,
       predictions: predictions,
     );
-  }
-
-  /// Nom court unifié : surnom s'il est renseigné, sinon prénom (repli sur
-  /// prénom + nom). Même règle que partout ailleurs dans l'app.
-  static String _resolveName(
-    Object? surnom,
-    Object? firstName, [
-    Object? lastName,
-  ]) {
-    final nick = (surnom ?? '').toString().trim();
-    if (nick.isNotEmpty) return nick;
-    final first = (firstName ?? '').toString().trim();
-    if (first.isNotEmpty) return first;
-    final full = '${firstName ?? ''} ${lastName ?? ''}'.trim();
-    return full.isEmpty ? 'Joueur' : full;
   }
 
   static String? _clean(Object? value) {

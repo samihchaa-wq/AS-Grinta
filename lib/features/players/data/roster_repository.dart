@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/display_name.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,13 +45,12 @@ class RosterPlayer {
   /// Même priorité que côté serveur : le joueur rattaché à un compte s'appelle
   /// comme il l'a décidé sur ce compte, pas comme l'admin l'a saisi dans
   /// l'effectif.
-  String get displayName {
-    final surnom = capitalizePersonName(linkedProfileSurnom ?? '');
-    if (surnom.isNotEmpty) return surnom;
-    final accountFirstName = capitalizePersonName(linkedProfileName ?? '');
-    if (accountFirstName.isNotEmpty) return accountFirstName;
-    return rosterName;
-  }
+  String get displayName => resolveDisplayName(
+        surnom: linkedProfileSurnom,
+        profileFirstName: linkedProfileName,
+        fallbackFirstName: firstName,
+        fallbackLastName: lastName,
+      );
 
   String get fullName => '$firstName $lastName'.trim();
 

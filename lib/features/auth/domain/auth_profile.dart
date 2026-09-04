@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/display_name.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 
 enum AuthRole { pronostiqueur, admin }
@@ -53,13 +54,12 @@ class AuthProfile {
   String get fullName =>
       capitalizePersonName('${capitalizePersonName(firstName)} $lastName');
 
-  String get displayName {
-    final nick = capitalizePersonName(surnom);
-    if (nick.isNotEmpty) return nick;
-    final first = capitalizePersonName(firstName);
-    if (first.isNotEmpty) return first;
-    return fullName.isEmpty ? 'Utilisateur' : fullName;
-  }
+  String get displayName => resolveDisplayName(
+        surnom: surnom,
+        profileFirstName: firstName,
+        fallbackLastName: lastName,
+        fallback: 'Utilisateur',
+      );
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
     final roleValue =

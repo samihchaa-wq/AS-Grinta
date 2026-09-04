@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/display_name.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -61,15 +62,13 @@ class LeaderboardRepository {
 
     return (response as List).map((row) {
       final map = Map<String, dynamic>.from(row);
-      final surnom = (map['surnom'] ?? '').toString().trim();
-      final firstName = (map['first_name'] ?? '').toString().trim();
-      final displayName = surnom.isNotEmpty
-          ? surnom
-          : (firstName.isNotEmpty ? firstName : 'Compte sans nom');
-
       return LeaderboardEntry(
         profileId: map['profile_id'].toString(),
-        name: displayName,
+        name: resolveDisplayName(
+          surnom: map['surnom'],
+          profileFirstName: map['first_name'],
+          fallback: 'Compte sans nom',
+        ),
         matchPoints: (map['match_points'] as num?)?.toDouble() ?? 0,
         seasonPoints: (map['season_points'] as num?)?.toDouble() ?? 0,
         totalPoints: (map['total_points'] as num?)?.toDouble() ?? 0,
