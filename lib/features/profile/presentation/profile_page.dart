@@ -113,6 +113,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             child: PlayerAvatar(
                               photoUrl: profile?.photoUrl,
                               name: profile?.displayName ?? '',
+                              lastName: profile?.lastName,
                               size: avatarSize,
                             ),
                           ),

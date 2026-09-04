@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/storage/profile_photo_urls.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
@@ -516,6 +517,7 @@ class PlayerAvatar extends StatefulWidget {
     super.key,
     required this.photoUrl,
     required this.name,
+    this.lastName,
     this.isGoalkeeper = false,
     this.size = 52,
     this.fallbackScale = .84,
@@ -523,6 +525,11 @@ class PlayerAvatar extends StatefulWidget {
 
   final String? photoUrl;
   final String name;
+
+  /// Nom de famille, quand l'écran le connaît : sans photo, la pastille
+  /// affiche alors « Prénom + Nom » plutôt que les deux premières lettres du
+  /// prénom, ce qui distingue deux joueurs au même prénom.
+  final String? lastName;
   final bool isGoalkeeper;
   final double size;
 
@@ -625,10 +632,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 
   Widget _initials(double visualSize) {
-    final word = widget.name.trim().split(RegExp(r'\s+')).first;
-    final initials = word.isEmpty
-        ? '?'
-        : (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
+    final initials = avatarInitials(widget.name, lastName: widget.lastName);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(

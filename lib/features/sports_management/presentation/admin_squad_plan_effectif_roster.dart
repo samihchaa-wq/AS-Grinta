@@ -325,6 +325,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
               PlayerAvatar(
                 photoUrl: player.photoUrl,
                 name: player.shortName,
+                lastName: player.lastName,
                 isGoalkeeper: player.isGoalkeeper,
                 size: 30,
                 fallbackScale: .9,

@@ -53,3 +53,26 @@ String? lastNameInitialOf(String fullName) {
   final lastName = parts.sublist(1).join(' ');
   return lastName.isEmpty ? null : lastName[0].toUpperCase();
 }
+
+/// Initiales affichées à la place d'une photo de profil : première lettre du
+/// nom affiché (prénom ou surnom) + première lettre du nom de famille.
+///
+/// Deux joueurs prénommés « Julien » ne partagent donc plus la même pastille
+/// « JU ». Sans nom de famille connu (invité saisi au vol, profil incomplet),
+/// on retombe sur les deux premières lettres du nom affiché, puis sur « ? »
+/// quand il n'y a rien à afficher.
+String avatarInitials(String name, {String? lastName}) {
+  final words = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList(growable: false);
+  final first = words.isEmpty ? '' : words.first;
+  final explicitLast = lastName?.trim() ?? '';
+  final last = explicitLast.isNotEmpty
+      ? explicitLast
+      : (words.length > 1 ? words[1] : '');
+  if (first.isEmpty) return last.isEmpty ? '?' : last[0].toUpperCase();
+  if (last.isNotEmpty) return '${first[0]}${last[0]}'.toUpperCase();
+  return (first.length >= 2 ? first.substring(0, 2) : first).toUpperCase();
+}
