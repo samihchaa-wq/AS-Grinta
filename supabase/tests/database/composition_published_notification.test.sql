@@ -138,16 +138,25 @@ as $function$
   );
 $function$;
 
+-- Le journal d'envoi est fermé aux comptes joueurs, et doit le rester : on le
+-- lit donc hors de leur rôle, comme le ferait un exploitant.
 create or replace function pg_temp.compo_notif_log_count()
 returns bigint
 language sql
 stable
+security definer
+set search_path = ''
 as $function$
   select count(*)
   from public.push_notification_log log
-  where log.match_id = current_setting('test.compo_notif_match')::uuid
+  where log.match_id = pg_catalog.current_setting('test.compo_notif_match')::uuid
     and log.kind = 'composition_published';
 $function$;
+
+select ok(
+  not has_table_privilege('authenticated', 'public.push_notification_log', 'SELECT'),
+  'le journal des envois reste fermé aux comptes joueurs'
+);
 
 select set_config(
   'request.jwt.claims',
