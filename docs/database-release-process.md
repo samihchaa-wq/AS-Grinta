@@ -62,6 +62,12 @@ Le workflow de garde des migrations vérifie le format local et contrôle la dé
 
 Après un déploiement vérifié, la resynchronisation du lock se fait dans le mécanisme dédié prévu par le dépôt, actuellement la branche `ci/supabase-migration-drift-guard`.
 
+Cette resynchronisation n’est plus à la charge de l’opérateur : le workflow de déploiement l’ouvre lui-même dès qu’il a appliqué des migrations. Il pousse une branche `ci/supabase-migration-drift-guard-deploy-<version>` portant le lock relevé sur l’inventaire réel juste après le déploiement, et ouvre la PR correspondante. Rejouer un déploiement sans migration en attente ne produit rien.
+
+Cette PR est ouverte avec le jeton du dépôt : GitHub ne déclenche alors aucun contrôle dessus. **Il faut la fermer puis la rouvrir** pour lancer ses vérifications, après quoi elle se fusionne normalement. Un jeton personnel dédié au dépôt lèverait cette contrainte.
+
+Laisser cette PR en attente n’est pas neutre : tant que le lock est en retard, `compare-production-history` échoue sur `main` et bloque toute PR ouverte contre lui, quel que soit son contenu.
+
 ## Historique ancien
 
 Les anciens fichiers de migration sont une archive exécutable du projet et sont classés **historique nécessaire**. Un comportement obsolète dans une ancienne migration n’est jamais du code mort à supprimer. Le comportement actuel se vérifie sur les objets réellement présents en production et sur les dernières définitions qui les ont remplacés.

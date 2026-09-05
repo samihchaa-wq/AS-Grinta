@@ -23,8 +23,13 @@ on:
         default: false
         type: boolean
 
+# Le déploiement lui-même ne demande qu'à lire le dépôt. Les deux droits
+# supplémentaires ne servent qu'à l'étape finale : pousser une branche de
+# resynchronisation du verrou et ouvrir la pull request qui la porte. Rien
+# n'est écrit sur main ici.
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 concurrency:
   group: supabase-production-deployment
@@ -141,6 +146,95 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_ID" \
             --no-verify-jwt \
             --use-api
+
+      # Appliquer une migration décale mécaniquement le verrou de production :
+      # le dépôt sait ce qu'il contient, mais plus ce que la base a réellement
+      # reçu. Tant que personne ne resynchronise, compare-production-history
+      # échoue sur main et bloque toute pull request ouverte contre lui. Cette
+      # étape a été oubliée trois fois le 4 septembre 2026, à chaque fois au
+      # prix d'un dépôt bloqué jusqu'à ce que quelqu'un fasse le lien.
+      #
+      # Elle est donc faite ici, dans la foulée du déploiement qui la rend
+      # nécessaire, plutôt que laissée à la vigilance de l'opérateur. Le verrou
+      # ne pouvant être modifié que depuis une branche
+      # ci/supabase-migration-drift-guard*, la proposition passe par une pull
+      # request relue comme les autres : rien n'est poussé sur main ici.
+      - name: Propose production migration lock sync
+        if: github.event_name == 'workflow_dispatch' && inputs.apply_migrations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Même lecture que migration_inventory.yml : une version par ligne,
+          # triée et dédupliquée. Les deux doivent rester d'accord, sans quoi
+          # cette étape proposerait un verrou que le garde refuserait.
+          awk -F'|' '
+            {
+              remote=$2
+              gsub(/[^0-9]/, "", remote)
+              if (length(remote) == 14 && remote ~ /^[0-9]+$/) print remote
+            }
+          ' migration-after.txt | sort -u > /tmp/remote-versions.txt
+          test -s /tmp/remote-versions.txt
+
+          count=$(wc -l < /tmp/remote-versions.txt | tr -d ' ')
+          latest=$(tail -n 1 /tmp/remote-versions.txt)
+          md5=$(md5sum /tmp/remote-versions.txt | awk '{print $1}')
+
+          source supabase/production_migrations.lock
+          if [ "$count" = "$MIGRATION_COUNT" ] \
+            && [ "$latest" = "$LATEST_VERSION" ] \
+            && [ "$md5" = "$VERSION_MD5" ]; then
+            echo "Verrou déjà à jour ($count migrations, dernière $latest)."
+            exit 0
+          fi
+
+          # La copie de travail est volontairement sans identifiants
+          # (persist-credentials: false) et le dépôt est privé : toute
+          # opération distante doit porter le jeton explicitement.
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          branch="ci/supabase-migration-drift-guard-deploy-${latest}"
+          if git ls-remote --exit-code --heads "$remote" "$branch" >/dev/null 2>&1; then
+            echo "::notice::La branche $branch existe déjà : une resynchronisation est en attente, rien à ajouter."
+            exit 0
+          fi
+
+          printf 'MIGRATION_COUNT=%s\nLATEST_VERSION=%s\nVERSION_MD5=%s\n' \
+            "$count" "$latest" "$md5" > supabase/production_migrations.lock
+
+          git config user.name 'github-actions[bot]'
+          git config user.email \
+            '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add supabase/production_migrations.lock
+          git commit -m "ci(supabase): sync production migration lock to ${latest}" \
+            -m "Poussé automatiquement par le déploiement qui vient d'appliquer les migrations jusqu'à ${latest}, pour que le verrou ne reste pas en retard sur la base." \
+            -m "Valeurs relevées sur l'inventaire réel renvoyé par la production juste après le déploiement, avec la même règle de lecture que migration_inventory.yml."
+          git push "$remote" "HEAD:${branch}"
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "ci(supabase): resynchroniser le verrou de migrations sur ${latest}" \
+            --body "$(cat <<BODY
+          Ouverte automatiquement par le déploiement Supabase de production, qui vient d'appliquer les migrations jusqu'à \`${latest}\`.
+
+          Sans cette resynchronisation, \`compare-production-history\` échoue sur \`main\` et bloque toute pull request ouverte contre lui, quel que soit son contenu.
+
+          Valeurs relevées sur l'inventaire réel renvoyé par la production juste après le déploiement :
+
+          \`\`\`
+          MIGRATION_COUNT=${count}
+          LATEST_VERSION=${latest}
+          VERSION_MD5=${md5}
+          \`\`\`
+
+          **À faire par un relecteur :** cette pull request a été ouverte par l'automatisation, avec le jeton du dépôt. GitHub ne déclenche alors aucun contrôle. Fermer puis rouvrir la pull request les lance, après quoi elle se fusionne normalement.
+          BODY
+          )"
 
       - name: Upload deployment diagnostics
         if: always()
