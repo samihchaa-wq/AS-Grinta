@@ -159,6 +159,14 @@ jobs:
       # ne pouvant être modifié que depuis une branche
       # ci/supabase-migration-drift-guard*, la proposition passe par une pull
       # request relue comme les autres : rien n'est poussé sur main ici.
+      #
+      # GitHub interdit toutefois à une automatisation d'ouvrir une pull request
+      # tant que le dépôt ne l'y autorise pas explicitement — la case
+      # « Allow GitHub Actions to create and approve pull requests », dans
+      # Settings → Actions → General. Tant qu'elle n'est pas cochée, cette étape
+      # échoue après un déploiement pourtant réussi. Elle écrit alors dans le
+      # résumé du run le lien, le titre et le corps prêts à coller, pour que
+      # l'ouverture manuelle prenne quelques secondes au lieu d'une enquête.
       - name: Propose production migration lock sync
         if: github.event_name == 'workflow_dispatch' && inputs.apply_migrations
         env:
@@ -215,11 +223,8 @@ jobs:
             -m "Valeurs relevées sur l'inventaire réel renvoyé par la production juste après le déploiement, avec la même règle de lecture que migration_inventory.yml."
           git push "$remote" "HEAD:${branch}"
 
-          gh pr create \
-            --base main \
-            --head "$branch" \
-            --title "ci(supabase): resynchroniser le verrou de migrations sur ${latest}" \
-            --body "$(cat <<BODY
+          pr_title="ci(supabase): resynchroniser le verrou de migrations sur ${latest}"
+          pr_body="$(cat <<BODY
           Ouverte automatiquement par le déploiement Supabase de production, qui vient d'appliquer les migrations jusqu'à \`${latest}\`.
 
           Sans cette resynchronisation, \`compare-production-history\` échoue sur \`main\` et bloque toute pull request ouverte contre lui, quel que soit son contenu.
@@ -235,6 +240,54 @@ jobs:
           **À faire par un relecteur :** cette pull request a été ouverte par l'automatisation, avec le jeton du dépôt. GitHub ne déclenche alors aucun contrôle. Fermer puis rouvrir la pull request les lance, après quoi elle se fusionne normalement.
           BODY
           )"
+
+          if gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "$pr_title" \
+            --body "$pr_body"; then
+            exit 0
+          fi
+
+          # GitHub interdit à une automatisation d'ouvrir une pull request tant
+          # que le dépôt ne l'y autorise pas. Le déploiement, lui, a bien eu
+          # lieu : dire seulement « échec » laisserait croire le contraire, et
+          # laisserait chercher. On écrit donc ici tout ce qu'il faut pour
+          # ouvrir la pull request à la main en quelques secondes, plus le
+          # réglage qui rend cette étape automatique une fois pour toutes.
+          compare_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${branch}?expand=1"
+          {
+            echo "## Verrou de migrations : pull request à ouvrir à la main"
+            echo
+            echo "La base **a bien été déployée** jusqu'à \`${latest}\`, et la branche"
+            echo "\`${branch}\` est poussée. Seule l'ouverture automatique de la pull"
+            echo "request a été refusée."
+            echo
+            echo "### 1. Ouvrir la pull request"
+            echo
+            echo "${compare_url}"
+            echo
+            echo "Titre :"
+            echo '```'
+            echo "${pr_title}"
+            echo '```'
+            echo
+            echo "Corps :"
+            echo '```'
+            echo "${pr_body}"
+            echo '```'
+            echo
+            echo "### 2. Pour que cette étape se fasse seule la prochaine fois"
+            echo
+            echo "Cocher, dans les réglages du dépôt :"
+            echo "*Settings → Actions → General → Workflow permissions →*"
+            echo "*Allow GitHub Actions to create and approve pull requests*."
+            echo
+            echo "Sans cette case, l'étape échouera à chaque déploiement de base."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::error title=Verrou de migrations non proposé::La base est déployée, mais la pull request de resynchronisation n'a pas pu être ouverte par l'automatisation. Tout ce qu'il faut pour l'ouvrir est dans le résumé du run : ${compare_url}"
+          exit 1
 
       - name: Upload deployment diagnostics
         if: always()

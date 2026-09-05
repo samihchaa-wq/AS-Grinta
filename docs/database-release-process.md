@@ -64,7 +64,11 @@ Après un déploiement vérifié, la resynchronisation du lock se fait dans le m
 
 Cette resynchronisation n’est plus à la charge de l’opérateur : le workflow de déploiement l’ouvre lui-même dès qu’il a appliqué des migrations. Il pousse une branche `ci/supabase-migration-drift-guard-deploy-<version>` portant le lock relevé sur l’inventaire réel juste après le déploiement, et ouvre la PR correspondante. Rejouer un déploiement sans migration en attente ne produit rien.
 
-Cette PR est ouverte avec le jeton du dépôt : GitHub ne déclenche alors aucun contrôle dessus. **Il faut la fermer puis la rouvrir** pour lancer ses vérifications, après quoi elle se fusionne normalement. Un jeton personnel dédié au dépôt lèverait cette contrainte.
+**L’ouverture automatique demande une autorisation du dépôt.** GitHub interdit à une automatisation de créer une pull request tant que la case *Settings → Actions → General → Workflow permissions → « Allow GitHub Actions to create and approve pull requests »* n’est pas cochée. Sans elle, l’étape échoue après un déploiement pourtant réussi, avec le message `GitHub Actions is not permitted to create or approve pull requests`.
+
+Ce cas n’est pas silencieux et ne demande pas d’enquête : le résumé du run contient alors le lien d’ouverture, le titre et le corps prêts à coller, ainsi que les trois valeurs relevées en production. L’ouverture manuelle prend quelques secondes. L’étape reste en échec, parce que la base est déployée sans que le lock soit proposé — c’est exactement ce qu’il ne faut pas taire.
+
+Cette PR est ouverte avec le jeton du dépôt : GitHub ne déclenche alors aucun contrôle dessus. **Il faut la fermer puis la rouvrir** pour lancer ses vérifications, après quoi elle se fusionne normalement. Une PR ouverte à la main, elle, déclenche ses contrôles normalement. Un jeton personnel dédié au dépôt lèverait aussi ces deux contraintes.
 
 Laisser cette PR en attente n’est pas neutre : tant que le lock est en retard, `compare-production-history` échoue sur `main` et bloque toute PR ouverte contre lui, quel que soit son contenu.
 
