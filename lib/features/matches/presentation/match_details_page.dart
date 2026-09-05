@@ -14,6 +14,7 @@ import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -475,8 +476,18 @@ class _CompletedCompositionCard extends ConsumerWidget {
   final String matchId;
   final bool sportsEnabled;
 
-  List<CompletedPlayerSummary> _playersFromMatchDetails() {
+  List<CompletedPlayerSummary> _playersFromMatchDetails(
+    MatchComposition composition,
+  ) {
     final playersByName = <String, CompletedPlayerSummary>{};
+    // La composition publiée porte déjà la photo de chaque joueur : la liste
+    // de repli affiche ainsi les mêmes pastilles que le terrain.
+    final photoByName = <String, String>{};
+    for (final entry in composition.entries) {
+      final photoUrl = entry.photoUrl?.trim();
+      if (photoUrl == null || photoUrl.isEmpty) continue;
+      photoByName[entry.displayName.trim().toLowerCase()] = photoUrl;
+    }
 
     void addPlayer(String rawName, int goals) {
       final name = rawName.trim();
@@ -484,7 +495,11 @@ class _CompletedCompositionCard extends ConsumerWidget {
       final key = name.toLowerCase();
       final existing = playersByName[key];
       if (existing == null || goals > existing.goals) {
-        playersByName[key] = CompletedPlayerSummary(name: name, goals: goals);
+        playersByName[key] = CompletedPlayerSummary(
+          name: name,
+          goals: goals,
+          photoUrl: photoByName[key],
+        );
       }
     }
 
@@ -510,7 +525,7 @@ class _CompletedCompositionCard extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 16),
       child: CompletedCompositionCard(
         composition: composition,
-        fallbackPlayers: _playersFromMatchDetails(),
+        fallbackPlayers: _playersFromMatchDetails(composition),
       ),
     );
   }

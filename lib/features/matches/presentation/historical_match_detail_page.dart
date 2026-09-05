@@ -270,7 +270,12 @@ List<CompletedPlayerSummary> historicalFallbackPlayers(
     final key = name.toLowerCase();
     final existing = playersByName[key];
     if (existing == null || goals > existing.goals) {
-      playersByName[key] = CompletedPlayerSummary(name: name, goals: goals);
+      playersByName[key] = CompletedPlayerSummary(
+        name: name,
+        goals: goals,
+        photoUrl: detail.photoUrlByLabel[name],
+        lastInitial: detail.lastInitialByLabel[name],
+      );
     }
   }
 
