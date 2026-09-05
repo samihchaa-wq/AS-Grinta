@@ -27,6 +27,55 @@ alter table public.profiles
 comment on column public.profiles.notify_composition is
   'Prévenir ce joueur lorsque la composition d''un match est mise en ligne.';
 
+-- Un joueur ne peut modifier que quelques champs de son profil, et le garde qui
+-- l'assure raisonne sur une liste blanche : sans cette ligne, ajouter une
+-- colonne de préférence bloquerait toute modification de préférences, y compris
+-- les trois qui existaient déjà.
+create or replace function public.guard_sensitive_profile_fields()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  actor_id uuid := (select auth.uid());
+  old_protected jsonb;
+  new_protected jsonb;
+  editable constant text[] := array[
+    'first_name','last_name','surnom','photo_url','updated_at',
+    'notify_prediction_open','notify_prediction_reminders','notify_match_reminders',
+    'notify_motm_vote','notify_convocation','notify_composition',
+    'password_set','must_change_password'
+  ];
+begin
+  if actor_id is null then
+    return new;
+  end if;
+  if public.is_match_staff() then
+    return new;
+  end if;
+  if actor_id is distinct from old.id then
+    raise exception 'Un utilisateur ne peut modifier que son propre profil.'
+      using errcode = '42501';
+  end if;
+
+  old_protected := to_jsonb(old) - editable;
+  new_protected := to_jsonb(new) - editable;
+
+  if new_protected is distinct from old_protected then
+    raise exception 'Les champs sensibles du profil ne peuvent pas être modifiés.'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$function$;
+
+comment on function public.guard_sensitive_profile_fields() is
+  'Fonction de trigger interne : un membre ne modifie que son identite affichee, sa photo et ses preferences de notification.';
+
+comment on function public.guard_sensitive_profile_fields() is
+  'Fonction de trigger interne : un membre ne modifie que son identite affichee, sa photo et ses preferences de notification.';
+
 -- Le journal anti-doublon doit accepter le nouveau type.
 alter table public.push_notification_log
   drop constraint if exists push_notification_log_kind_check;
