@@ -21,9 +21,29 @@ select ok(
 
 select ok(
   to_regprocedure(
-    'public.update_my_notification_preferences(boolean,boolean,boolean)'
+    'public.update_my_notification_preferences(boolean,boolean,boolean,boolean)'
   ) is not null,
-  'la RPC des trois préférences facultatives existe'
+  'la RPC des préférences facultatives existe'
+);
+
+-- Le quatrième réglage est arrivé après coup : son argument est facultatif,
+-- pour qu'une page restée ouverte sur l'ancienne version continue d'écrire les
+-- trois premiers sans échouer.
+select ok(
+  to_regprocedure(
+    'public.update_my_notification_preferences(boolean,boolean,boolean)'
+  ) is null,
+  'aucune surcharge à trois arguments ne rend l’appel ambigu'
+);
+
+select ok(
+  exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'profiles'
+      and column_name = 'notify_composition'
+  ),
+  'le réglage « composition en ligne » existe'
 );
 
 select is(
