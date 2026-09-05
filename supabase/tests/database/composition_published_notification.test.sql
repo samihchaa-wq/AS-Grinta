@@ -242,12 +242,11 @@ select ok(
   'un joueur peut couper la notification de composition'
 );
 
-select ok(
-  not (
-    select notify_composition
-    from public.profiles
-    where id = 'c8100000-0000-0000-0000-000000000002'
-  ),
+-- Relu comme l'application le fait : par la RPC de profil, la table elle-même
+-- n'étant pas lisible directement par un compte joueur.
+select is(
+  public.get_my_profile() ->> 'notify_composition',
+  'false',
   'le choix du joueur est enregistré'
 );
 
@@ -256,12 +255,9 @@ select ok(
   'l’appel à trois arguments reste accepté'
 );
 
-select ok(
-  not (
-    select notify_composition
-    from public.profiles
-    where id = 'c8100000-0000-0000-0000-000000000002'
-  ),
+select is(
+  public.get_my_profile() ->> 'notify_composition',
+  'false',
   'et il laisse le réglage de composition intact'
 );
 
