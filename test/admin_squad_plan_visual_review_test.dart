@@ -186,6 +186,57 @@ void main() {
     expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
   });
 
+  testWidgets('convoquer depuis la liste d’attente demande confirmation', (
+    tester,
+  ) async {
+    await _setWideViewport(tester);
+    final convocations = _convocations(withWaitlisted: true);
+    final repository = _FakeSportWaitlistRepository(convocations);
+    await _pumpWorkspace(
+      tester,
+      convocations: convocations,
+      initialStep: 'effectif',
+      waitlistRepository: repository,
+    );
+
+    expect(find.text('Liste d’attente (1)'), findsOneWidget);
+
+    // Annuler laisse le joueur où il est, et n'écrit rien.
+    await _dragPlayerToColumn(tester, playerName: 'Clara', columnIndex: 0);
+    expect(find.text('Prévenir Clara ?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+    await _pumpFrames(tester, count: 20);
+    expect(find.text('Liste d’attente (1)'), findsOneWidget);
+    expect(repository.lastDecisions, isNull);
+
+    // Confirmer déplace le joueur et déclenche l'écriture.
+    await _dragPlayerToColumn(tester, playerName: 'Clara', columnIndex: 0);
+    expect(find.text('Prévenir Clara ?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Confirmer'));
+    await _pumpFrames(tester, count: 20);
+    expect(find.text('Liste d’attente (0)'), findsOneWidget);
+    expect(repository.lastDecisions?['sp3'], ConvocationStatus.convoked);
+  });
+
+  testWidgets('un joueur absent convoqué ne demande aucune confirmation', (
+    tester,
+  ) async {
+    await _setWideViewport(tester);
+    final convocations = _convocations();
+    final repository = _FakeSportWaitlistRepository(convocations);
+    await _pumpWorkspace(
+      tester,
+      convocations: convocations,
+      initialStep: 'effectif',
+      waitlistRepository: repository,
+    );
+
+    await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
+    expect(find.textContaining('Prévenir'), findsNothing);
+    await _pumpFrames(tester, count: 20);
+    expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
+  });
+
   testWidgets('la compo reste accessible sans effectif enregistré', (
     tester,
   ) async {
@@ -304,7 +355,10 @@ Future<void> _capture(WidgetTester tester, String fileName) async {
   });
 }
 
-MatchConvocations _convocations({bool published = true}) {
+MatchConvocations _convocations({
+  bool published = true,
+  bool withWaitlisted = false,
+}) {
   final players = [
     _player(
       id: 'p1',
@@ -325,7 +379,9 @@ MatchConvocations _convocations({bool published = true}) {
       id: 'p3',
       seasonPlayerId: 'sp3',
       name: 'Clara',
-      status: ConvocationStatus.convoked,
+      status: withWaitlisted
+          ? ConvocationStatus.notConvoked
+          : ConvocationStatus.convoked,
       waitlistPosition: 3,
     ),
     _player(
