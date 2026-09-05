@@ -85,7 +85,7 @@ insert into reviewed_open_definers (fonction, motif) values
    'ne modifie que les badges déjà détenus par le demandeur'),
   ('update_my_app_preferences(boolean,boolean,boolean)',
    'n’écrit que la ligne du demandeur, et seulement si son profil est actif'),
-  ('update_my_notification_preferences(boolean,boolean,boolean)',
+  ('update_my_notification_preferences(boolean,boolean,boolean,boolean)',
    'n’écrit que la ligne du demandeur, et seulement si son profil est actif'),
   ('private.configure_match_sport_workflow(uuid,integer)',
    'délègue à private.configure_match_sport_workflow_v2, qui exige admin'),

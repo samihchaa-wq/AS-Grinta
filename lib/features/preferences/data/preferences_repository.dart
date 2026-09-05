@@ -7,6 +7,7 @@ class AppPreferences {
     this.predictionNotifications = true,
     this.motmVoteNotifications = true,
     this.convocationNotifications = true,
+    this.compositionNotifications = true,
   });
 
   /// Prévenir à J−5 lorsqu'un pronostic n'est pas encore rempli.
@@ -18,10 +19,14 @@ class AppPreferences {
   /// Prévenir lorsqu'un joueur passe de la liste d'attente aux convoqués.
   final bool convocationNotifications;
 
+  /// Prévenir à la mise en ligne de la composition d'un match.
+  final bool compositionNotifications;
+
   AppPreferences copyWith({
     bool? predictionNotifications,
     bool? motmVoteNotifications,
     bool? convocationNotifications,
+    bool? compositionNotifications,
   }) {
     return AppPreferences(
       predictionNotifications:
@@ -30,6 +35,8 @@ class AppPreferences {
           motmVoteNotifications ?? this.motmVoteNotifications,
       convocationNotifications:
           convocationNotifications ?? this.convocationNotifications,
+      compositionNotifications:
+          compositionNotifications ?? this.compositionNotifications,
     );
   }
 }
@@ -52,6 +59,7 @@ class PreferencesRepository {
       predictionNotifications: row['notify_prediction_reminders'] != false,
       motmVoteNotifications: row['notify_motm_vote'] != false,
       convocationNotifications: row['notify_convocation'] != false,
+      compositionNotifications: row['notify_composition'] != false,
     );
   }
 
@@ -62,6 +70,7 @@ class PreferencesRepository {
         'p_notify_prediction': preferences.predictionNotifications,
         'p_notify_motm_vote': preferences.motmVoteNotifications,
         'p_notify_convocation': preferences.convocationNotifications,
+        'p_notify_composition': preferences.compositionNotifications,
       },
     );
     if (result != true) {
