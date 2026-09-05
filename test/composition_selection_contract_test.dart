@@ -49,6 +49,12 @@ void main() {
       await _pumpFrames(tester);
       await _tap(tester, FilledButton, 'Enregistrer');
 
+      // Première mise en ligne : l'écran annonce la notification aux convoqués
+      // avant de publier.
+      expect(find.text('Publier la composition ?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
+      await _pumpFrames(tester);
+
       final saved = repository.savedComposition;
       expect(saved, isNotNull, reason: 'la composition doit être envoyée');
 

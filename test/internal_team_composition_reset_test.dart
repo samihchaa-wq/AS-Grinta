@@ -143,12 +143,15 @@ class _FakeInternalMatchCompositionRepository
   String? savedTeam1JerseyId;
   String? savedTeam2JerseyId;
 
+  // Des joueurs sont déjà répartis : côté serveur, la notification de mise en
+  // ligne est donc déjà partie, et republier n'en enverra pas d'autre.
   InternalMatchComposition current = const InternalMatchComposition(
     matchId: _matchId,
     team1Name: 'Orange mécanique',
     team2Name: 'Bleu nuit',
     team1JerseyId: 'orange',
     team2JerseyId: 'blue',
+    notificationSent: true,
     entries: [
       InternalCompositionEntry(
         participantId: 'p1',
@@ -197,6 +200,7 @@ class _FakeInternalMatchCompositionRepository
       team2Name: team2Name,
       team1JerseyId: team1JerseyId,
       team2JerseyId: team2JerseyId,
+      notificationSent: current.notificationSent,
       entries: List.of(entries),
     );
     return current;

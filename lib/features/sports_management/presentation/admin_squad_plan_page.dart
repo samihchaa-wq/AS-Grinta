@@ -21,6 +21,7 @@ import 'package:as_grinta/features/sports_management/data/player_identity_reposi
 import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
+import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_simulation.dart';
 import 'package:as_grinta/features/sports_management/domain/effectif_validation_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';

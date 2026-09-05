@@ -505,6 +505,24 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       }
     }
     final ready = _compositionReadyToSave();
+    // La première mise en ligne prévient les convoqués, et le message ne se
+    // rattrape pas : on le dit avant, une seule fois, celle qui compte.
+    if (compositionPublicationWillNotify(
+      alreadyPublished: composition.version > 0,
+      sheetNamesPlayers: true,
+      postMatch: _postMatch,
+    )) {
+      final confirmed = await _confirmAction(
+        title: 'Publier la composition ?',
+        actionLabel: 'Valider',
+        actionIcon: Icons.notifications_active_outlined,
+        content: const Text(
+          'Publier la composition enverra une notification à tous les joueurs '
+          'convoqués.',
+        ),
+      );
+      if (!confirmed || !mounted) return;
+    }
     _updateState(() => _busy = true);
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
