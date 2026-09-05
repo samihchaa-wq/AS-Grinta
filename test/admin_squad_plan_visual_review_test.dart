@@ -237,6 +237,90 @@ void main() {
     expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
   });
 
+  testWidgets('publier la première composition demande confirmation', (
+    tester,
+  ) async {
+    await _setTallViewport(tester);
+    final repository = _FakeMatchCompositionRepository();
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(),
+      initialStep: 'composition',
+      compositionRepository: repository,
+    );
+
+    // Placer les joueurs suffit à rendre la feuille enregistrable.
+    final simulate = find.widgetWithText(
+      OutlinedButton,
+      'Simuler une composition',
+    );
+    await tester.ensureVisible(simulate);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(simulate);
+    await _pumpFrames(tester, count: 10);
+
+    final save = find.widgetWithText(FilledButton, 'Enregistrer');
+    await tester.ensureVisible(save);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(save);
+    await _pumpFrames(tester, count: 10);
+
+    expect(find.text('Publier la composition ?'), findsOneWidget);
+    expect(
+      find.textContaining('enverra une notification à tous les joueurs'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+    await _pumpFrames(tester, count: 10);
+    expect(repository.saveCalls, 0);
+    expect(repository.publishCalls, 0);
+
+    await tester.ensureVisible(save);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(save);
+    await _pumpFrames(tester, count: 10);
+    await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
+    await _pumpFrames(tester, count: 20);
+    expect(repository.saveCalls, 1);
+    expect(repository.publishCalls, 1);
+  });
+
+  testWidgets('retoucher une composition déjà publiée ne demande rien', (
+    tester,
+  ) async {
+    await _setTallViewport(tester);
+    final published = MatchComposition.initial(
+      convocations: _convocations(),
+      goalkeeperSeasonPlayerIds: const {'sp1'},
+    ).copyWith(version: 2);
+    final repository = _FakeMatchCompositionRepository(saved: published);
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(),
+      initialStep: 'composition',
+      compositionRepository: repository,
+    );
+
+    final simulate = find.widgetWithText(
+      OutlinedButton,
+      'Simuler une composition',
+    );
+    await tester.ensureVisible(simulate);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(simulate);
+    await _pumpFrames(tester, count: 10);
+
+    final save = find.widgetWithText(FilledButton, 'Enregistrer');
+    await tester.ensureVisible(save);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(save);
+    await _pumpFrames(tester, count: 20);
+
+    expect(find.text('Publier la composition ?'), findsNothing);
+    expect(repository.saveCalls, 1);
+  });
+
   testWidgets('la compo reste accessible sans effectif enregistré', (
     tester,
   ) async {
@@ -267,11 +351,19 @@ Future<void> _setWideViewport(WidgetTester tester) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
 }
 
+/// Écran assez haut pour que la feuille et ses boutons tiennent d'un bloc :
+/// sans cela, le bouton d'enregistrement sort de la zone touchable.
+Future<void> _setTallViewport(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(1200, 2400));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+}
+
 Future<void> _pumpWorkspace(
   WidgetTester tester, {
   required MatchConvocations convocations,
   required String initialStep,
   _FakeSportWaitlistRepository? waitlistRepository,
+  _FakeMatchCompositionRepository? compositionRepository,
 }) async {
   await tester.pumpWidget(
     RepaintBoundary(
@@ -282,7 +374,7 @@ Future<void> _pumpWorkspace(
             waitlistRepository ?? _FakeSportWaitlistRepository(convocations),
           ),
           matchCompositionRepositoryProvider.overrideWithValue(
-            _FakeMatchCompositionRepository(),
+            compositionRepository ?? _FakeMatchCompositionRepository(),
           ),
           upcomingMatchFixtureProvider(_matchId).overrideWith(
             (ref) async => const UpcomingMatchFixtureData(
@@ -546,8 +638,39 @@ MatchConvocations _publishedWith(
 }
 
 class _FakeMatchCompositionRepository implements MatchCompositionRepository {
+  _FakeMatchCompositionRepository({this.saved});
+
+  /// Feuille déjà enregistrée côté serveur, ou null si le match n'en a pas.
+  final MatchComposition? saved;
+  int saveCalls = 0;
+  int publishCalls = 0;
+
   @override
-  Future<MatchComposition?> fetchAdminComposition(String matchId) async => null;
+  Future<MatchComposition?> fetchAdminComposition(String matchId) async =>
+      saved;
+
+  @override
+  Future<MatchComposition> saveComposition({
+    required MatchComposition composition,
+    required bool allowSquadSizeException,
+    String? reason,
+  }) async {
+    saveCalls += 1;
+    return composition.copyWith(version: composition.version + 1);
+  }
+
+  @override
+  Future<MatchComposition> publishComposition({
+    required String matchId,
+    required bool allowSquadSizeException,
+    String? reason,
+  }) async {
+    publishCalls += 1;
+    return MatchComposition.initial(
+      convocations: _convocations(),
+      goalkeeperSeasonPlayerIds: const {'sp1'},
+    ).copyWith(version: 1);
+  }
 
   @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(

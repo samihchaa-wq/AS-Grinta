@@ -4,6 +4,7 @@ import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
@@ -43,6 +44,12 @@ class _InternalTeamCompositionViewState
   bool _saving = false;
   bool _syncingNames = false;
 
+  /// La notification de mise en ligne est-elle déjà partie pour ce match ?
+  ///
+  /// L'information vient du serveur, qui en garde la trace : la deviner d'après
+  /// la feuille se trompait après une remise à zéro des équipes.
+  bool _notificationSent = false;
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +79,7 @@ class _InternalTeamCompositionViewState
     _team2Controller.text = composition.team2Name;
     _syncingNames = false;
     _entries = List.of(composition.entries);
+    _notificationSent = composition.notificationSent;
 
     final team1 =
         JerseyOption.fromId(composition.team1JerseyId) ?? JerseyOption.orange;
@@ -156,6 +164,35 @@ class _InternalTeamCompositionViewState
   }) async {
     final entries = _entries;
     if (entries == null || _saving) return;
+    // La première mise en ligne prévient les joueurs convoqués, et le message
+    // ne se rattrape pas. Remettre les équipes à zéro, lui, n'envoie rien.
+    if (compositionPublicationWillNotify(
+      alreadyPublished: _notificationSent,
+      sheetNamesPlayers: entries.any((entry) => entry.teamNo != null),
+      postMatch: false,
+    )) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Publier la composition ?'),
+          content: const Text(
+            'Publier la composition enverra une notification à tous les '
+            'joueurs convoqués.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Valider'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
     setState(() => _saving = true);
     try {
       final saved =

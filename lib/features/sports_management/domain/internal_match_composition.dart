@@ -72,6 +72,7 @@ class InternalMatchComposition {
     required this.entries,
     this.team1JerseyId = 'orange',
     this.team2JerseyId = 'blue',
+    this.notificationSent = false,
   });
 
   final String matchId;
@@ -80,6 +81,10 @@ class InternalMatchComposition {
   final String team1JerseyId;
   final String team2JerseyId;
   final List<InternalCompositionEntry> entries;
+
+  /// La notification « La composition est en ligne » est-elle déjà partie pour
+  /// ce match ? Le serveur en garde la trace : elle ne part qu'une fois.
+  final bool notificationSent;
 
   List<InternalCompositionEntry> get unassigned =>
       entries.where((e) => e.teamNo == null).toList();
@@ -98,6 +103,7 @@ class InternalMatchComposition {
       team2Name: (json['team2_name'] ?? 'Équipe 2').toString(),
       team1JerseyId: (json['team1_jersey'] ?? 'orange').toString(),
       team2JerseyId: (json['team2_jersey'] ?? 'blue').toString(),
+      notificationSent: json['notification_sent'] == true,
       entries: entriesRaw is List
           ? entriesRaw
               .map(
