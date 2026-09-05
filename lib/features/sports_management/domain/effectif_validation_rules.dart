@@ -36,3 +36,22 @@ bool needsInitialEffectifWrite({
   if (convocationPublished || busy || locked || postMatch) return false;
   return true;
 }
+
+/// Vrai quand faire passer un joueur dans l'effectif lui enverra une
+/// notification « Tu es convoqué ».
+///
+/// Le serveur prévient le joueur au moment précis où sa convocation passe de
+/// « liste d'attente » à « convoqué », sur un match dont l'effectif existe déjà.
+/// Comme l'effectif s'écrit maintenant tout seul, ce geste part sans retour
+/// possible : l'écran doit donc demander confirmation avant, et seulement dans
+/// ce cas-là. Un joueur noté absent ou sans réponse que l'admin convoque ne
+/// déclenche rien, pas plus qu'un mouvement dans l'autre sens.
+bool convocationPushWillFire({
+  required bool wasWaitlisted,
+  required bool becomesConvoked,
+  required bool effectifWritten,
+  required bool postMatch,
+}) {
+  if (postMatch || !effectifWritten) return false;
+  return wasWaitlisted && becomesConvoked;
+}

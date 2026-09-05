@@ -97,6 +97,63 @@ void main() {
     );
   });
 
+  test('sortir un joueur de la liste d’attente le prévient', () {
+    expect(
+      convocationPushWillFire(
+        wasWaitlisted: true,
+        becomesConvoked: true,
+        effectifWritten: true,
+        postMatch: false,
+      ),
+      isTrue,
+    );
+  });
+
+  test('un absent que l’on convoque ne reçoit rien', () {
+    expect(
+      convocationPushWillFire(
+        wasWaitlisted: false,
+        becomesConvoked: true,
+        effectifWritten: true,
+        postMatch: false,
+      ),
+      isFalse,
+    );
+  });
+
+  test('sortir un joueur de l’effectif ne prévient personne', () {
+    expect(
+      convocationPushWillFire(
+        wasWaitlisted: true,
+        becomesConvoked: false,
+        effectifWritten: true,
+        postMatch: false,
+      ),
+      isFalse,
+    );
+  });
+
+  test('un effectif jamais écrit ne peut prévenir personne', () {
+    expect(
+      convocationPushWillFire(
+        wasWaitlisted: true,
+        becomesConvoked: true,
+        effectifWritten: false,
+        postMatch: false,
+      ),
+      isFalse,
+    );
+    expect(
+      convocationPushWillFire(
+        wasWaitlisted: true,
+        becomesConvoked: true,
+        effectifWritten: true,
+        postMatch: true,
+      ),
+      isFalse,
+    );
+  });
+
   test('l’écran Effectif branche ses écritures sur les règles partagées', () {
     final state = File(
       'lib/features/sports_management/presentation/'
@@ -110,6 +167,7 @@ void main() {
     expect(state, contains('=> canSaveEffectifNow('));
     expect(state, contains('needsInitialEffectifWrite('));
     expect(effectif, contains('_scheduleEffectifSave();'));
+    expect(effectif, contains('convocationPushWillFire('));
     expect(effectif, isNot(contains("label: const Text('Enregistrer')")));
   });
 

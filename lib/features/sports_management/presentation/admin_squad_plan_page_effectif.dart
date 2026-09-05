@@ -84,10 +84,35 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 
-  void _setEffectifStatus(ConvocationPlayer player, ConvocationStatus status) {
+  Future<void> _setEffectifStatus(
+    ConvocationPlayer player,
+    ConvocationStatus status,
+  ) async {
     if (_busy || _locked || player.isGuest) return;
     final current = _desiredEffectifStatus(player);
     if (current == status) return;
+    // Sortir un joueur de la liste d'attente le prévient aussitôt, et la
+    // notification ne peut pas être rappelée : c'est le seul geste de cet
+    // écran qui mérite une confirmation.
+    if (convocationPushWillFire(
+      wasWaitlisted: player.convocationStatus == ConvocationStatus.notConvoked,
+      becomesConvoked: status == ConvocationStatus.convoked,
+      effectifWritten: _effectifWritten,
+      postMatch: _postMatch,
+    )) {
+      final confirmed = await _confirmAction(
+        title: 'Prévenir ${player.displayName} ?',
+        actionLabel: 'Confirmer',
+        actionIcon: Icons.notifications_active_outlined,
+        content: Text(
+          '${player.displayName} entre dans l’effectif : il reçoit tout de '
+          'suite la notification « Tu es convoqué », s’il les a activées. '
+          'Elle ne peut pas être rattrapée.',
+        ),
+      );
+      if (!confirmed || !mounted) return;
+      if (_busy || _locked || _desiredEffectifStatus(player) != current) return;
+    }
     _updateState(() {
       if (status == ConvocationStatus.notApplicable) {
         _desiredEffectifStatuses.remove(player.participantId);
