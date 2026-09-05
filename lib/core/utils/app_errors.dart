@@ -64,6 +64,7 @@ String _fromMessage(String raw) {
     'droits',
     'administrateur',
     'composition',
+    'effectif',
     'notification',
   ];
 
@@ -100,6 +101,13 @@ String _fromMessage(String raw) {
     'player is not waiting for an availability response':
         'Ce joueur n’attend pas de réponse de disponibilité pour ce match.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',
+    // L'effectif s'enregistre à chaque décision : l'écran peut avoir une
+    // demi-longueur de retard sur une réponse de joueur arrivée entre-temps.
+    'effectif decision':
+        'L’effectif a changé entre-temps. L’écran vient d’être '
+            'remis à jour : refais ta décision.',
+    'effectif can only be edited before kickoff':
+        'L’effectif ne peut plus changer : le match a commencé.',
     'valeur de pronostic hors limites':
         'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
     'prediction value out of range':

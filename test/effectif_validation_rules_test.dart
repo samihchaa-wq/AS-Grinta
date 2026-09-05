@@ -4,67 +4,100 @@ import 'package:as_grinta/features/sports_management/domain/effectif_validation_
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('un effectif jamais publié reste enregistrable sans modification', () {
+  test('une décision d’effectif part immédiatement', () {
     expect(
-      canPersistEffectif(
+      canSaveEffectifNow(
         busy: false,
         locked: false,
-        dirty: false,
-        readyForComposition: false,
+        postMatch: false,
+        saving: false,
       ),
       isTrue,
     );
   });
 
-  test('un effectif publié et inchangé ne propose plus d’enregistrement', () {
+  test('une écriture déjà en cours attend son tour', () {
     expect(
-      canPersistEffectif(
+      canSaveEffectifNow(
         busy: false,
         locked: false,
-        dirty: false,
-        readyForComposition: true,
+        postMatch: false,
+        saving: true,
       ),
       isFalse,
     );
   });
 
-  test('une modification rouvre l’enregistrement sur un effectif publié', () {
+  test('le verrou du coup d’envoi bloque toute écriture', () {
     expect(
-      canPersistEffectif(
-        busy: false,
-        locked: false,
-        dirty: true,
-        readyForComposition: true,
-      ),
-      isTrue,
-    );
-  });
-
-  test('le verrou du coup d’envoi bloque l’enregistrement', () {
-    expect(
-      canPersistEffectif(
+      canSaveEffectifNow(
         busy: false,
         locked: true,
-        dirty: true,
-        readyForComposition: false,
+        postMatch: false,
+        saving: false,
       ),
       isFalse,
     );
   });
 
-  test('un chargement en cours bloque l’enregistrement', () {
+  test('après le match, l’effectif ne bouge plus', () {
     expect(
-      canPersistEffectif(
-        busy: true,
+      canSaveEffectifNow(
+        busy: false,
         locked: false,
-        dirty: true,
-        readyForComposition: false,
+        postMatch: true,
+        saving: false,
       ),
       isFalse,
     );
   });
 
-  test('l’écran Effectif branche son bouton sur la règle partagée', () {
+  test('un effectif jamais écrit doit l’être avant la composition', () {
+    expect(
+      needsInitialEffectifWrite(
+        convocationPublished: false,
+        busy: false,
+        locked: false,
+        postMatch: false,
+      ),
+      isTrue,
+    );
+  });
+
+  test('un effectif déjà écrit n’est pas réécrit au chargement', () {
+    expect(
+      needsInitialEffectifWrite(
+        convocationPublished: true,
+        busy: false,
+        locked: false,
+        postMatch: false,
+      ),
+      isFalse,
+    );
+  });
+
+  test('un match verrouillé ou terminé n’écrit pas d’effectif de départ', () {
+    expect(
+      needsInitialEffectifWrite(
+        convocationPublished: false,
+        busy: false,
+        locked: true,
+        postMatch: false,
+      ),
+      isFalse,
+    );
+    expect(
+      needsInitialEffectifWrite(
+        convocationPublished: false,
+        busy: false,
+        locked: false,
+        postMatch: true,
+      ),
+      isFalse,
+    );
+  });
+
+  test('l’écran Effectif branche ses écritures sur les règles partagées', () {
     final state = File(
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_state.dart',
@@ -74,12 +107,13 @@ void main() {
       'admin_squad_plan_page_effectif.dart',
     ).readAsStringSync();
 
-    expect(state, contains('=> canPersistEffectif('));
-    expect(effectif, contains('_canPersistEffectif ? _persistEffectif : null'));
-    expect(effectif, isNot(contains('_busy || _locked || !_effectifDirty')));
+    expect(state, contains('=> canSaveEffectifNow('));
+    expect(state, contains('needsInitialEffectifWrite('));
+    expect(effectif, contains('_scheduleEffectifSave();'));
+    expect(effectif, isNot(contains("label: const Text('Enregistrer')")));
   });
 
-  test('une compo bloquée offre un raccourci vers l’effectif', () {
+  test('la composition n’attend plus la validation de l’effectif', () {
     final state = File(
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_state.dart',
@@ -89,7 +123,11 @@ void main() {
       'admin_squad_plan_page_composition.dart',
     ).readAsStringSync();
 
-    expect(state, contains("Text('Aller à l’effectif')"));
-    expect(composition, contains("Text('Aller à l’effectif')"));
+    expect(state, isNot(contains('Effectif à valider')));
+    expect(composition, isNot(contains('Aller à l’effectif')));
+    expect(
+      composition,
+      isNot(contains('L’effectif doit être enregistré avant la composition.')),
+    );
   });
 }

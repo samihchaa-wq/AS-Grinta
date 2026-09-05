@@ -492,9 +492,17 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     if (composition == null || _compositionLocked || !_compositionDirty) {
       return;
     }
-    if (!_postMatch && !_effectifReadyForComposition) {
-      _showMessage('L’effectif doit être enregistré avant la composition.');
-      return;
+    // Le serveur refuse une composition tant que l'effectif du match n'existe
+    // pas. L'écran l'écrit au chargement ; on rattrape ici le cas rare où
+    // cette première écriture a échoué.
+    if (!_postMatch && !_effectifWritten) {
+      await _persistEffectif();
+      if (!mounted || !_effectifWritten) {
+        if (mounted) {
+          _showMessage('Effectif indisponible : réessaie dans un instant.');
+        }
+        return;
+      }
     }
     final ready = _compositionReadyToSave();
     _updateState(() => _busy = true);
@@ -556,32 +564,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             _desiredEffectifStatuses[entry.participantId] !=
             ConvocationStatus.convoked,
       );
-    final effectifReady = _effectifReadyForComposition;
-
-    if (!effectifReady && !_postMatch) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Enregistre d’abord l’effectif pour préparer la composition.',
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _busy
-                    ? null
-                    : () => _updateState(() => _step = _AdminStep.effectif),
-                icon: const Icon(Icons.groups_rounded),
-                label: const Text('Aller à l’effectif'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
