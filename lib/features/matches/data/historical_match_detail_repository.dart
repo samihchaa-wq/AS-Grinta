@@ -48,6 +48,8 @@ class HistoricalMatchDetail {
     required this.scorers,
     required this.motmNames,
     this.archiveNameByLabel = const {},
+    this.photoUrlByLabel = const {},
+    this.lastInitialByLabel = const {},
   });
 
   final String? formation;
@@ -61,6 +63,16 @@ class HistoricalMatchDetail {
   /// L'écran garde ainsi de quoi reconnaître un joueur d'archive même quand
   /// l'application l'appelle désormais par son surnom.
   final Map<String, String> archiveNameByLabel;
+
+  /// Photo du joueur, par appellation affichée. Sert à la liste « Joueurs (n) »
+  /// des archives sans composition, qui montre les mêmes pastilles que le
+  /// terrain d'un match avec composition.
+  final Map<String, String> photoUrlByLabel;
+
+  /// Initiale du nom de famille, par appellation affichée : la pastille d'un
+  /// joueur sans photo affiche ainsi « Prénom + initiale » plutôt que deux
+  /// lettres du seul prénom.
+  final Map<String, String> lastInitialByLabel;
 
   /// Une composition n'a de sens que si l'archive connaît au moins un nom :
   /// un terrain rempli uniquement d'emplacements vides n'apprendrait rien,
@@ -137,6 +149,24 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
     for (final archiveName in archiveNames) shortName(archiveName): archiveName,
   };
 
+  String? photoOf(String archiveName) {
+    final raw = photoUrlsByName[archiveName];
+    if (raw is! String) return null;
+    final trimmed = raw.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  final photoUrlByLabel = <String, String>{
+    for (final archiveName in archiveNames)
+      if (photoOf(archiveName) case final photoUrl?)
+        shortName(archiveName): photoUrl,
+  };
+  final lastInitialByLabel = <String, String>{
+    for (final archiveName in archiveNames)
+      if (identity.lastInitialOf(archiveName) case final initial?)
+        shortName(archiveName): initial,
+  };
+
   final fieldPlayers = fieldPlayersRaw.map(
     (entry) {
       final fullName = (entry['name'] ?? '').toString();
@@ -148,7 +178,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
         xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
         yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
         isGoalkeeper: entry['is_gk'] as bool? ?? false,
-        photoUrl: isVacant ? null : photoUrlsByName[fullName] as String?,
+        photoUrl: isVacant ? null : photoOf(fullName),
         isVacant: isVacant,
       );
     },
@@ -167,7 +197,7 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
           xPct: 50,
           yPct: 50,
           isGoalkeeper: false,
-          photoUrl: photoUrlsByName[fullName] as String?,
+          photoUrl: photoOf(fullName),
         ),
       )
       .toList(growable: false);
@@ -192,6 +222,8 @@ HistoricalMatchDetail historicalMatchDetailFromRow(Map<String, dynamic> row) {
     scorers: scorers,
     motmNames: motmNamesRaw.map(shortName).toList(growable: false),
     archiveNameByLabel: archiveNameByLabel,
+    photoUrlByLabel: photoUrlByLabel,
+    lastInitialByLabel: lastInitialByLabel,
   );
 }
 

@@ -6,10 +6,23 @@ import 'package:flutter/material.dart';
 /// Un joueur et son nombre de buts, pour l'affichage « Joueurs (n) » de
 /// repli quand aucune composition avec positions n'existe.
 class CompletedPlayerSummary {
-  const CompletedPlayerSummary({required this.name, required this.goals});
+  const CompletedPlayerSummary({
+    required this.name,
+    required this.goals,
+    this.photoUrl,
+    this.lastInitial,
+  });
 
   final String name;
   final int goals;
+
+  /// Photo du joueur, quand l'archive la connaît. Sans elle, la pastille
+  /// retombe sur les initiales, comme sur le terrain d'une composition.
+  final String? photoUrl;
+
+  /// Initiale du nom de famille, pour distinguer deux joueurs au même prénom
+  /// sur la pastille sans photo.
+  final String? lastInitial;
 }
 
 const List<({Offset source, Offset target})> _legacyFlat442DisplayMap = [
@@ -201,6 +214,15 @@ class CompletedPlayersList extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
+                  ExcludeSemantics(
+                    child: PlayerAvatar(
+                      photoUrl: players[index].photoUrl,
+                      name: players[index].name,
+                      lastName: players[index].lastInitial,
+                      size: 40,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       players[index].name,
