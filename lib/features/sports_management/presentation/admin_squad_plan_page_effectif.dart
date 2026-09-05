@@ -94,8 +94,21 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       } else {
         _desiredEffectifStatuses[player.participantId] = status;
       }
-      _effectifDirty = true;
+      _effectifRevision += 1;
     });
+    _scheduleEffectifSave();
+  }
+
+  /// Programme l'écriture de l'effectif juste après le geste de l'admin.
+  ///
+  /// Le court délai évite d'écrire une fois par doigt qui glisse : plusieurs
+  /// décisions enchaînées partent en une seule écriture.
+  void _scheduleEffectifSave() {
+    _effectifAutosave?.cancel();
+    _effectifAutosave = Timer(
+      const Duration(milliseconds: 700),
+      () => unawaited(_persistEffectif()),
+    );
   }
 
   int? _validatedSquadLimit({bool showError = true}) {
@@ -121,30 +134,72 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     };
   }
 
-  Future<void> _persistEffectif() async {
+  /// Écrit l'effectif tel qu'il est à l'écran.
+  ///
+  /// Rien n'est rechargé : la réponse du serveur suffit à remettre l'écran à
+  /// jour, et la composition en cours de préparation n'est pas perdue. Elle est
+  /// simplement réajustée — un joueur qui rejoint arrive sur le banc, un joueur
+  /// qui s'en va laisse son emplacement vide.
+  Future<void> _persistEffectif({bool recoverOnError = true}) async {
     final convocations = _convocations;
-    if (convocations == null || !_canPersistEffectif) {
+    if (convocations == null) return;
+    if (!_canSaveEffectifNow) {
+      // Une écriture ou un chargement est déjà en cours : cette décision
+      // repassera juste après, elle n'est pas perdue.
+      if (_effectifSaving || _busy) _scheduleEffectifSave();
       return;
     }
-    final limit = _validatedSquadLimit();
+    final limit = _validatedSquadLimit(showError: false);
     if (limit == null) return;
 
-    _updateState(() => _busy = true);
+    _effectifAutosave?.cancel();
+    final revision = _effectifRevision;
+    _updateState(() => _effectifSaving = true);
     try {
-      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
-            matchId: convocations.matchId,
-            squadSizeLimit: limit,
-            decisions: _effectifDecisions(convocations),
-            reason: 'Effectif enregistré depuis le match',
-          );
+      final updated =
+          await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
+                matchId: convocations.matchId,
+                squadSizeLimit: limit,
+                decisions: _effectifDecisions(convocations),
+                reason: 'Effectif enregistré depuis le match',
+              );
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
-      await _loadWorkspace(convocations.matchId);
-      if (mounted) _showMessage('Effectif enregistré.');
+      if (!mounted || _selectedMatchId != convocations.matchId) return;
+      _applyConvocations(updated,
+          adoptDecisions: revision == _effectifRevision);
     } catch (error) {
-      if (mounted) _showMessage(humanizeError(error));
+      if (!mounted) return;
+      _showMessage(humanizeError(error));
+      // L'écriture a échoué : l'écran ne doit pas rester sur une décision que
+      // le serveur a refusée. On repart de ce qu'il connaît, sauf si une
+      // composition en cours d'édition risquait d'être perdue.
+      if (recoverOnError && !_compositionDirty) {
+        unawaited(_loadWorkspace(convocations.matchId));
+      }
     } finally {
-      if (mounted) _updateState(() => _busy = false);
+      if (mounted) _updateState(() => _effectifSaving = false);
     }
+  }
+
+  /// Réaligne l'écran sur l'effectif que le serveur vient de confirmer.
+  void _applyConvocations(
+    MatchConvocations convocations, {
+    required bool adoptDecisions,
+  }) {
+    final composition = _postMatch
+        ? _composition
+        : _normalizeComposition(convocations, _composition, _goalkeeperIds);
+    _updateState(() {
+      _convocations = convocations;
+      _composition = composition;
+      if (adoptDecisions) {
+        _desiredEffectifStatuses = _effectifStatusesFor(
+          convocations: convocations,
+          postMatch: _postMatch,
+          actualPresent: _actualPresent,
+        );
+      }
+    });
   }
 
   Future<void> _sendReminder({ConvocationPlayer? player}) async {
@@ -431,11 +486,17 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     controller: _limitController,
                     enabled: !_busy && !_locked,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nombre de joueurs souhaité',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      errorText: _validatedSquadLimit(showError: false) == null
+                          ? 'Saisis un nombre entre 1 et 30.'
+                          : null,
                     ),
-                    onChanged: (_) => _updateState(() => _effectifDirty = true),
+                    onChanged: (_) {
+                      _updateState(() {});
+                      _scheduleEffectifSave();
+                    },
                   ),
                 if (!_isInternalMatch && over) ...[
                   const SizedBox(height: 10),
@@ -570,18 +631,11 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           },
         ),
         const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: _canPersistEffectif ? _persistEffectif : null,
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Enregistrer'),
-        ),
-        if (!_locked && !_effectifDirty && _effectifNeedsPublication)
-          const Padding(
-            padding: EdgeInsets.only(top: 10),
-            child: Text(
-              'Effectif pas encore validé : enregistre-le pour débloquer la '
-              'composition.',
-            ),
+        if (!_locked)
+          Text(
+            _effectifSaving
+                ? 'Enregistrement…'
+                : 'Chaque changement est enregistré tout de suite.',
           ),
         if (_locked)
           const Padding(

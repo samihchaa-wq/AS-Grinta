@@ -23,7 +23,7 @@ const _matchId = 'match-visual-review';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the compact effectif with explicit save', (
+  testWidgets('captures the compact effectif saved on the fly', (
     tester,
   ) async {
     await _setPhoneViewport(tester);
@@ -71,7 +71,11 @@ void main() {
       find.byKey(const ValueKey('effectif-player-p5')),
       findsOneWidget,
     );
-    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
+    expect(
+      find.text('Chaque changement est enregistré tout de suite.'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'effectif_compact_enregistrer.png');
   });
@@ -154,9 +158,9 @@ void main() {
       expect(find.text('Absents (1)'), findsOneWidget);
       await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
 
-      final saveButton = find.widgetWithText(FilledButton, 'Enregistrer');
-      await tester.ensureVisible(saveButton);
-      await tester.tap(saveButton);
+      // Aucun bouton à presser : les décisions partent d'elles-mêmes, une
+      // fois le geste terminé.
+      expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
       await _pumpFrames(tester, count: 20);
 
       expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
@@ -164,26 +168,27 @@ void main() {
     },
   );
 
-  testWidgets('un effectif jamais validé garde Enregistrer actionnable', (
+  testWidgets('un effectif jamais écrit part tout seul au chargement', (
     tester,
   ) async {
     await _setPhoneViewport(tester);
+    final repository = _FakeSportWaitlistRepository(
+      _convocations(published: false),
+    );
     await _pumpWorkspace(
       tester,
       convocations: _convocations(published: false),
       initialStep: 'effectif',
+      waitlistRepository: repository,
     );
 
-    final saveButton = find.widgetWithText(FilledButton, 'Enregistrer');
-    expect(saveButton, findsOneWidget);
-    expect(tester.widget<FilledButton>(saveButton).onPressed, isNotNull);
-    expect(
-      find.textContaining('enregistre-le pour débloquer la composition'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
+    expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
   });
 
-  testWidgets('la compo bloquée renvoie vers l’effectif', (tester) async {
+  testWidgets('la compo reste accessible sans effectif enregistré', (
+    tester,
+  ) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
@@ -191,13 +196,13 @@ void main() {
       initialStep: 'composition',
     );
 
-    final shortcut = find.widgetWithText(FilledButton, 'Aller à l’effectif');
-    expect(shortcut, findsOneWidget);
-    await tester.ensureVisible(shortcut);
-    await tester.tap(shortcut);
-    await _pumpFrames(tester, count: 10);
-
-    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
+    expect(
+        find.widgetWithText(FilledButton, 'Aller à l’effectif'), findsNothing);
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    expect(
+      find.widgetWithText(OutlinedButton, 'Simuler une composition'),
+      findsOneWidget,
+    );
   });
 }
 
@@ -387,9 +392,10 @@ ConvocationPlayer _player({
 }
 
 class _FakeSportWaitlistRepository implements SportWaitlistRepository {
-  _FakeSportWaitlistRepository(this.convocations);
+  _FakeSportWaitlistRepository(this.convocations) : _state = convocations;
 
   final MatchConvocations convocations;
+  MatchConvocations _state;
   Map<String, ConvocationStatus>? lastDecisions;
 
   @override
@@ -403,7 +409,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
 
   @override
   Future<MatchConvocations> fetchMatchConvocations(String matchId) async =>
-      convocations;
+      _state;
 
   @override
   Future<AvailabilityReminderSummary> fetchReminderSummary(
@@ -429,11 +435,58 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
     String? reason,
   }) async {
     lastDecisions = Map<String, ConvocationStatus>.from(decisions);
-    return convocations;
+    // Le serveur renvoie l'effectif tel qu'il vient de l'écrire : sans cette
+    // fidélité, le faux dépôt renverrait l'écran à son état de départ.
+    _state = _publishedWith(_state, decisions);
+    return _state;
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+MatchConvocations _publishedWith(
+  MatchConvocations convocations,
+  Map<String, ConvocationStatus> decisions,
+) {
+  final players = [
+    for (final player in convocations.players)
+      ConvocationPlayer(
+        participantId: player.participantId,
+        seasonPlayerId: player.seasonPlayerId,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        availabilityStatus: player.availabilityStatus,
+        convocationStatus:
+            decisions[player.seasonPlayerId] ?? ConvocationStatus.notApplicable,
+        publishedConvocationStatus:
+            decisions[player.seasonPlayerId] ?? ConvocationStatus.notApplicable,
+        manualOverride: true,
+        waitlistPosition: player.waitlistPosition,
+        recommendedNotConvoked: false,
+        turnShouldConsume: player.turnShouldConsume,
+        turnState: player.turnState,
+        promotedAfterWithdrawalAt: player.promotedAfterWithdrawalAt,
+        isGoalkeeper: player.isGoalkeeper,
+      ),
+  ];
+
+  return MatchConvocations(
+    matchId: convocations.matchId,
+    opponentName: convocations.opponentName,
+    kickoffAt: convocations.kickoffAt,
+    seasonId: convocations.seasonId,
+    squadSizeLimit: convocations.squadSizeLimit,
+    publishedSquadSizeLimit: convocations.squadSizeLimit,
+    convocationState: 'published',
+    convocationVersion: convocations.convocationVersion + 1,
+    hasUnpublishedChanges: false,
+    lateWithdrawalCutoffAt: convocations.lateWithdrawalCutoffAt,
+    availableCount: players.where((player) => player.isAvailable).length,
+    convokedCount: players.where((player) => player.isConvoked).length,
+    notConvokedCount: players.where((player) => player.isNotConvoked).length,
+    players: players,
+  );
 }
 
 class _FakeMatchCompositionRepository implements MatchCompositionRepository {

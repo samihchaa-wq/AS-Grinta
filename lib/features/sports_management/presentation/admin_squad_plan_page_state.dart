@@ -6,6 +6,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   MatchConvocations? _convocations;
   MatchComposition? _composition;
   Map<String, ConvocationStatus> _desiredEffectifStatuses = {};
+  Set<String> _goalkeeperIds = {};
   Set<String> _actualPresent = {};
   Map<String, int> _finishedBenchCounts = {};
   Map<String, String> _canonicalPlayerIds = {};
@@ -16,7 +17,16 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   AvailabilityReminderSummary? _reminders;
   late _AdminStep _step;
   late final TextEditingController _limitController;
-  bool _effectifDirty = false;
+  Timer? _effectifAutosave;
+  bool _effectifSaving = false;
+
+  /// Compteur des décisions prises à l'écran.
+  ///
+  /// Il distingue une réponse du serveur encore d'actualité d'une réponse
+  /// doublée par un nouveau geste pendant l'aller-retour : dans ce cas les
+  /// décisions affichées restent celles de l'admin, et c'est l'écriture
+  /// suivante qui les portera.
+  int _effectifRevision = 0;
   bool _compositionDirty = false;
   bool _loading = true;
   bool _busy = false;
@@ -72,6 +82,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   @override
   void dispose() {
+    _effectifAutosave?.cancel();
     _clearEffectifTapSelection();
     _limitController.dispose();
     super.dispose();
@@ -84,22 +95,20 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     return kickoff != null && isMatchAdminEditLocked(kickoff);
   }
 
-  bool get _effectifReadyForComposition =>
-      _postMatch ||
-      (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));
+  /// L'effectif du match existe-t-il déjà côté serveur ?
+  ///
+  /// Ce n'est plus une étape que l'admin doit franchir : l'écran l'écrit
+  /// lui-même. La composition ne s'appuie dessus que pour sa publication.
+  bool get _effectifWritten => _convocations?.isPublished ?? false;
 
-  bool get _effectifNeedsPublication =>
-      !(_convocations?.isReadyForComposition ?? false);
-
-  bool get _canPersistEffectif => canPersistEffectif(
+  bool get _canSaveEffectifNow => canSaveEffectifNow(
         busy: _busy,
         locked: _locked,
-        dirty: _effectifDirty,
-        readyForComposition: !_effectifNeedsPublication,
+        postMatch: _postMatch,
+        saving: _effectifSaving,
       );
 
-  bool get _compositionLocked =>
-      _busy || (!_postMatch && (_locked || !_effectifReadyForComposition));
+  bool get _compositionLocked => _busy || (!_postMatch && _locked);
 
   Future<void> _loadMatches() async {
     setState(() {
@@ -217,24 +226,15 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _actualPresent = actualPresent;
         _finishedBenchCounts = finishedBenchCounts;
         _canonicalPlayerIds = canonicalPlayerIds;
+        _goalkeeperIds = goalkeeperIds;
         _positionProfiles = positionProfiles;
         _reminders = reminders;
-        _desiredEffectifStatuses = {
-          for (final player in convocations.players)
-            if (postMatch && actualPresent.contains(player.participantId))
-              player.participantId: ConvocationStatus.convoked
-            else if (postMatch && player.isAvailable && !player.isGuest)
-              player.participantId: ConvocationStatus.notConvoked
-            else if (!postMatch && player.isGuest)
-              player.participantId: ConvocationStatus.convoked
-            else if (!postMatch &&
-                player.convocationStatus != ConvocationStatus.notApplicable)
-              player.participantId: player.convocationStatus
-            else if (!postMatch && player.isAvailable)
-              player.participantId: ConvocationStatus.notConvoked,
-        };
+        _desiredEffectifStatuses = _effectifStatusesFor(
+          convocations: convocations,
+          postMatch: postMatch,
+          actualPresent: actualPresent,
+        );
         _limitController.text = '${convocations.squadSizeLimit}';
-        _effectifDirty = false;
         _compositionDirty = false;
       });
     } catch (error) {
@@ -242,6 +242,63 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+    // Un match dont l'effectif n'a jamais été écrit reste impubliable côté
+    // serveur. On l'écrit ici, une fois le chargement terminé, avec les
+    // convocations que le serveur a déjà calculées : plus rien à valider à la
+    // main avant de poser la composition.
+    if (mounted &&
+        _selectedMatchId == matchId &&
+        _convocations?.matchId == matchId &&
+        needsInitialEffectifWrite(
+          convocationPublished: _effectifWritten,
+          busy: _busy,
+          locked: _locked,
+          postMatch: _postMatch,
+        )) {
+      // Sans ce garde-fou, un refus du serveur relancerait un chargement, qui
+      // relancerait l'écriture : l'écran tournerait en rond.
+      await _persistEffectif(recoverOnError: false);
+    }
+  }
+
+  /// Change d'onglet et resynchronise l'écran.
+  ///
+  /// L'écran ne bouge pas tout seul quand un joueur répond pendant qu'on
+  /// prépare le match : sans ce rechargement, « en direct » voudrait dire « au
+  /// prochain rafraîchissement manuel ». Une composition en cours d'édition
+  /// n'est jamais écrasée : on la laisse telle quelle.
+  void _selectStep(_AdminStep next) {
+    setState(() => _step = next);
+    if (next != _AdminStep.effectif && next != _AdminStep.composition) return;
+    final matchId = _selectedMatchId;
+    if (matchId == null || _loading || _busy || _compositionDirty) return;
+    unawaited(_loadWorkspace(matchId));
+  }
+
+  /// Décisions d'effectif telles qu'elles doivent apparaître à l'écran.
+  ///
+  /// Avant le match, le serveur convoque déjà tout joueur disponible : on
+  /// reprend sa décision telle quelle, et un disponible encore sans décision
+  /// est présenté hors effectif tant que l'admin n'a pas tranché.
+  Map<String, ConvocationStatus> _effectifStatusesFor({
+    required MatchConvocations convocations,
+    required bool postMatch,
+    required Set<String> actualPresent,
+  }) {
+    return {
+      for (final player in convocations.players)
+        if (postMatch && actualPresent.contains(player.participantId))
+          player.participantId: ConvocationStatus.convoked
+        else if (postMatch && player.isAvailable && !player.isGuest)
+          player.participantId: ConvocationStatus.notConvoked
+        else if (!postMatch && player.isGuest)
+          player.participantId: ConvocationStatus.convoked
+        else if (!postMatch &&
+            player.convocationStatus != ConvocationStatus.notApplicable)
+          player.participantId: player.convocationStatus
+        else if (!postMatch && player.isAvailable)
+          player.participantId: ConvocationStatus.notConvoked,
+    };
   }
 
   Future<bool> _confirmAction({
@@ -367,7 +424,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             ],
             selected: {step},
             onSelectionChanged:
-                _busy ? null : (value) => setState(() => _step = value.first),
+                _busy ? null : (value) => _selectStep(value.first),
           ),
           if (_busy) ...[
             const SizedBox(height: AppSpacing.contentGap),
@@ -387,24 +444,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           else if (step == _AdminStep.composition &&
               isInternal &&
               _selectedMatchId != null)
-            !_effectifReadyForComposition && !_postMatch
-                ? GrintaEmptyState(
-                    icon: Icons.groups_rounded,
-                    title: 'Effectif à valider',
-                    message:
-                        'Valide d’abord l’effectif pour préparer la composition.',
-                    action: FilledButton.icon(
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() => _step = _AdminStep.effectif),
-                      icon: const Icon(Icons.groups_rounded),
-                      label: const Text('Aller à l’effectif'),
-                    ),
-                  )
-                : InternalTeamCompositionView(
-                    matchId: _selectedMatchId!,
-                    editable: !_locked,
-                  )
+            InternalTeamCompositionView(
+              matchId: _selectedMatchId!,
+              editable: !_locked,
+            )
           else if (_convocations != null && _composition != null)
             step == _AdminStep.effectif
                 ? _buildEffectif()
