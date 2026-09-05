@@ -50,8 +50,7 @@ void main() {
     );
   });
 
-  test('the admin flow has one save button and no draft or publication step',
-      () {
+  test('the admin flow writes the effectif on the fly, with no draft step', () {
     final effectifSource = File(
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_effectif.dart',
@@ -66,7 +65,9 @@ void main() {
 
     expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
     expect(effectifSource, isNot(contains('Enregistrer les convocations')));
-    expect(effectifSource, contains("label: const Text('Enregistrer')"));
+    // Plus de bouton du tout : chaque décision part d'elle-même.
+    expect(effectifSource, isNot(contains("label: const Text('Enregistrer')")));
+    expect(effectifSource, contains('_scheduleEffectifSave()'));
     expect(
       effectifSource,
       isNot(contains('jusqu’à ce que tu appuies sur Enregistrer')),
