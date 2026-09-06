@@ -23,7 +23,6 @@ void main() {
               repository,
             ),
             playerPositionArchiveProvider.overrideWith((ref) async => const {}),
-            playerPositionArchiveProvider.overrideWith((ref) async => const {}),
           ],
           child: MaterialApp(
             theme: AppTheme.dark,
@@ -130,6 +129,7 @@ void main() {
             internalMatchCompositionRepositoryProvider.overrideWithValue(
               repository,
             ),
+            playerPositionArchiveProvider.overrideWith((ref) async => const {}),
           ],
           child: MaterialApp(
             theme: AppTheme.dark,
@@ -176,15 +176,15 @@ class _FakeInternalMatchCompositionRepository
   String? savedTeam1JerseyId;
   String? savedTeam2JerseyId;
 
-  // Des joueurs sont déjà répartis : côté serveur, la notification de mise en
-  // ligne est donc déjà partie, et republier n'en enverra pas d'autre.
+  // La répartition papier ne publie rien : tant que les deux terrains ne sont
+  // pas complets, la notification reste disponible.
   InternalMatchComposition current = const InternalMatchComposition(
     matchId: _matchId,
     team1Name: 'Orange mécanique',
     team2Name: 'Bleu nuit',
     team1JerseyId: 'orange',
     team2JerseyId: 'blue',
-    notificationSent: true,
+    notificationSent: false,
     entries: [
       InternalCompositionEntry(
         participantId: 'p1',
