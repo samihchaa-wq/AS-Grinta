@@ -124,6 +124,74 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     _scheduleEffectifSave();
   }
 
+  /// Fait basculer un joueur dans la colonne « Absents ».
+  ///
+  /// Deux cas se cachent derrière le même geste. Un joueur qui s'est déjà
+  /// déclaré absent revient simplement hors effectif : il suffit d'annuler la
+  /// décision de l'admin. Un joueur disponible (ou sans réponse), lui, ne peut
+  /// pas être laissé sans décision — le serveur l'exige — donc la seule façon
+  /// honnête de le sortir de l'effectif est d'enregistrer son absence à sa
+  /// place. C'est écrit dans le journal du match, et confirmé avant.
+  Future<void> _markAbsent(ConvocationPlayer player) async {
+    final matchId = _selectedMatchId;
+    if (matchId == null || _busy || _locked || player.isGuest) return;
+    if (player.isAbsent) {
+      await _setEffectifStatus(player, ConvocationStatus.notApplicable);
+      return;
+    }
+    if (player.seasonPlayerId.isEmpty) return;
+
+    final wasConvoked =
+        _desiredEffectifStatus(player) == ConvocationStatus.convoked;
+    final mayPromote = wasConvoked &&
+        _effectifWritten &&
+        !_isInternalMatch &&
+        _waitlistedPlayers.any((waiting) => waiting.isAvailable);
+    final confirmed = await _confirmAction(
+      title: 'Noter ${player.displayName} absent ?',
+      actionLabel: 'Noter absent',
+      actionIcon: Icons.cancel_outlined,
+      content: Text(
+        '${player.displayName} n’a pas déclaré son absence : elle sera '
+        'enregistrée à sa place et il sortira de l’effectif.'
+        '${mayPromote ? ' Le premier joueur de la liste d’attente prend '
+            'sa place et reçoit tout de suite la notification '
+            '« Tu es convoqué ».' : ''}',
+      ),
+    );
+    if (!confirmed || !mounted || _selectedMatchId != matchId) return;
+
+    // Une décision encore en attente d'écriture serait perdue par le
+    // rechargement : on la fait partir d'abord.
+    if (_effectifAutosave?.isActive ?? false) {
+      await _persistEffectif();
+      if (!mounted || _selectedMatchId != matchId) return;
+    }
+
+    _updateState(() => _busy = true);
+    try {
+      await ref.read(sportWaitlistRepositoryProvider).overrideAvailability(
+            matchId: matchId,
+            seasonPlayerId: player.seasonPlayerId,
+            status: 'absent',
+            reason: 'Passage chez les absents depuis l’effectif',
+          );
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
+      return;
+    } finally {
+      if (mounted) _updateState(() => _busy = false);
+    }
+    if (!mounted || _selectedMatchId != matchId) return;
+    await _loadWorkspace(matchId);
+    if (!mounted || _selectedMatchId != matchId) return;
+    // Le serveur ne retire la convocation que d'un joueur déjà convoqué sur un
+    // effectif publié. Dans les autres cas la décision d'avant survit à
+    // l'absence : on la retire ici pour que le joueur apparaisse bien parmi
+    // les absents.
+    await _setEffectifStatus(player, ConvocationStatus.notApplicable);
+  }
+
   /// Programme l'écriture de l'effectif juste après le geste de l'admin.
   ///
   /// Le court délai évite d'écrire une fois par doigt qui glisse : plusieurs
@@ -606,10 +674,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 icon: Icons.cancel_outlined,
                 players: _absentPlayers,
                 acceptsDrops: true,
-                acceptsPlayer: (player) => player.isAbsent,
                 draggable: true,
-                onAccept: (player) =>
-                    _setEffectifStatus(player, ConvocationStatus.notApplicable),
+                onAccept: _markAbsent,
                 onShowInfo: _showPlayerInfo,
                 locked: _busy || _locked,
               ),

@@ -41,6 +41,19 @@ abstract interface class SportWaitlistRepository {
     required Map<String, ConvocationStatus> decisions,
     String? reason,
   });
+
+  /// Enregistre une disponibilité à la place du joueur.
+  ///
+  /// C'est le seul moyen de sortir de l'effectif un joueur qui s'était déclaré
+  /// disponible : le serveur exige une décision d'effectif pour chacun d'eux,
+  /// et refuse de les laisser sans réponse. Le geste est réservé aux admins et
+  /// tracé côté serveur avec son motif.
+  Future<void> overrideAvailability({
+    required String matchId,
+    required String seasonPlayerId,
+    required String status,
+    String? reason,
+  });
 }
 
 class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
@@ -168,6 +181,27 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       ),
     );
     return MatchConvocations.fromRpc(response);
+  }
+
+  @override
+  Future<void> overrideAvailability({
+    required String matchId,
+    required String seasonPlayerId,
+    required String status,
+    String? reason,
+  }) async {
+    await _client.rpc(
+      'admin_override_match_availability',
+      params: {
+        'p_match_id': matchId,
+        'p_season_player_id': seasonPlayerId,
+        'p_status': status,
+        'p_private_comment': null,
+        // Le motif est obligatoire côté serveur : il alimente le journal
+        // d'audit des décisions prises à la place d'un joueur.
+        'p_reason': _clean(reason) ?? 'Décision prise depuis l’effectif',
+      },
+    );
   }
 
   Map<String, Object?> _effectifParams({

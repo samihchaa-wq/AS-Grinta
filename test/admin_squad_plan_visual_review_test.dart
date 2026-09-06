@@ -237,6 +237,60 @@ void main() {
     expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
   });
 
+  testWidgets('un convoqué peut passer chez les absents', (tester) async {
+    await _setWideViewport(tester);
+    final convocations = _convocations();
+    final repository = _FakeSportWaitlistRepository(convocations);
+    await _pumpWorkspace(
+      tester,
+      convocations: convocations,
+      initialStep: 'effectif',
+      waitlistRepository: repository,
+    );
+
+    expect(find.text('Convoqués (3)'), findsOneWidget);
+    expect(find.text('Absents (1)'), findsOneWidget);
+
+    // Annuler laisse le joueur convoqué et n'écrit rien.
+    await _dragPlayerToColumn(tester, playerName: 'Bruno', columnIndex: 2);
+    expect(find.text('Noter Bruno absent ?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+    await _pumpFrames(tester, count: 20);
+    expect(find.text('Convoqués (3)'), findsOneWidget);
+    expect(find.text('Absents (1)'), findsOneWidget);
+    expect(repository.overrides, isEmpty);
+
+    // Confirmer enregistre l'absence à la place du joueur.
+    await _dragPlayerToColumn(tester, playerName: 'Bruno', columnIndex: 2);
+    expect(find.text('Noter Bruno absent ?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Noter absent'));
+    await _pumpFrames(tester, count: 40);
+
+    expect(repository.overrides, [('sp2', 'absent')]);
+    expect(find.text('Convoqués (2)'), findsOneWidget);
+    expect(find.text('Absents (2)'), findsOneWidget);
+  });
+
+  testWidgets('un sans réponse peut passer chez les absents', (tester) async {
+    await _setWideViewport(tester);
+    final convocations = _convocations();
+    final repository = _FakeSportWaitlistRepository(convocations);
+    await _pumpWorkspace(
+      tester,
+      convocations: convocations,
+      initialStep: 'effectif',
+      waitlistRepository: repository,
+    );
+
+    await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 2);
+    await tester.tap(find.widgetWithText(FilledButton, 'Noter absent'));
+    await _pumpFrames(tester, count: 40);
+
+    expect(repository.overrides, [('sp5', 'absent')]);
+    expect(find.text('Sans réponse (0)'), findsOneWidget);
+    expect(find.text('Absents (2)'), findsOneWidget);
+  });
+
   testWidgets('publier la première composition demande confirmation', (
     tester,
   ) async {
@@ -447,6 +501,51 @@ Future<void> _capture(WidgetTester tester, String fileName) async {
   });
 }
 
+MatchConvocations _withAvailability(
+  MatchConvocations convocations,
+  String seasonPlayerId,
+  String availabilityStatus,
+) {
+  final players = [
+    for (final player in convocations.players)
+      if (player.seasonPlayerId != seasonPlayerId)
+        player
+      else
+        ConvocationPlayer(
+          participantId: player.participantId,
+          seasonPlayerId: player.seasonPlayerId,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          availabilityStatus: availabilityStatus,
+          convocationStatus: ConvocationStatus.notApplicable,
+          publishedConvocationStatus: ConvocationStatus.notApplicable,
+          manualOverride: false,
+          waitlistPosition: player.waitlistPosition,
+          recommendedNotConvoked: false,
+          turnShouldConsume: false,
+          turnState: player.turnState,
+          promotedAfterWithdrawalAt: player.promotedAfterWithdrawalAt,
+          isGoalkeeper: player.isGoalkeeper,
+        ),
+  ];
+  return MatchConvocations(
+    matchId: convocations.matchId,
+    opponentName: convocations.opponentName,
+    kickoffAt: convocations.kickoffAt,
+    seasonId: convocations.seasonId,
+    squadSizeLimit: convocations.squadSizeLimit,
+    publishedSquadSizeLimit: convocations.publishedSquadSizeLimit,
+    convocationState: convocations.convocationState,
+    convocationVersion: convocations.convocationVersion,
+    hasUnpublishedChanges: convocations.hasUnpublishedChanges,
+    lateWithdrawalCutoffAt: convocations.lateWithdrawalCutoffAt,
+    availableCount: players.where((player) => player.isAvailable).length,
+    convokedCount: players.where((player) => player.isConvoked).length,
+    notConvokedCount: players.where((player) => player.isNotConvoked).length,
+    players: players,
+  );
+}
+
 MatchConvocations _convocations({
   bool published = true,
   bool withWaitlisted = false,
@@ -545,6 +644,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   final MatchConvocations convocations;
   MatchConvocations _state;
   Map<String, ConvocationStatus>? lastDecisions;
+  final List<(String, String)> overrides = [];
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
@@ -587,6 +687,19 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
     // fidélité, le faux dépôt renverrait l'écran à son état de départ.
     _state = _publishedWith(_state, decisions);
     return _state;
+  }
+
+  @override
+  Future<void> overrideAvailability({
+    required String matchId,
+    required String seasonPlayerId,
+    required String status,
+    String? reason,
+  }) async {
+    overrides.add((seasonPlayerId, status));
+    // Le serveur retire de l'effectif le convoqué qui devient absent : le faux
+    // dépôt doit en faire autant, sinon l'écran ne verrait jamais le résultat.
+    _state = _withAvailability(_state, seasonPlayerId, status);
   }
 
   @override
