@@ -16,6 +16,15 @@ alter table public.match_internal_composition_entries
 alter table public.match_internal_composition_entries
   drop constraint if exists match_internal_composition_entries_field_coordinates_check;
 
+-- La V3 utilisait un terrain spécifique sans coordonnées x/y. On conserve les
+-- équipes papier mais on remet ces anciens placements en attente : le nouveau
+-- terrain classique sera la seule source de vérité visuelle.
+update public.match_internal_composition_entries
+set zone = 'available',
+    x = null,
+    y = null,
+    slot_label = null;
+
 alter table public.match_internal_composition_entries
   add constraint match_internal_composition_entries_field_coordinates_check
   check (
@@ -29,10 +38,6 @@ alter table public.match_internal_composition_entries
       and y is null
       and slot_label is null)
   );
-
-update public.match_internal_composition_entries
-set zone = case when slot_label is not null then 'field' else 'available' end
-where zone = 'available';
 
 create or replace function private.internal_formation_slots_v4(
   p_code text,
