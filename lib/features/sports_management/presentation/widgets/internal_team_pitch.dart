@@ -169,7 +169,7 @@ class _EmptySlot extends StatelessWidget {
           style: TextStyle(
             color: Colors.white,
             fontSize: (size * .24).clamp(9.0, 12.0).toDouble(),
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ),
