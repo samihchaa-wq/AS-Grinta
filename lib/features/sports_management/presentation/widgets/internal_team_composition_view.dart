@@ -9,12 +9,13 @@ import 'package:as_grinta/features/sports_management/data/player_identity_reposi
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
-import 'package:as_grinta/features/sports_management/domain/internal_team_simulation.dart';
+import 'package:as_grinta/features/sports_management/domain/composition_simulation.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
     show PlayerAvatar;
-import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,6 +54,8 @@ class _InternalTeamCompositionViewState
   bool _saving = false;
   bool _syncingNames = false;
   bool _notificationSent = false;
+  int _viewMode = 0;
+  int _terrainTeam = 1;
 
   @override
   void initState() {
