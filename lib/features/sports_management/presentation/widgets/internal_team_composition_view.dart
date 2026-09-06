@@ -758,11 +758,14 @@ class _InternalTeamCompositionViewState
               ),
               const SizedBox(height: 14),
               if (legacyReadOnly)
-                _LegacyInternalTeams(
-                  team1Name: composition.team1Name,
-                  team2Name: composition.team2Name,
-                  team1: team1,
-                  team2: team2,
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text(
+                      'Les compositions ne sont pas encore en ligne.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 )
               else
                 terrainCard,
@@ -1549,28 +1552,33 @@ class _GroupedUnassignedPools extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final group in groups)
-          if (group.$2.isNotEmpty) ...[
-            Text(
-              '${group.$1} (${group.$2.length})',
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-            const SizedBox(height: 6),
-            _WaitingPool(
-              entries: group.$2,
-              editable: editable,
-              selectedParticipantId: selectedParticipantId,
-              canReceiveSelected: canReceiveSelected,
-              onPoolTap: onPoolTap,
-              onPlayerTap: onPlayerTap,
-              emptyLabel: '',
-            ),
-            const SizedBox(height: 10),
-          ],
-      ],
+    return GestureDetector(
+      key: const ValueKey('internal-unassigned-pool'),
+      behavior: HitTestBehavior.opaque,
+      onTap: canReceiveSelected ? onPoolTap : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final group in groups)
+            if (group.$2.isNotEmpty) ...[
+              Text(
+                '${group.$1} (${group.$2.length})',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 6),
+              _WaitingPool(
+                entries: group.$2,
+                editable: editable,
+                selectedParticipantId: selectedParticipantId,
+                canReceiveSelected: false,
+                onPoolTap: onPoolTap,
+                onPlayerTap: onPlayerTap,
+                emptyLabel: '',
+              ),
+              const SizedBox(height: 10),
+            ],
+        ],
+      ),
     );
   }
 }
