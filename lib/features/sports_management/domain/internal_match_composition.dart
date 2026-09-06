@@ -15,6 +15,9 @@ class InternalCompositionEntry {
     this.photoUrl,
     this.lastInitial,
     this.teamNo,
+    this.zone = 'available',
+    this.x,
+    this.y,
     this.slotLabel,
     this.sortOrder = 0,
   });
@@ -30,16 +33,29 @@ class InternalCompositionEntry {
   final bool isGuest;
   final bool isGoalkeeper;
   final int? teamNo;
+
+  /// Même sémantique que les compositions classiques : available tant que le
+  /// joueur n'est pas placé, field sur le terrain, bench pour un remplaçant.
+  final String zone;
+  final double? x;
+  final double? y;
   final String? slotLabel;
   final int sortOrder;
 
   bool get isAssigned => teamNo == 1 || teamNo == 2;
-  bool get isPlaced => isAssigned && slotLabel != null;
+  bool get isField => isAssigned && zone == 'field';
+  bool get isBench => isAssigned && zone == 'bench';
+  bool get isPlaced => isField && slotLabel != null && x != null && y != null;
 
   InternalCompositionEntry copyWith({
     int? teamNo,
+    String? zone,
+    double? x,
+    double? y,
     String? slotLabel,
+    int? sortOrder,
     bool clearTeam = false,
+    bool clearPlacement = false,
     bool clearSlot = false,
   }) {
     final nextTeam = clearTeam ? null : (teamNo ?? this.teamNo);
@@ -53,11 +69,15 @@ class InternalCompositionEntry {
       isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
       teamNo: nextTeam,
-      // Changer ou effacer l'équipe invalide toujours le placement précédent :
-      // un même libellé n'a pas nécessairement la même place dans l'autre
-      // dispositif.
-      slotLabel: clearTeam || clearSlot ? null : (slotLabel ?? this.slotLabel),
-      sortOrder: sortOrder,
+      zone: clearTeam
+          ? 'available'
+          : (clearPlacement ? 'available' : (zone ?? this.zone)),
+      x: clearTeam || clearPlacement ? null : (x ?? this.x),
+      y: clearTeam || clearPlacement ? null : (y ?? this.y),
+      slotLabel: clearTeam || clearPlacement || clearSlot
+          ? null
+          : (slotLabel ?? this.slotLabel),
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 
@@ -72,6 +92,13 @@ class InternalCompositionEntry {
       isGuest: json['is_guest'] == true,
       isGoalkeeper: json['is_goalkeeper'] == true,
       teamNo: (json['team_no'] as num?)?.toInt(),
+      zone: switch (json['zone']?.toString()) {
+        'field' => 'field',
+        'bench' => 'bench',
+        _ => 'available',
+      },
+      x: (json['x'] as num?)?.toDouble(),
+      y: (json['y'] as num?)?.toDouble(),
       slotLabel: switch (json['slot_label']) {
         final String value when value.trim().isNotEmpty => value.trim(),
         _ => null,
@@ -83,6 +110,9 @@ class InternalCompositionEntry {
   Map<String, dynamic> toRpcJson() => {
         'participant_id': participantId,
         'team_no': teamNo,
+        'zone': zone,
+        'x': x,
+        'y': y,
         'slot_label': slotLabel,
         'sort_order': sortOrder,
       };
@@ -132,9 +162,8 @@ class InternalMatchComposition {
     bool teamIsComplete(List<InternalCompositionEntry> team) {
       if (team.isEmpty) return false;
       final requiredStarters = team.length > 11 ? 11 : team.length;
-      final starters = team
-          .where((entry) => entry.slotLabel != null)
-          .toList(growable: false);
+      final starters =
+          team.where((entry) => entry.zone == 'field').toList(growable: false);
       if (starters.length != requiredStarters) return false;
       final slots = starters.map((entry) => entry.slotLabel!).toList();
       return slots.toSet().length == slots.length;
