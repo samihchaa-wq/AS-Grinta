@@ -125,7 +125,8 @@ void main() {
       expect(composition.isVisualComplete, isFalse);
     });
 
-    test('un banc est interdit tant que l’équipe ne dépasse pas onze joueurs', () {
+    test('un banc est interdit tant que l’équipe ne dépasse pas onze joueurs',
+        () {
       final composition = InternalMatchComposition(
         matchId: 'm',
         team1Name: 'A',
