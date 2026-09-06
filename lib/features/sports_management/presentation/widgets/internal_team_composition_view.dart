@@ -281,7 +281,10 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  Future<void> _simulate(Map<String, PlayerPositionProfile> profiles) async {
+  Future<void> _simulate(
+    Map<String, PlayerPositionProfile> profiles,
+    Map<String, int> benchCounts,
+  ) async {
     final entries = _entries;
     if (!widget.editable || entries == null || _saving) return;
     final validation = _validation(entries);
@@ -309,12 +312,14 @@ class _InternalTeamCompositionViewState
       formation: formation1,
       players: team1,
       profiles: profiles,
+      benchCounts: benchCounts,
       random: random,
     );
     final simulation2 = simulateInternalTeam(
       formation: formation2,
       players: team2,
       profiles: profiles,
+      benchCounts: benchCounts,
       random: random,
     );
 
@@ -567,6 +572,9 @@ class _InternalTeamCompositionViewState
     final profilesAsync = ref.watch(
       _internalPlayerProfilesProvider(widget.matchId),
     );
+    final benchCountsAsync = ref.watch(
+      _internalBenchCountsProvider(widget.matchId),
+    );
 
     return async.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -592,7 +600,10 @@ class _InternalTeamCompositionViewState
         final unassigned = entries.where((entry) => entry.teamNo == null).toList();
         final team1 = entries.where((entry) => entry.teamNo == 1).toList();
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
-        final profiles = profilesAsync.valueOrNull ?? const <String, PlayerPositionProfile>{};
+        final profiles =
+            profilesAsync.valueOrNull ?? const <String, PlayerPositionProfile>{};
+        final benchCounts =
+            benchCountsAsync.valueOrNull ?? const <String, int>{};
         final validation = _validation(entries);
         final legacyReadOnly =
             !widget.editable && !composition.isVisualComplete;
@@ -712,9 +723,10 @@ class _InternalTeamCompositionViewState
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 key: const ValueKey('simulate-internal-composition'),
-                onPressed: _saving || profilesAsync.isLoading
-                    ? null
-                    : () => _simulate(profiles),
+                onPressed:
+                    _saving || profilesAsync.isLoading || benchCountsAsync.isLoading
+                        ? null
+                        : () => _simulate(profiles, benchCounts),
                 icon: const Icon(Icons.auto_fix_high_rounded),
                 label: const Text('Simuler la composition'),
               ),
@@ -1210,6 +1222,17 @@ class _LegacyInternalTeams extends StatelessWidget {
 
 /// Profils indexés par participant du match. On réutilise exactement la même
 /// identité canonique et le même historique que la simulation du onze.
+final _internalBenchCountsProvider = FutureProvider.autoDispose
+    .family<Map<String, int>, String>((ref, matchId) async {
+  try {
+    return await ref
+        .watch(matchCompositionRepositoryProvider)
+        .fetchFinishedBenchCounts(matchId);
+  } catch (_) {
+    return const {};
+  }
+});
+
 final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
   final composition = await ref.watch(
