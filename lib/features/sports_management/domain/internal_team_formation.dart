@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 ///
 /// Le gardien est implicite : le code décrit uniquement les lignes de joueurs
 /// de champ. Ainsi « 2-3-1 » correspond à 7 joueurs au total (1 GB + 6 joueurs
-/// de champ). Chaque dispositif expose exactement autant d'emplacements que le
-/// nombre de joueurs qu'il accepte ; il n'existe donc aucun banc dans la
-/// composition finale.
+/// de champ). Jusqu'à 11 joueurs, le dispositif expose exactement autant
+/// d'emplacements que de joueurs. Au-delà de 11 joueurs dans une équipe, le
+/// dispositif reste un onze et le surplus est placé sur le banc.
 class InternalTeamFormation {
   const InternalTeamFormation({
     required this.code,
@@ -183,8 +183,11 @@ const Map<int, List<InternalTeamFormation>> internalTeamFormationsByPlayerCount 
   ],
 };
 
-List<InternalTeamFormation> internalFormationsForPlayerCount(int playerCount) =>
-    internalTeamFormationsByPlayerCount[playerCount] ?? const [];
+List<InternalTeamFormation> internalFormationsForPlayerCount(int playerCount) {
+  if (playerCount <= 0) return const [];
+  final onFieldCount = playerCount > 11 ? 11 : playerCount;
+  return internalTeamFormationsByPlayerCount[onFieldCount] ?? const [];
+}
 
 InternalTeamFormation? internalFormationByCode({
   required int playerCount,
