@@ -163,35 +163,6 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  void _moveSelectedToBench(int teamNo) {
-    final entries = _entries;
-    final selected = _selectedEntry;
-    if (!widget.editable ||
-        entries == null ||
-        selected == null ||
-        selected.teamNo != teamNo ||
-        selected.slotLabel == null) {
-      return;
-    }
-    final teamSize = entries.where((entry) => entry.teamNo == teamNo).length;
-    if (teamSize <= 11) {
-      _showMessage('Le banc apparaît seulement au-delà de 11 joueurs.');
-      return;
-    }
-    final index = entries.indexWhere(
-      (entry) => entry.participantId == selected.participantId,
-    );
-    if (index == -1) return;
-    setState(() {
-      entries[index] = selected.copyWith(
-        zone: 'bench',
-        clearSlot: true,
-      );
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
-  }
-
   void _invalidateTeamLayout(int teamNo) {
     final entries = _entries;
     if (entries == null) return;
@@ -257,52 +228,6 @@ class _InternalTeamCompositionViewState
         _team1FormationCode = code;
       } else {
         _team2FormationCode = code;
-      }
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
-  }
-
-  void _onPitchSlotTap({
-    required int teamNo,
-    required String slotLabel,
-    required InternalCompositionEntry? occupant,
-  }) {
-    if (!widget.editable) return;
-    final entries = _entries;
-    if (entries == null) return;
-    final selected = _selectedEntry;
-
-    if (selected == null) {
-      if (occupant != null) _selectPlayer(occupant);
-      return;
-    }
-    if (selected.teamNo != teamNo) {
-      _showMessage('Affecte d’abord ce joueur à cette équipe.');
-      return;
-    }
-    if (occupant?.participantId == selected.participantId) {
-      setState(() => _selectedParticipantId = null);
-      return;
-    }
-
-    final selectedIndex = entries.indexWhere(
-      (entry) => entry.participantId == selected.participantId,
-    );
-    if (selectedIndex == -1) return;
-    final previousSlot = selected.slotLabel;
-    final occupantIndex = occupant == null
-        ? -1
-        : entries.indexWhere(
-            (entry) => entry.participantId == occupant.participantId,
-          );
-
-    setState(() {
-      entries[selectedIndex] = selected.copyWith(slotLabel: slotLabel);
-      if (occupantIndex >= 0 && occupant != null) {
-        entries[occupantIndex] = previousSlot == null
-            ? occupant.copyWith(clearSlot: true)
-            : occupant.copyWith(slotLabel: previousSlot);
       }
       _selectedParticipantId = null;
       _dirty = true;
