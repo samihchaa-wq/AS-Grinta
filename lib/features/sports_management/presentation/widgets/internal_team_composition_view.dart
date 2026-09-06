@@ -209,11 +209,48 @@ class _InternalTeamCompositionViewState
   void _changeFormation(int teamNo, String code) {
     final entries = _entries;
     if (!widget.editable || entries == null) return;
+    final team = entries.where((entry) => entry.teamNo == teamNo).toList();
+    final formation = internalFormationByCode(
+      playerCount: team.length,
+      code: code,
+    );
+    if (formation == null) return;
+
+    final field = team.where((entry) => entry.zone == 'field').toList();
+    final ordered = [
+      ...field.where((entry) => entry.isGoalkeeper),
+      ...field.where((entry) => !entry.isGoalkeeper),
+    ];
+    final placement = <String, FootballFormationSlot>{};
+    final overflow = <String>{};
+    for (var index = 0; index < ordered.length; index += 1) {
+      if (index < formation.slots.length) {
+        placement[ordered[index].participantId] = formation.slots[index];
+      } else {
+        overflow.add(ordered[index].participantId);
+      }
+    }
+    final benchBase =
+        team.where((entry) => entry.zone == 'bench').length;
+    var extraBench = 0;
+
     setState(() {
       for (var index = 0; index < entries.length; index += 1) {
-        if (entries[index].teamNo == teamNo &&
-            entries[index].slotLabel != null) {
-          entries[index] = entries[index].copyWith(clearSlot: true);
+        final entry = entries[index];
+        if (entry.teamNo != teamNo) continue;
+        if (placement[entry.participantId] case final slot?) {
+          entries[index] = entry.copyWith(
+            zone: 'field',
+            x: slot.position.dx,
+            y: slot.position.dy,
+            slotLabel: slot.label,
+          );
+        } else if (overflow.contains(entry.participantId)) {
+          entries[index] = entry.copyWith(
+            zone: 'bench',
+            sortOrder: benchBase + extraBench++,
+            clearSlot: true,
+          );
         }
       }
       if (teamNo == 1) {
