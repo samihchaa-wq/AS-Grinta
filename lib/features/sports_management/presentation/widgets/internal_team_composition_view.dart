@@ -14,7 +14,7 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
-    show PlayerAvatar;
+    show CompositionPlayerTile, PlayerAvatar, SubstituteHistoryBadge;
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -891,14 +891,13 @@ class _InternalTeamCard extends StatelessWidget {
     required this.entries,
     required this.formationCode,
     required this.editable,
-    required this.selectedParticipantId,
     required this.canReceiveSelected,
     required this.onAssignSelected,
-    required this.onBenchSelected,
     required this.onJerseySelected,
     required this.onFormationSelected,
-    required this.onPlayerTap,
-    required this.onSlotTap,
+    required this.onDroppedOnSlot,
+    required this.onRemoveFromField,
+    required this.finishedBenchCounts,
     this.controller,
   });
 
@@ -909,16 +908,40 @@ class _InternalTeamCard extends StatelessWidget {
   final List<InternalCompositionEntry> entries;
   final String? formationCode;
   final bool editable;
-  final String? selectedParticipantId;
   final bool canReceiveSelected;
   final VoidCallback onAssignSelected;
-  final VoidCallback onBenchSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
   final ValueChanged<String> onFormationSelected;
-  final ValueChanged<InternalCompositionEntry> onPlayerTap;
-  final void Function(dynamic slot, InternalCompositionEntry? occupant)
-      onSlotTap;
+  final void Function(MatchCompositionEntry, FootballFormationSlot)
+      onDroppedOnSlot;
+  final ValueChanged<MatchCompositionEntry> onRemoveFromField;
+  final Map<String, int> finishedBenchCounts;
   final TextEditingController? controller;
+
+  MatchCompositionEntry _classic(InternalCompositionEntry entry) {
+    return MatchCompositionEntry(
+      participantId: entry.participantId,
+      seasonPlayerId: entry.seasonPlayerId ?? '',
+      guestPlayerId: entry.guestPlayerId,
+      displayName: entry.displayName,
+      lastInitial: entry.lastInitial,
+      isGuest: entry.isGuest,
+      isGoalkeeper: entry.isGoalkeeper,
+      zone: MatchCompositionZone.fromWire(entry.zone),
+      x: entry.x,
+      y: entry.y,
+      slotLabel: entry.slotLabel,
+      photoUrl: entry.photoUrl,
+      sortOrder: entry.sortOrder,
+      availabilityStatus: 'available',
+      convocationStatus: 'convoked',
+      selectionStatus: switch (entry.zone) {
+        'field' => 'starter',
+        'bench' => 'substitute',
+        _ => 'undecided',
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -927,16 +950,16 @@ class _InternalTeamCard extends StatelessWidget {
       playerCount: entries.length,
       code: formationCode,
     );
-    final waiting = entries.where((entry) => entry.slotLabel == null).toList();
-    final starterCount = entries.length - waiting.length;
-    final substituteCount = entries.length > 11 ? entries.length - 11 : 0;
-    final benchComplete = substituteCount > 0 &&
-        starterCount == 11 &&
-        waiting.length == substituteCount;
-    final selectedInThisTeam = selectedParticipantId != null &&
-        entries.any((entry) =>
-            entry.participantId == selectedParticipantId &&
-            entry.slotLabel != null);
+    final field = entries
+        .where((entry) => entry.zone == 'field')
+        .map(_classic)
+        .toList(growable: false);
+    final bench = entries
+        .where((entry) => entry.zone == 'bench')
+        .map(_classic)
+        .toList(growable: false);
+    final waiting =
+        entries.where((entry) => entry.zone == 'available').toList();
     final semanticName = controller?.text.trim().isNotEmpty == true
         ? controller!.text.trim()
         : name;
@@ -977,19 +1000,13 @@ class _InternalTeamCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  entries.length > 11
-                      ? '${entries.length} joueurs · ${entries.length - 11} remp.'
-                      : '${entries.length} joueur${entries.length > 1 ? 's' : ''}',
-                ),
               ],
             ),
             const SizedBox(height: 10),
             if (editable)
               InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Formation',
+                  labelText: 'Dispositif',
                   isDense: true,
                 ),
                 child: DropdownButtonHideUnderline(
@@ -998,7 +1015,7 @@ class _InternalTeamCard extends StatelessWidget {
                     value: formation?.code,
                     hint: entries.isEmpty
                         ? const Text('Aucun joueur')
-                        : const Text('Choisir la formation'),
+                        : const Text('Choisir le dispositif'),
                     items: [
                       for (final option in formations)
                         DropdownMenuItem(
@@ -1016,18 +1033,19 @@ class _InternalTeamCard extends StatelessWidget {
               )
             else if (formation != null)
               Text(
-                'Formation ${formation.code}',
+                'Dispositif ${formation.code}',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelLarge,
               ),
             const SizedBox(height: 10),
             if (formation != null)
-              InternalTeamPitch(
-                formation: formation,
-                entries: entries,
+              FormationPitchEditor(
+                slots: formation.slots,
+                entries: field,
                 editable: editable,
-                selectedParticipantId: selectedParticipantId,
-                onSlotTap: onSlotTap,
+                finishedBenchCounts: finishedBenchCounts,
+                onDroppedOnSlot: onDroppedOnSlot,
+                onRemoveFromField: onRemoveFromField,
               )
             else
               Container(
@@ -1043,35 +1061,102 @@ class _InternalTeamCard extends StatelessWidget {
                 child: Text(
                   entries.isEmpty
                       ? 'Aucun joueur dans cette équipe.'
-                      : 'Choisis une formation pour afficher le terrain.',
+                      : 'Choisis un dispositif pour afficher le terrain.',
                   textAlign: TextAlign.center,
                 ),
               ),
-            if (waiting.isNotEmpty) ...[
-              const SizedBox(height: 10),
+            if (bench.isNotEmpty) ...[
+              const SizedBox(height: 12),
               Text(
-                benchComplete
-                    ? 'Remplaçants (${waiting.length})'
-                    : substituteCount > 0
-                        ? 'À placer / banc (${waiting.length})'
-                        : 'À placer (${waiting.length})',
+                'Remplaçants (${bench.length})',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 6),
-              _WaitingPool(
-                entries: waiting,
-                editable: editable,
-                selectedParticipantId: selectedParticipantId,
-                canReceiveSelected:
-                    editable && entries.length > 11 && selectedInThisTeam,
-                onPoolTap: onBenchSelected,
-                onPlayerTap: onPlayerTap,
-                emptyLabel: '',
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in bench)
+                    _ClassicBenchBox(
+                      entry: entry,
+                      draggable: editable,
+                      finishedBenchCount:
+                          finishedBenchCounts[entry.participantId] ?? 0,
+                    ),
+                ],
+              ),
+            ],
+            if (waiting.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'À placer (${waiting.length})',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in waiting)
+                    _PlayerChip(
+                      entry: entry,
+                      editable: false,
+                      selected: false,
+                      onTap: () {},
+                    ),
+                ],
               ),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ClassicBenchBox extends StatelessWidget {
+  const _ClassicBenchBox({
+    required this.entry,
+    required this.draggable,
+    required this.finishedBenchCount,
+  });
+
+  final MatchCompositionEntry entry;
+  final bool draggable;
+  final int finishedBenchCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = SizedBox(
+      width: 70,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CompositionPlayerTile(
+            entry: entry,
+            onTap: draggable
+                ? () => FormationPitchTapSelection.placePlayer(entry)
+                : null,
+          ),
+          if (finishedBenchCount > 0)
+            Positioned(
+              top: 0,
+              right: -2,
+              child: SubstituteHistoryBadge(count: finishedBenchCount),
+            ),
+        ],
+      ),
+    );
+    final highlighted = FormationPitchTapSelectionHighlight(
+      entry: entry,
+      child: tile,
+    );
+    if (!draggable) return highlighted;
+    return LongPressDraggable<MatchCompositionEntry>(
+      data: entry,
+      feedback: Material(type: MaterialType.transparency, child: tile),
+      childWhenDragging: Opacity(opacity: .35, child: tile),
+      child: highlighted,
     );
   }
 }
