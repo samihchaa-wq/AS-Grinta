@@ -986,6 +986,322 @@ class _InternalValidation {
   final int unassignedCount;
 }
 
+class _PaperTeams extends StatelessWidget {
+  const _PaperTeams({
+    required this.team1Name,
+    required this.team2Name,
+    required this.team1Controller,
+    required this.team2Controller,
+    required this.team1Jersey,
+    required this.team2Jersey,
+    required this.team1,
+    required this.team2,
+    required this.editable,
+    required this.selectedParticipantId,
+    required this.onAssignTeam1,
+    required this.onAssignTeam2,
+    required this.onJersey1,
+    required this.onJersey2,
+    required this.onPlayerTap,
+  });
+
+  final String team1Name;
+  final String team2Name;
+  final TextEditingController? team1Controller;
+  final TextEditingController? team2Controller;
+  final JerseyOption team1Jersey;
+  final JerseyOption team2Jersey;
+  final List<InternalCompositionEntry> team1;
+  final List<InternalCompositionEntry> team2;
+  final bool editable;
+  final String? selectedParticipantId;
+  final VoidCallback onAssignTeam1;
+  final VoidCallback onAssignTeam2;
+  final ValueChanged<JerseyOption> onJersey1;
+  final ValueChanged<JerseyOption> onJersey2;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelected = selectedParticipantId != null;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _PaperTeamColumn(
+            name: team1Name,
+            teamNo: 1,
+            controller: team1Controller,
+            jersey: team1Jersey,
+            unavailableJersey: team2Jersey,
+            entries: team1,
+            editable: editable,
+            hasSelectedPlayer: hasSelected,
+            selectedParticipantId: selectedParticipantId,
+            onJerseyTap: onAssignTeam1,
+            onJerseySelected: onJersey1,
+            onPlayerTap: onPlayerTap,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _PaperTeamColumn(
+            name: team2Name,
+            teamNo: 2,
+            controller: team2Controller,
+            jersey: team2Jersey,
+            unavailableJersey: team1Jersey,
+            entries: team2,
+            editable: editable,
+            hasSelectedPlayer: hasSelected,
+            selectedParticipantId: selectedParticipantId,
+            onJerseyTap: onAssignTeam2,
+            onJerseySelected: onJersey2,
+            onPlayerTap: onPlayerTap,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaperTeamColumn extends StatelessWidget {
+  const _PaperTeamColumn({
+    required this.name,
+    required this.teamNo,
+    required this.controller,
+    required this.jersey,
+    required this.unavailableJersey,
+    required this.entries,
+    required this.editable,
+    required this.hasSelectedPlayer,
+    required this.selectedParticipantId,
+    required this.onJerseyTap,
+    required this.onJerseySelected,
+    required this.onPlayerTap,
+  });
+
+  final String name;
+  final int teamNo;
+  final TextEditingController? controller;
+  final JerseyOption jersey;
+  final JerseyOption unavailableJersey;
+  final List<InternalCompositionEntry> entries;
+  final bool editable;
+  final bool hasSelectedPlayer;
+  final String? selectedParticipantId;
+  final VoidCallback onJerseyTap;
+  final ValueChanged<JerseyOption> onJerseySelected;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final controllerName = controller?.text.trim();
+    final semanticName = controllerName != null && controllerName.isNotEmpty
+        ? controllerName
+        : name;
+    final countLabel = entries.isEmpty
+        ? ''
+        : '${entries.length} joueur${entries.length > 1 ? 's' : ''}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PaperJerseyAssignmentTile(
+          semanticName: semanticName,
+          jersey: jersey,
+          unavailableJersey: unavailableJersey,
+          playerCountLabel: countLabel,
+          editable: editable,
+          assignmentEnabled: editable && hasSelectedPlayer,
+          onTap: onJerseyTap,
+          onJerseySelected: onJerseySelected,
+        ),
+        const SizedBox(height: 8),
+        if (editable && controller != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TextField(
+              controller: controller,
+              maxLength: 40,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                hintText: 'Équipe $teamNo',
+                counterText: '',
+                isDense: true,
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              semanticName,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppTheme.surface.withValues(alpha: .5),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
+          ),
+          child: entries.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Text(
+                    'Aucun joueur.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (var index = 0; index < entries.length; index += 1)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == entries.length - 1 ? 0 : 6,
+                        ),
+                        child: _PlayerChip(
+                          entry: entries[index],
+                          editable: editable,
+                          selected: selectedParticipantId ==
+                              entries[index].participantId,
+                          onTap: () => onPlayerTap(entries[index]),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaperJerseyAssignmentTile extends StatelessWidget {
+  const _PaperJerseyAssignmentTile({
+    required this.semanticName,
+    required this.jersey,
+    required this.unavailableJersey,
+    required this.playerCountLabel,
+    required this.editable,
+    required this.assignmentEnabled,
+    required this.onTap,
+    required this.onJerseySelected,
+  });
+
+  final String semanticName;
+  final JerseyOption jersey;
+  final JerseyOption unavailableJersey;
+  final String playerCountLabel;
+  final bool editable;
+  final bool assignmentEnabled;
+  final VoidCallback onTap;
+  final ValueChanged<JerseyOption> onJerseySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: assignmentEnabled,
+      label: [
+        semanticName,
+        if (playerCountLabel.isNotEmpty) playerCountLabel,
+        'maillot ${jersey.label}',
+      ].join(', '),
+      child: Container(
+        height: 96,
+        decoration: BoxDecoration(
+          color: AppTheme.surface.withValues(alpha: .5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: assignmentEnabled
+                ? AppTheme.accent
+                : AppTheme.outline.withValues(alpha: .3),
+            width: assignmentEnabled ? 2 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: assignmentEnabled ? onTap : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Image.asset(jersey.assetPath, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+            ),
+            if (playerCountLabel.isNotEmpty)
+              Positioned(
+                left: 7,
+                bottom: 7,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppTheme.outline.withValues(alpha: .35),
+                    ),
+                  ),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    child: Text(
+                      playerCountLabel,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ),
+              ),
+            if (editable)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: PopupMenuButton<JerseyOption>(
+                  tooltip: 'Choisir le maillot',
+                  initialValue: jersey,
+                  onSelected: onJerseySelected,
+                  itemBuilder: (context) => [
+                    for (final option in JerseyOption.values)
+                      PopupMenuItem<JerseyOption>(
+                        value: option,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: Image.asset(
+                                option.assetPath,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              option == unavailableJersey
+                                  ? '${option.label} · échanger'
+                                  : option.label,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 20),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InternalTeamCard extends StatelessWidget {
   const _InternalTeamCard({
     required this.name,
