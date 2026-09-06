@@ -19,7 +19,8 @@ class InternalTeamFormation {
   final List<int> outfieldLines;
   final List<String>? explicitSlotLabels;
 
-  int get playerCount => explicitSlotLabels?.length ??
+  int get playerCount =>
+      explicitSlotLabels?.length ??
       1 + outfieldLines.fold<int>(0, (total, count) => total + count);
 
   List<FootballFormationSlot> get slots {
