@@ -359,8 +359,11 @@ begin
   if exists (
     select 1
     from jsonb_array_elements(p_entries) e
-    where nullif(btrim(e ->> 'team_no'), '') is null
-       or (e ->> 'team_no') !~ '^[12]
+    where coalesce(btrim(e ->> 'team_no'), '') not in ('1', '2')
+  ) then
+    raise exception 'Chaque joueur doit être affecté à une équipe.'
+      using errcode = '22023';
+  end if;
 
   select
     count(*) filter (where (e ->> 'team_no')::integer = 1)::integer,
