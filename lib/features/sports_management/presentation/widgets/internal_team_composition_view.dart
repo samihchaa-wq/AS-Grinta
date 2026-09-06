@@ -786,111 +786,143 @@ class _InternalTeamCompositionViewState
         final legacyReadOnly =
             !widget.editable && !composition.isVisualComplete;
 
+        final terrainEntries = _terrainTeam == 1 ? team1 : team2;
+        final terrainCard = _InternalTeamCard(
+          name: _terrainTeam == 1
+              ? (_team1Controller.text.isEmpty
+                  ? composition.team1Name
+                  : _team1Controller.text)
+              : (_team2Controller.text.isEmpty
+                  ? composition.team2Name
+                  : _team2Controller.text),
+          controller: widget.editable
+              ? (_terrainTeam == 1 ? _team1Controller : _team2Controller)
+              : null,
+          teamNo: _terrainTeam,
+          jersey: _terrainTeam == 1 ? _team1Jersey : _team2Jersey,
+          unavailableJersey: _terrainTeam == 1 ? _team2Jersey : _team1Jersey,
+          entries: terrainEntries,
+          formationCode:
+              _terrainTeam == 1 ? _team1FormationCode : _team2FormationCode,
+          editable: widget.editable,
+          canReceiveSelected: _selectedEntry != null &&
+              _selectedEntry!.teamNo != _terrainTeam,
+          onAssignSelected: () => _assignSelectedToTeam(_terrainTeam),
+          onJerseySelected: (jersey) => _changeJersey(_terrainTeam, jersey),
+          onFormationSelected: (code) =>
+              _changeFormation(_terrainTeam, code),
+          onDroppedOnSlot: (moving, slot) =>
+              _dropOnClassicSlot(_terrainTeam, moving, slot),
+          onRemoveFromField: (moving) =>
+              _moveClassicToBench(_terrainTeam, moving),
+          finishedBenchCounts: benchCounts,
+        );
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (unassigned.isNotEmpty || widget.editable) ...[
-              Text(
-                'Non affectés (${unassigned.length})',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              _WaitingPool(
-                key: const ValueKey('internal-unassigned-pool'),
-                entries: unassigned,
-                editable: widget.editable,
-                selectedParticipantId: _selectedParticipantId,
-                canReceiveSelected: _selectedEntry?.teamNo != null,
-                onPoolTap: _moveSelectedToUnassigned,
-                onPlayerTap: _selectPlayer,
-                emptyLabel: 'Tous les joueurs sont répartis.',
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (legacyReadOnly)
-              _LegacyInternalTeams(
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment<int>(
+                  value: 0,
+                  label: Text('Sur papier'),
+                  icon: Icon(Icons.list_alt_rounded),
+                ),
+                ButtonSegment<int>(
+                  value: 1,
+                  label: Text('Sur terrain'),
+                  icon: Icon(Icons.sports_soccer_rounded),
+                ),
+              ],
+              selected: {_viewMode},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _viewMode = selection.first;
+                  _selectedParticipantId = null;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            if (_viewMode == 0) ...[
+              if (unassigned.isNotEmpty || widget.editable) ...[
+                Text(
+                  'Non affectés (${unassigned.length})',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                _WaitingPool(
+                  key: const ValueKey('internal-unassigned-pool'),
+                  entries: unassigned,
+                  editable: widget.editable,
+                  selectedParticipantId: _selectedParticipantId,
+                  canReceiveSelected: _selectedEntry?.teamNo != null,
+                  onPoolTap: _moveSelectedToUnassigned,
+                  onPlayerTap: _selectPlayer,
+                  emptyLabel: 'Tous les joueurs sont répartis.',
+                ),
+                const SizedBox(height: 16),
+              ],
+              _PaperTeams(
                 team1Name: composition.team1Name,
                 team2Name: composition.team2Name,
+                team1Controller: widget.editable ? _team1Controller : null,
+                team2Controller: widget.editable ? _team2Controller : null,
+                team1Jersey: _team1Jersey,
+                team2Jersey: _team2Jersey,
                 team1: team1,
                 team2: team2,
-              )
-            else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 720;
-                  final cards = [
-                    _InternalTeamCard(
-                      name: _team1Controller.text.isEmpty
+                editable: widget.editable,
+                selectedParticipantId: _selectedParticipantId,
+                onAssignTeam1: () => _assignSelectedToTeam(1),
+                onAssignTeam2: () => _assignSelectedToTeam(2),
+                onJersey1: (jersey) => _changeJersey(1, jersey),
+                onJersey2: (jersey) => _changeJersey(2, jersey),
+                onPlayerTap: _selectPlayer,
+              ),
+            ] else ...[
+              SegmentedButton<int>(
+                segments: [
+                  ButtonSegment<int>(
+                    value: 1,
+                    label: Text(
+                      _team1Controller.text.trim().isEmpty
                           ? composition.team1Name
-                          : _team1Controller.text,
-                      controller: widget.editable ? _team1Controller : null,
-                      teamNo: 1,
-                      jersey: _team1Jersey,
-                      unavailableJersey: _team2Jersey,
-                      entries: team1,
-                      formationCode: _team1FormationCode,
-                      editable: widget.editable,
-                      selectedParticipantId: _selectedParticipantId,
-                      canReceiveSelected:
-                          _selectedEntry != null && _selectedEntry!.teamNo != 1,
-                      onAssignSelected: () => _assignSelectedToTeam(1),
-                      onBenchSelected: () => _moveSelectedToBench(1),
-                      onJerseySelected: (jersey) => _changeJersey(1, jersey),
-                      onFormationSelected: (code) => _changeFormation(1, code),
-                      onPlayerTap: _selectPlayer,
-                      onSlotTap: (slot, occupant) => _onPitchSlotTap(
-                        teamNo: 1,
-                        slotLabel: slot.label,
-                        occupant: occupant,
-                      ),
+                          : _team1Controller.text.trim(),
                     ),
-                    _InternalTeamCard(
-                      name: _team2Controller.text.isEmpty
+                  ),
+                  ButtonSegment<int>(
+                    value: 2,
+                    label: Text(
+                      _team2Controller.text.trim().isEmpty
                           ? composition.team2Name
-                          : _team2Controller.text,
-                      controller: widget.editable ? _team2Controller : null,
-                      teamNo: 2,
-                      jersey: _team2Jersey,
-                      unavailableJersey: _team1Jersey,
-                      entries: team2,
-                      formationCode: _team2FormationCode,
-                      editable: widget.editable,
-                      selectedParticipantId: _selectedParticipantId,
-                      canReceiveSelected:
-                          _selectedEntry != null && _selectedEntry!.teamNo != 2,
-                      onAssignSelected: () => _assignSelectedToTeam(2),
-                      onBenchSelected: () => _moveSelectedToBench(2),
-                      onJerseySelected: (jersey) => _changeJersey(2, jersey),
-                      onFormationSelected: (code) => _changeFormation(2, code),
-                      onPlayerTap: _selectPlayer,
-                      onSlotTap: (slot, occupant) => _onPitchSlotTap(
-                        teamNo: 2,
-                        slotLabel: slot.label,
-                        occupant: occupant,
-                      ),
+                          : _team2Controller.text.trim(),
                     ),
-                  ];
-                  return wide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: cards[0]),
-                            const SizedBox(width: 14),
-                            Expanded(child: cards[1]),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            cards[0],
-                            const SizedBox(height: 16),
-                            cards[1],
-                          ],
-                        );
+                  ),
+                ],
+                selected: {_terrainTeam},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _terrainTeam = selection.first;
+                    _selectedParticipantId = null;
+                  });
                 },
               ),
+              const SizedBox(height: 14),
+              if (legacyReadOnly)
+                _LegacyInternalTeams(
+                  team1Name: composition.team1Name,
+                  team2Name: composition.team2Name,
+                  team1: team1,
+                  team2: team2,
+                )
+              else
+                terrainCard,
+            ],
             if (widget.editable) ...[
               const SizedBox(height: 16),
-              if (!validation.canSave)
+              if (_viewMode == 1 && !validation.canSave)
                 Text(
                   validation.message,
                   textAlign: TextAlign.center,
@@ -898,17 +930,19 @@ class _InternalTeamCompositionViewState
                         color: Theme.of(context).colorScheme.error,
                       ),
                 ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                key: const ValueKey('simulate-internal-composition'),
-                onPressed: _saving ||
-                        profilesAsync.isLoading ||
-                        benchCountsAsync.isLoading
-                    ? null
-                    : () => _simulate(profiles, benchCounts),
-                icon: const Icon(Icons.auto_fix_high_rounded),
-                label: const Text('Simuler la composition'),
-              ),
+              if (_viewMode == 1) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const ValueKey('simulate-internal-composition'),
+                  onPressed: _saving ||
+                          profilesAsync.isLoading ||
+                          benchCountsAsync.isLoading
+                      ? null
+                      : () => _simulate(profiles, benchCounts),
+                  icon: const Icon(Icons.auto_fix_high_rounded),
+                  label: const Text('Simuler la composition'),
+                ),
+              ],
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _saving ? null : _resetComposition,
@@ -917,7 +951,13 @@ class _InternalTeamCompositionViewState
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
-                onPressed: _saving || !validation.canSave ? null : _save,
+                onPressed: _saving
+                    ? null
+                    : _viewMode == 0
+                        ? _savePaper
+                        : validation.canSave
+                            ? _save
+                            : null,
                 icon: _saving
                     ? const SizedBox(
                         width: 16,
