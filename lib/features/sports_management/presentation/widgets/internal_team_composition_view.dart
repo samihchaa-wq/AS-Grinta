@@ -1,20 +1,16 @@
-import 'dart:math';
-
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
-import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
-import 'package:as_grinta/features/sports_management/domain/internal_team_simulation.dart';
-import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
-import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
-    show PlayerAvatar;
-import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_pitch.dart';
+    show CompositionPlayerTile, PlayerAvatar, SubstituteHistoryBadge;
+import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,6 +49,8 @@ class _InternalTeamCompositionViewState
   bool _saving = false;
   bool _syncingNames = false;
   bool _notificationSent = false;
+  int _viewMode = 0;
+  int _terrainTeam = 1;
 
   @override
   void initState() {
@@ -132,7 +130,7 @@ class _InternalTeamCompositionViewState
       entries[index] = selected.copyWith(
         teamNo: nextTeam,
         clearTeam: nextTeam == null,
-        clearSlot: true,
+        clearPlacement: true,
       );
       if (oldTeam != null) _invalidateTeamLayout(oldTeam);
       if (nextTeam != null) _invalidateTeamLayout(nextTeam);
@@ -152,34 +150,8 @@ class _InternalTeamCompositionViewState
 
     setState(() {
       final oldTeam = selected!.teamNo!;
-      entries[index] = selected.copyWith(clearTeam: true, clearSlot: true);
+      entries[index] = selected.copyWith(clearTeam: true, clearPlacement: true);
       _invalidateTeamLayout(oldTeam);
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
-  }
-
-  void _moveSelectedToBench(int teamNo) {
-    final entries = _entries;
-    final selected = _selectedEntry;
-    if (!widget.editable ||
-        entries == null ||
-        selected == null ||
-        selected.teamNo != teamNo ||
-        selected.slotLabel == null) {
-      return;
-    }
-    final teamSize = entries.where((entry) => entry.teamNo == teamNo).length;
-    if (teamSize <= 11) {
-      _showMessage('Le banc apparaît seulement au-delà de 11 joueurs.');
-      return;
-    }
-    final index = entries.indexWhere(
-      (entry) => entry.participantId == selected.participantId,
-    );
-    if (index == -1) return;
-    setState(() {
-      entries[index] = selected.copyWith(clearSlot: true);
       _selectedParticipantId = null;
       _dirty = true;
     });
@@ -190,7 +162,7 @@ class _InternalTeamCompositionViewState
     if (entries == null) return;
     for (var index = 0; index < entries.length; index += 1) {
       if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
-        entries[index] = entries[index].copyWith(clearSlot: true);
+        entries[index] = entries[index].copyWith(clearPlacement: true);
       }
     }
     if (teamNo == 1) {
@@ -203,11 +175,47 @@ class _InternalTeamCompositionViewState
   void _changeFormation(int teamNo, String code) {
     final entries = _entries;
     if (!widget.editable || entries == null) return;
+    final team = entries.where((entry) => entry.teamNo == teamNo).toList();
+    final formation = internalFormationByCode(
+      playerCount: team.length,
+      code: code,
+    );
+    if (formation == null) return;
+
+    final field = team.where((entry) => entry.zone == 'field').toList();
+    final ordered = [
+      ...field.where((entry) => entry.isGoalkeeper),
+      ...field.where((entry) => !entry.isGoalkeeper),
+    ];
+    final placement = <String, FootballFormationSlot>{};
+    final overflow = <String>{};
+    for (var index = 0; index < ordered.length; index += 1) {
+      if (index < formation.slots.length) {
+        placement[ordered[index].participantId] = formation.slots[index];
+      } else {
+        overflow.add(ordered[index].participantId);
+      }
+    }
+    final benchBase = team.where((entry) => entry.zone == 'bench').length;
+    var extraBench = 0;
+
     setState(() {
       for (var index = 0; index < entries.length; index += 1) {
-        if (entries[index].teamNo == teamNo &&
-            entries[index].slotLabel != null) {
-          entries[index] = entries[index].copyWith(clearSlot: true);
+        final entry = entries[index];
+        if (entry.teamNo != teamNo) continue;
+        if (placement[entry.participantId] case final slot?) {
+          entries[index] = entry.copyWith(
+            zone: 'field',
+            x: slot.position.dx,
+            y: slot.position.dy,
+            slotLabel: slot.label,
+          );
+        } else if (overflow.contains(entry.participantId)) {
+          entries[index] = entry.copyWith(
+            zone: 'bench',
+            sortOrder: benchBase + extraBench++,
+            clearSlot: true,
+          );
         }
       }
       if (teamNo == 1) {
@@ -220,48 +228,81 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  void _onPitchSlotTap({
-    required int teamNo,
-    required String slotLabel,
-    required InternalCompositionEntry? occupant,
-  }) {
-    if (!widget.editable) return;
+  void _dropOnClassicSlot(
+    int teamNo,
+    MatchCompositionEntry moving,
+    FootballFormationSlot slot,
+  ) {
     final entries = _entries;
-    if (entries == null) return;
-    final selected = _selectedEntry;
-
-    if (selected == null) {
-      if (occupant != null) _selectPlayer(occupant);
-      return;
-    }
-    if (selected.teamNo != teamNo) {
-      _showMessage('Affecte d’abord ce joueur à cette équipe.');
-      return;
-    }
-    if (occupant?.participantId == selected.participantId) {
-      setState(() => _selectedParticipantId = null);
-      return;
-    }
-
-    final selectedIndex = entries.indexWhere(
-      (entry) => entry.participantId == selected.participantId,
+    if (!widget.editable || entries == null) return;
+    final movingIndex = entries.indexWhere(
+      (entry) =>
+          entry.participantId == moving.participantId && entry.teamNo == teamNo,
     );
-    if (selectedIndex == -1) return;
-    final previousSlot = selected.slotLabel;
-    final occupantIndex = occupant == null
-        ? -1
-        : entries.indexWhere(
-            (entry) => entry.participantId == occupant.participantId,
-          );
+    if (movingIndex == -1) return;
+    final current = entries[movingIndex];
+    final occupantIndex = entries.indexWhere(
+      (entry) =>
+          entry.teamNo == teamNo &&
+          entry.zone == 'field' &&
+          entry.slotLabel == slot.label &&
+          entry.participantId != moving.participantId,
+    );
+    final previousX = current.zone == 'field' ? current.x : null;
+    final previousY = current.zone == 'field' ? current.y : null;
+    final previousSlot = current.zone == 'field' ? current.slotLabel : null;
+    final benchCount = entries
+        .where((entry) => entry.teamNo == teamNo && entry.zone == 'bench')
+        .length;
 
     setState(() {
-      entries[selectedIndex] = selected.copyWith(slotLabel: slotLabel);
-      if (occupantIndex >= 0 && occupant != null) {
+      entries[movingIndex] = current.copyWith(
+        zone: 'field',
+        x: slot.position.dx,
+        y: slot.position.dy,
+        slotLabel: slot.label,
+      );
+      if (occupantIndex >= 0) {
+        final occupant = entries[occupantIndex];
         entries[occupantIndex] = previousSlot == null
-            ? occupant.copyWith(clearSlot: true)
-            : occupant.copyWith(slotLabel: previousSlot);
+            ? occupant.copyWith(
+                zone: 'bench',
+                sortOrder: benchCount,
+                clearSlot: true,
+              )
+            : occupant.copyWith(
+                zone: 'field',
+                x: previousX,
+                y: previousY,
+                slotLabel: previousSlot,
+              );
       }
-      _selectedParticipantId = null;
+      _dirty = true;
+    });
+  }
+
+  void _moveClassicToBench(int teamNo, MatchCompositionEntry moving) {
+    final entries = _entries;
+    if (!widget.editable || entries == null) return;
+    final index = entries.indexWhere(
+      (entry) =>
+          entry.participantId == moving.participantId && entry.teamNo == teamNo,
+    );
+    if (index == -1) return;
+    final teamSize = entries.where((entry) => entry.teamNo == teamNo).length;
+    if (teamSize <= 11) {
+      _showMessage('Le banc apparaît seulement au-delà de 11 joueurs.');
+      return;
+    }
+    final benchCount = entries
+        .where((entry) => entry.teamNo == teamNo && entry.zone == 'bench')
+        .length;
+    setState(() {
+      entries[index] = entries[index].copyWith(
+        zone: 'bench',
+        sortOrder: benchCount,
+        clearSlot: true,
+      );
       _dirty = true;
     });
   }
@@ -282,87 +323,64 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  Future<void> _simulate(
-    Map<String, PlayerPositionProfile> profiles,
-    Map<String, int> benchCounts,
-  ) async {
+  Future<void> _savePaper() async {
     final entries = _entries;
-    if (!widget.editable || entries == null || _saving) return;
-    final validation = _validation(entries);
-    if (validation.unassignedCount > 0) {
-      _showMessage('Répartis d’abord tous les joueurs dans les deux équipes.');
-      return;
-    }
-    final team1 = entries.where((entry) => entry.teamNo == 1).toList();
-    final team2 = entries.where((entry) => entry.teamNo == 2).toList();
-    final formation1 = internalFormationByCode(
-      playerCount: team1.length,
-      code: _team1FormationCode,
-    );
-    final formation2 = internalFormationByCode(
-      playerCount: team2.length,
-      code: _team2FormationCode,
-    );
-    if (formation1 == null || formation2 == null) {
-      _showMessage('Choisis la formation de chaque équipe avant de simuler.');
-      return;
+    if (entries == null || _saving) return;
+
+    if (compositionPublicationWillNotify(
+      alreadyPublished: _notificationSent,
+      sheetNamesPlayers: entries.any((entry) => entry.teamNo != null),
+      postMatch: false,
+    )) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Publier la composition ?'),
+          content: const Text(
+            'Publier la composition enverra une notification à tous les '
+            'joueurs convoqués.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Valider'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
     }
 
-    final random = Random.secure();
-    final simulation1 = simulateInternalTeam(
-      formation: formation1,
-      players: team1,
-      profiles: profiles,
-      benchCounts: benchCounts,
-      random: random,
-    );
-    final simulation2 = simulateInternalTeam(
-      formation: formation2,
-      players: team2,
-      profiles: profiles,
-      benchCounts: benchCounts,
-      random: random,
-    );
-
-    setState(() {
-      for (var index = 0; index < entries.length; index += 1) {
-        final entry = entries[index];
-        final slot = entry.teamNo == 1
-            ? simulation1.slotByParticipantId[entry.participantId]
-            : simulation2.slotByParticipantId[entry.participantId];
-        entries[index] =
-            entry.copyWith(slotLabel: slot, clearSlot: slot == null);
-      }
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
-
-    final randomKeepers = <String>[];
-    if (simulation1.usedRandomGoalkeeper) {
-      randomKeepers.add(
-        team1
-            .firstWhere(
-              (entry) =>
-                  entry.participantId == simulation1.goalkeeperParticipantId,
-            )
-            .displayName,
-      );
-    }
-    if (simulation2.usedRandomGoalkeeper) {
-      randomKeepers.add(
-        team2
-            .firstWhere(
-              (entry) =>
-                  entry.participantId == simulation2.goalkeeperParticipantId,
-            )
-            .displayName,
-      );
-    }
-    if (randomKeepers.isNotEmpty) {
-      _showMessage(
-        'Gardien${randomKeepers.length > 1 ? 's' : ''} tiré${randomKeepers.length > 1 ? 's' : ''} '
-        'au sort : ${randomKeepers.join(' · ')}.',
-      );
+    setState(() => _saving = true);
+    try {
+      final saved = await ref
+          .read(internalMatchCompositionRepositoryProvider)
+          .savePaperState(
+            matchId: widget.matchId,
+            team1Name: _team1Controller.text,
+            team2Name: _team2Controller.text,
+            team1JerseyId: _team1Jersey.id,
+            team2JerseyId: _team2Jersey.id,
+            team1FormationCode: _team1FormationCode,
+            team2FormationCode: _team2FormationCode,
+            entries: entries,
+          );
+      if (!mounted) return;
+      setState(() {
+        _initFrom(saved);
+        _selectedParticipantId = null;
+        _dirty = false;
+      });
+      ref.invalidate(internalMatchCompositionProvider(widget.matchId));
+      _showMessage('Composition enregistrée.');
+    } catch (error) {
+      if (mounted) _showMessage('Erreur : $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -423,7 +441,6 @@ class _InternalTeamCompositionViewState
         _dirty = false;
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
-      ref.invalidate(_internalPlayerProfilesProvider(widget.matchId));
       _showMessage('Composition enregistrée.');
     } catch (error) {
       if (mounted) _showMessage('Erreur : $error');
@@ -523,11 +540,15 @@ class _InternalTeamCompositionViewState
     final requiredStarters1 = team1.length > 11 ? 11 : team1.length;
     final requiredStarters2 = team2.length > 11 ? 11 : team2.length;
     final starters1 =
-        team1.where((entry) => entry.slotLabel != null).toList(growable: false);
+        team1.where((entry) => entry.zone == 'field').toList(growable: false);
     final starters2 =
-        team2.where((entry) => entry.slotLabel != null).toList(growable: false);
+        team2.where((entry) => entry.zone == 'field').toList(growable: false);
+    final bench1 = team1.where((entry) => entry.zone == 'bench').length;
+    final bench2 = team2.where((entry) => entry.zone == 'bench').length;
     if (starters1.length != requiredStarters1 ||
-        starters2.length != requiredStarters2) {
+        starters2.length != requiredStarters2 ||
+        bench1 != (team1.length - requiredStarters1) ||
+        bench2 != (team2.length - requiredStarters2)) {
       return const _InternalValidation(
         false,
         'Place tous les titulaires sur le terrain. Au-delà de 11 joueurs, le surplus reste sur le banc.',
@@ -571,9 +592,6 @@ class _InternalTeamCompositionViewState
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(internalMatchCompositionProvider(widget.matchId));
-    final profilesAsync = ref.watch(
-      _internalPlayerProfilesProvider(widget.matchId),
-    );
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
@@ -603,119 +621,148 @@ class _InternalTeamCompositionViewState
             entries.where((entry) => entry.teamNo == null).toList();
         final team1 = entries.where((entry) => entry.teamNo == 1).toList();
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
-        final profiles = profilesAsync.valueOrNull ??
-            const <String, PlayerPositionProfile>{};
         final benchCounts =
             benchCountsAsync.valueOrNull ?? const <String, int>{};
         final validation = _validation(entries);
         final legacyReadOnly =
             !widget.editable && !composition.isVisualComplete;
 
+        final terrainEntries = _terrainTeam == 1 ? team1 : team2;
+        final terrainCard = _InternalTeamCard(
+          name: _terrainTeam == 1
+              ? (_team1Controller.text.isEmpty
+                  ? composition.team1Name
+                  : _team1Controller.text)
+              : (_team2Controller.text.isEmpty
+                  ? composition.team2Name
+                  : _team2Controller.text),
+          controller: widget.editable
+              ? (_terrainTeam == 1 ? _team1Controller : _team2Controller)
+              : null,
+          teamNo: _terrainTeam,
+          jersey: _terrainTeam == 1 ? _team1Jersey : _team2Jersey,
+          unavailableJersey: _terrainTeam == 1 ? _team2Jersey : _team1Jersey,
+          entries: terrainEntries,
+          formationCode:
+              _terrainTeam == 1 ? _team1FormationCode : _team2FormationCode,
+          editable: widget.editable,
+          canReceiveSelected:
+              _selectedEntry != null && _selectedEntry!.teamNo != _terrainTeam,
+          onAssignSelected: () => _assignSelectedToTeam(_terrainTeam),
+          onJerseySelected: (jersey) => _changeJersey(_terrainTeam, jersey),
+          onFormationSelected: (code) => _changeFormation(_terrainTeam, code),
+          onDroppedOnSlot: (moving, slot) =>
+              _dropOnClassicSlot(_terrainTeam, moving, slot),
+          onRemoveFromField: (moving) =>
+              _moveClassicToBench(_terrainTeam, moving),
+          finishedBenchCounts: benchCounts,
+        );
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (unassigned.isNotEmpty || widget.editable) ...[
-              Text(
-                'Non affectés (${unassigned.length})',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              _WaitingPool(
-                key: const ValueKey('internal-unassigned-pool'),
-                entries: unassigned,
-                editable: widget.editable,
-                selectedParticipantId: _selectedParticipantId,
-                canReceiveSelected: _selectedEntry?.teamNo != null,
-                onPoolTap: _moveSelectedToUnassigned,
-                onPlayerTap: _selectPlayer,
-                emptyLabel: 'Tous les joueurs sont répartis.',
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (legacyReadOnly)
-              _LegacyInternalTeams(
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment<int>(
+                  value: 0,
+                  label: Text('Sur papier'),
+                  icon: Icon(Icons.list_alt_rounded),
+                ),
+                ButtonSegment<int>(
+                  value: 1,
+                  label: Text('Sur terrain'),
+                  icon: Icon(Icons.sports_soccer_rounded),
+                ),
+              ],
+              selected: {_viewMode},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _viewMode = selection.first;
+                  _selectedParticipantId = null;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            if (_viewMode == 0) ...[
+              if (unassigned.isNotEmpty || widget.editable) ...[
+                Text(
+                  'Non affectés (${unassigned.length})',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                _WaitingPool(
+                  key: const ValueKey('internal-unassigned-pool'),
+                  entries: unassigned,
+                  editable: widget.editable,
+                  selectedParticipantId: _selectedParticipantId,
+                  canReceiveSelected: _selectedEntry?.teamNo != null,
+                  onPoolTap: _moveSelectedToUnassigned,
+                  onPlayerTap: _selectPlayer,
+                  emptyLabel: 'Tous les joueurs sont répartis.',
+                ),
+                const SizedBox(height: 16),
+              ],
+              _PaperTeams(
                 team1Name: composition.team1Name,
                 team2Name: composition.team2Name,
+                team1Controller: widget.editable ? _team1Controller : null,
+                team2Controller: widget.editable ? _team2Controller : null,
+                team1Jersey: _team1Jersey,
+                team2Jersey: _team2Jersey,
                 team1: team1,
                 team2: team2,
-              )
-            else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 720;
-                  final cards = [
-                    _InternalTeamCard(
-                      name: _team1Controller.text.isEmpty
+                editable: widget.editable,
+                selectedParticipantId: _selectedParticipantId,
+                onAssignTeam1: () => _assignSelectedToTeam(1),
+                onAssignTeam2: () => _assignSelectedToTeam(2),
+                onJersey1: (jersey) => _changeJersey(1, jersey),
+                onJersey2: (jersey) => _changeJersey(2, jersey),
+                onPlayerTap: _selectPlayer,
+              ),
+            ] else ...[
+              SegmentedButton<int>(
+                segments: [
+                  ButtonSegment<int>(
+                    value: 1,
+                    label: Text(
+                      _team1Controller.text.trim().isEmpty
                           ? composition.team1Name
-                          : _team1Controller.text,
-                      controller: widget.editable ? _team1Controller : null,
-                      teamNo: 1,
-                      jersey: _team1Jersey,
-                      unavailableJersey: _team2Jersey,
-                      entries: team1,
-                      formationCode: _team1FormationCode,
-                      editable: widget.editable,
-                      selectedParticipantId: _selectedParticipantId,
-                      canReceiveSelected:
-                          _selectedEntry != null && _selectedEntry!.teamNo != 1,
-                      onAssignSelected: () => _assignSelectedToTeam(1),
-                      onBenchSelected: () => _moveSelectedToBench(1),
-                      onJerseySelected: (jersey) => _changeJersey(1, jersey),
-                      onFormationSelected: (code) => _changeFormation(1, code),
-                      onPlayerTap: _selectPlayer,
-                      onSlotTap: (slot, occupant) => _onPitchSlotTap(
-                        teamNo: 1,
-                        slotLabel: slot.label,
-                        occupant: occupant,
-                      ),
+                          : _team1Controller.text.trim(),
                     ),
-                    _InternalTeamCard(
-                      name: _team2Controller.text.isEmpty
+                  ),
+                  ButtonSegment<int>(
+                    value: 2,
+                    label: Text(
+                      _team2Controller.text.trim().isEmpty
                           ? composition.team2Name
-                          : _team2Controller.text,
-                      controller: widget.editable ? _team2Controller : null,
-                      teamNo: 2,
-                      jersey: _team2Jersey,
-                      unavailableJersey: _team1Jersey,
-                      entries: team2,
-                      formationCode: _team2FormationCode,
-                      editable: widget.editable,
-                      selectedParticipantId: _selectedParticipantId,
-                      canReceiveSelected:
-                          _selectedEntry != null && _selectedEntry!.teamNo != 2,
-                      onAssignSelected: () => _assignSelectedToTeam(2),
-                      onBenchSelected: () => _moveSelectedToBench(2),
-                      onJerseySelected: (jersey) => _changeJersey(2, jersey),
-                      onFormationSelected: (code) => _changeFormation(2, code),
-                      onPlayerTap: _selectPlayer,
-                      onSlotTap: (slot, occupant) => _onPitchSlotTap(
-                        teamNo: 2,
-                        slotLabel: slot.label,
-                        occupant: occupant,
-                      ),
+                          : _team2Controller.text.trim(),
                     ),
-                  ];
-                  return wide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: cards[0]),
-                            const SizedBox(width: 14),
-                            Expanded(child: cards[1]),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            cards[0],
-                            const SizedBox(height: 16),
-                            cards[1],
-                          ],
-                        );
+                  ),
+                ],
+                selected: {_terrainTeam},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _terrainTeam = selection.first;
+                    _selectedParticipantId = null;
+                  });
                 },
               ),
+              const SizedBox(height: 14),
+              if (legacyReadOnly)
+                _LegacyInternalTeams(
+                  team1Name: composition.team1Name,
+                  team2Name: composition.team2Name,
+                  team1: team1,
+                  team2: team2,
+                )
+              else
+                terrainCard,
+            ],
             if (widget.editable) ...[
               const SizedBox(height: 16),
-              if (!validation.canSave)
+              if (_viewMode == 1 && !validation.canSave)
                 Text(
                   validation.message,
                   textAlign: TextAlign.center,
@@ -725,24 +772,19 @@ class _InternalTeamCompositionViewState
                 ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                key: const ValueKey('simulate-internal-composition'),
-                onPressed: _saving ||
-                        profilesAsync.isLoading ||
-                        benchCountsAsync.isLoading
-                    ? null
-                    : () => _simulate(profiles, benchCounts),
-                icon: const Icon(Icons.auto_fix_high_rounded),
-                label: const Text('Simuler la composition'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
                 onPressed: _saving ? null : _resetComposition,
                 icon: const Icon(Icons.restart_alt_rounded),
                 label: const Text('Réinitialiser'),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
-                onPressed: _saving || !validation.canSave ? null : _save,
+                onPressed: _saving
+                    ? null
+                    : _viewMode == 0
+                        ? _savePaper
+                        : validation.canSave
+                            ? _save
+                            : null,
                 icon: _saving
                     ? const SizedBox(
                         width: 16,
@@ -768,6 +810,322 @@ class _InternalValidation {
   final int unassignedCount;
 }
 
+class _PaperTeams extends StatelessWidget {
+  const _PaperTeams({
+    required this.team1Name,
+    required this.team2Name,
+    required this.team1Controller,
+    required this.team2Controller,
+    required this.team1Jersey,
+    required this.team2Jersey,
+    required this.team1,
+    required this.team2,
+    required this.editable,
+    required this.selectedParticipantId,
+    required this.onAssignTeam1,
+    required this.onAssignTeam2,
+    required this.onJersey1,
+    required this.onJersey2,
+    required this.onPlayerTap,
+  });
+
+  final String team1Name;
+  final String team2Name;
+  final TextEditingController? team1Controller;
+  final TextEditingController? team2Controller;
+  final JerseyOption team1Jersey;
+  final JerseyOption team2Jersey;
+  final List<InternalCompositionEntry> team1;
+  final List<InternalCompositionEntry> team2;
+  final bool editable;
+  final String? selectedParticipantId;
+  final VoidCallback onAssignTeam1;
+  final VoidCallback onAssignTeam2;
+  final ValueChanged<JerseyOption> onJersey1;
+  final ValueChanged<JerseyOption> onJersey2;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelected = selectedParticipantId != null;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _PaperTeamColumn(
+            name: team1Name,
+            teamNo: 1,
+            controller: team1Controller,
+            jersey: team1Jersey,
+            unavailableJersey: team2Jersey,
+            entries: team1,
+            editable: editable,
+            hasSelectedPlayer: hasSelected,
+            selectedParticipantId: selectedParticipantId,
+            onJerseyTap: onAssignTeam1,
+            onJerseySelected: onJersey1,
+            onPlayerTap: onPlayerTap,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _PaperTeamColumn(
+            name: team2Name,
+            teamNo: 2,
+            controller: team2Controller,
+            jersey: team2Jersey,
+            unavailableJersey: team1Jersey,
+            entries: team2,
+            editable: editable,
+            hasSelectedPlayer: hasSelected,
+            selectedParticipantId: selectedParticipantId,
+            onJerseyTap: onAssignTeam2,
+            onJerseySelected: onJersey2,
+            onPlayerTap: onPlayerTap,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaperTeamColumn extends StatelessWidget {
+  const _PaperTeamColumn({
+    required this.name,
+    required this.teamNo,
+    required this.controller,
+    required this.jersey,
+    required this.unavailableJersey,
+    required this.entries,
+    required this.editable,
+    required this.hasSelectedPlayer,
+    required this.selectedParticipantId,
+    required this.onJerseyTap,
+    required this.onJerseySelected,
+    required this.onPlayerTap,
+  });
+
+  final String name;
+  final int teamNo;
+  final TextEditingController? controller;
+  final JerseyOption jersey;
+  final JerseyOption unavailableJersey;
+  final List<InternalCompositionEntry> entries;
+  final bool editable;
+  final bool hasSelectedPlayer;
+  final String? selectedParticipantId;
+  final VoidCallback onJerseyTap;
+  final ValueChanged<JerseyOption> onJerseySelected;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final controllerName = controller?.text.trim();
+    final semanticName = controllerName != null && controllerName.isNotEmpty
+        ? controllerName
+        : name;
+    final countLabel = entries.isEmpty
+        ? ''
+        : '${entries.length} joueur${entries.length > 1 ? 's' : ''}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PaperJerseyAssignmentTile(
+          semanticName: semanticName,
+          jersey: jersey,
+          unavailableJersey: unavailableJersey,
+          playerCountLabel: countLabel,
+          editable: editable,
+          assignmentEnabled: editable && hasSelectedPlayer,
+          onTap: onJerseyTap,
+          onJerseySelected: onJerseySelected,
+        ),
+        const SizedBox(height: 8),
+        if (editable && controller != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TextField(
+              controller: controller,
+              maxLength: 40,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                hintText: 'Équipe $teamNo',
+                counterText: '',
+                isDense: true,
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              semanticName,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppTheme.surface.withValues(alpha: .5),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
+          ),
+          child: entries.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Text(
+                    'Aucun joueur.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (var index = 0; index < entries.length; index += 1)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: index == entries.length - 1 ? 0 : 6,
+                        ),
+                        child: _PlayerChip(
+                          entry: entries[index],
+                          editable: editable,
+                          selected: selectedParticipantId ==
+                              entries[index].participantId,
+                          onTap: () => onPlayerTap(entries[index]),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PaperJerseyAssignmentTile extends StatelessWidget {
+  const _PaperJerseyAssignmentTile({
+    required this.semanticName,
+    required this.jersey,
+    required this.unavailableJersey,
+    required this.playerCountLabel,
+    required this.editable,
+    required this.assignmentEnabled,
+    required this.onTap,
+    required this.onJerseySelected,
+  });
+
+  final String semanticName;
+  final JerseyOption jersey;
+  final JerseyOption unavailableJersey;
+  final String playerCountLabel;
+  final bool editable;
+  final bool assignmentEnabled;
+  final VoidCallback onTap;
+  final ValueChanged<JerseyOption> onJerseySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: assignmentEnabled,
+      label: [
+        semanticName,
+        if (playerCountLabel.isNotEmpty) playerCountLabel,
+        'maillot ${jersey.label}',
+      ].join(', '),
+      child: Container(
+        height: 96,
+        decoration: BoxDecoration(
+          color: AppTheme.surface.withValues(alpha: .5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: assignmentEnabled
+                ? AppTheme.accent
+                : AppTheme.outline.withValues(alpha: .3),
+            width: assignmentEnabled ? 2 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: assignmentEnabled ? onTap : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Image.asset(jersey.assetPath, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+            ),
+            if (playerCountLabel.isNotEmpty)
+              Positioned(
+                left: 7,
+                bottom: 7,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface.withValues(alpha: .92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppTheme.outline.withValues(alpha: .35),
+                    ),
+                  ),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    child: Text(
+                      playerCountLabel,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ),
+              ),
+            if (editable)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: PopupMenuButton<JerseyOption>(
+                  tooltip: 'Choisir le maillot',
+                  initialValue: jersey,
+                  onSelected: onJerseySelected,
+                  itemBuilder: (context) => [
+                    for (final option in JerseyOption.values)
+                      PopupMenuItem<JerseyOption>(
+                        value: option,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: Image.asset(
+                                option.assetPath,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              option == unavailableJersey
+                                  ? '${option.label} · échanger'
+                                  : option.label,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                  icon: const Icon(Icons.swap_horiz_rounded, size: 20),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InternalTeamCard extends StatelessWidget {
   const _InternalTeamCard({
     required this.name,
@@ -777,14 +1135,13 @@ class _InternalTeamCard extends StatelessWidget {
     required this.entries,
     required this.formationCode,
     required this.editable,
-    required this.selectedParticipantId,
     required this.canReceiveSelected,
     required this.onAssignSelected,
-    required this.onBenchSelected,
     required this.onJerseySelected,
     required this.onFormationSelected,
-    required this.onPlayerTap,
-    required this.onSlotTap,
+    required this.onDroppedOnSlot,
+    required this.onRemoveFromField,
+    required this.finishedBenchCounts,
     this.controller,
   });
 
@@ -795,16 +1152,40 @@ class _InternalTeamCard extends StatelessWidget {
   final List<InternalCompositionEntry> entries;
   final String? formationCode;
   final bool editable;
-  final String? selectedParticipantId;
   final bool canReceiveSelected;
   final VoidCallback onAssignSelected;
-  final VoidCallback onBenchSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
   final ValueChanged<String> onFormationSelected;
-  final ValueChanged<InternalCompositionEntry> onPlayerTap;
-  final void Function(dynamic slot, InternalCompositionEntry? occupant)
-      onSlotTap;
+  final void Function(MatchCompositionEntry, FootballFormationSlot)
+      onDroppedOnSlot;
+  final ValueChanged<MatchCompositionEntry> onRemoveFromField;
+  final Map<String, int> finishedBenchCounts;
   final TextEditingController? controller;
+
+  MatchCompositionEntry _classic(InternalCompositionEntry entry) {
+    return MatchCompositionEntry(
+      participantId: entry.participantId,
+      seasonPlayerId: entry.seasonPlayerId ?? '',
+      guestPlayerId: entry.guestPlayerId,
+      displayName: entry.displayName,
+      lastInitial: entry.lastInitial,
+      isGuest: entry.isGuest,
+      isGoalkeeper: entry.isGoalkeeper,
+      zone: MatchCompositionZone.fromWire(entry.zone),
+      x: entry.x,
+      y: entry.y,
+      slotLabel: entry.slotLabel,
+      photoUrl: entry.photoUrl,
+      sortOrder: entry.sortOrder,
+      availabilityStatus: 'available',
+      convocationStatus: 'convoked',
+      selectionStatus: switch (entry.zone) {
+        'field' => 'starter',
+        'bench' => 'substitute',
+        _ => 'undecided',
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -813,16 +1194,16 @@ class _InternalTeamCard extends StatelessWidget {
       playerCount: entries.length,
       code: formationCode,
     );
-    final waiting = entries.where((entry) => entry.slotLabel == null).toList();
-    final starterCount = entries.length - waiting.length;
-    final substituteCount = entries.length > 11 ? entries.length - 11 : 0;
-    final benchComplete = substituteCount > 0 &&
-        starterCount == 11 &&
-        waiting.length == substituteCount;
-    final selectedInThisTeam = selectedParticipantId != null &&
-        entries.any((entry) =>
-            entry.participantId == selectedParticipantId &&
-            entry.slotLabel != null);
+    final field = entries
+        .where((entry) => entry.zone == 'field')
+        .map(_classic)
+        .toList(growable: false);
+    final bench = entries
+        .where((entry) => entry.zone == 'bench')
+        .map(_classic)
+        .toList(growable: false);
+    final waiting =
+        entries.where((entry) => entry.zone == 'available').toList();
     final semanticName = controller?.text.trim().isNotEmpty == true
         ? controller!.text.trim()
         : name;
@@ -863,19 +1244,13 @@ class _InternalTeamCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  entries.length > 11
-                      ? '${entries.length} joueurs · ${entries.length - 11} remp.'
-                      : '${entries.length} joueur${entries.length > 1 ? 's' : ''}',
-                ),
               ],
             ),
             const SizedBox(height: 10),
             if (editable)
               InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Formation',
+                  labelText: 'Dispositif',
                   isDense: true,
                 ),
                 child: DropdownButtonHideUnderline(
@@ -884,7 +1259,7 @@ class _InternalTeamCard extends StatelessWidget {
                     value: formation?.code,
                     hint: entries.isEmpty
                         ? const Text('Aucun joueur')
-                        : const Text('Choisir la formation'),
+                        : const Text('Choisir le dispositif'),
                     items: [
                       for (final option in formations)
                         DropdownMenuItem(
@@ -902,18 +1277,19 @@ class _InternalTeamCard extends StatelessWidget {
               )
             else if (formation != null)
               Text(
-                'Formation ${formation.code}',
+                'Dispositif ${formation.code}',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelLarge,
               ),
             const SizedBox(height: 10),
             if (formation != null)
-              InternalTeamPitch(
-                formation: formation,
-                entries: entries,
+              FormationPitchEditor(
+                slots: formation.slots,
+                entries: field,
                 editable: editable,
-                selectedParticipantId: selectedParticipantId,
-                onSlotTap: onSlotTap,
+                finishedBenchCounts: finishedBenchCounts,
+                onDroppedOnSlot: onDroppedOnSlot,
+                onRemoveFromField: onRemoveFromField,
               )
             else
               Container(
@@ -929,35 +1305,102 @@ class _InternalTeamCard extends StatelessWidget {
                 child: Text(
                   entries.isEmpty
                       ? 'Aucun joueur dans cette équipe.'
-                      : 'Choisis une formation pour afficher le terrain.',
+                      : 'Choisis un dispositif pour afficher le terrain.',
                   textAlign: TextAlign.center,
                 ),
               ),
-            if (waiting.isNotEmpty) ...[
-              const SizedBox(height: 10),
+            if (bench.isNotEmpty) ...[
+              const SizedBox(height: 12),
               Text(
-                benchComplete
-                    ? 'Remplaçants (${waiting.length})'
-                    : substituteCount > 0
-                        ? 'À placer / banc (${waiting.length})'
-                        : 'À placer (${waiting.length})',
+                'Remplaçants (${bench.length})',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 6),
-              _WaitingPool(
-                entries: waiting,
-                editable: editable,
-                selectedParticipantId: selectedParticipantId,
-                canReceiveSelected:
-                    editable && entries.length > 11 && selectedInThisTeam,
-                onPoolTap: onBenchSelected,
-                onPlayerTap: onPlayerTap,
-                emptyLabel: '',
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in bench)
+                    _ClassicBenchBox(
+                      entry: entry,
+                      draggable: editable,
+                      finishedBenchCount:
+                          finishedBenchCounts[entry.participantId] ?? 0,
+                    ),
+                ],
+              ),
+            ],
+            if (waiting.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'À placer (${waiting.length})',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in waiting)
+                    _ClassicBenchBox(
+                      entry: _classic(entry),
+                      draggable: editable,
+                      finishedBenchCount:
+                          finishedBenchCounts[entry.participantId] ?? 0,
+                    ),
+                ],
               ),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ClassicBenchBox extends StatelessWidget {
+  const _ClassicBenchBox({
+    required this.entry,
+    required this.draggable,
+    required this.finishedBenchCount,
+  });
+
+  final MatchCompositionEntry entry;
+  final bool draggable;
+  final int finishedBenchCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = SizedBox(
+      width: 70,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CompositionPlayerTile(
+            entry: entry,
+            onTap: draggable
+                ? () => FormationPitchTapSelection.placePlayer(entry)
+                : null,
+          ),
+          if (finishedBenchCount > 0)
+            Positioned(
+              top: 0,
+              right: -2,
+              child: SubstituteHistoryBadge(count: finishedBenchCount),
+            ),
+        ],
+      ),
+    );
+    final highlighted = FormationPitchTapSelectionHighlight(
+      entry: entry,
+      child: tile,
+    );
+    if (!draggable) return highlighted;
+    return LongPressDraggable<MatchCompositionEntry>(
+      data: entry,
+      feedback: Material(type: MaterialType.transparency, child: tile),
+      childWhenDragging: Opacity(opacity: .35, child: tile),
+      child: highlighted,
     );
   }
 }
@@ -1233,54 +1676,6 @@ final _internalBenchCountsProvider = FutureProvider.autoDispose
     return await ref
         .watch(matchCompositionRepositoryProvider)
         .fetchFinishedBenchCounts(matchId);
-  } catch (_) {
-    return const {};
-  }
-});
-
-final _internalPlayerProfilesProvider = FutureProvider.autoDispose
-    .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
-  final composition = await ref.watch(
-    internalMatchCompositionProvider(matchId).future,
-  );
-  if (composition == null) return const {};
-
-  final seasonPlayerIds = composition.entries
-      .where((entry) => !entry.isGuest)
-      .map((entry) => entry.seasonPlayerId?.trim())
-      .whereType<String>()
-      .where((id) => id.isNotEmpty)
-      .toSet()
-      .toList(growable: false);
-  if (seasonPlayerIds.isEmpty) return const {};
-
-  try {
-    final repository = ref.watch(matchCompositionRepositoryProvider);
-    final canonicalIds = await repository.fetchCanonicalPlayerIds(
-      seasonPlayerIds,
-    );
-
-    final archive = await ref.watch(playerPositionArchiveProvider.future);
-    var positionProfiles = archive;
-    try {
-      positionProfiles = mergePlayerPositionProfiles(
-        history: await repository.fetchPlayerPositionHistory(
-          kLivePositionHistoryStart,
-        ),
-        archive: archive,
-      );
-    } catch (_) {
-      positionProfiles = archive;
-    }
-
-    return {
-      for (final entry in composition.entries)
-        if (!entry.isGuest)
-          if (entry.seasonPlayerId case final seasonPlayerId?)
-            if (canonicalIds[seasonPlayerId] case final canonicalId?)
-              if (positionProfiles[canonicalId] case final profile?)
-                entry.participantId: profile,
-    };
   } catch (_) {
     return const {};
   }

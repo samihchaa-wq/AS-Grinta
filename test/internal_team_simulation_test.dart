@@ -1,19 +1,24 @@
-import 'dart:math';
-
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
-import 'package:as_grinta/features/sports_management/domain/internal_team_simulation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-InternalCompositionEntry player(
+InternalCompositionEntry fieldPlayer(
   String id, {
-  bool goalkeeper = false,
+  required int teamNo,
+  required String slot,
+  double x = .5,
+  double y = .5,
 }) =>
     InternalCompositionEntry(
       participantId: id,
       displayName: 'Joueur $id',
       isGuest: false,
-      isGoalkeeper: goalkeeper,
+      isGoalkeeper: slot == 'GB',
+      teamNo: teamNo,
+      zone: 'field',
+      x: x,
+      y: y,
+      slotLabel: slot,
     );
 
 void main() {
@@ -23,9 +28,14 @@ void main() {
 
       expect(formations, isNotEmpty);
       expect(
-          formations.every((formation) => formation.playerCount == 11), isTrue);
+        formations.every((formation) => formation.playerCount == 11),
+        isTrue,
+      );
       expect(
-        internalFormationByCode(playerCount: 14, code: '4-2-3-1')?.playerCount,
+        internalFormationByCode(
+          playerCount: 14,
+          code: '4-2-3-1',
+        )?.playerCount,
         11,
       );
     });
@@ -35,94 +45,108 @@ void main() {
     });
   });
 
-  group('simulation entre nous', () {
-    test('13 joueurs donnent 11 titulaires et 2 remplaçants', () {
-      final players = [
-        for (var i = 0; i < 13; i += 1)
-          player('p${i.toString().padLeft(2, '0')}', goalkeeper: i == 0),
+  group('composition manuelle entre nous', () {
+    test('13 joueurs exigent 11 titulaires et 2 joueurs sur le banc', () {
+      final entries = <InternalCompositionEntry>[
+        for (var i = 0; i < 11; i += 1)
+          fieldPlayer(
+            'a$i',
+            teamNo: 1,
+            slot: i == 0 ? 'GB' : 'S$i',
+          ),
+        for (var i = 11; i < 13; i += 1)
+          InternalCompositionEntry(
+            participantId: 'a$i',
+            displayName: 'A$i',
+            isGuest: false,
+            isGoalkeeper: false,
+            teamNo: 1,
+            zone: 'bench',
+            sortOrder: i - 11,
+          ),
+        fieldPlayer('b0', teamNo: 2, slot: 'GB'),
       ];
-      final formation =
-          internalFormationByCode(playerCount: players.length, code: '4-4-2')!;
 
-      final result = simulateInternalTeam(
-        formation: formation,
-        players: players,
-        profiles: const {},
-        random: Random(1),
+      final composition = InternalMatchComposition(
+        matchId: 'm',
+        team1Name: 'A',
+        team2Name: 'B',
+        team1FormationCode: '4-4-2',
+        team2FormationCode: 'GB',
+        entries: entries,
       );
 
-      expect(result.slotByParticipantId.length, 11);
-      expect(result.benchParticipantIds.length, 2);
-      expect(
-        {
-          ...result.slotByParticipantId.keys,
-          ...result.benchParticipantIds,
-        }.length,
-        13,
-      );
-      expect(result.slotByParticipantId['p00'], 'GB');
-      expect(result.usedRandomGoalkeeper, isFalse);
+      expect(composition.isVisualComplete, isTrue);
     });
 
-    test('sans gardien déclaré le gardien est tiré via le Random injecté', () {
-      final players = [
-        for (var i = 0; i < 7; i += 1) player('p$i'),
-      ];
-      final formation =
-          internalFormationByCode(playerCount: players.length, code: '2-3-1')!;
+    test('un joueur encore à placer empêche l’enregistrement visuel', () {
+      final composition = InternalMatchComposition(
+        matchId: 'm',
+        team1Name: 'A',
+        team2Name: 'B',
+        team1FormationCode: '4-4-2',
+        team2FormationCode: 'GB',
+        entries: [
+          const InternalCompositionEntry(
+            participantId: 'a0',
+            displayName: 'A0',
+            isGuest: false,
+            isGoalkeeper: true,
+            teamNo: 1,
+          ),
+          fieldPlayer('b0', teamNo: 2, slot: 'GB'),
+        ],
+      );
 
-      final first = simulateInternalTeam(
-        formation: formation,
-        players: players,
-        profiles: const {},
-        random: Random(42),
-      );
-      final second = simulateInternalTeam(
-        formation: formation,
-        players: players,
-        profiles: const {},
-        random: Random(42),
-      );
-
-      expect(first.usedRandomGoalkeeper, isTrue);
-      expect(first.goalkeeperParticipantId, second.goalkeeperParticipantId);
-      expect(
-        first.slotByParticipantId[first.goalkeeperParticipantId],
-        'GB',
-      );
+      expect(composition.isVisualComplete, isFalse);
     });
-  });
 
-  test('la complétude accepte un banc seulement au-delà de onze', () {
-    final entries = [
-      for (var i = 0; i < 13; i += 1)
-        InternalCompositionEntry(
-          participantId: 'a$i',
-          displayName: 'A$i',
-          isGuest: false,
-          isGoalkeeper: i == 0,
-          teamNo: 1,
-          slotLabel: i < 11 ? 'S$i' : null,
-        ),
-      InternalCompositionEntry(
-        participantId: 'b0',
-        displayName: 'B0',
-        isGuest: false,
-        isGoalkeeper: true,
-        teamNo: 2,
-        slotLabel: 'GB',
-      ),
-    ];
+    test('un titulaire sans coordonnées complètes est refusé', () {
+      final composition = InternalMatchComposition(
+        matchId: 'm',
+        team1Name: 'A',
+        team2Name: 'B',
+        team1FormationCode: 'GB',
+        team2FormationCode: 'GB',
+        entries: [
+          const InternalCompositionEntry(
+            participantId: 'a0',
+            displayName: 'A0',
+            isGuest: false,
+            isGoalkeeper: true,
+            teamNo: 1,
+            zone: 'field',
+            slotLabel: 'GB',
+          ),
+          fieldPlayer('b0', teamNo: 2, slot: 'GB'),
+        ],
+      );
 
-    final composition = InternalMatchComposition(
-      matchId: 'm',
-      team1Name: 'A',
-      team2Name: 'B',
-      team1FormationCode: '4-4-2',
-      team2FormationCode: 'GB',
-      entries: entries,
-    );
+      expect(composition.isVisualComplete, isFalse);
+    });
 
-    expect(composition.isVisualComplete, isTrue);
+    test('un banc est interdit tant que l’équipe ne dépasse pas onze joueurs',
+        () {
+      final composition = InternalMatchComposition(
+        matchId: 'm',
+        team1Name: 'A',
+        team2Name: 'B',
+        team1FormationCode: 'GB',
+        team2FormationCode: 'GB',
+        entries: [
+          const InternalCompositionEntry(
+            participantId: 'a0',
+            displayName: 'A0',
+            isGuest: false,
+            isGoalkeeper: true,
+            teamNo: 1,
+            zone: 'bench',
+          ),
+          fieldPlayer('b0', teamNo: 2, slot: 'GB'),
+        ],
+      );
+
+      expect(composition.isVisualComplete, isFalse);
+    });
   });
 }

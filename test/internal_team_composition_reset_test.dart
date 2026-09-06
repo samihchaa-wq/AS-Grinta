@@ -49,7 +49,7 @@ void main() {
       final saveButton = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Enregistrer la composition'),
       );
-      expect(saveButton.onPressed, isNull);
+      expect(saveButton.onPressed, isNotNull);
       expect(repository.saveCalls, 0);
     },
   );
@@ -191,6 +191,37 @@ class _FakeInternalMatchCompositionRepository
       team2JerseyId: current.team2JerseyId,
       notificationSent: current.notificationSent,
       entries: List.of(savedEntries),
+    );
+    return current;
+  }
+
+  @override
+  Future<InternalMatchComposition> savePaperState({
+    required String matchId,
+    required String team1Name,
+    required String team2Name,
+    required List<InternalCompositionEntry> entries,
+    String team1JerseyId = 'orange',
+    String team2JerseyId = 'blue',
+    String? team1FormationCode,
+    String? team2FormationCode,
+  }) async {
+    saveCalls += 1;
+    savedEntries = List.of(entries);
+    savedTeam1Name = team1Name;
+    savedTeam2Name = team2Name;
+    savedTeam1JerseyId = team1JerseyId;
+    savedTeam2JerseyId = team2JerseyId;
+    current = InternalMatchComposition(
+      matchId: matchId,
+      team1Name: team1Name,
+      team2Name: team2Name,
+      team1JerseyId: team1JerseyId,
+      team2JerseyId: team2JerseyId,
+      team1FormationCode: team1FormationCode,
+      team2FormationCode: team2FormationCode,
+      notificationSent: current.notificationSent,
+      entries: List.of(entries),
     );
     return current;
   }
