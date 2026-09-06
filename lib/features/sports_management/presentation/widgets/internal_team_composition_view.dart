@@ -205,7 +205,8 @@ class _InternalTeamCompositionViewState
     if (!widget.editable || entries == null) return;
     setState(() {
       for (var index = 0; index < entries.length; index += 1) {
-        if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
+        if (entries[index].teamNo == teamNo &&
+            entries[index].slotLabel != null) {
           entries[index] = entries[index].copyWith(clearSlot: true);
         }
       }
@@ -329,7 +330,8 @@ class _InternalTeamCompositionViewState
         final slot = entry.teamNo == 1
             ? simulation1.slotByParticipantId[entry.participantId]
             : simulation2.slotByParticipantId[entry.participantId];
-        entries[index] = entry.copyWith(slotLabel: slot, clearSlot: slot == null);
+        entries[index] =
+            entry.copyWith(slotLabel: slot, clearSlot: slot == null);
       }
       _selectedParticipantId = null;
       _dirty = true;
@@ -403,18 +405,17 @@ class _InternalTeamCompositionViewState
 
     setState(() => _saving = true);
     try {
-      final saved = await ref
-          .read(internalMatchCompositionRepositoryProvider)
-          .saveVisual(
-            matchId: widget.matchId,
-            team1Name: _team1Controller.text,
-            team2Name: _team2Controller.text,
-            team1JerseyId: _team1Jersey.id,
-            team2JerseyId: _team2Jersey.id,
-            team1FormationCode: _team1FormationCode!,
-            team2FormationCode: _team2FormationCode!,
-            entries: entries,
-          );
+      final saved =
+          await ref.read(internalMatchCompositionRepositoryProvider).saveVisual(
+                matchId: widget.matchId,
+                team1Name: _team1Controller.text,
+                team2Name: _team2Controller.text,
+                team1JerseyId: _team1Jersey.id,
+                team2JerseyId: _team2Jersey.id,
+                team1FormationCode: _team1FormationCode!,
+                team2FormationCode: _team2FormationCode!,
+                entries: entries,
+              );
       if (!mounted) return;
       setState(() {
         _initFrom(saved);
@@ -563,7 +564,8 @@ class _InternalTeamCompositionViewState
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -597,11 +599,12 @@ class _InternalTeamCompositionViewState
         if (!_dirty && _team1Controller.text.isEmpty) _initFrom(composition);
 
         final entries = _entries!;
-        final unassigned = entries.where((entry) => entry.teamNo == null).toList();
+        final unassigned =
+            entries.where((entry) => entry.teamNo == null).toList();
         final team1 = entries.where((entry) => entry.teamNo == 1).toList();
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
-        final profiles =
-            profilesAsync.valueOrNull ?? const <String, PlayerPositionProfile>{};
+        final profiles = profilesAsync.valueOrNull ??
+            const <String, PlayerPositionProfile>{};
         final benchCounts =
             benchCountsAsync.valueOrNull ?? const <String, int>{};
         final validation = _validation(entries);
@@ -653,8 +656,8 @@ class _InternalTeamCompositionViewState
                       formationCode: _team1FormationCode,
                       editable: widget.editable,
                       selectedParticipantId: _selectedParticipantId,
-                      canReceiveSelected: _selectedEntry != null &&
-                          _selectedEntry!.teamNo != 1,
+                      canReceiveSelected:
+                          _selectedEntry != null && _selectedEntry!.teamNo != 1,
                       onAssignSelected: () => _assignSelectedToTeam(1),
                       onBenchSelected: () => _moveSelectedToBench(1),
                       onJerseySelected: (jersey) => _changeJersey(1, jersey),
@@ -678,8 +681,8 @@ class _InternalTeamCompositionViewState
                       formationCode: _team2FormationCode,
                       editable: widget.editable,
                       selectedParticipantId: _selectedParticipantId,
-                      canReceiveSelected: _selectedEntry != null &&
-                          _selectedEntry!.teamNo != 2,
+                      canReceiveSelected:
+                          _selectedEntry != null && _selectedEntry!.teamNo != 2,
                       onAssignSelected: () => _assignSelectedToTeam(2),
                       onBenchSelected: () => _moveSelectedToBench(2),
                       onJerseySelected: (jersey) => _changeJersey(2, jersey),
@@ -723,10 +726,11 @@ class _InternalTeamCompositionViewState
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 key: const ValueKey('simulate-internal-composition'),
-                onPressed:
-                    _saving || profilesAsync.isLoading || benchCountsAsync.isLoading
-                        ? null
-                        : () => _simulate(profiles, benchCounts),
+                onPressed: _saving ||
+                        profilesAsync.isLoading ||
+                        benchCountsAsync.isLoading
+                    ? null
+                    : () => _simulate(profiles, benchCounts),
                 icon: const Icon(Icons.auto_fix_high_rounded),
                 label: const Text('Simuler la composition'),
               ),
@@ -798,7 +802,8 @@ class _InternalTeamCard extends StatelessWidget {
   final ValueChanged<JerseyOption> onJerseySelected;
   final ValueChanged<String> onFormationSelected;
   final ValueChanged<InternalCompositionEntry> onPlayerTap;
-  final void Function(dynamic slot, InternalCompositionEntry? occupant) onSlotTap;
+  final void Function(dynamic slot, InternalCompositionEntry? occupant)
+      onSlotTap;
   final TextEditingController? controller;
 
   @override
@@ -811,8 +816,9 @@ class _InternalTeamCard extends StatelessWidget {
     final waiting = entries.where((entry) => entry.slotLabel == null).toList();
     final starterCount = entries.length - waiting.length;
     final substituteCount = entries.length > 11 ? entries.length - 11 : 0;
-    final benchComplete =
-        substituteCount > 0 && starterCount == 11 && waiting.length == substituteCount;
+    final benchComplete = substituteCount > 0 &&
+        starterCount == 11 &&
+        waiting.length == substituteCount;
     final selectedInThisTeam = selectedParticipantId != null &&
         entries.any((entry) =>
             entry.participantId == selectedParticipantId &&
@@ -1096,8 +1102,7 @@ class _WaitingPool extends StatelessWidget {
                     _PlayerChip(
                       entry: entry,
                       editable: editable,
-                      selected:
-                          selectedParticipantId == entry.participantId,
+                      selected: selectedParticipantId == entry.participantId,
                       onTap: () => onPlayerTap(entry),
                     ),
                 ],
