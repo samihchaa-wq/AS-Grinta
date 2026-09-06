@@ -135,7 +135,7 @@ class _InternalTeamCompositionViewState
       entries[index] = selected.copyWith(
         teamNo: nextTeam,
         clearTeam: nextTeam == null,
-        clearSlot: true,
+        clearPlacement: true,
       );
       if (oldTeam != null) _invalidateTeamLayout(oldTeam);
       if (nextTeam != null) _invalidateTeamLayout(nextTeam);
@@ -155,7 +155,7 @@ class _InternalTeamCompositionViewState
 
     setState(() {
       final oldTeam = selected!.teamNo!;
-      entries[index] = selected.copyWith(clearTeam: true, clearSlot: true);
+      entries[index] = selected.copyWith(clearTeam: true, clearPlacement: true);
       _invalidateTeamLayout(oldTeam);
       _selectedParticipantId = null;
       _dirty = true;
@@ -182,7 +182,10 @@ class _InternalTeamCompositionViewState
     );
     if (index == -1) return;
     setState(() {
-      entries[index] = selected.copyWith(clearSlot: true);
+      entries[index] = selected.copyWith(
+        zone: 'bench',
+        clearSlot: true,
+      );
       _selectedParticipantId = null;
       _dirty = true;
     });
@@ -193,7 +196,7 @@ class _InternalTeamCompositionViewState
     if (entries == null) return;
     for (var index = 0; index < entries.length; index += 1) {
       if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
-        entries[index] = entries[index].copyWith(clearSlot: true);
+        entries[index] = entries[index].copyWith(clearPlacement: true);
       }
     }
     if (teamNo == 1) {
