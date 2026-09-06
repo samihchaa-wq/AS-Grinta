@@ -33,6 +33,42 @@ alter table public.match_internal_composition_entries
     (zone <> 'field' and x is null and y is null)
   );
 
+create or replace function private.internal_v4_formation_slots(p_code text)
+returns text[]
+language sql
+immutable
+set search_path to ''
+as $function$
+  select case p_code
+    when '4-4-2 à plat' then array['GB','DG','DCG','DCD','DD','MG','MCG','MCD','MD','BUG','BUD']
+    when '4-4-2 losange' then array['GB','DG','DCG','DCD','DD','MDC','MCG','MCD','MOC','BUG','BUD']
+    when '4-2-3-1' then array['GB','DG','DCG','DCD','DD','MDG','MDD','MOG','MOC','MOD','BU']
+    when '4-3-3 défensif' then array['GB','DG','DCG','DCD','DD','MDC','MCG','MCD','AG','BU','AD']
+    when '4-3-3 offensif' then array['GB','DG','DCG','DCD','DD','MCG','MOC','MCD','AG','BU','AD']
+    when '4-3-3 faux neuf' then array['GB','DG','DCG','DCD','DD','MDC','MCG','MCD','AG','MOC','AD']
+    when '4-2-1-3' then array['GB','DG','DCG','DCD','DD','MDG','MDD','MOC','AG','BU','AD']
+    when '4-3-2-1 sapin' then array['GB','DG','DCG','DCD','DD','MCG','MC','MCD','MOG','MOD','BU']
+    when '4-2-2-2' then array['GB','DG','DCG','DCD','DD','MDG','MDD','MOG','MOD','BUG','BUD']
+    when '4-4-1-1' then array['GB','DG','DCG','DCD','DD','MG','MCG','MCD','MD','MOC','BU']
+    when '4-1-4-1' then array['GB','DG','DCG','DCD','DD','MDC','MG','MCG','MCD','MD','BU']
+    when '4-1-3-2' then array['GB','DG','DCG','DCD','DD','MDC','MG','MOC','MD','BUG','BUD']
+    when '4-5-1' then array['GB','DG','DCG','DCD','DD','MG','MCG','MC','MCD','MD','BU']
+    when '4-2-4' then array['GB','DG','DCG','DCD','DD','MCG','MCD','AG','BUG','BUD','AD']
+    when '3-5-2' then array['GB','DCG','DC','DCD','MG','MCG','MC','MCD','MD','BUG','BUD']
+    when '3-4-3' then array['GB','DCG','DC','DCD','MG','MCG','MCD','MD','AG','BU','AD']
+    when '3-4-1-2' then array['GB','DCG','DC','DCD','MG','MCG','MCD','MD','MOC','BUG','BUD']
+    when '3-4-2-1' then array['GB','DCG','DC','DCD','MG','MCG','MCD','MD','MOG','MOD','BU']
+    when '3-1-4-2' then array['GB','DCG','DC','DCD','MDC','MG','MCG','MCD','MD','BUG','BUD']
+    when '3-3-1-3' then array['GB','DCG','DC','DCD','MCG','MC','MCD','MOC','AG','BU','AD']
+    when '5-3-2' then array['GB','DG','DCG','DC','DCD','DD','MCG','MC','MCD','BUG','BUD']
+    when '5-2-3' then array['GB','DG','DCG','DC','DCD','DD','MCG','MCD','AG','BU','AD']
+    when '5-4-1' then array['GB','DG','DCG','DC','DCD','DD','MG','MCG','MCD','MD','BU']
+    when '5-2-1-2' then array['GB','DG','DCG','DC','DCD','DD','MCG','MCD','MOC','BUG','BUD']
+    when '5-3-1-1' then array['GB','DG','DCG','DC','DCD','DD','MCG','MC','MCD','MOC','BU']
+    else private.internal_formation_slots(p_code)
+  end;
+$function$;
+
 create or replace function public.get_internal_composition(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -244,6 +280,25 @@ begin
   if exists (
     select 1
     from jsonb_array_elements(p_entries) e
+    where nullif(btrim(e ->> 'team_no'), '') is not null
+      and btrim(e ->> 'team_no') not in ('1', '2')
+  ) then
+    raise exception 'Équipe invalide.' using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_entries) e
+    where coalesce(e ->> 'zone', 'available') in ('field', 'bench')
+      and coalesce(btrim(e ->> 'team_no'), '') not in ('1', '2')
+  ) then
+    raise exception 'Un joueur placé doit appartenir à une équipe.'
+      using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_entries) e
     where coalesce(e ->> 'zone', 'available') not in ('available', 'field', 'bench')
        or (
          coalesce(e ->> 'zone', 'available') = 'field'
@@ -293,6 +348,30 @@ begin
         or v_team2_bench <> greatest(v_team2_count - 11, 0) then
       raise exception 'Terrain ou banc incomplet.' using errcode = '22023';
     end if;
+
+    if cardinality(private.internal_v4_formation_slots(p_team1_formation))
+          <> least(v_team1_count, 11)
+        or cardinality(private.internal_v4_formation_slots(p_team2_formation))
+          <> least(v_team2_count, 11) then
+      raise exception 'Dispositif invalide pour le nombre de titulaires.'
+        using errcode = '22023';
+    end if;
+
+    if exists (
+      select 1 from jsonb_array_elements(p_entries) e
+      where e ->> 'zone' = 'field'
+        and (
+          (e ->> 'team_no' = '1'
+            and not (e ->> 'slot_label' = any(private.internal_v4_formation_slots(p_team1_formation))))
+          or
+          (e ->> 'team_no' = '2'
+            and not (e ->> 'slot_label' = any(private.internal_v4_formation_slots(p_team2_formation))))
+        )
+    ) then
+      raise exception 'Un poste ne correspond pas au dispositif choisi.'
+        using errcode = '22023';
+    end if;
+
     if exists (
       select 1 from jsonb_array_elements(p_entries) e
       where e ->> 'zone' = 'field'
@@ -360,3 +439,6 @@ revoke all on function public.admin_save_internal_composition_v4(
 grant execute on function public.admin_save_internal_composition_v4(
   uuid, text, text, text, text, text, text, jsonb, boolean
 ) to authenticated, service_role;
+
+revoke all on function private.internal_v4_formation_slots(text)
+  from public, anon, authenticated;
