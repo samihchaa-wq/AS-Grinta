@@ -12,15 +12,27 @@ class InternalTeamFormation {
   const InternalTeamFormation({
     required this.code,
     required this.outfieldLines,
+    this.explicitSlotLabels,
   });
 
   final String code;
   final List<int> outfieldLines;
+  final List<String>? explicitSlotLabels;
 
-  int get playerCount =>
+  int get playerCount => explicitSlotLabels?.length ??
       1 + outfieldLines.fold<int>(0, (total, count) => total + count);
 
   List<FootballFormationSlot> get slots {
+    final explicit = explicitSlotLabels;
+    if (explicit != null) {
+      return [
+        for (final label in explicit)
+          FootballFormationSlot(
+            label: label,
+            position: matchSheetSlotPositions[label] ?? const Offset(.5, .5),
+          ),
+      ];
+    }
     final result = <FootballFormationSlot>[
       const FootballFormationSlot(label: 'GB', position: Offset(.50, .86)),
     ];
@@ -189,6 +201,16 @@ const Map<int, List<InternalTeamFormation>>
 List<InternalTeamFormation> internalFormationsForPlayerCount(int playerCount) {
   if (playerCount <= 0) return const [];
   final onFieldCount = playerCount > 11 ? 11 : playerCount;
+  if (onFieldCount == 11) {
+    return [
+      for (final formation in footballFormations)
+        InternalTeamFormation(
+          code: formation.code,
+          outfieldLines: const [],
+          explicitSlotLabels: formation.slotLabels,
+        ),
+    ];
+  }
   return internalTeamFormationsByPlayerCount[onFieldCount] ?? const [];
 }
 
