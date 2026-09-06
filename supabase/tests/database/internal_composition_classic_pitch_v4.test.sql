@@ -1,6 +1,6 @@
 begin;
 
-select plan(10);
+select plan(12);
 
 select ok(
   to_regprocedure(
@@ -92,6 +92,30 @@ select ok(
     'EXECUTE'
   ),
   'authenticated peut appeler V4'
+);
+
+
+select ok(
+  position(
+    'v_match_type = ''entre_nous''' in pg_get_functiondef(
+      'private.notify_composition_published(uuid)'::regprocedure
+    )
+  ) > 0
+  and position(
+    'entry.zone = ''available''' in pg_get_functiondef(
+      'private.notify_composition_published(uuid)'::regprocedure
+    )
+  ) > 0,
+  'la notification entre nous exige les deux terrains complets'
+);
+
+select ok(
+  position(
+    'Les compositions sont en ligne' in pg_get_functiondef(
+      'private.dispatch_composition_published_push(uuid,uuid[])'::regprocedure
+    )
+  ) > 0,
+  'le push entre nous utilise le libellé pluriel demandé'
 );
 
 select * from finish();
