@@ -131,9 +131,12 @@ List<String> _attackLabels(int count) => switch (count) {
 /// Les compositions à un ou deux joueurs n'ont naturellement qu'un seul
 /// dispositif crédible. À partir de trois joueurs, plusieurs variantes sont
 /// proposées pour que l'administrateur reste toujours décisionnaire.
-const Map<int, List<InternalTeamFormation>> internalTeamFormationsByPlayerCount = {
+const Map<int, List<InternalTeamFormation>>
+    internalTeamFormationsByPlayerCount = {
   1: [InternalTeamFormation(code: 'GB', outfieldLines: [])],
-  2: [InternalTeamFormation(code: '1', outfieldLines: [1])],
+  2: [
+    InternalTeamFormation(code: '1', outfieldLines: [1])
+  ],
   3: [
     InternalTeamFormation(code: '1-1', outfieldLines: [1, 1]),
     InternalTeamFormation(code: '2', outfieldLines: [2]),
