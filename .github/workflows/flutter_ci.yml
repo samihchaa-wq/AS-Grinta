@@ -204,12 +204,8 @@ jobs:
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
-          dart format --output=write "${files[@]}" 2>&1 | tee format.log
-          git diff -- '*.dart'
-          if ! git diff --quiet -- '*.dart'; then
-            echo "::error::Des fichiers Dart nécessitent un formatage."
-            exit 1
-          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}" \
+            2>&1 | tee format.log
 
       - name: Analyze with fatal warnings and infos
         shell: bash
