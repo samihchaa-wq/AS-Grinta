@@ -8,6 +8,7 @@ import 'package:as_grinta/features/sports_management/domain/composition_publicat
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_identity.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -571,7 +572,9 @@ class _InternalTeamCompositionViewState
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
-    final positionArchiveAsync = ref.watch(playerPositionArchiveProvider);
+    final positionArchive = widget.editable
+        ? ref.watch(playerPositionArchiveProvider).valueOrNull
+        : const <String, PlayerPositionProfile>{};
 
     return async.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -596,9 +599,8 @@ class _InternalTeamCompositionViewState
         final entries = _entries!;
         final unassigned =
             entries.where((entry) => entry.teamNo == null).toList();
-        final profilesByName = <String, dynamic>{
-          for (final profile
-              in (positionArchiveAsync.valueOrNull ?? const {}).values)
+        final profilesByName = <String, PlayerPositionProfile>{
+          for (final profile in (positionArchive ?? const {}).values)
             normalizePlayerName(profile.displayName): profile,
         };
         List<InternalCompositionEntry> unassignedGroup(
