@@ -701,11 +701,15 @@ class _InternalTeamCompositionViewState
     final requiredStarters1 = team1.length > 11 ? 11 : team1.length;
     final requiredStarters2 = team2.length > 11 ? 11 : team2.length;
     final starters1 =
-        team1.where((entry) => entry.slotLabel != null).toList(growable: false);
+        team1.where((entry) => entry.zone == 'field').toList(growable: false);
     final starters2 =
-        team2.where((entry) => entry.slotLabel != null).toList(growable: false);
+        team2.where((entry) => entry.zone == 'field').toList(growable: false);
+    final bench1 = team1.where((entry) => entry.zone == 'bench').length;
+    final bench2 = team2.where((entry) => entry.zone == 'bench').length;
     if (starters1.length != requiredStarters1 ||
-        starters2.length != requiredStarters2) {
+        starters2.length != requiredStarters2 ||
+        bench1 != (team1.length - requiredStarters1) ||
+        bench2 != (team2.length - requiredStarters2)) {
       return const _InternalValidation(
         false,
         'Place tous les titulaires sur le terrain. Au-delà de 11 joueurs, le surplus reste sur le banc.',
@@ -1518,11 +1522,11 @@ class _InternalTeamCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   for (final entry in waiting)
-                    _PlayerChip(
-                      entry: entry,
-                      editable: false,
-                      selected: false,
-                      onTap: () {},
+                    _ClassicBenchBox(
+                      entry: _classic(entry),
+                      draggable: editable,
+                      finishedBenchCount:
+                          finishedBenchCounts[entry.participantId] ?? 0,
                     ),
                 ],
               ),
