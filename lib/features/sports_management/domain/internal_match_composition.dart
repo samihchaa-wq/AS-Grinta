@@ -2,8 +2,8 @@
 ///
 /// [teamNo] = 1 ou 2 une fois l'équipe choisie, null tant qu'il reste dans la
 /// zone d'attente. [slotLabel] est son emplacement sur le terrain ; il reste
-/// null tant que l'administrateur ne l'a pas placé ou n'a pas lancé la
-/// simulation.
+/// null avant placement et, pour une équipe de plus de 11 joueurs, pour les
+/// remplaçants explicitement laissés sur le banc.
 class InternalCompositionEntry {
   const InternalCompositionEntry({
     required this.participantId,
@@ -121,11 +121,26 @@ class InternalMatchComposition {
   List<InternalCompositionEntry> get team2 =>
       entries.where((e) => e.teamNo == 2).toList();
 
-  bool get isVisualComplete =>
-      entries.isNotEmpty &&
-      entries.every((entry) => entry.isPlaced) &&
-      team1FormationCode != null &&
-      team2FormationCode != null;
+  bool get isVisualComplete {
+    if (entries.isEmpty ||
+        entries.any((entry) => !entry.isAssigned) ||
+        team1FormationCode == null ||
+        team2FormationCode == null) {
+      return false;
+    }
+
+    bool teamIsComplete(List<InternalCompositionEntry> team) {
+      if (team.isEmpty) return false;
+      final requiredStarters = team.length > 11 ? 11 : team.length;
+      final starters =
+          team.where((entry) => entry.slotLabel != null).toList(growable: false);
+      if (starters.length != requiredStarters) return false;
+      final slots = starters.map((entry) => entry.slotLabel!).toList();
+      return slots.toSet().length == slots.length;
+    }
+
+    return teamIsComplete(team1) && teamIsComplete(team2);
+  }
 
   static InternalMatchComposition? tryFromRpc(Object? raw) {
     if (raw is! Map) return null;
