@@ -50,7 +50,9 @@ InternalTeamSimulation simulateInternalTeam({
     );
   }
 
-  final declaredKeepers = players.where((player) => player.isGoalkeeper).toList()
+  final declaredKeepers = players
+      .where((player) => player.isGoalkeeper)
+      .toList()
     ..sort((a, b) => a.participantId.compareTo(b.participantId));
   final usedRandomGoalkeeper = declaredKeepers.isEmpty;
   final goalkeeper = declaredKeepers.isNotEmpty
