@@ -1,19 +1,13 @@
-import 'dart:math';
-
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
-import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
-import 'package:as_grinta/features/sports_management/domain/composition_simulation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
-import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
-import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
     show CompositionPlayerTile, PlayerAvatar, SubstituteHistoryBadge;
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
@@ -329,102 +323,6 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  Future<void> _simulate(
-    Map<String, PlayerPositionProfile> profiles,
-    Map<String, int> benchCounts,
-  ) async {
-    final entries = _entries;
-    if (!widget.editable || entries == null || _saving) return;
-    final validation = _validation(entries);
-    if (validation.unassignedCount > 0) {
-      _showMessage('Répartis d’abord tous les joueurs dans les deux équipes.');
-      return;
-    }
-
-    SimulatedComposition runForTeam(
-      List<InternalCompositionEntry> team,
-      InternalTeamFormation formation,
-    ) {
-      final declaredGoalkeepers =
-          team.where((entry) => entry.isGoalkeeper && !entry.isGuest).toList();
-      String? randomGoalkeeperId;
-      if (declaredGoalkeepers.isEmpty && team.isNotEmpty) {
-        randomGoalkeeperId =
-            team[Random.secure().nextInt(team.length)].participantId;
-      }
-      return simulateComposition(
-        slots: formation.slots,
-        candidates: [
-          for (final entry in team)
-            SimulationCandidate(
-              participantId: entry.participantId,
-              displayName: entry.displayName,
-              benchCount: benchCounts[entry.participantId] ?? 0,
-              profile: profiles[entry.participantId],
-              // Dans un match entre nous, un invité participe au même
-              // onze que les autres joueurs. Le moteur classique réserve
-              // isGuest aux joueurs non sélectionnables du match officiel.
-              isGuest: false,
-              isGoalkeeper: entry.isGoalkeeper ||
-                  entry.participantId == randomGoalkeeperId,
-            ),
-        ],
-      );
-    }
-
-    final team1 = entries.where((entry) => entry.teamNo == 1).toList();
-    final team2 = entries.where((entry) => entry.teamNo == 2).toList();
-    final formation1 = internalFormationByCode(
-      playerCount: team1.length,
-      code: _team1FormationCode,
-    );
-    final formation2 = internalFormationByCode(
-      playerCount: team2.length,
-      code: _team2FormationCode,
-    );
-    if (formation1 == null || formation2 == null) {
-      _showMessage('Choisis la formation de chaque équipe avant de simuler.');
-      return;
-    }
-
-    final simulation1 = runForTeam(team1, formation1);
-    final simulation2 = runForTeam(team2, formation2);
-    final placed = <String, FootballFormationSlot>{
-      for (final placement in simulation1.placements)
-        placement.candidate.participantId: placement.slot,
-      for (final placement in simulation2.placements)
-        placement.candidate.participantId: placement.slot,
-    };
-    final bench = <String, int>{
-      for (var i = 0; i < simulation1.bench.length; i += 1)
-        simulation1.bench[i].participantId: i,
-      for (var i = 0; i < simulation2.bench.length; i += 1)
-        simulation2.bench[i].participantId: i,
-    };
-
-    setState(() {
-      for (var index = 0; index < entries.length; index += 1) {
-        final entry = entries[index];
-        if (placed[entry.participantId] case final slot?) {
-          entries[index] = entry.copyWith(
-            zone: 'field',
-            x: slot.position.dx,
-            y: slot.position.dy,
-            slotLabel: slot.label,
-          );
-        } else if (bench[entry.participantId] case final order?) {
-          entries[index] = entry.copyWith(
-            zone: 'bench',
-            sortOrder: order,
-            clearSlot: true,
-          );
-        }
-      }
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
-  }
-
   Future<void> _savePaper() async {
     final entries = _entries;
     if (entries == null || _saving) return;
@@ -543,7 +441,6 @@ class _InternalTeamCompositionViewState
         _dirty = false;
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
-      ref.invalidate(_internalPlayerProfilesProvider(widget.matchId));
       _showMessage('Composition enregistrée.');
     } catch (error) {
       if (mounted) _showMessage('Erreur : $error');
@@ -695,9 +592,6 @@ class _InternalTeamCompositionViewState
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(internalMatchCompositionProvider(widget.matchId));
-    final profilesAsync = ref.watch(
-      _internalPlayerProfilesProvider(widget.matchId),
-    );
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
@@ -727,8 +621,6 @@ class _InternalTeamCompositionViewState
             entries.where((entry) => entry.teamNo == null).toList();
         final team1 = entries.where((entry) => entry.teamNo == 1).toList();
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
-        final profiles = profilesAsync.valueOrNull ??
-            const <String, PlayerPositionProfile>{};
         final benchCounts =
             benchCountsAsync.valueOrNull ?? const <String, int>{};
         final validation = _validation(entries);
@@ -878,19 +770,6 @@ class _InternalTeamCompositionViewState
                         color: Theme.of(context).colorScheme.error,
                       ),
                 ),
-              if (_viewMode == 1) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  key: const ValueKey('simulate-internal-composition'),
-                  onPressed: _saving ||
-                          profilesAsync.isLoading ||
-                          benchCountsAsync.isLoading
-                      ? null
-                      : () => _simulate(profiles, benchCounts),
-                  icon: const Icon(Icons.auto_fix_high_rounded),
-                  label: const Text('Simuler la composition'),
-                ),
-              ],
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _saving ? null : _resetComposition,
@@ -1797,54 +1676,6 @@ final _internalBenchCountsProvider = FutureProvider.autoDispose
     return await ref
         .watch(matchCompositionRepositoryProvider)
         .fetchFinishedBenchCounts(matchId);
-  } catch (_) {
-    return const {};
-  }
-});
-
-final _internalPlayerProfilesProvider = FutureProvider.autoDispose
-    .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
-  final composition = await ref.watch(
-    internalMatchCompositionProvider(matchId).future,
-  );
-  if (composition == null) return const {};
-
-  final seasonPlayerIds = composition.entries
-      .where((entry) => !entry.isGuest)
-      .map((entry) => entry.seasonPlayerId?.trim())
-      .whereType<String>()
-      .where((id) => id.isNotEmpty)
-      .toSet()
-      .toList(growable: false);
-  if (seasonPlayerIds.isEmpty) return const {};
-
-  try {
-    final repository = ref.watch(matchCompositionRepositoryProvider);
-    final canonicalIds = await repository.fetchCanonicalPlayerIds(
-      seasonPlayerIds,
-    );
-
-    final archive = await ref.watch(playerPositionArchiveProvider.future);
-    var positionProfiles = archive;
-    try {
-      positionProfiles = mergePlayerPositionProfiles(
-        history: await repository.fetchPlayerPositionHistory(
-          kLivePositionHistoryStart,
-        ),
-        archive: archive,
-      );
-    } catch (_) {
-      positionProfiles = archive;
-    }
-
-    return {
-      for (final entry in composition.entries)
-        if (!entry.isGuest)
-          if (entry.seasonPlayerId case final seasonPlayerId?)
-            if (canonicalIds[seasonPlayerId] case final canonicalId?)
-              if (positionProfiles[canonicalId] case final profile?)
-                entry.participantId: profile,
-    };
   } catch (_) {
     return const {};
   }
