@@ -269,6 +269,108 @@ class _InternalTeamCompositionViewState
     });
   }
 
+  MatchCompositionEntry _asClassicEntry(InternalCompositionEntry entry) {
+    return MatchCompositionEntry(
+      participantId: entry.participantId,
+      seasonPlayerId: entry.seasonPlayerId ?? '',
+      guestPlayerId: entry.guestPlayerId,
+      displayName: entry.displayName,
+      lastInitial: entry.lastInitial,
+      isGuest: entry.isGuest,
+      isGoalkeeper: entry.isGoalkeeper,
+      zone: MatchCompositionZone.fromWire(entry.zone),
+      x: entry.x,
+      y: entry.y,
+      slotLabel: entry.slotLabel,
+      photoUrl: entry.photoUrl,
+      sortOrder: entry.sortOrder,
+      availabilityStatus: 'available',
+      convocationStatus: 'convoked',
+      selectionStatus: switch (entry.zone) {
+        'field' => 'starter',
+        'bench' => 'substitute',
+        _ => 'undecided',
+      },
+    );
+  }
+
+  void _dropOnClassicSlot(
+    int teamNo,
+    MatchCompositionEntry moving,
+    FootballFormationSlot slot,
+  ) {
+    final entries = _entries;
+    if (!widget.editable || entries == null) return;
+    final movingIndex = entries.indexWhere(
+      (entry) =>
+          entry.participantId == moving.participantId && entry.teamNo == teamNo,
+    );
+    if (movingIndex == -1) return;
+    final current = entries[movingIndex];
+    final occupantIndex = entries.indexWhere(
+      (entry) =>
+          entry.teamNo == teamNo &&
+          entry.zone == 'field' &&
+          entry.slotLabel == slot.label &&
+          entry.participantId != moving.participantId,
+    );
+    final previousX = current.zone == 'field' ? current.x : null;
+    final previousY = current.zone == 'field' ? current.y : null;
+    final previousSlot = current.zone == 'field' ? current.slotLabel : null;
+    final benchCount =
+        entries.where((entry) => entry.teamNo == teamNo && entry.zone == 'bench').length;
+
+    setState(() {
+      entries[movingIndex] = current.copyWith(
+        zone: 'field',
+        x: slot.position.dx,
+        y: slot.position.dy,
+        slotLabel: slot.label,
+      );
+      if (occupantIndex >= 0) {
+        final occupant = entries[occupantIndex];
+        entries[occupantIndex] = previousSlot == null
+            ? occupant.copyWith(
+                zone: 'bench',
+                sortOrder: benchCount,
+                clearSlot: true,
+              )
+            : occupant.copyWith(
+                zone: 'field',
+                x: previousX,
+                y: previousY,
+                slotLabel: previousSlot,
+              );
+      }
+      _dirty = true;
+    });
+  }
+
+  void _moveClassicToBench(int teamNo, MatchCompositionEntry moving) {
+    final entries = _entries;
+    if (!widget.editable || entries == null) return;
+    final index = entries.indexWhere(
+      (entry) =>
+          entry.participantId == moving.participantId && entry.teamNo == teamNo,
+    );
+    if (index == -1) return;
+    final teamSize = entries.where((entry) => entry.teamNo == teamNo).length;
+    if (teamSize <= 11) {
+      _showMessage('Le banc apparaît seulement au-delà de 11 joueurs.');
+      return;
+    }
+    final benchCount =
+        entries.where((entry) => entry.teamNo == teamNo && entry.zone == 'bench').length;
+    setState(() {
+      entries[index] = entries[index].copyWith(
+        zone: 'bench',
+        sortOrder: benchCount,
+        clearSlot: true,
+      );
+      _dirty = true;
+    });
+  }
+
   void _changeJersey(int teamNo, JerseyOption jersey) {
     if (!widget.editable) return;
     setState(() {
