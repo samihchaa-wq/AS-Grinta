@@ -20,9 +20,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Composition visuelle d'un « match entre nous ».
 ///
-/// Les équipes restent libres et peuvent être inégales. Une fois l'équipe
-/// choisie, chaque joueur doit toutefois occuper un poste : il n'existe aucun
-/// banc dans la composition publiée.
+/// Les équipes restent libres et peuvent être inégales. Jusqu'à 11 joueurs
+/// sont placés sur le terrain ; si une équipe dépasse 11 joueurs, le surplus
+/// reste explicitement sur le banc.
 class InternalTeamCompositionView extends ConsumerStatefulWidget {
   const InternalTeamCompositionView({
     super.key,
@@ -121,12 +121,6 @@ class _InternalTeamCompositionViewState
     final selected = _selectedEntry;
     if (!widget.editable || entries == null || selected == null) return;
 
-    final targetCount = entries.where((entry) => entry.teamNo == teamNo).length;
-    if (selected.teamNo != teamNo && targetCount >= 11) {
-      _showMessage('Une équipe ne peut pas dépasser 11 joueurs.');
-      return;
-    }
-
     final index = entries.indexWhere(
       (entry) => entry.participantId == selected.participantId,
     );
@@ -160,6 +154,32 @@ class _InternalTeamCompositionViewState
       final oldTeam = selected!.teamNo!;
       entries[index] = selected.copyWith(clearTeam: true, clearSlot: true);
       _invalidateTeamLayout(oldTeam);
+      _selectedParticipantId = null;
+      _dirty = true;
+    });
+  }
+
+  void _moveSelectedToBench(int teamNo) {
+    final entries = _entries;
+    final selected = _selectedEntry;
+    if (!widget.editable ||
+        entries == null ||
+        selected == null ||
+        selected.teamNo != teamNo ||
+        selected.slotLabel == null) {
+      return;
+    }
+    final teamSize = entries.where((entry) => entry.teamNo == teamNo).length;
+    if (teamSize <= 11) {
+      _showMessage('Le banc apparaît seulement au-delà de 11 joueurs.');
+      return;
+    }
+    final index = entries.indexWhere(
+      (entry) => entry.participantId == selected.participantId,
+    );
+    if (index == -1) return;
+    setState(() {
+      entries[index] = selected.copyWith(clearSlot: true);
       _selectedParticipantId = null;
       _dirty = true;
     });
@@ -479,13 +499,6 @@ class _InternalTeamCompositionViewState
         0,
       );
     }
-    if (team1.length > 11 || team2.length > 11) {
-      return const _InternalValidation(
-        false,
-        'Une équipe ne peut pas dépasser 11 joueurs.',
-        0,
-      );
-    }
     final formation1 = internalFormationByCode(
       playerCount: team1.length,
       code: _team1FormationCode,
@@ -501,20 +514,34 @@ class _InternalTeamCompositionViewState
         0,
       );
     }
-    final invalid1 = team1.any(
+    final requiredStarters1 = team1.length > 11 ? 11 : team1.length;
+    final requiredStarters2 = team2.length > 11 ? 11 : team2.length;
+    final starters1 =
+        team1.where((entry) => entry.slotLabel != null).toList(growable: false);
+    final starters2 =
+        team2.where((entry) => entry.slotLabel != null).toList(growable: false);
+    if (starters1.length != requiredStarters1 ||
+        starters2.length != requiredStarters2) {
+      return const _InternalValidation(
+        false,
+        'Place tous les titulaires sur le terrain. Au-delà de 11 joueurs, le surplus reste sur le banc.',
+        0,
+      );
+    }
+    final invalid1 = starters1.any(
       (entry) => !formation1.containsSlot(entry.slotLabel),
     );
-    final invalid2 = team2.any(
+    final invalid2 = starters2.any(
       (entry) => !formation2.containsSlot(entry.slotLabel),
     );
     if (invalid1 || invalid2) {
       return const _InternalValidation(
         false,
-        'Place tous les joueurs sur le terrain avant d’enregistrer.',
+        'Un joueur occupe un poste qui n’appartient pas à la formation choisie.',
         0,
       );
     }
-    if (_hasDuplicateSlots(team1) || _hasDuplicateSlots(team2)) {
+    if (_hasDuplicateSlots(starters1) || _hasDuplicateSlots(starters2)) {
       return const _InternalValidation(
         false,
         'Deux joueurs ne peuvent pas occuper le même poste.',
@@ -525,8 +552,9 @@ class _InternalTeamCompositionViewState
   }
 
   bool _hasDuplicateSlots(List<InternalCompositionEntry> entries) {
-    final slots = entries.map((entry) => entry.slotLabel).whereType<String>();
-    return slots.toSet().length != entries.length;
+    final slots =
+        entries.map((entry) => entry.slotLabel).whereType<String>().toList();
+    return slots.toSet().length != slots.length;
   }
 
   void _showMessage(String message) {
@@ -566,12 +594,8 @@ class _InternalTeamCompositionViewState
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
         final profiles = profilesAsync.valueOrNull ?? const <String, PlayerPositionProfile>{};
         final validation = _validation(entries);
-        final legacyReadOnly = !widget.editable &&
-            (composition.team1FormationCode == null ||
-                composition.team2FormationCode == null ||
-                composition.entries.any(
-                  (entry) => entry.teamNo != null && entry.slotLabel == null,
-                ));
+        final legacyReadOnly =
+            !widget.editable && !composition.isVisualComplete;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -621,6 +645,7 @@ class _InternalTeamCompositionViewState
                       canReceiveSelected: _selectedEntry != null &&
                           _selectedEntry!.teamNo != 1,
                       onAssignSelected: () => _assignSelectedToTeam(1),
+                      onBenchSelected: () => _moveSelectedToBench(1),
                       onJerseySelected: (jersey) => _changeJersey(1, jersey),
                       onFormationSelected: (code) => _changeFormation(1, code),
                       onPlayerTap: _selectPlayer,
@@ -645,6 +670,7 @@ class _InternalTeamCompositionViewState
                       canReceiveSelected: _selectedEntry != null &&
                           _selectedEntry!.teamNo != 2,
                       onAssignSelected: () => _assignSelectedToTeam(2),
+                      onBenchSelected: () => _moveSelectedToBench(2),
                       onJerseySelected: (jersey) => _changeJersey(2, jersey),
                       onFormationSelected: (code) => _changeFormation(2, code),
                       onPlayerTap: _selectPlayer,
@@ -738,6 +764,7 @@ class _InternalTeamCard extends StatelessWidget {
     required this.selectedParticipantId,
     required this.canReceiveSelected,
     required this.onAssignSelected,
+    required this.onBenchSelected,
     required this.onJerseySelected,
     required this.onFormationSelected,
     required this.onPlayerTap,
@@ -755,6 +782,7 @@ class _InternalTeamCard extends StatelessWidget {
   final String? selectedParticipantId;
   final bool canReceiveSelected;
   final VoidCallback onAssignSelected;
+  final VoidCallback onBenchSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
   final ValueChanged<String> onFormationSelected;
   final ValueChanged<InternalCompositionEntry> onPlayerTap;
@@ -769,6 +797,14 @@ class _InternalTeamCard extends StatelessWidget {
       code: formationCode,
     );
     final waiting = entries.where((entry) => entry.slotLabel == null).toList();
+    final starterCount = entries.length - waiting.length;
+    final substituteCount = entries.length > 11 ? entries.length - 11 : 0;
+    final benchComplete =
+        substituteCount > 0 && starterCount == 11 && waiting.length == substituteCount;
+    final selectedInThisTeam = selectedParticipantId != null &&
+        entries.any((entry) =>
+            entry.participantId == selectedParticipantId &&
+            entry.slotLabel != null);
     final semanticName = controller?.text.trim().isNotEmpty == true
         ? controller!.text.trim()
         : name;
@@ -787,7 +823,7 @@ class _InternalTeamCard extends StatelessWidget {
                   jersey: jersey,
                   unavailableJersey: unavailableJersey,
                   editable: editable,
-                  assignmentEnabled: canReceiveSelected && entries.length < 11,
+                  assignmentEnabled: canReceiveSelected,
                   onAssignSelected: onAssignSelected,
                   onJerseySelected: onJerseySelected,
                 ),
@@ -810,7 +846,11 @@ class _InternalTeamCard extends StatelessWidget {
                         ),
                 ),
                 const SizedBox(width: 6),
-                Text('${entries.length}/11'),
+                Text(
+                  entries.length > 11
+                      ? '${entries.length} joueurs · ${entries.length - 11} remp.'
+                      : '${entries.length} joueur${entries.length > 1 ? 's' : ''}',
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -878,7 +918,11 @@ class _InternalTeamCard extends StatelessWidget {
             if (waiting.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
-                'À placer (${waiting.length})',
+                benchComplete
+                    ? 'Remplaçants (${waiting.length})'
+                    : substituteCount > 0
+                        ? 'À placer / banc (${waiting.length})'
+                        : 'À placer (${waiting.length})',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 6),
@@ -886,8 +930,9 @@ class _InternalTeamCard extends StatelessWidget {
                 entries: waiting,
                 editable: editable,
                 selectedParticipantId: selectedParticipantId,
-                canReceiveSelected: false,
-                onPoolTap: () {},
+                canReceiveSelected:
+                    editable && entries.length > 11 && selectedInThisTeam,
+                onPoolTap: onBenchSelected,
                 onPlayerTap: onPlayerTap,
                 emptyLabel: '',
               ),
