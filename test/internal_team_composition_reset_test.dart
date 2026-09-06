@@ -46,22 +46,11 @@ void main() {
 
       expect(find.text('Non affectés (2)'), findsOneWidget);
 
-      await tester.tap(find.text('Enregistrer la composition'));
-      await tester.pumpAndSettle();
-
-      expect(repository.saveCalls, 1);
-      expect(
-        repository.savedEntries
-            .singleWhere((entry) => entry.participantId == 'p1')
-            .teamNo,
-        isNull,
+      final saveButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Enregistrer la composition'),
       );
-      expect(
-        repository.savedEntries
-            .singleWhere((entry) => entry.participantId == 'p2')
-            .teamNo,
-        2,
-      );
+      expect(saveButton.onPressed, isNull);
+      expect(repository.saveCalls, 0);
     },
   );
 
@@ -95,7 +84,9 @@ void main() {
       expect(find.text('Réinitialiser'), findsOneWidget);
       expect(find.text('Non affectés (1)'), findsOneWidget);
 
-      await tester.tap(find.text('Réinitialiser'));
+      final resetButton = find.widgetWithText(OutlinedButton, 'Réinitialiser');
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Réinitialiser les compositions ?'), findsOneWidget);
@@ -109,7 +100,8 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Réinitialiser'));
       await tester.pumpAndSettle();
 
-      expect(repository.saveCalls, 1);
+      expect(repository.resetCalls, 1);
+      expect(repository.saveCalls, 0);
       expect(repository.savedEntries, hasLength(3));
       expect(
         repository.savedEntries.every((entry) => entry.teamNo == null),
@@ -137,6 +129,7 @@ class _FakeInternalMatchCompositionRepository
         );
 
   var saveCalls = 0;
+  var resetCalls = 0;
   var savedEntries = <InternalCompositionEntry>[];
   String? savedTeam1Name;
   String? savedTeam2Name;
@@ -178,6 +171,29 @@ class _FakeInternalMatchCompositionRepository
 
   @override
   Future<InternalMatchComposition?> fetch(String matchId) async => current;
+
+  @override
+  Future<InternalMatchComposition> resetVisual(String matchId) async {
+    resetCalls += 1;
+    savedEntries = [
+      for (final entry in current.entries)
+        entry.copyWith(clearTeam: true, clearSlot: true),
+    ];
+    savedTeam1Name = current.team1Name;
+    savedTeam2Name = current.team2Name;
+    savedTeam1JerseyId = current.team1JerseyId;
+    savedTeam2JerseyId = current.team2JerseyId;
+    current = InternalMatchComposition(
+      matchId: matchId,
+      team1Name: current.team1Name,
+      team2Name: current.team2Name,
+      team1JerseyId: current.team1JerseyId,
+      team2JerseyId: current.team2JerseyId,
+      notificationSent: current.notificationSent,
+      entries: List.of(savedEntries),
+    );
+    return current;
+  }
 
   @override
   Future<InternalMatchComposition> save({

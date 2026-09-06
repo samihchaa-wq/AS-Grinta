@@ -1,5 +1,9 @@
-/// Un joueur convoqué pour un « match entre nous », éventuellement déjà
-/// affecté à une des deux équipes (`teamNo` = 1 ou 2, null = non affecté).
+/// Un joueur convoqué pour un « match entre nous ».
+///
+/// [teamNo] = 1 ou 2 une fois l'équipe choisie, null tant qu'il reste dans la
+/// zone d'attente. [slotLabel] est son emplacement sur le terrain ; il reste
+/// null avant placement et, pour une équipe de plus de 11 joueurs, pour les
+/// remplaçants explicitement laissés sur le banc.
 class InternalCompositionEntry {
   const InternalCompositionEntry({
     required this.participantId,
@@ -11,6 +15,7 @@ class InternalCompositionEntry {
     this.photoUrl,
     this.lastInitial,
     this.teamNo,
+    this.slotLabel,
     this.sortOrder = 0,
   });
 
@@ -25,9 +30,19 @@ class InternalCompositionEntry {
   final bool isGuest;
   final bool isGoalkeeper;
   final int? teamNo;
+  final String? slotLabel;
   final int sortOrder;
 
-  InternalCompositionEntry copyWith({int? teamNo, bool clearTeam = false}) {
+  bool get isAssigned => teamNo == 1 || teamNo == 2;
+  bool get isPlaced => isAssigned && slotLabel != null;
+
+  InternalCompositionEntry copyWith({
+    int? teamNo,
+    String? slotLabel,
+    bool clearTeam = false,
+    bool clearSlot = false,
+  }) {
+    final nextTeam = clearTeam ? null : (teamNo ?? this.teamNo);
     return InternalCompositionEntry(
       participantId: participantId,
       seasonPlayerId: seasonPlayerId,
@@ -37,7 +52,11 @@ class InternalCompositionEntry {
       photoUrl: photoUrl,
       isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
-      teamNo: clearTeam ? null : (teamNo ?? this.teamNo),
+      teamNo: nextTeam,
+      // Changer ou effacer l'équipe invalide toujours le placement précédent :
+      // un même libellé n'a pas nécessairement la même place dans l'autre
+      // dispositif.
+      slotLabel: clearTeam || clearSlot ? null : (slotLabel ?? this.slotLabel),
       sortOrder: sortOrder,
     );
   }
@@ -53,6 +72,10 @@ class InternalCompositionEntry {
       isGuest: json['is_guest'] == true,
       isGoalkeeper: json['is_goalkeeper'] == true,
       teamNo: (json['team_no'] as num?)?.toInt(),
+      slotLabel: switch (json['slot_label']) {
+        final String value when value.trim().isNotEmpty => value.trim(),
+        _ => null,
+      },
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
     );
   }
@@ -60,6 +83,7 @@ class InternalCompositionEntry {
   Map<String, dynamic> toRpcJson() => {
         'participant_id': participantId,
         'team_no': teamNo,
+        'slot_label': slotLabel,
         'sort_order': sortOrder,
       };
 }
@@ -72,6 +96,8 @@ class InternalMatchComposition {
     required this.entries,
     this.team1JerseyId = 'orange',
     this.team2JerseyId = 'blue',
+    this.team1FormationCode,
+    this.team2FormationCode,
     this.notificationSent = false,
   });
 
@@ -80,6 +106,8 @@ class InternalMatchComposition {
   final String team2Name;
   final String team1JerseyId;
   final String team2JerseyId;
+  final String? team1FormationCode;
+  final String? team2FormationCode;
   final List<InternalCompositionEntry> entries;
 
   /// La notification « La composition est en ligne » est-elle déjà partie pour
@@ -93,6 +121,28 @@ class InternalMatchComposition {
   List<InternalCompositionEntry> get team2 =>
       entries.where((e) => e.teamNo == 2).toList();
 
+  bool get isVisualComplete {
+    if (entries.isEmpty ||
+        entries.any((entry) => !entry.isAssigned) ||
+        team1FormationCode == null ||
+        team2FormationCode == null) {
+      return false;
+    }
+
+    bool teamIsComplete(List<InternalCompositionEntry> team) {
+      if (team.isEmpty) return false;
+      final requiredStarters = team.length > 11 ? 11 : team.length;
+      final starters = team
+          .where((entry) => entry.slotLabel != null)
+          .toList(growable: false);
+      if (starters.length != requiredStarters) return false;
+      final slots = starters.map((entry) => entry.slotLabel!).toList();
+      return slots.toSet().length == slots.length;
+    }
+
+    return teamIsComplete(team1) && teamIsComplete(team2);
+  }
+
   static InternalMatchComposition? tryFromRpc(Object? raw) {
     if (raw is! Map) return null;
     final json = Map<String, dynamic>.from(raw);
@@ -103,6 +153,8 @@ class InternalMatchComposition {
       team2Name: (json['team2_name'] ?? 'Équipe 2').toString(),
       team1JerseyId: (json['team1_jersey'] ?? 'orange').toString(),
       team2JerseyId: (json['team2_jersey'] ?? 'blue').toString(),
+      team1FormationCode: _clean(json['team1_formation']),
+      team2FormationCode: _clean(json['team2_formation']),
       notificationSent: json['notification_sent'] == true,
       entries: entriesRaw is List
           ? entriesRaw
@@ -115,4 +167,10 @@ class InternalMatchComposition {
           : const [],
     );
   }
+}
+
+String? _clean(Object? value) {
+  if (value is! String) return null;
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }
