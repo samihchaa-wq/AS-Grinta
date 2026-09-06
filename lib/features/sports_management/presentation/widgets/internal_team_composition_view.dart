@@ -231,8 +231,7 @@ class _InternalTeamCompositionViewState
         overflow.add(ordered[index].participantId);
       }
     }
-    final benchBase =
-        team.where((entry) => entry.zone == 'bench').length;
+    final benchBase = team.where((entry) => entry.zone == 'bench').length;
     var extraBench = 0;
 
     setState(() {
@@ -358,8 +357,9 @@ class _InternalTeamCompositionViewState
     final previousX = current.zone == 'field' ? current.x : null;
     final previousY = current.zone == 'field' ? current.y : null;
     final previousSlot = current.zone == 'field' ? current.slotLabel : null;
-    final benchCount =
-        entries.where((entry) => entry.teamNo == teamNo && entry.zone == 'bench').length;
+    final benchCount = entries
+        .where((entry) => entry.teamNo == teamNo && entry.zone == 'bench')
+        .length;
 
     setState(() {
       entries[movingIndex] = current.copyWith(
@@ -461,8 +461,8 @@ class _InternalTeamCompositionViewState
               benchCount: benchCounts[entry.participantId] ?? 0,
               profile: profiles[entry.participantId],
               isGuest: entry.isGuest,
-              isGoalkeeper:
-                  entry.isGoalkeeper || entry.participantId == randomGoalkeeperId,
+              isGoalkeeper: entry.isGoalkeeper ||
+                  entry.participantId == randomGoalkeeperId,
             ),
         ],
       );
@@ -850,12 +850,11 @@ class _InternalTeamCompositionViewState
           formationCode:
               _terrainTeam == 1 ? _team1FormationCode : _team2FormationCode,
           editable: widget.editable,
-          canReceiveSelected: _selectedEntry != null &&
-              _selectedEntry!.teamNo != _terrainTeam,
+          canReceiveSelected:
+              _selectedEntry != null && _selectedEntry!.teamNo != _terrainTeam,
           onAssignSelected: () => _assignSelectedToTeam(_terrainTeam),
           onJerseySelected: (jersey) => _changeJersey(_terrainTeam, jersey),
-          onFormationSelected: (code) =>
-              _changeFormation(_terrainTeam, code),
+          onFormationSelected: (code) => _changeFormation(_terrainTeam, code),
           onDroppedOnSlot: (moving, slot) =>
               _dropOnClassicSlot(_terrainTeam, moving, slot),
           onRemoveFromField: (moving) =>
