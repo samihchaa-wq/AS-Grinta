@@ -377,10 +377,10 @@ class _InternalTeamCompositionViewState
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Publier la composition ?'),
+          title: const Text('Mettre les compositions en ligne ?'),
           content: const Text(
-            'Publier la composition enverra une notification à tous les '
-            'joueurs convoqués.',
+            'Enregistrer les deux terrains enverra « Les compositions sont '
+            'en ligne » aux joueurs convoqués.',
           ),
           actions: [
             TextButton(
