@@ -36,6 +36,7 @@ InternalTeamSimulation simulateInternalTeam({
   required InternalTeamFormation formation,
   required List<InternalCompositionEntry> players,
   required Map<String, PlayerPositionProfile> profiles,
+  Map<String, int> benchCounts = const {},
   required Random random,
 }) {
   if (players.isEmpty) {
@@ -61,7 +62,7 @@ InternalTeamSimulation simulateInternalTeam({
       SimulationCandidate(
         participantId: player.participantId,
         displayName: player.displayName,
-        benchCount: 0,
+        benchCount: benchCounts[player.participantId] ?? 0,
         profile: profiles[player.participantId],
         // Pour un match entre nous, un invité est un joueur à part entière :
         // il participe au même choix titulaires/remplaçants que les autres.
