@@ -256,4 +256,14 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> overrideAvailability({
+    required String matchId,
+    required String seasonPlayerId,
+    required String status,
+    String? reason,
+  }) {
+    throw UnimplementedError();
+  }
 }
