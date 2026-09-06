@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
@@ -6,17 +8,21 @@ import 'package:as_grinta/features/sports_management/data/match_composition_repo
 import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
-import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
+import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
+import 'package:as_grinta/features/sports_management/domain/internal_team_simulation.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
     show PlayerAvatar;
+import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Composition d'un « match entre nous » : pas de terrain ni de formation,
-/// juste une réserve de joueurs convoqués répartie en deux équipes. Les deux
-/// équipes choisissent chacune un maillot distinct parmi le catalogue.
+/// Composition visuelle d'un « match entre nous ».
+///
+/// Les équipes restent libres et peuvent être inégales. Une fois l'équipe
+/// choisie, chaque joueur doit toutefois occuper un poste : il n'existe aucun
+/// banc dans la composition publiée.
 class InternalTeamCompositionView extends ConsumerStatefulWidget {
   const InternalTeamCompositionView({
     super.key,
@@ -36,18 +42,16 @@ class _InternalTeamCompositionViewState
     extends ConsumerState<InternalTeamCompositionView> {
   final _team1Controller = TextEditingController();
   final _team2Controller = TextEditingController();
+
   List<InternalCompositionEntry>? _entries;
   JerseyOption _team1Jersey = JerseyOption.orange;
   JerseyOption _team2Jersey = JerseyOption.blue;
+  String? _team1FormationCode;
+  String? _team2FormationCode;
   String? _selectedParticipantId;
   bool _dirty = false;
   bool _saving = false;
   bool _syncingNames = false;
-
-  /// La notification de mise en ligne est-elle déjà partie pour ce match ?
-  ///
-  /// L'information vient du serveur, qui en garde la trace : la deviner d'après
-  /// la feuille se trompait après une remise à zéro des équipes.
   bool _notificationSent = false;
 
   @override
@@ -79,6 +83,8 @@ class _InternalTeamCompositionViewState
     _team2Controller.text = composition.team2Name;
     _syncingNames = false;
     _entries = List.of(composition.entries);
+    _team1FormationCode = composition.team1FormationCode;
+    _team2FormationCode = composition.team2FormationCode;
     _notificationSent = composition.notificationSent;
 
     final team1 =
@@ -100,24 +106,42 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  void _moveSelectedTo(int teamNo) {
+  InternalCompositionEntry? get _selectedEntry {
     final entries = _entries;
     final selectedId = _selectedParticipantId;
-    if (!widget.editable || entries == null || selectedId == null) return;
+    if (entries == null || selectedId == null) return null;
+    for (final entry in entries) {
+      if (entry.participantId == selectedId) return entry;
+    }
+    return null;
+  }
+
+  void _assignSelectedToTeam(int teamNo) {
+    final entries = _entries;
+    final selected = _selectedEntry;
+    if (!widget.editable || entries == null || selected == null) return;
+
+    final targetCount = entries.where((entry) => entry.teamNo == teamNo).length;
+    if (selected.teamNo != teamNo && targetCount >= 11) {
+      _showMessage('Une équipe ne peut pas dépasser 11 joueurs.');
+      return;
+    }
+
     final index = entries.indexWhere(
-      (entry) => entry.participantId == selectedId,
+      (entry) => entry.participantId == selected.participantId,
     );
     if (index == -1) return;
 
     setState(() {
-      final entry = entries[index];
-      // Toucher le maillot de son équipe actuelle retire le joueur. Toucher
-      // l'autre maillot le transfère directement, sans étape intermédiaire.
-      final nextTeam = entry.teamNo == teamNo ? null : teamNo;
-      entries[index] = entry.copyWith(
+      final oldTeam = selected.teamNo;
+      final nextTeam = oldTeam == teamNo ? null : teamNo;
+      entries[index] = selected.copyWith(
         teamNo: nextTeam,
         clearTeam: nextTeam == null,
+        clearSlot: true,
       );
+      if (oldTeam != null) _invalidateTeamLayout(oldTeam);
+      if (nextTeam != null) _invalidateTeamLayout(nextTeam);
       _selectedParticipantId = null;
       _dirty = true;
     });
@@ -125,15 +149,97 @@ class _InternalTeamCompositionViewState
 
   void _moveSelectedToUnassigned() {
     final entries = _entries;
-    final selectedId = _selectedParticipantId;
-    if (!widget.editable || entries == null || selectedId == null) return;
+    final selected = _selectedEntry;
+    if (!widget.editable || entries == null || selected?.teamNo == null) return;
     final index = entries.indexWhere(
-      (entry) => entry.participantId == selectedId,
+      (entry) => entry.participantId == selected!.participantId,
     );
-    if (index == -1 || entries[index].teamNo == null) return;
+    if (index == -1) return;
 
     setState(() {
-      entries[index] = entries[index].copyWith(clearTeam: true);
+      final oldTeam = selected!.teamNo!;
+      entries[index] = selected.copyWith(clearTeam: true, clearSlot: true);
+      _invalidateTeamLayout(oldTeam);
+      _selectedParticipantId = null;
+      _dirty = true;
+    });
+  }
+
+  void _invalidateTeamLayout(int teamNo) {
+    final entries = _entries;
+    if (entries == null) return;
+    for (var index = 0; index < entries.length; index += 1) {
+      if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
+        entries[index] = entries[index].copyWith(clearSlot: true);
+      }
+    }
+    if (teamNo == 1) {
+      _team1FormationCode = null;
+    } else {
+      _team2FormationCode = null;
+    }
+  }
+
+  void _changeFormation(int teamNo, String code) {
+    final entries = _entries;
+    if (!widget.editable || entries == null) return;
+    setState(() {
+      for (var index = 0; index < entries.length; index += 1) {
+        if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
+          entries[index] = entries[index].copyWith(clearSlot: true);
+        }
+      }
+      if (teamNo == 1) {
+        _team1FormationCode = code;
+      } else {
+        _team2FormationCode = code;
+      }
+      _selectedParticipantId = null;
+      _dirty = true;
+    });
+  }
+
+  void _onPitchSlotTap({
+    required int teamNo,
+    required String slotLabel,
+    required InternalCompositionEntry? occupant,
+  }) {
+    if (!widget.editable) return;
+    final entries = _entries;
+    if (entries == null) return;
+    final selected = _selectedEntry;
+
+    if (selected == null) {
+      if (occupant != null) _selectPlayer(occupant);
+      return;
+    }
+    if (selected.teamNo != teamNo) {
+      _showMessage('Affecte d’abord ce joueur à cette équipe.');
+      return;
+    }
+    if (occupant?.participantId == selected.participantId) {
+      setState(() => _selectedParticipantId = null);
+      return;
+    }
+
+    final selectedIndex = entries.indexWhere(
+      (entry) => entry.participantId == selected.participantId,
+    );
+    if (selectedIndex == -1) return;
+    final previousSlot = selected.slotLabel;
+    final occupantIndex = occupant == null
+        ? -1
+        : entries.indexWhere(
+            (entry) => entry.participantId == occupant.participantId,
+          );
+
+    setState(() {
+      entries[selectedIndex] = selected.copyWith(slotLabel: slotLabel);
+      if (occupantIndex >= 0 && occupant != null) {
+        entries[occupantIndex] = previousSlot == null
+            ? occupant.copyWith(clearSlot: true)
+            : occupant.copyWith(slotLabel: previousSlot);
+      }
       _selectedParticipantId = null;
       _dirty = true;
     });
@@ -144,31 +250,107 @@ class _InternalTeamCompositionViewState
     setState(() {
       if (teamNo == 1) {
         if (jersey == _team1Jersey) return;
-        if (jersey == _team2Jersey) {
-          _team2Jersey = _team1Jersey;
-        }
+        if (jersey == _team2Jersey) _team2Jersey = _team1Jersey;
         _team1Jersey = jersey;
       } else {
         if (jersey == _team2Jersey) return;
-        if (jersey == _team1Jersey) {
-          _team1Jersey = _team2Jersey;
-        }
+        if (jersey == _team1Jersey) _team1Jersey = _team2Jersey;
         _team2Jersey = jersey;
       }
       _dirty = true;
     });
   }
 
-  Future<void> _save({
-    String successMessage = 'Composition enregistrée.',
-  }) async {
+  Future<void> _simulate(Map<String, PlayerPositionProfile> profiles) async {
+    final entries = _entries;
+    if (!widget.editable || entries == null || _saving) return;
+    final validation = _validation(entries);
+    if (validation.unassignedCount > 0) {
+      _showMessage('Répartis d’abord tous les joueurs dans les deux équipes.');
+      return;
+    }
+    final team1 = entries.where((entry) => entry.teamNo == 1).toList();
+    final team2 = entries.where((entry) => entry.teamNo == 2).toList();
+    final formation1 = internalFormationByCode(
+      playerCount: team1.length,
+      code: _team1FormationCode,
+    );
+    final formation2 = internalFormationByCode(
+      playerCount: team2.length,
+      code: _team2FormationCode,
+    );
+    if (formation1 == null || formation2 == null) {
+      _showMessage('Choisis la formation de chaque équipe avant de simuler.');
+      return;
+    }
+
+    final random = Random.secure();
+    final simulation1 = simulateInternalTeam(
+      formation: formation1,
+      players: team1,
+      profiles: profiles,
+      random: random,
+    );
+    final simulation2 = simulateInternalTeam(
+      formation: formation2,
+      players: team2,
+      profiles: profiles,
+      random: random,
+    );
+
+    setState(() {
+      for (var index = 0; index < entries.length; index += 1) {
+        final entry = entries[index];
+        final slot = entry.teamNo == 1
+            ? simulation1.slotByParticipantId[entry.participantId]
+            : simulation2.slotByParticipantId[entry.participantId];
+        entries[index] = entry.copyWith(slotLabel: slot, clearSlot: slot == null);
+      }
+      _selectedParticipantId = null;
+      _dirty = true;
+    });
+
+    final randomKeepers = <String>[];
+    if (simulation1.usedRandomGoalkeeper) {
+      randomKeepers.add(
+        team1
+            .firstWhere(
+              (entry) =>
+                  entry.participantId == simulation1.goalkeeperParticipantId,
+            )
+            .displayName,
+      );
+    }
+    if (simulation2.usedRandomGoalkeeper) {
+      randomKeepers.add(
+        team2
+            .firstWhere(
+              (entry) =>
+                  entry.participantId == simulation2.goalkeeperParticipantId,
+            )
+            .displayName,
+      );
+    }
+    if (randomKeepers.isNotEmpty) {
+      _showMessage(
+        'Gardien${randomKeepers.length > 1 ? 's' : ''} tiré${randomKeepers.length > 1 ? 's' : ''} '
+        'au sort : ${randomKeepers.join(' · ')}.',
+      );
+    }
+  }
+
+  Future<void> _save() async {
     final entries = _entries;
     if (entries == null || _saving) return;
-    // La première mise en ligne prévient les joueurs convoqués, et le message
-    // ne se rattrape pas. Remettre les équipes à zéro, lui, n'envoie rien.
+    final validation = _validation(entries);
+    if (!validation.canSave) {
+      _showMessage(validation.message);
+      return;
+    }
+
     if (compositionPublicationWillNotify(
       alreadyPublished: _notificationSent,
-      sheetNamesPlayers: entries.any((entry) => entry.teamNo != null),
+      sheetNamesPlayers: entries.isNotEmpty,
       postMatch: false,
     )) {
       final confirmed = await showDialog<bool>(
@@ -193,21 +375,21 @@ class _InternalTeamCompositionViewState
       );
       if (confirmed != true || !mounted) return;
     }
+
     setState(() => _saving = true);
     try {
-      final saved =
-          await ref.read(internalMatchCompositionRepositoryProvider).save(
-        matchId: widget.matchId,
-        team1Name: _team1Controller.text,
-        team2Name: _team2Controller.text,
-        team1JerseyId: _team1Jersey.id,
-        team2JerseyId: _team2Jersey.id,
-        entries: [
-          for (final entry in entries.where((e) => e.teamNo == null)) entry,
-          for (final entry in entries.where((e) => e.teamNo == 1)) entry,
-          for (final entry in entries.where((e) => e.teamNo == 2)) entry,
-        ],
-      );
+      final saved = await ref
+          .read(internalMatchCompositionRepositoryProvider)
+          .saveVisual(
+            matchId: widget.matchId,
+            team1Name: _team1Controller.text,
+            team2Name: _team2Controller.text,
+            team1JerseyId: _team1Jersey.id,
+            team2JerseyId: _team2Jersey.id,
+            team1FormationCode: _team1FormationCode!,
+            team2FormationCode: _team2FormationCode!,
+            entries: entries,
+          );
       if (!mounted) return;
       setState(() {
         _initFrom(saved);
@@ -216,12 +398,9 @@ class _InternalTeamCompositionViewState
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
       ref.invalidate(_internalPlayerProfilesProvider(widget.matchId));
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(successMessage)));
+      _showMessage('Composition enregistrée.');
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erreur : $error')));
+      if (mounted) _showMessage('Erreur : $error');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -229,15 +408,17 @@ class _InternalTeamCompositionViewState
 
   Future<void> _resetComposition() async {
     final entries = _entries;
-    if (entries == null ||
-        _saving ||
-        !entries.any((entry) => entry.teamNo != null)) {
-      return;
-    }
+    if (entries == null || _saving) return;
+    final hasWork = entries.any(
+          (entry) => entry.teamNo != null || entry.slotLabel != null,
+        ) ||
+        _team1FormationCode != null ||
+        _team2FormationCode != null;
+    if (!hasWork) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Réinitialiser les compositions ?'),
         content: const Text(
           'Tous les joueurs des deux équipes seront remis dans '
@@ -245,11 +426,11 @@ class _InternalTeamCompositionViewState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Réinitialiser'),
           ),
         ],
@@ -257,15 +438,99 @@ class _InternalTeamCompositionViewState
     );
     if (confirmed != true || !mounted) return;
 
-    setState(() {
-      for (var index = 0; index < entries.length; index += 1) {
-        entries[index] = entries[index].copyWith(clearTeam: true);
-      }
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
+    setState(() => _saving = true);
+    try {
+      final saved = await ref
+          .read(internalMatchCompositionRepositoryProvider)
+          .resetVisual(widget.matchId);
+      if (!mounted) return;
+      setState(() {
+        _initFrom(saved);
+        _selectedParticipantId = null;
+        _dirty = false;
+      });
+      ref.invalidate(internalMatchCompositionProvider(widget.matchId));
+      _showMessage('Compositions remises à zéro.');
+    } catch (error) {
+      if (mounted) _showMessage('Erreur : $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 
-    await _save(successMessage: 'Compositions remises à zéro.');
+  _InternalValidation _validation(List<InternalCompositionEntry> entries) {
+    final unassigned = entries.where((entry) => entry.teamNo == null).length;
+    final team1 = entries.where((entry) => entry.teamNo == 1).toList();
+    final team2 = entries.where((entry) => entry.teamNo == 2).toList();
+    if (entries.isEmpty) {
+      return const _InternalValidation(false, 'Aucun joueur convoqué.', 0);
+    }
+    if (unassigned > 0) {
+      return _InternalValidation(
+        false,
+        'Il reste $unassigned joueur${unassigned > 1 ? 's' : ''} non affecté${unassigned > 1 ? 's' : ''}.',
+        unassigned,
+      );
+    }
+    if (team1.isEmpty || team2.isEmpty) {
+      return const _InternalValidation(
+        false,
+        'Les deux équipes doivent contenir au moins un joueur.',
+        0,
+      );
+    }
+    if (team1.length > 11 || team2.length > 11) {
+      return const _InternalValidation(
+        false,
+        'Une équipe ne peut pas dépasser 11 joueurs.',
+        0,
+      );
+    }
+    final formation1 = internalFormationByCode(
+      playerCount: team1.length,
+      code: _team1FormationCode,
+    );
+    final formation2 = internalFormationByCode(
+      playerCount: team2.length,
+      code: _team2FormationCode,
+    );
+    if (formation1 == null || formation2 == null) {
+      return const _InternalValidation(
+        false,
+        'Choisis la formation de chaque équipe.',
+        0,
+      );
+    }
+    final invalid1 = team1.any(
+      (entry) => !formation1.containsSlot(entry.slotLabel),
+    );
+    final invalid2 = team2.any(
+      (entry) => !formation2.containsSlot(entry.slotLabel),
+    );
+    if (invalid1 || invalid2) {
+      return const _InternalValidation(
+        false,
+        'Place tous les joueurs sur le terrain avant d’enregistrer.',
+        0,
+      );
+    }
+    if (_hasDuplicateSlots(team1) || _hasDuplicateSlots(team2)) {
+      return const _InternalValidation(
+        false,
+        'Deux joueurs ne peuvent pas occuper le même poste.',
+        0,
+      );
+    }
+    return const _InternalValidation(true, '', 0);
+  }
+
+  bool _hasDuplicateSlots(List<InternalCompositionEntry> entries) {
+    final slots = entries.map((entry) => entry.slotLabel).whereType<String>();
+    return slots.toSet().length != entries.length;
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -293,21 +558,20 @@ class _InternalTeamCompositionViewState
           );
         }
         _entries ??= List.of(composition.entries);
-        if (!_dirty && _team1Controller.text.isEmpty) {
-          _initFrom(composition);
-        }
+        if (!_dirty && _team1Controller.text.isEmpty) _initFrom(composition);
+
         final entries = _entries!;
-        final unassigned = entries.where((e) => e.teamNo == null).toList();
-        final team1 = entries.where((e) => e.teamNo == 1).toList();
-        final team2 = entries.where((e) => e.teamNo == 2).toList();
-        final hasAssignedPlayers = team1.isNotEmpty || team2.isNotEmpty;
-        final selectedIsAssigned = _selectedParticipantId != null &&
-            entries.any(
-              (entry) =>
-                  entry.participantId == _selectedParticipantId &&
-                  entry.teamNo != null,
-            );
-        final profiles = profilesAsync.valueOrNull;
+        final unassigned = entries.where((entry) => entry.teamNo == null).toList();
+        final team1 = entries.where((entry) => entry.teamNo == 1).toList();
+        final team2 = entries.where((entry) => entry.teamNo == 2).toList();
+        final profiles = profilesAsync.valueOrNull ?? const <String, PlayerPositionProfile>{};
+        final validation = _validation(entries);
+        final legacyReadOnly = !widget.editable &&
+            (composition.team1FormationCode == null ||
+                composition.team2FormationCode == null ||
+                composition.entries.any(
+                  (entry) => entry.teamNo != null && entry.slotLabel == null,
+                ));
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -315,76 +579,128 @@ class _InternalTeamCompositionViewState
             if (unassigned.isNotEmpty || widget.editable) ...[
               Text(
                 'Non affectés (${unassigned.length})',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w400),
+                style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
-              _UnassignedPlayers(
+              _WaitingPool(
+                key: const ValueKey('internal-unassigned-pool'),
                 entries: unassigned,
-                profiles: profiles,
                 editable: widget.editable,
-                assignmentEnabled: selectedIsAssigned,
                 selectedParticipantId: _selectedParticipantId,
-                onTap: _moveSelectedToUnassigned,
+                canReceiveSelected: _selectedEntry?.teamNo != null,
+                onPoolTap: _moveSelectedToUnassigned,
                 onPlayerTap: _selectPlayer,
+                emptyLabel: 'Tous les joueurs sont répartis.',
               ),
               const SizedBox(height: 16),
             ],
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _TeamColumn(
-                    controller: widget.editable ? _team1Controller : null,
-                    name: _team1Controller.text.isEmpty
-                        ? composition.team1Name
-                        : _team1Controller.text,
-                    teamNo: 1,
-                    jersey: _team1Jersey,
-                    unavailableJersey: _team2Jersey,
-                    entries: team1,
-                    editable: widget.editable,
-                    hasSelectedPlayer: _selectedParticipantId != null,
-                    selectedParticipantId: _selectedParticipantId,
-                    onJerseyTap: () => _moveSelectedTo(1),
-                    onJerseySelected: (jersey) => _changeJersey(1, jersey),
-                    onPlayerTap: _selectPlayer,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _TeamColumn(
-                    controller: widget.editable ? _team2Controller : null,
-                    name: _team2Controller.text.isEmpty
-                        ? composition.team2Name
-                        : _team2Controller.text,
-                    teamNo: 2,
-                    jersey: _team2Jersey,
-                    unavailableJersey: _team1Jersey,
-                    entries: team2,
-                    editable: widget.editable,
-                    hasSelectedPlayer: _selectedParticipantId != null,
-                    selectedParticipantId: _selectedParticipantId,
-                    onJerseyTap: () => _moveSelectedTo(2),
-                    onJerseySelected: (jersey) => _changeJersey(2, jersey),
-                    onPlayerTap: _selectPlayer,
-                  ),
-                ),
-              ],
-            ),
+            if (legacyReadOnly)
+              _LegacyInternalTeams(
+                team1Name: composition.team1Name,
+                team2Name: composition.team2Name,
+                team1: team1,
+                team2: team2,
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= 720;
+                  final cards = [
+                    _InternalTeamCard(
+                      name: _team1Controller.text.isEmpty
+                          ? composition.team1Name
+                          : _team1Controller.text,
+                      controller: widget.editable ? _team1Controller : null,
+                      teamNo: 1,
+                      jersey: _team1Jersey,
+                      unavailableJersey: _team2Jersey,
+                      entries: team1,
+                      formationCode: _team1FormationCode,
+                      editable: widget.editable,
+                      selectedParticipantId: _selectedParticipantId,
+                      canReceiveSelected: _selectedEntry != null &&
+                          _selectedEntry!.teamNo != 1,
+                      onAssignSelected: () => _assignSelectedToTeam(1),
+                      onJerseySelected: (jersey) => _changeJersey(1, jersey),
+                      onFormationSelected: (code) => _changeFormation(1, code),
+                      onPlayerTap: _selectPlayer,
+                      onSlotTap: (slot, occupant) => _onPitchSlotTap(
+                        teamNo: 1,
+                        slotLabel: slot.label,
+                        occupant: occupant,
+                      ),
+                    ),
+                    _InternalTeamCard(
+                      name: _team2Controller.text.isEmpty
+                          ? composition.team2Name
+                          : _team2Controller.text,
+                      controller: widget.editable ? _team2Controller : null,
+                      teamNo: 2,
+                      jersey: _team2Jersey,
+                      unavailableJersey: _team1Jersey,
+                      entries: team2,
+                      formationCode: _team2FormationCode,
+                      editable: widget.editable,
+                      selectedParticipantId: _selectedParticipantId,
+                      canReceiveSelected: _selectedEntry != null &&
+                          _selectedEntry!.teamNo != 2,
+                      onAssignSelected: () => _assignSelectedToTeam(2),
+                      onJerseySelected: (jersey) => _changeJersey(2, jersey),
+                      onFormationSelected: (code) => _changeFormation(2, code),
+                      onPlayerTap: _selectPlayer,
+                      onSlotTap: (slot, occupant) => _onPitchSlotTap(
+                        teamNo: 2,
+                        slotLabel: slot.label,
+                        occupant: occupant,
+                      ),
+                    ),
+                  ];
+                  return wide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: cards[0]),
+                            const SizedBox(width: 14),
+                            Expanded(child: cards[1]),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            cards[0],
+                            const SizedBox(height: 16),
+                            cards[1],
+                          ],
+                        );
+                },
+              ),
             if (widget.editable) ...[
               const SizedBox(height: 16),
+              if (!validation.canSave)
+                Text(
+                  validation.message,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                ),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed:
-                    _saving || !hasAssignedPlayers ? null : _resetComposition,
+                key: const ValueKey('simulate-internal-composition'),
+                onPressed: _saving || profilesAsync.isLoading
+                    ? null
+                    : () => _simulate(profiles),
+                icon: const Icon(Icons.auto_fix_high_rounded),
+                label: const Text('Simuler la composition'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _saving ? null : _resetComposition,
                 icon: const Icon(Icons.restart_alt_rounded),
                 label: const Text('Réinitialiser'),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
-                onPressed: _saving ? null : () => _save(),
+                onPressed: _saving || !validation.canSave ? null : _save,
                 icon: _saving
                     ? const SizedBox(
                         width: 16,
@@ -402,171 +718,30 @@ class _InternalTeamCompositionViewState
   }
 }
 
-class _UnassignedPlayers extends StatelessWidget {
-  const _UnassignedPlayers({
-    required this.entries,
-    required this.profiles,
-    required this.editable,
-    required this.assignmentEnabled,
-    required this.selectedParticipantId,
-    required this.onTap,
-    required this.onPlayerTap,
-  });
+class _InternalValidation {
+  const _InternalValidation(this.canSave, this.message, this.unassignedCount);
 
-  final List<InternalCompositionEntry> entries;
-  final Map<String, PlayerPositionProfile>? profiles;
-  final bool editable;
-  final bool assignmentEnabled;
-  final String? selectedParticipantId;
-  final VoidCallback onTap;
-  final ValueChanged<InternalCompositionEntry> onPlayerTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      key: const ValueKey('internal-unassigned-pool'),
-      behavior: HitTestBehavior.opaque,
-      onTap: assignmentEnabled ? onTap : null,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 56),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: .5),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
-        ),
-        child: entries.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.all(2),
-                child: Text(
-                  'Aucun joueur à répartir.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              )
-            : profiles == null
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    child: LinearProgressIndicator(minHeight: 2),
-                  )
-                : _GroupedPlayerChips(
-                    entries: entries,
-                    profiles: profiles!,
-                    editable: editable,
-                    selectedParticipantId: selectedParticipantId,
-                    onPlayerTap: onPlayerTap,
-                  ),
-      ),
-    );
-  }
+  final bool canSave;
+  final String message;
+  final int unassignedCount;
 }
 
-class _GroupedPlayerChips extends StatelessWidget {
-  const _GroupedPlayerChips({
-    required this.entries,
-    required this.profiles,
-    required this.editable,
-    required this.selectedParticipantId,
-    required this.onPlayerTap,
-  });
-
-  final List<InternalCompositionEntry> entries;
-  final Map<String, PlayerPositionProfile> profiles;
-  final bool editable;
-  final String? selectedParticipantId;
-  final ValueChanged<InternalCompositionEntry> onPlayerTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final groups = <InternalPlayerGroup, List<InternalCompositionEntry>>{
-      for (final group in InternalPlayerGroup.values) group: [],
-    };
-    for (final entry in entries) {
-      groups[internalPlayerGroupFor(
-        isGuest: entry.isGuest,
-        isGoalkeeper: entry.isGoalkeeper,
-        profile: profiles[entry.participantId],
-      )]!
-          .add(entry);
-    }
-    for (final players in groups.values) {
-      players.sort(
-        (a, b) =>
-            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
-      );
-    }
-
-    final visibleGroups = InternalPlayerGroup.values
-        .where((group) => groups[group]!.isNotEmpty)
-        .toList(growable: false);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var index = 0; index < visibleGroups.length; index += 1) ...[
-          if (index > 0) const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            decoration: BoxDecoration(
-              color: index.isEven
-                  ? AppTheme.surfaceHero.withValues(alpha: .58)
-                  : AppTheme.background.withValues(alpha: .76),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: index.isEven
-                    ? AppTheme.outline.withValues(alpha: .55)
-                    : AppTheme.outline.withValues(alpha: .22),
-              ),
-            ),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  '${_groupLabel(visibleGroups[index])} '
-                  '(${groups[visibleGroups[index]]!.length})',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelLarge
-                      ?.copyWith(fontWeight: FontWeight.w400),
-                ),
-                for (final entry in groups[visibleGroups[index]]!)
-                  _PlayerChip(
-                    entry: entry,
-                    editable: editable,
-                    selected: selectedParticipantId == entry.participantId,
-                    onTap: () => onPlayerTap(entry),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  String _groupLabel(InternalPlayerGroup group) => switch (group) {
-        InternalPlayerGroup.defenders => 'Défenseurs',
-        InternalPlayerGroup.midfielders => 'Milieux',
-        InternalPlayerGroup.attackers => 'Attaquants',
-        InternalPlayerGroup.other => 'Autre',
-      };
-}
-
-class _TeamColumn extends StatelessWidget {
-  const _TeamColumn({
+class _InternalTeamCard extends StatelessWidget {
+  const _InternalTeamCard({
     required this.name,
     required this.teamNo,
     required this.jersey,
     required this.unavailableJersey,
     required this.entries,
+    required this.formationCode,
     required this.editable,
-    required this.hasSelectedPlayer,
     required this.selectedParticipantId,
-    required this.onJerseyTap,
+    required this.canReceiveSelected,
+    required this.onAssignSelected,
     required this.onJerseySelected,
+    required this.onFormationSelected,
     required this.onPlayerTap,
+    required this.onSlotTap,
     this.controller,
   });
 
@@ -575,226 +750,301 @@ class _TeamColumn extends StatelessWidget {
   final JerseyOption jersey;
   final JerseyOption unavailableJersey;
   final List<InternalCompositionEntry> entries;
+  final String? formationCode;
   final bool editable;
-  final bool hasSelectedPlayer;
   final String? selectedParticipantId;
-  final VoidCallback onJerseyTap;
+  final bool canReceiveSelected;
+  final VoidCallback onAssignSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
+  final ValueChanged<String> onFormationSelected;
   final ValueChanged<InternalCompositionEntry> onPlayerTap;
+  final void Function(dynamic slot, InternalCompositionEntry? occupant) onSlotTap;
   final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
-    final controllerName = controller?.text.trim();
-    final semanticName = controllerName != null && controllerName.isNotEmpty
-        ? controllerName
+    final formations = internalFormationsForPlayerCount(entries.length);
+    final formation = internalFormationByCode(
+      playerCount: entries.length,
+      code: formationCode,
+    );
+    final waiting = entries.where((entry) => entry.slotLabel == null).toList();
+    final semanticName = controller?.text.trim().isNotEmpty == true
+        ? controller!.text.trim()
         : name;
-    final countLabel = entries.isEmpty
-        ? ''
-        : '${entries.length} joueur${entries.length > 1 ? 's' : ''}';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _JerseyAssignmentTile(
-          semanticName: semanticName,
-          jersey: jersey,
-          unavailableJersey: unavailableJersey,
-          playerCountLabel: countLabel,
-          editable: editable,
-          assignmentEnabled: editable && hasSelectedPlayer,
-          onTap: onJerseyTap,
-          onJerseySelected: onJerseySelected,
-        ),
-        const SizedBox(height: 8),
-        if (editable && controller != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: TextField(
-              controller: controller,
-              maxLength: 40,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                hintText: 'Équipe $teamNo',
-                counterText: '',
-                isDense: true,
-              ),
-            ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              semanticName,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w400),
-            ),
-          ),
-        Container(
-          constraints: const BoxConstraints(minHeight: 56),
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppTheme.surface.withValues(alpha: .5),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
-          ),
-          child: entries.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Text(
-                    'Aucun joueur.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                )
-              : Column(
-                  children: [
-                    for (var index = 0; index < entries.length; index += 1)
-                      Padding(
-                        padding: EdgeInsets.only(
-                          bottom: index == entries.length - 1 ? 0 : 6,
-                        ),
-                        child: _PlayerChip(
-                          entry: entries[index],
-                          editable: editable,
-                          expand: true,
-                          selected: selectedParticipantId ==
-                              entries[index].participantId,
-                          onTap: () => onPlayerTap(entries[index]),
-                        ),
-                      ),
-                  ],
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                _JerseyTarget(
+                  semanticName: semanticName,
+                  jersey: jersey,
+                  unavailableJersey: unavailableJersey,
+                  editable: editable,
+                  assignmentEnabled: canReceiveSelected && entries.length < 11,
+                  onAssignSelected: onAssignSelected,
+                  onJerseySelected: onJerseySelected,
                 ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: editable && controller != null
+                      ? TextField(
+                          controller: controller,
+                          maxLength: 40,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            hintText: 'Équipe $teamNo',
+                            counterText: '',
+                            isDense: true,
+                          ),
+                        )
+                      : Text(
+                          semanticName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                ),
+                const SizedBox(width: 6),
+                Text('${entries.length}/11'),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (editable)
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Formation',
+                  isDense: true,
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: formation?.code,
+                    hint: entries.isEmpty
+                        ? const Text('Aucun joueur')
+                        : const Text('Choisir la formation'),
+                    items: [
+                      for (final option in formations)
+                        DropdownMenuItem(
+                          value: option.code,
+                          child: Text(option.code),
+                        ),
+                    ],
+                    onChanged: entries.isEmpty
+                        ? null
+                        : (value) {
+                            if (value != null) onFormationSelected(value);
+                          },
+                  ),
+                ),
+              )
+            else if (formation != null)
+              Text(
+                'Formation ${formation.code}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            const SizedBox(height: 10),
+            if (formation != null)
+              InternalTeamPitch(
+                formation: formation,
+                entries: entries,
+                editable: editable,
+                selectedParticipantId: selectedParticipantId,
+                onSlotTap: onSlotTap,
+              )
+            else
+              Container(
+                height: 220,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppTheme.surface.withValues(alpha: .45),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppTheme.outline.withValues(alpha: .3),
+                  ),
+                ),
+                child: Text(
+                  entries.isEmpty
+                      ? 'Aucun joueur dans cette équipe.'
+                      : 'Choisis une formation pour afficher le terrain.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (waiting.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'À placer (${waiting.length})',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 6),
+              _WaitingPool(
+                entries: waiting,
+                editable: editable,
+                selectedParticipantId: selectedParticipantId,
+                canReceiveSelected: false,
+                onPoolTap: () {},
+                onPlayerTap: onPlayerTap,
+                emptyLabel: '',
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
-class _JerseyAssignmentTile extends StatelessWidget {
-  const _JerseyAssignmentTile({
+class _JerseyTarget extends StatelessWidget {
+  const _JerseyTarget({
     required this.semanticName,
     required this.jersey,
     required this.unavailableJersey,
-    required this.playerCountLabel,
     required this.editable,
     required this.assignmentEnabled,
-    required this.onTap,
+    required this.onAssignSelected,
     required this.onJerseySelected,
   });
 
   final String semanticName;
   final JerseyOption jersey;
   final JerseyOption unavailableJersey;
-  final String playerCountLabel;
   final bool editable;
   final bool assignmentEnabled;
-  final VoidCallback onTap;
+  final VoidCallback onAssignSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: assignmentEnabled,
-      label: [
-        semanticName,
-        if (playerCountLabel.isNotEmpty) playerCountLabel,
-        'maillot ${jersey.label}',
-      ].join(', '),
-      child: Container(
-        height: 96,
-        decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: .5),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: assignmentEnabled
-                ? AppTheme.accent
-                : AppTheme.outline.withValues(alpha: .3),
-            width: assignmentEnabled ? 2 : 1,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned.fill(
+    return SizedBox(
+      width: 72,
+      height: 72,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Semantics(
+              button: assignmentEnabled,
+              label: '$semanticName, maillot ${jersey.label}',
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: assignmentEnabled ? onTap : null,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: assignmentEnabled ? onAssignSelected : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface.withValues(alpha: .55),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: assignmentEnabled
+                            ? AppTheme.accent
+                            : AppTheme.outline.withValues(alpha: .3),
+                        width: assignmentEnabled ? 2 : 1,
+                      ),
+                    ),
                     child: Image.asset(jersey.assetPath, fit: BoxFit.contain),
                   ),
                 ),
               ),
             ),
-            if (playerCountLabel.isNotEmpty)
-              Positioned(
-                left: 7,
-                bottom: 7,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface.withValues(alpha: .92),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppTheme.outline.withValues(alpha: .35),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 3,
-                    ),
-                    child: Text(
-                      playerCountLabel,
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(fontWeight: FontWeight.w400),
-                    ),
-                  ),
-                ),
-              ),
-            if (editable)
-              Positioned(
-                top: 2,
-                right: 2,
-                child: PopupMenuButton<JerseyOption>(
-                  tooltip: 'Choisir le maillot',
-                  initialValue: jersey,
-                  onSelected: onJerseySelected,
-                  itemBuilder: (context) => [
-                    for (final option in JerseyOption.values)
-                      PopupMenuItem<JerseyOption>(
-                        value: option,
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 34,
-                              height: 34,
-                              child: Image.asset(
-                                option.assetPath,
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              option == unavailableJersey
-                                  ? '${option.label} · échanger'
-                                  : option.label,
-                            ),
-                          ],
-                        ),
+          ),
+          if (editable)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: PopupMenuButton<JerseyOption>(
+                tooltip: 'Choisir le maillot',
+                initialValue: jersey,
+                onSelected: onJerseySelected,
+                itemBuilder: (context) => [
+                  for (final option in JerseyOption.values)
+                    PopupMenuItem(
+                      value: option,
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: Image.asset(option.assetPath),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            option == unavailableJersey
+                                ? '${option.label} · échanger'
+                                : option.label,
+                          ),
+                        ],
                       ),
-                  ],
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 20),
-                ),
+                    ),
+                ],
+                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
               ),
-          ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WaitingPool extends StatelessWidget {
+  const _WaitingPool({
+    super.key,
+    required this.entries,
+    required this.editable,
+    required this.selectedParticipantId,
+    required this.canReceiveSelected,
+    required this.onPoolTap,
+    required this.onPlayerTap,
+    required this.emptyLabel,
+  });
+
+  final List<InternalCompositionEntry> entries;
+  final bool editable;
+  final String? selectedParticipantId;
+  final bool canReceiveSelected;
+  final VoidCallback onPoolTap;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+  final String emptyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: canReceiveSelected ? onPoolTap : null,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 58),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppTheme.surface.withValues(alpha: .5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: canReceiveSelected
+                ? AppTheme.accent
+                : AppTheme.outline.withValues(alpha: .3),
+            width: canReceiveSelected ? 2 : 1,
+          ),
         ),
+        child: entries.isEmpty
+            ? Text(emptyLabel, style: Theme.of(context).textTheme.bodySmall)
+            : Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in entries)
+                    _PlayerChip(
+                      entry: entry,
+                      editable: editable,
+                      selected:
+                          selectedParticipantId == entry.participantId,
+                      onTap: () => onPlayerTap(entry),
+                    ),
+                ],
+              ),
       ),
     );
   }
@@ -806,20 +1056,17 @@ class _PlayerChip extends StatelessWidget {
     required this.editable,
     required this.selected,
     required this.onTap,
-    this.expand = false,
   });
 
   final InternalCompositionEntry entry;
   final bool editable;
   final bool selected;
   final VoidCallback onTap;
-  final bool expand;
 
   @override
   Widget build(BuildContext context) {
     final chip = AnimatedContainer(
       duration: const Duration(milliseconds: 120),
-      width: expand ? double.infinity : null,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: selected
@@ -834,7 +1081,7 @@ class _PlayerChip extends StatelessWidget {
         ),
       ),
       child: Row(
-        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
           PlayerAvatar(
             photoUrl: entry.photoUrl,
@@ -844,14 +1091,7 @@ class _PlayerChip extends StatelessWidget {
             size: 28,
           ),
           const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              entry.displayName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w400),
-            ),
-          ),
+          Text(entry.displayName),
         ],
       ),
     );
@@ -869,12 +1109,62 @@ class _PlayerChip extends StatelessWidget {
   }
 }
 
+class _LegacyInternalTeams extends StatelessWidget {
+  const _LegacyInternalTeams({
+    required this.team1Name,
+    required this.team2Name,
+    required this.team1,
+    required this.team2,
+  });
+
+  final String team1Name;
+  final String team2Name;
+  final List<InternalCompositionEntry> team1;
+  final List<InternalCompositionEntry> team2;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget team(String name, List<InternalCompositionEntry> entries) => Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                for (final entry in entries)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: _PlayerChip(
+                      entry: entry,
+                      editable: false,
+                      selected: false,
+                      onTap: () {},
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: team(team1Name, team1)),
+        const SizedBox(width: 10),
+        Expanded(child: team(team2Name, team2)),
+      ],
+    );
+  }
+}
+
 /// Profils indexés par participant du match. On réutilise exactement la même
-/// identité canonique, le même historique et la même fusion que « Simuler la
-/// compo » afin d'éviter deux logiques de poste qui dériveraient avec le temps.
-///
-/// Seul l'effectif est concerné : un invité garde sa propre catégorie, quel
-/// que soit son passé au club, donc chercher son poste ne servirait à rien.
+/// identité canonique et le même historique que la simulation du onze.
 final _internalPlayerProfilesProvider = FutureProvider.autoDispose
     .family<Map<String, PlayerPositionProfile>, String>((ref, matchId) async {
   final composition = await ref.watch(
