@@ -460,7 +460,10 @@ class _InternalTeamCompositionViewState
               displayName: entry.displayName,
               benchCount: benchCounts[entry.participantId] ?? 0,
               profile: profiles[entry.participantId],
-              isGuest: entry.isGuest,
+              // Dans un match entre nous, un invité participe au même
+              // onze que les autres joueurs. Le moteur classique réserve
+              // isGuest aux joueurs non sélectionnables du match officiel.
+              isGuest: false,
               isGoalkeeper: entry.isGoalkeeper ||
                   entry.participantId == randomGoalkeeperId,
             ),
