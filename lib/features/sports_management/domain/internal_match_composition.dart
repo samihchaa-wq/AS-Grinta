@@ -132,8 +132,9 @@ class InternalMatchComposition {
     bool teamIsComplete(List<InternalCompositionEntry> team) {
       if (team.isEmpty) return false;
       final requiredStarters = team.length > 11 ? 11 : team.length;
-      final starters =
-          team.where((entry) => entry.slotLabel != null).toList(growable: false);
+      final starters = team
+          .where((entry) => entry.slotLabel != null)
+          .toList(growable: false);
       if (starters.length != requiredStarters) return false;
       final slots = starters.map((entry) => entry.slotLabel!).toList();
       return slots.toSet().length == slots.length;
