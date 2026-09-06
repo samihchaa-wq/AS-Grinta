@@ -234,30 +234,6 @@ class _InternalTeamCompositionViewState
     });
   }
 
-  MatchCompositionEntry _asClassicEntry(InternalCompositionEntry entry) {
-    return MatchCompositionEntry(
-      participantId: entry.participantId,
-      seasonPlayerId: entry.seasonPlayerId ?? '',
-      guestPlayerId: entry.guestPlayerId,
-      displayName: entry.displayName,
-      lastInitial: entry.lastInitial,
-      isGuest: entry.isGuest,
-      isGoalkeeper: entry.isGoalkeeper,
-      zone: MatchCompositionZone.fromWire(entry.zone),
-      x: entry.x,
-      y: entry.y,
-      slotLabel: entry.slotLabel,
-      photoUrl: entry.photoUrl,
-      sortOrder: entry.sortOrder,
-      availabilityStatus: 'available',
-      convocationStatus: 'convoked',
-      selectionStatus: switch (entry.zone) {
-        'field' => 'starter',
-        'bench' => 'substitute',
-        _ => 'undecided',
-      },
-    );
-  }
 
   void _dropOnClassicSlot(
     int teamNo,
