@@ -22,7 +22,8 @@ void main() {
       final formations = internalFormationsForPlayerCount(14);
 
       expect(formations, isNotEmpty);
-      expect(formations.every((formation) => formation.playerCount == 11), isTrue);
+      expect(
+          formations.every((formation) => formation.playerCount == 11), isTrue);
       expect(
         internalFormationByCode(playerCount: 14, code: '4-2-3-1')?.playerCount,
         11,
