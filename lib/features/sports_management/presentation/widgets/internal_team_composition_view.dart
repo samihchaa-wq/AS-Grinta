@@ -325,8 +325,9 @@ class _InternalTeamCompositionViewState
       _showMessage('Le banc apparaît seulement au-delà de 11 joueurs.');
       return;
     }
-    final benchCount =
-        entries.where((entry) => entry.teamNo == teamNo && entry.zone == 'bench').length;
+    final benchCount = entries
+        .where((entry) => entry.teamNo == teamNo && entry.zone == 'bench')
+        .length;
     setState(() {
       entries[index] = entries[index].copyWith(
         zone: 'bench',
