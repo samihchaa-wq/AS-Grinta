@@ -1504,6 +1504,77 @@ class _JerseyTarget extends StatelessWidget {
   }
 }
 
+class _GroupedUnassignedPools extends StatelessWidget {
+  const _GroupedUnassignedPools({
+    required this.defenders,
+    required this.midfielders,
+    required this.attackers,
+    required this.other,
+    required this.editable,
+    required this.selectedParticipantId,
+    required this.canReceiveSelected,
+    required this.onPoolTap,
+    required this.onPlayerTap,
+  });
+
+  final List<InternalCompositionEntry> defenders;
+  final List<InternalCompositionEntry> midfielders;
+  final List<InternalCompositionEntry> attackers;
+  final List<InternalCompositionEntry> other;
+  final bool editable;
+  final String? selectedParticipantId;
+  final bool canReceiveSelected;
+  final VoidCallback onPoolTap;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <(String, List<InternalCompositionEntry>)>[
+      ('Défenseurs', defenders),
+      ('Milieux', midfielders),
+      ('Attaquants', attackers),
+      ('Autres', other),
+    ];
+
+    if (groups.every((group) => group.$2.isEmpty)) {
+      return _WaitingPool(
+        key: const ValueKey('internal-unassigned-pool'),
+        entries: const [],
+        editable: editable,
+        selectedParticipantId: selectedParticipantId,
+        canReceiveSelected: canReceiveSelected,
+        onPoolTap: onPoolTap,
+        onPlayerTap: onPlayerTap,
+        emptyLabel: 'Tous les joueurs sont répartis.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final group in groups)
+          if (group.$2.isNotEmpty) ...[
+            Text(
+              '${group.$1} (${group.$2.length})',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 6),
+            _WaitingPool(
+              entries: group.$2,
+              editable: editable,
+              selectedParticipantId: selectedParticipantId,
+              canReceiveSelected: canReceiveSelected,
+              onPoolTap: onPoolTap,
+              onPlayerTap: onPlayerTap,
+              emptyLabel: '',
+            ),
+            const SizedBox(height: 10),
+          ],
+      ],
+    );
+  }
+}
+
 class _WaitingPool extends StatelessWidget {
   const _WaitingPool({
     super.key,
