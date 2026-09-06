@@ -11,10 +11,12 @@ class InternalTeamSimulation {
     required this.slotByParticipantId,
     required this.goalkeeperParticipantId,
     required this.usedRandomGoalkeeper,
+    required this.benchParticipantIds,
   });
 
   final Map<String, String> slotByParticipantId;
   final String goalkeeperParticipantId;
+  final List<String> benchParticipantIds;
 
   /// Vrai seulement quand l'équipe ne contenait aucun gardien déclaré.
   final bool usedRandomGoalkeeper;
@@ -22,9 +24,9 @@ class InternalTeamSimulation {
 
 /// Place tous les joueurs d'une équipe sur le dispositif choisi.
 ///
-/// Contrairement à la simulation d'un match classique, aucun joueur ne peut
-/// rester sur le banc : le nombre de joueurs et le nombre d'emplacements sont
-/// strictement identiques.
+/// La simulation utilise exactement le même moteur de placement que les
+/// compositions classiques. Jusqu'à 11 joueurs sont placés sur le terrain ;
+/// au-delà, le moteur renvoie naturellement le surplus sur le banc.
 ///
 /// Le hasard n'intervient que lorsque personne n'est gardien déclaré. [random]
 /// est injecté pour rendre cette règle testable ; l'UI utilise [Random.secure]
@@ -39,17 +41,11 @@ InternalTeamSimulation simulateInternalTeam({
   if (players.isEmpty) {
     throw ArgumentError.value(players, 'players', 'L’équipe est vide.');
   }
-  if (players.length > 11) {
-    throw ArgumentError.value(
-      players.length,
-      'players',
-      'Une équipe ne peut pas dépasser 11 joueurs.',
-    );
-  }
-  if (formation.playerCount != players.length) {
+  final onFieldCount = players.length > 11 ? 11 : players.length;
+  if (formation.playerCount != onFieldCount) {
     throw ArgumentError(
-      'Le dispositif ${formation.code} attend ${formation.playerCount} joueurs, '
-      'pas ${players.length}.',
+      'Le dispositif ${formation.code} attend ${formation.playerCount} titulaires, '
+      'pas $onFieldCount.',
     );
   }
 
@@ -67,8 +63,8 @@ InternalTeamSimulation simulateInternalTeam({
         displayName: player.displayName,
         benchCount: 0,
         profile: profiles[player.participantId],
-        // Pour un match entre nous, un invité est un joueur à part entière : il
-        // doit lui aussi être placé sur le terrain.
+        // Pour un match entre nous, un invité est un joueur à part entière :
+        // il participe au même choix titulaires/remplaçants que les autres.
         isGuest: false,
         // Un seul gardien est réservé aux buts. Un éventuel second gardien
         // déclaré peut ainsi occuper un poste de champ au lieu de finir au banc.
@@ -80,15 +76,18 @@ InternalTeamSimulation simulateInternalTeam({
     slots: formation.slots,
     candidates: candidates,
   );
-  if (result.bench.isNotEmpty || result.emptySlots.isNotEmpty) {
+  if (result.emptySlots.isNotEmpty) {
     throw StateError(
-      'La simulation interne doit placer chaque joueur et remplir chaque poste.',
+      'La simulation interne doit remplir chaque poste du dispositif.',
     );
   }
 
   return InternalTeamSimulation(
     goalkeeperParticipantId: goalkeeper.participantId,
     usedRandomGoalkeeper: usedRandomGoalkeeper,
+    benchParticipantIds: [
+      for (final candidate in result.bench) candidate.participantId,
+    ],
     slotByParticipantId: {
       for (final placement in result.placements)
         placement.candidate.participantId: placement.slot.label,
