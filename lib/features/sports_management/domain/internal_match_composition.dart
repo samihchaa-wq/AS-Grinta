@@ -59,6 +59,10 @@ class InternalCompositionEntry {
     bool clearSlot = false,
   }) {
     final nextTeam = clearTeam ? null : (teamNo ?? this.teamNo);
+    final nextZone = clearTeam
+        ? 'available'
+        : (clearPlacement ? 'available' : (zone ?? this.zone));
+    final keepsFieldCoordinates = nextZone == 'field';
     return InternalCompositionEntry(
       participantId: participantId,
       seasonPlayerId: seasonPlayerId,
@@ -69,14 +73,12 @@ class InternalCompositionEntry {
       isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
       teamNo: nextTeam,
-      zone: clearTeam
-          ? 'available'
-          : (clearPlacement ? 'available' : (zone ?? this.zone)),
-      x: clearTeam || clearPlacement ? null : (x ?? this.x),
-      y: clearTeam || clearPlacement ? null : (y ?? this.y),
-      slotLabel: clearTeam || clearPlacement || clearSlot
-          ? null
-          : (slotLabel ?? this.slotLabel),
+      zone: nextZone,
+      x: keepsFieldCoordinates ? (x ?? this.x) : null,
+      y: keepsFieldCoordinates ? (y ?? this.y) : null,
+      slotLabel: keepsFieldCoordinates && !clearSlot
+          ? (slotLabel ?? this.slotLabel)
+          : null,
       sortOrder: sortOrder ?? this.sortOrder,
     );
   }
