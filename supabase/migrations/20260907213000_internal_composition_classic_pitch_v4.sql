@@ -7,11 +7,11 @@ alter table public.match_internal_composition_entries
   add column if not exists x numeric,
   add column if not exists y numeric;
 
+-- Les données V3 ne stockaient pas x/y. On ne les déclare donc jamais
+-- artificiellement "field" : elles restent affectées à leur équipe sur papier,
+-- mais doivent être recomposées explicitement sur le nouveau terrain classique.
 update public.match_internal_composition_entries
-set zone = case
-  when slot_label is not null then 'field'
-  else 'available'
-end
+set zone = 'available'
 where zone is null;
 
 alter table public.match_internal_composition_entries
