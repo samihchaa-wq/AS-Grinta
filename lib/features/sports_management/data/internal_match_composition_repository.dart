@@ -40,7 +40,29 @@ class InternalMatchCompositionRepository {
     return _parseSaved(response);
   }
 
-  /// Sauvegarde stricte de la nouvelle composition visuelle.
+  Future<InternalMatchComposition> savePaperState({
+    required String matchId,
+    required String team1Name,
+    required String team2Name,
+    required List<InternalCompositionEntry> entries,
+    String team1JerseyId = 'orange',
+    String team2JerseyId = 'blue',
+    String? team1FormationCode,
+    String? team2FormationCode,
+  }) {
+    return _saveV4(
+      matchId: matchId,
+      team1Name: team1Name,
+      team2Name: team2Name,
+      team1JerseyId: team1JerseyId,
+      team2JerseyId: team2JerseyId,
+      team1FormationCode: team1FormationCode,
+      team2FormationCode: team2FormationCode,
+      entries: entries,
+      requireVisualComplete: false,
+    );
+  }
+
   Future<InternalMatchComposition> saveVisual({
     required String matchId,
     required String team1Name,
@@ -50,9 +72,33 @@ class InternalMatchCompositionRepository {
     required List<InternalCompositionEntry> entries,
     String team1JerseyId = 'orange',
     String team2JerseyId = 'blue',
+  }) {
+    return _saveV4(
+      matchId: matchId,
+      team1Name: team1Name,
+      team2Name: team2Name,
+      team1JerseyId: team1JerseyId,
+      team2JerseyId: team2JerseyId,
+      team1FormationCode: team1FormationCode,
+      team2FormationCode: team2FormationCode,
+      entries: entries,
+      requireVisualComplete: true,
+    );
+  }
+
+  Future<InternalMatchComposition> _saveV4({
+    required String matchId,
+    required String team1Name,
+    required String team2Name,
+    required String team1JerseyId,
+    required String team2JerseyId,
+    required String? team1FormationCode,
+    required String? team2FormationCode,
+    required List<InternalCompositionEntry> entries,
+    required bool requireVisualComplete,
   }) async {
     final response = await _client.rpc(
-      'admin_save_internal_composition_v3',
+      'admin_save_internal_composition_v4',
       params: {
         'p_match_id': matchId,
         'p_team1_name': team1Name,
@@ -62,6 +108,7 @@ class InternalMatchCompositionRepository {
         'p_team1_formation': team1FormationCode,
         'p_team2_formation': team2FormationCode,
         'p_entries': [for (final entry in entries) entry.toRpcJson()],
+        'p_require_visual_complete': requireVisualComplete,
       },
     );
     return _parseSaved(response);
