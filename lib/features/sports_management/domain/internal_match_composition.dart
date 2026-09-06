@@ -166,7 +166,12 @@ class InternalMatchComposition {
       final requiredStarters = team.length > 11 ? 11 : team.length;
       final starters =
           team.where((entry) => entry.zone == 'field').toList(growable: false);
-      if (starters.length != requiredStarters) return false;
+      final bench = team.where((entry) => entry.zone == 'bench').length;
+      if (starters.length != requiredStarters ||
+          bench != team.length - requiredStarters ||
+          starters.any((entry) => !entry.isPlaced)) {
+        return false;
+      }
       final slots = starters.map((entry) => entry.slotLabel!).toList();
       return slots.toSet().length == slots.length;
     }
