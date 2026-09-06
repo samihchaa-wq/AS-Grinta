@@ -2,9 +2,12 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_identity.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -55,6 +58,7 @@ class _InternalTeamCompositionViewState
   @override
   void initState() {
     super.initState();
+    if (!widget.editable) _viewMode = 1;
     _team1Controller.addListener(_handleTeamNameChanged);
     _team2Controller.addListener(_handleTeamNameChanged);
   }
@@ -327,34 +331,6 @@ class _InternalTeamCompositionViewState
     final entries = _entries;
     if (entries == null || _saving) return;
 
-    if (compositionPublicationWillNotify(
-      alreadyPublished: _notificationSent,
-      sheetNamesPlayers: entries.any((entry) => entry.teamNo != null),
-      postMatch: false,
-    )) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Publier la composition ?'),
-          content: const Text(
-            'Publier la composition enverra une notification à tous les '
-            'joueurs convoqués.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Valider'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-    }
-
     setState(() => _saving = true);
     try {
       final saved = await ref
@@ -595,6 +571,7 @@ class _InternalTeamCompositionViewState
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
+    final positionArchiveAsync = ref.watch(playerPositionArchiveProvider);
 
     return async.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -619,6 +596,33 @@ class _InternalTeamCompositionViewState
         final entries = _entries!;
         final unassigned =
             entries.where((entry) => entry.teamNo == null).toList();
+        final profilesByName = <String, dynamic>{
+          for (final profile
+              in (positionArchiveAsync.valueOrNull ?? const {}).values)
+            normalizePlayerName(profile.displayName): profile,
+        };
+        List<InternalCompositionEntry> unassignedGroup(
+          InternalPlayerGroup group,
+        ) =>
+            unassigned
+                .where(
+                  (entry) =>
+                      internalPlayerGroupFor(
+                        isGuest: entry.isGuest,
+                        isGoalkeeper: entry.isGoalkeeper,
+                        profile: profilesByName[
+                            normalizePlayerName(entry.displayName)],
+                      ) ==
+                      group,
+                )
+                .toList(growable: false);
+        final unassignedDefenders =
+            unassignedGroup(InternalPlayerGroup.defenders);
+        final unassignedMidfielders =
+            unassignedGroup(InternalPlayerGroup.midfielders);
+        final unassignedAttackers =
+            unassignedGroup(InternalPlayerGroup.attackers);
+        final unassignedOther = unassignedGroup(InternalPlayerGroup.other);
         final team1 = entries.where((entry) => entry.teamNo == 1).toList();
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
         final benchCounts =
@@ -661,29 +665,31 @@ class _InternalTeamCompositionViewState
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment<int>(
-                  value: 0,
-                  label: Text('Sur papier'),
-                  icon: Icon(Icons.list_alt_rounded),
-                ),
-                ButtonSegment<int>(
-                  value: 1,
-                  label: Text('Sur terrain'),
-                  icon: Icon(Icons.sports_soccer_rounded),
-                ),
-              ],
-              selected: {_viewMode},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _viewMode = selection.first;
-                  _selectedParticipantId = null;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
+            if (widget.editable) ...[
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment<int>(
+                    value: 0,
+                    label: Text('Sur papier'),
+                    icon: Icon(Icons.list_alt_rounded),
+                  ),
+                  ButtonSegment<int>(
+                    value: 1,
+                    label: Text('Sur terrain'),
+                    icon: Icon(Icons.sports_soccer_rounded),
+                  ),
+                ],
+                selected: {_viewMode},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _viewMode = selection.first;
+                    _selectedParticipantId = null;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_viewMode == 0) ...[
               if (unassigned.isNotEmpty || widget.editable) ...[
                 Text(
@@ -691,15 +697,16 @@ class _InternalTeamCompositionViewState
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
-                _WaitingPool(
-                  key: const ValueKey('internal-unassigned-pool'),
-                  entries: unassigned,
+                _GroupedUnassignedPools(
+                  defenders: unassignedDefenders,
+                  midfielders: unassignedMidfielders,
+                  attackers: unassignedAttackers,
+                  other: unassignedOther,
                   editable: widget.editable,
                   selectedParticipantId: _selectedParticipantId,
                   canReceiveSelected: _selectedEntry?.teamNo != null,
                   onPoolTap: _moveSelectedToUnassigned,
                   onPlayerTap: _selectPlayer,
-                  emptyLabel: 'Tous les joueurs sont répartis.',
                 ),
                 const SizedBox(height: 16),
               ],
