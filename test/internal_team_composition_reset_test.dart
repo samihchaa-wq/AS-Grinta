@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_composition_view.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,8 @@ void main() {
             internalMatchCompositionRepositoryProvider.overrideWithValue(
               repository,
             ),
+            playerPositionArchiveProvider.overrideWith((ref) async => const {}),
+            playerPositionArchiveProvider.overrideWith((ref) async => const {}),
           ],
           child: MaterialApp(
             theme: AppTheme.dark,
@@ -113,6 +116,43 @@ void main() {
       expect(repository.savedTeam2JerseyId, 'blue');
       expect(find.text('Non affectés (3)'), findsOneWidget);
       expect(find.text('Compositions remises à zéro.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'un joueur voit seulement le terrain et jamais le papier',
+    (tester) async {
+      final repository = _FakeInternalMatchCompositionRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            internalMatchCompositionRepositoryProvider.overrideWithValue(
+              repository,
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: InternalTeamCompositionView(
+                  matchId: _matchId,
+                  editable: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sur papier'), findsNothing);
+      expect(find.text('Sur terrain'), findsNothing);
+      expect(
+        find.text('Les compositions ne sont pas encore en ligne.'),
+        findsOneWidget,
+      );
+      expect(find.text('Non affectés (1)'), findsNothing);
     },
   );
 }
