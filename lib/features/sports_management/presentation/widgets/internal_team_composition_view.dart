@@ -296,6 +296,35 @@ class _InternalTeamCompositionViewState
       _showMessage('Répartis d’abord tous les joueurs dans les deux équipes.');
       return;
     }
+
+    SimulatedComposition runForTeam(
+      List<InternalCompositionEntry> team,
+      InternalTeamFormation formation,
+    ) {
+      final declaredGoalkeepers =
+          team.where((entry) => entry.isGoalkeeper && !entry.isGuest).toList();
+      String? randomGoalkeeperId;
+      if (declaredGoalkeepers.isEmpty && team.isNotEmpty) {
+        randomGoalkeeperId =
+            team[Random.secure().nextInt(team.length)].participantId;
+      }
+      return simulateComposition(
+        slots: formation.slots,
+        candidates: [
+          for (final entry in team)
+            SimulationCandidate(
+              participantId: entry.participantId,
+              displayName: entry.displayName,
+              benchCount: benchCounts[entry.participantId] ?? 0,
+              profile: profiles[entry.participantId],
+              isGuest: entry.isGuest,
+              isGoalkeeper:
+                  entry.isGoalkeeper || entry.participantId == randomGoalkeeperId,
+            ),
+        ],
+      );
+    }
+
     final team1 = entries.where((entry) => entry.teamNo == 1).toList();
     final team2 = entries.where((entry) => entry.teamNo == 2).toList();
     final formation1 = internalFormationByCode(
@@ -311,62 +340,42 @@ class _InternalTeamCompositionViewState
       return;
     }
 
-    final random = Random.secure();
-    final simulation1 = simulateInternalTeam(
-      formation: formation1,
-      players: team1,
-      profiles: profiles,
-      benchCounts: benchCounts,
-      random: random,
-    );
-    final simulation2 = simulateInternalTeam(
-      formation: formation2,
-      players: team2,
-      profiles: profiles,
-      benchCounts: benchCounts,
-      random: random,
-    );
+    final simulation1 = runForTeam(team1, formation1);
+    final simulation2 = runForTeam(team2, formation2);
+    final placed = <String, FootballFormationSlot>{
+      for (final placement in simulation1.placements)
+        placement.candidate.participantId: placement.slot,
+      for (final placement in simulation2.placements)
+        placement.candidate.participantId: placement.slot,
+    };
+    final bench = <String, int>{
+      for (var i = 0; i < simulation1.bench.length; i += 1)
+        simulation1.bench[i].participantId: i,
+      for (var i = 0; i < simulation2.bench.length; i += 1)
+        simulation2.bench[i].participantId: i,
+    };
 
     setState(() {
       for (var index = 0; index < entries.length; index += 1) {
         final entry = entries[index];
-        final slot = entry.teamNo == 1
-            ? simulation1.slotByParticipantId[entry.participantId]
-            : simulation2.slotByParticipantId[entry.participantId];
-        entries[index] =
-            entry.copyWith(slotLabel: slot, clearSlot: slot == null);
+        if (placed[entry.participantId] case final slot?) {
+          entries[index] = entry.copyWith(
+            zone: 'field',
+            x: slot.position.dx,
+            y: slot.position.dy,
+            slotLabel: slot.label,
+          );
+        } else if (bench[entry.participantId] case final order?) {
+          entries[index] = entry.copyWith(
+            zone: 'bench',
+            sortOrder: order,
+            clearSlot: true,
+          );
+        }
       }
       _selectedParticipantId = null;
       _dirty = true;
     });
-
-    final randomKeepers = <String>[];
-    if (simulation1.usedRandomGoalkeeper) {
-      randomKeepers.add(
-        team1
-            .firstWhere(
-              (entry) =>
-                  entry.participantId == simulation1.goalkeeperParticipantId,
-            )
-            .displayName,
-      );
-    }
-    if (simulation2.usedRandomGoalkeeper) {
-      randomKeepers.add(
-        team2
-            .firstWhere(
-              (entry) =>
-                  entry.participantId == simulation2.goalkeeperParticipantId,
-            )
-            .displayName,
-      );
-    }
-    if (randomKeepers.isNotEmpty) {
-      _showMessage(
-        'Gardien${randomKeepers.length > 1 ? 's' : ''} tiré${randomKeepers.length > 1 ? 's' : ''} '
-        'au sort : ${randomKeepers.join(' · ')}.',
-      );
-    }
   }
 
   Future<void> _save() async {
