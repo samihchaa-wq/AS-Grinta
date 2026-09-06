@@ -29,8 +29,11 @@ class InternalTeamFormation {
     for (var lineIndex = 0; lineIndex < outfieldLines.length; lineIndex += 1) {
       final count = outfieldLines[lineIndex];
       final y = _lineY(lineIndex, outfieldLines.length);
-      final role = _lineRole(lineIndex, outfieldLines.length);
-      final labels = _labelsFor(role, count);
+      final labels = _labelsForLine(
+        lineIndex: lineIndex,
+        lineCount: outfieldLines.length,
+        count: count,
+      );
       for (var index = 0; index < count; index += 1) {
         result.add(
           FootballFormationSlot(
@@ -45,15 +48,6 @@ class InternalTeamFormation {
 
   bool containsSlot(String? label) =>
       label != null && slots.any((slot) => slot.label == label);
-}
-
-enum _InternalLineRole { defense, midfield, attack }
-
-_InternalLineRole _lineRole(int index, int lineCount) {
-  if (lineCount == 1) return _InternalLineRole.midfield;
-  if (index == 0) return _InternalLineRole.defense;
-  if (index == lineCount - 1) return _InternalLineRole.attack;
-  return _InternalLineRole.midfield;
 }
 
 double _lineY(int index, int lineCount) {
@@ -71,35 +65,66 @@ double _lineX(int index, int count) {
   return left + (right - left) * index / (count - 1);
 }
 
-List<String> _labelsFor(_InternalLineRole role, int count) {
-  final labels = switch (role) {
-    _InternalLineRole.defense => switch (count) {
-        1 => const ['DC'],
-        2 => const ['DCG', 'DCD'],
-        3 => const ['DCG', 'DC', 'DCD'],
-        4 => const ['DG', 'DCG', 'DCD', 'DD'],
-        5 => const ['DG', 'DCG', 'DC', 'DCD', 'DD'],
-        _ => List.generate(count, (index) => 'D${index + 1}'),
-      },
-    _InternalLineRole.midfield => switch (count) {
-        1 => const ['MC'],
-        2 => const ['MCG', 'MCD'],
-        3 => const ['MCG', 'MC', 'MCD'],
-        4 => const ['MG', 'MCG', 'MCD', 'MD'],
-        5 => const ['MG', 'MCG', 'MC', 'MCD', 'MD'],
-        _ => List.generate(count, (index) => 'M${index + 1}'),
-      },
-    _InternalLineRole.attack => switch (count) {
-        1 => const ['BU'],
-        2 => const ['BUG', 'BUD'],
-        3 => const ['AG', 'BU', 'AD'],
-        4 => const ['AG', 'BUG', 'BUD', 'AD'],
-        5 => const ['AG', 'AIG', 'BU', 'AID', 'AD'],
-        _ => List.generate(count, (index) => 'A${index + 1}'),
-      },
-  };
-  return labels;
+List<String> _labelsForLine({
+  required int lineIndex,
+  required int lineCount,
+  required int count,
+}) {
+  if (lineCount == 1) return _midfieldLabels(count);
+  if (lineIndex == 0) return _defenseLabels(count);
+  if (lineIndex == lineCount - 1) return _attackLabels(count);
+
+  // Dans un dispositif à quatre lignes (ex. 4-2-3-1), les deux lignes du
+  // milieu doivent avoir des identités différentes. Sinon MCG/MCD pourrait
+  // exister deux fois et le serveur ne pourrait pas garantir l'unicité des
+  // emplacements.
+  if (lineCount >= 4 && lineIndex == 1) return _defensiveMidfieldLabels(count);
+  if (lineCount >= 4 && lineIndex == lineCount - 2) {
+    return _attackingMidfieldLabels(count);
+  }
+  return _midfieldLabels(count);
 }
+
+List<String> _defenseLabels(int count) => switch (count) {
+      1 => const ['DC'],
+      2 => const ['DCG', 'DCD'],
+      3 => const ['DCG', 'DC', 'DCD'],
+      4 => const ['DG', 'DCG', 'DCD', 'DD'],
+      5 => const ['DG', 'DCG', 'DC', 'DCD', 'DD'],
+      _ => List.generate(count, (index) => 'D${index + 1}'),
+    };
+
+List<String> _midfieldLabels(int count) => switch (count) {
+      1 => const ['MC'],
+      2 => const ['MCG', 'MCD'],
+      3 => const ['MCG', 'MC', 'MCD'],
+      4 => const ['MG', 'MCG', 'MCD', 'MD'],
+      5 => const ['MG', 'MCG', 'MC', 'MCD', 'MD'],
+      _ => List.generate(count, (index) => 'M${index + 1}'),
+    };
+
+List<String> _defensiveMidfieldLabels(int count) => switch (count) {
+      1 => const ['MDC'],
+      2 => const ['MDG', 'MDD'],
+      3 => const ['MDG', 'MDC', 'MDD'],
+      _ => _midfieldLabels(count),
+    };
+
+List<String> _attackingMidfieldLabels(int count) => switch (count) {
+      1 => const ['MOC'],
+      2 => const ['MOG', 'MOD'],
+      3 => const ['MOG', 'MOC', 'MOD'],
+      _ => _midfieldLabels(count),
+    };
+
+List<String> _attackLabels(int count) => switch (count) {
+      1 => const ['BU'],
+      2 => const ['BUG', 'BUD'],
+      3 => const ['AG', 'BU', 'AD'],
+      4 => const ['AG', 'BUG', 'BUD', 'AD'],
+      5 => const ['AG', 'AIG', 'BU', 'AID', 'AD'],
+      _ => List.generate(count, (index) => 'A${index + 1}'),
+    };
 
 /// Catalogue adapté au nombre exact de joueurs d'une équipe.
 ///
