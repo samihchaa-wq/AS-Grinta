@@ -480,6 +480,67 @@ class _InternalTeamCompositionViewState
     });
   }
 
+  Future<void> _savePaper() async {
+    final entries = _entries;
+    if (entries == null || _saving) return;
+
+    if (compositionPublicationWillNotify(
+      alreadyPublished: _notificationSent,
+      sheetNamesPlayers: entries.any((entry) => entry.teamNo != null),
+      postMatch: false,
+    )) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Publier la composition ?'),
+          content: const Text(
+            'Publier la composition enverra une notification à tous les '
+            'joueurs convoqués.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Valider'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final saved = await ref
+          .read(internalMatchCompositionRepositoryProvider)
+          .savePaperState(
+            matchId: widget.matchId,
+            team1Name: _team1Controller.text,
+            team2Name: _team2Controller.text,
+            team1JerseyId: _team1Jersey.id,
+            team2JerseyId: _team2Jersey.id,
+            team1FormationCode: _team1FormationCode,
+            team2FormationCode: _team2FormationCode,
+            entries: entries,
+          );
+      if (!mounted) return;
+      setState(() {
+        _initFrom(saved);
+        _selectedParticipantId = null;
+        _dirty = false;
+      });
+      ref.invalidate(internalMatchCompositionProvider(widget.matchId));
+      _showMessage('Composition enregistrée.');
+    } catch (error) {
+      if (mounted) _showMessage('Erreur : $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   Future<void> _save() async {
     final entries = _entries;
     if (entries == null || _saving) return;
