@@ -151,9 +151,9 @@ List<InternalCompositionEntry> normalizeInternalVisualEntries({
       if (entry.zone != 'field')
         entry
       else if (entry.teamNo == 1 && normalizeTeam1)
-        _normalizeInternalFieldEntry(entry, team1Formation)
+        _normalizeInternalFieldEntry(entry, team1Formation!)
       else if (entry.teamNo == 2 && normalizeTeam2)
-        _normalizeInternalFieldEntry(entry, team2Formation)
+        _normalizeInternalFieldEntry(entry, team2Formation!)
       else
         entry,
   ];
