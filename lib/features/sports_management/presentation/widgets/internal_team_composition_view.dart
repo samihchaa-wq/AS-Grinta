@@ -568,7 +568,8 @@ class _InternalTeamCompositionViewState
             entries.where((entry) => entry.teamNo == null).toList();
         final profilesByName = <String, PlayerPositionProfile>{
           for (final profile
-              in (positionArchive ?? const <String, PlayerPositionProfile>{}).values)
+              in (positionArchive ?? const <String, PlayerPositionProfile>{})
+                  .values)
             normalizePlayerName(profile.displayName): profile,
         };
         List<InternalCompositionEntry> unassignedGroup(
