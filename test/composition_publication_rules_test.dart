@@ -63,7 +63,8 @@ void main() {
 
     expect(internal, contains('compositionPublicationWillNotify('));
     expect(internal, contains('Mettre les compositions en ligne ?'));
-    expect(internal, contains('Les compositions sont en ligne'));
+    expect(internal, contains('Les compositions sont '));
+    expect(internal, contains('en ligne » aux joueurs convoqués.'));
     expect(internal, isNot(contains('Publier la composition ?')));
 
     final paperStart = internal.indexOf('Future<void> _savePaper()');
