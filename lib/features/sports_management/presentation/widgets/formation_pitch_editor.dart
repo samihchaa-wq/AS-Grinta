@@ -372,7 +372,16 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
         closest = entry;
       }
     }
-    return distance < .12 ? closest : null;
+    if (distance < .12) return closest;
+
+    // Compatibilité : les nouveaux gabarits peuvent déplacer un poste alors
+    // qu'une composition enregistrée conserve encore ses anciennes
+    // coordonnées. Dans ce cas seulement, slot_label permet de retrouver le
+    // joueur au lieu de le faire disparaître du terrain.
+    for (final entry in widget.entries) {
+      if (entry.slotLabel == slot.label) return entry;
+    }
+    return null;
   }
 
   @override
@@ -444,10 +453,16 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
 
     // Les coordonnées historiques de l'ancien 4-4-2 étaient très tassées
     // vers le bas. On conserve les données brutes mais on les rééquilibre
-    // visuellement. Toutes les autres compositions gardent leurs coordonnées.
-    final visualPosition = entry == null
+    // visuellement. Toutes les autres compositions gardent leurs coordonnées,
+    // sauf si le poste n'était plus détectable par proximité.
+    final storedPosition = entry == null
         ? slot.position
         : _displayPosition(entry, legacyFlat442: legacyFlat442);
+    final staleCanonicalPosition = entry != null &&
+        entry.slotLabel == slot.label &&
+        (storedPosition - slot.position).distance >= .12;
+    final visualPosition =
+        staleCanonicalPosition ? slot.position : storedPosition;
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
     final left =
