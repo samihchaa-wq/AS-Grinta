@@ -1,3 +1,5 @@
+import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
+
 /// Un joueur convoqué pour un « match entre nous ».
 ///
 /// [teamNo] = 1 ou 2 une fois l'équipe choisie, null tant qu'il reste dans la
@@ -120,6 +122,62 @@ class InternalCompositionEntry {
       };
 }
 
+/// Recale une composition visuelle sauvegardée sur les coordonnées du gabarit
+/// automatique courant.
+///
+/// Les anciennes versions utilisaient parfois le même code de dispositif avec
+/// d'autres coordonnées. Le terrain classique associe encore les joueurs par
+/// proximité géométrique ; un poste valide pouvait donc devenir invisible
+/// après un changement de gabarit (notamment BUG/BUD en 3-3-2). Le libellé de
+/// poste reste la source de vérité et ses coordonnées sont remises à jour à la
+/// lecture. Un poste inconnu est remis « à placer » plutôt que de disparaître.
+List<InternalCompositionEntry> normalizeInternalVisualEntries({
+  required List<InternalCompositionEntry> entries,
+  required String? team1FormationCode,
+  required String? team2FormationCode,
+}) {
+  final team1Count = entries.where((entry) => entry.teamNo == 1).length;
+  final team2Count = entries.where((entry) => entry.teamNo == 2).length;
+  final team1Formation = internalDefaultFormationForPlayerCount(team1Count);
+  final team2Formation = internalDefaultFormationForPlayerCount(team2Count);
+
+  final normalizeTeam1 = team1Formation != null &&
+      team1Formation.code == team1FormationCode;
+  final normalizeTeam2 = team2Formation != null &&
+      team2Formation.code == team2FormationCode;
+
+  return [
+    for (final entry in entries)
+      if (entry.zone != 'field')
+        entry
+      else if (entry.teamNo == 1 && normalizeTeam1)
+        _normalizeInternalFieldEntry(entry, team1Formation)
+      else if (entry.teamNo == 2 && normalizeTeam2)
+        _normalizeInternalFieldEntry(entry, team2Formation)
+      else
+        entry,
+  ];
+}
+
+InternalCompositionEntry _normalizeInternalFieldEntry(
+  InternalCompositionEntry entry,
+  InternalTeamFormation formation,
+) {
+  for (final slot in formation.slots) {
+    if (slot.label != entry.slotLabel) continue;
+    if (entry.x == slot.position.dx && entry.y == slot.position.dy) {
+      return entry;
+    }
+    return entry.copyWith(
+      zone: 'field',
+      x: slot.position.dx,
+      y: slot.position.dy,
+      slotLabel: slot.label,
+    );
+  }
+  return entry.copyWith(clearPlacement: true);
+}
+
 class InternalMatchComposition {
   const InternalMatchComposition({
     required this.matchId,
@@ -183,24 +241,33 @@ class InternalMatchComposition {
     if (raw is! Map) return null;
     final json = Map<String, dynamic>.from(raw);
     final entriesRaw = json['entries'];
+    final team1FormationCode = _clean(json['team1_formation']);
+    final team2FormationCode = _clean(json['team2_formation']);
+    final parsedEntries = entriesRaw is List
+        ? entriesRaw
+            .map(
+              (e) => InternalCompositionEntry.fromJson(
+                Map<String, dynamic>.from(e as Map),
+              ),
+            )
+            .toList()
+        : <InternalCompositionEntry>[];
+    final normalizedEntries = normalizeInternalVisualEntries(
+      entries: parsedEntries,
+      team1FormationCode: team1FormationCode,
+      team2FormationCode: team2FormationCode,
+    );
+
     return InternalMatchComposition(
       matchId: json['match_id']?.toString() ?? '',
       team1Name: (json['team1_name'] ?? 'Équipe 1').toString(),
       team2Name: (json['team2_name'] ?? 'Équipe 2').toString(),
       team1JerseyId: (json['team1_jersey'] ?? 'orange').toString(),
       team2JerseyId: (json['team2_jersey'] ?? 'blue').toString(),
-      team1FormationCode: _clean(json['team1_formation']),
-      team2FormationCode: _clean(json['team2_formation']),
+      team1FormationCode: team1FormationCode,
+      team2FormationCode: team2FormationCode,
       notificationSent: json['notification_sent'] == true,
-      entries: entriesRaw is List
-          ? entriesRaw
-              .map(
-                (e) => InternalCompositionEntry.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ),
-              )
-              .toList()
-          : const [],
+      entries: normalizedEntries,
     );
   }
 }
