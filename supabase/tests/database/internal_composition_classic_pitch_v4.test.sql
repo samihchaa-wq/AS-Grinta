@@ -1,12 +1,26 @@
 begin;
 
-select plan(14);
+select plan(19);
 
 select ok(
   to_regprocedure(
     'public.admin_save_internal_composition_v4(uuid,text,text,text,text,text,text,jsonb,boolean)'
   ) is not null,
   'la RPC V4 existe'
+);
+
+select ok(
+  to_regprocedure(
+    'public.admin_save_internal_composition_v5(uuid,text,text,text,text,text,text,jsonb)'
+  ) is not null,
+  'la RPC V5 terrain existe'
+);
+
+select ok(
+  to_regprocedure(
+    'private.internal_composition_visual_is_complete(uuid)'
+  ) is not null,
+  'le garde de synchronisation visuelle existe'
 );
 
 select ok(
@@ -94,30 +108,65 @@ select ok(
   'authenticated peut appeler V4'
 );
 
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.admin_save_internal_composition_v5(uuid,text,text,text,text,text,text,jsonb)',
+    'EXECUTE'
+  ),
+  'authenticated peut appeler V5, avec contrôle admin interne'
+);
 
 select ok(
   position(
-    'v_match_type = ''entre_nous''' in pg_get_functiondef(
+    'private.internal_composition_visual_is_complete(p_match_id)' in pg_get_functiondef(
       'private.notify_composition_published(uuid)'::regprocedure
     )
   ) > 0
   and position(
-    'entry.zone = ''available''' in pg_get_functiondef(
+    'as_grinta.internal_visual_publish' in pg_get_functiondef(
       'private.notify_composition_published(uuid)'::regprocedure
     )
   ) > 0,
-  'la notification entre nous exige les deux terrains complets'
+  'la notification entre nous exige le terrain complet et le chemin V5'
 );
 
 select ok(
   position(
-    'Les compositions sont en ligne' in pg_get_functiondef(
+    'Compositions faites' in pg_get_functiondef(
       'private.dispatch_composition_published_push(uuid,uuid[])'::regprocedure
     )
   ) > 0,
-  'le push entre nous utilise le libellé pluriel demandé'
+  'le push entre nous utilise le libellé Compositions faites'
 );
 
+select ok(
+  position(
+    'from public.profiles profile' in pg_get_functiondef(
+      'private.notify_composition_published(uuid)'::regprocedure
+    )
+  ) > 0
+  and position(
+    'profile.notify_composition' in pg_get_functiondef(
+      'private.notify_composition_published(uuid)'::regprocedure
+    )
+  ) > 0,
+  'le push entre nous vise tous les profils actifs abonnés'
+);
+
+select ok(
+  position(
+    'v_can_see_assignments := public.is_match_staff()' in pg_get_functiondef(
+      'public.get_internal_composition(uuid)'::regprocedure
+    )
+  ) > 0
+  and position(
+    'private.internal_composition_visual_is_complete(p_match_id)' in pg_get_functiondef(
+      'public.get_internal_composition(uuid)'::regprocedure
+    )
+  ) > 0,
+  'la lecture masque le papier aux non-admins tant que le terrain est incomplet'
+);
 
 select ok(
   private.internal_default_formation_code(1) = 'GB'

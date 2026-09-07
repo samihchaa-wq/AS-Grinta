@@ -63,6 +63,8 @@ class InternalMatchCompositionRepository {
     );
   }
 
+  /// Seul le chemin visuel V5 peut consommer la notification collective.
+  /// V4 reste volontairement réservé au papier et à la compatibilité.
   Future<InternalMatchComposition> saveVisual({
     required String matchId,
     required String team1Name,
@@ -72,18 +74,21 @@ class InternalMatchCompositionRepository {
     required List<InternalCompositionEntry> entries,
     String team1JerseyId = 'orange',
     String team2JerseyId = 'blue',
-  }) {
-    return _saveV4(
-      matchId: matchId,
-      team1Name: team1Name,
-      team2Name: team2Name,
-      team1JerseyId: team1JerseyId,
-      team2JerseyId: team2JerseyId,
-      team1FormationCode: team1FormationCode,
-      team2FormationCode: team2FormationCode,
-      entries: entries,
-      requireVisualComplete: true,
+  }) async {
+    final response = await _client.rpc(
+      'admin_save_internal_composition_v5',
+      params: {
+        'p_match_id': matchId,
+        'p_team1_name': team1Name,
+        'p_team2_name': team2Name,
+        'p_team1_jersey': team1JerseyId,
+        'p_team2_jersey': team2JerseyId,
+        'p_team1_formation': team1FormationCode,
+        'p_team2_formation': team2FormationCode,
+        'p_entries': [for (final entry in entries) entry.toRpcJson()],
+      },
     );
+    return _parseSaved(response);
   }
 
   Future<InternalMatchComposition> _saveV4({
