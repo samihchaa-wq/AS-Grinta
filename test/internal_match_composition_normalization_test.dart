@@ -66,15 +66,17 @@ void main() {
           zone: 'field',
           x: .5,
           y: .5,
-          slotLabel: i == 7 ? 'ANCIEN_POSTE' : const [
-            'GB',
-            'DCG',
-            'DC',
-            'DCD',
-            'MCG',
-            'MC',
-            'MCD',
-          ][i],
+          slotLabel: i == 7
+              ? 'ANCIEN_POSTE'
+              : const [
+                  'GB',
+                  'DCG',
+                  'DC',
+                  'DCD',
+                  'MCG',
+                  'MC',
+                  'MCD',
+                ][i],
         ),
     ];
 
