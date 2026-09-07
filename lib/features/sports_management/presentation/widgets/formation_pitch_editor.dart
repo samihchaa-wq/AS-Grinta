@@ -362,19 +362,9 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     FootballFormationSlot slot,
     bool legacyFlat442,
   ) {
-    // Le libellé est l'identité canonique d'un poste. Les coordonnées sont
-    // conservées uniquement comme fallback pour les anciennes compositions
-    // qui n'avaient pas encore de slot_label exploitable.
-    for (final entry in widget.entries) {
-      if (entry.slotLabel == slot.label) return entry;
-    }
-
-    final currentSlotLabels = widget.slots.map((item) => item.label).toSet();
     MatchCompositionEntry? closest;
     var distance = double.infinity;
     for (final entry in widget.entries) {
-      final label = entry.slotLabel;
-      if (label != null && currentSlotLabels.contains(label)) continue;
       final current = _displayPosition(entry, legacyFlat442: legacyFlat442);
       final candidate = (current - slot.position).distance;
       if (candidate < distance) {
@@ -382,7 +372,16 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
         closest = entry;
       }
     }
-    return distance < .12 ? closest : null;
+    if (distance < .12) return closest;
+
+    // Compatibilité : les nouveaux gabarits peuvent déplacer un poste alors
+    // qu'une composition enregistrée conserve encore ses anciennes
+    // coordonnées. Dans ce cas seulement, slot_label permet de retrouver le
+    // joueur au lieu de le faire disparaître du terrain.
+    for (final entry in widget.entries) {
+      if (entry.slotLabel == slot.label) return entry;
+    }
+    return null;
   }
 
   @override
@@ -452,13 +451,17 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     final avatarSize = metrics.avatarSize;
     final nameFontSize = metrics.nameFontSize;
 
-    // Lorsqu'un slot_label correspond au gabarit courant, le poste est la
-    // source de vérité : une ancienne coordonnée ne doit jamais faire
-    // disparaître le joueur ni le laisser à l'ancienne position.
-    final followsCanonicalSlot = entry?.slotLabel == slot.label;
-    final visualPosition = entry == null || followsCanonicalSlot
+    // Les coordonnées historiques de l'ancien 4-4-2 étaient très tassées
+    // vers le bas. On conserve les données brutes mais on les rééquilibre
+    // visuellement. Toutes les autres compositions gardent leurs coordonnées,
+    // sauf si le poste n'était plus détectable par proximité.
+    final storedPosition = entry == null
         ? slot.position
         : _displayPosition(entry, legacyFlat442: legacyFlat442);
+    final staleCanonicalPosition = entry != null &&
+        entry.slotLabel == slot.label &&
+        (storedPosition - slot.position).distance >= .12;
+    final visualPosition = staleCanonicalPosition ? slot.position : storedPosition;
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
     final left =
