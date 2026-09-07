@@ -199,7 +199,6 @@ class _InternalTeamCompositionViewState
     }
   }
 
-
   void _dropOnClassicSlot(
     int teamNo,
     MatchCompositionEntry moving,
