@@ -29,7 +29,7 @@ void main() {
     );
     expect(
       migration,
-      contains("when v_can_see_assignments then entry.team_no else null"),
+      contains('when v_can_see_assignments then entry.team_no else null'),
     );
   });
 
@@ -72,11 +72,11 @@ void main() {
     );
     expect(
       migration,
-      contains("pg_catalog.current_setting("),
+      contains('pg_catalog.current_setting('),
     );
     expect(
       migration,
-      contains("on conflict (match_id, kind) do nothing"),
+      contains('on conflict (match_id, kind) do nothing'),
     );
     expect(migration, contains("then 'Compositions faites'"));
   });
