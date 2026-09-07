@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const migrationPath =
-      'supabase/migrations/'
+  const migrationPath = 'supabase/migrations/'
       '20260907223000_internal_composition_sync_first_visual_notification.sql';
 
   test('le joueur ne reçoit jamais la vue papier avant le terrain validé', () {
@@ -25,7 +24,8 @@ void main() {
     );
     expect(
       migration,
-      contains('or private.internal_composition_visual_is_complete(p_match_id)'),
+      contains(
+          'or private.internal_composition_visual_is_complete(p_match_id)'),
     );
     expect(
       migration,
@@ -36,7 +36,8 @@ void main() {
   test('effectif, papier et terrain partagent le même effectif convoqué', () {
     final migration = File(migrationPath).readAsStringSync();
 
-    expect(migration, contains('from public.match_sport_participants participant'));
+    expect(migration,
+        contains('from public.match_sport_participants participant'));
     expect(
       migration,
       contains("participant.convocation_status = 'convoked'"),
