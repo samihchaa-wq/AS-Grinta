@@ -603,8 +603,6 @@ class _InternalTeamCompositionViewState
           jersey: _terrainTeam == 1 ? _team1Jersey : _team2Jersey,
           unavailableJersey: _terrainTeam == 1 ? _team2Jersey : _team1Jersey,
           entries: terrainEntries,
-          formationCode:
-              _terrainTeam == 1 ? _team1FormationCode : _team2FormationCode,
           editable: widget.editable,
           canReceiveSelected:
               _selectedEntry != null && _selectedEntry!.teamNo != _terrainTeam,
@@ -1098,7 +1096,6 @@ class _InternalTeamCard extends StatelessWidget {
     required this.jersey,
     required this.unavailableJersey,
     required this.entries,
-    required this.formationCode,
     required this.editable,
     required this.canReceiveSelected,
     required this.onAssignSelected,
@@ -1114,7 +1111,6 @@ class _InternalTeamCard extends StatelessWidget {
   final JerseyOption jersey;
   final JerseyOption unavailableJersey;
   final List<InternalCompositionEntry> entries;
-  final String? formationCode;
   final bool editable;
   final bool canReceiveSelected;
   final VoidCallback onAssignSelected;
