@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const migrationPath = 'supabase/migrations/'
       '20260907223000_internal_composition_sync_first_visual_notification.sql';
+  const exactRosterMigrationPath = 'supabase/migrations/'
+      '20260907223100_internal_composition_exact_roster_sync.sql';
 
   test('le joueur ne reçoit jamais la vue papier avant le terrain validé', () {
     final widget = File(
@@ -35,6 +37,8 @@ void main() {
 
   test('effectif, papier et terrain partagent le même effectif convoqué', () {
     final migration = File(migrationPath).readAsStringSync();
+    final exactRosterMigration =
+        File(exactRosterMigrationPath).readAsStringSync();
 
     expect(migration,
         contains('from public.match_sport_participants participant'));
@@ -53,6 +57,18 @@ void main() {
     expect(
       migration,
       contains('private.internal_default_formation_code(v_team2_count)'),
+    );
+    expect(
+      exactRosterMigration,
+      contains('participant.id = entry.participant_id'),
+    );
+    expect(
+      exactRosterMigration,
+      contains("participant.convocation_status = 'convoked'"),
+    );
+    expect(
+      exactRosterMigration,
+      contains('and not exists ('),
     );
   });
 
