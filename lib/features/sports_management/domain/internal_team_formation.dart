@@ -1,227 +1,172 @@
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:flutter/material.dart';
 
-/// Dispositif d'un match « entre nous ».
+/// Dispositif unique d'une équipe de match « entre nous ».
 ///
-/// Le gardien est implicite : le code décrit uniquement les lignes de joueurs
-/// de champ. Ainsi « 2-3-1 » correspond à 7 joueurs au total (1 GB + 6 joueurs
-/// de champ). Jusqu'à 11 joueurs, le dispositif expose exactement autant
-/// d'emplacements que de joueurs. Au-delà de 11 joueurs dans une équipe, le
-/// dispositif reste un onze et le surplus est placé sur le banc.
+/// Le nombre de joueurs détermine entièrement le dispositif : l'admin ne
+/// choisit plus entre plusieurs variantes. Les coordonnées sont dessinées
+/// individuellement pour chaque format afin d'éviter l'effet de grille
+/// générique et de conserver de vraies distances tactiques entre les lignes.
 class InternalTeamFormation {
   const InternalTeamFormation({
     required this.code,
-    required this.outfieldLines,
-    this.explicitSlotLabels,
+    required this.slots,
   });
 
   final String code;
-  final List<int> outfieldLines;
-  final List<String>? explicitSlotLabels;
+  final List<FootballFormationSlot> slots;
 
-  int get playerCount =>
-      explicitSlotLabels?.length ??
-      1 + outfieldLines.fold<int>(0, (total, count) => total + count);
-
-  List<FootballFormationSlot> get slots {
-    final explicit = explicitSlotLabels;
-    if (explicit != null) {
-      return [
-        for (final label in explicit)
-          FootballFormationSlot(
-            label: label,
-            position: matchSheetSlotPositions[label] ?? const Offset(.5, .5),
-          ),
-      ];
-    }
-    final result = <FootballFormationSlot>[
-      const FootballFormationSlot(label: 'GB', position: Offset(.50, .86)),
-    ];
-    if (outfieldLines.isEmpty) return result;
-
-    for (var lineIndex = 0; lineIndex < outfieldLines.length; lineIndex += 1) {
-      final count = outfieldLines[lineIndex];
-      final y = _lineY(lineIndex, outfieldLines.length);
-      final labels = _labelsForLine(
-        lineIndex: lineIndex,
-        lineCount: outfieldLines.length,
-        count: count,
-      );
-      for (var index = 0; index < count; index += 1) {
-        result.add(
-          FootballFormationSlot(
-            label: labels[index],
-            position: Offset(_lineX(index, count), y),
-          ),
-        );
-      }
-    }
-    return result;
-  }
+  int get playerCount => slots.length;
 
   bool containsSlot(String? label) =>
       label != null && slots.any((slot) => slot.label == label);
 }
 
-double _lineY(int index, int lineCount) {
-  if (lineCount == 1) return .40;
-  const defenseY = .68;
-  const attackY = .14;
-  final step = (defenseY - attackY) / (lineCount - 1);
-  return defenseY - step * index;
-}
+const FootballFormationSlot _gb = FootballFormationSlot(
+  label: 'GB',
+  position: Offset(.50, .85),
+);
 
-double _lineX(int index, int count) {
-  if (count <= 1) return .50;
-  const left = .14;
-  const right = .86;
-  return left + (right - left) * index / (count - 1);
-}
-
-List<String> _labelsForLine({
-  required int lineIndex,
-  required int lineCount,
-  required int count,
-}) {
-  if (lineCount == 1) return _midfieldLabels(count);
-  if (lineIndex == 0) return _defenseLabels(count);
-  if (lineIndex == lineCount - 1) return _attackLabels(count);
-
-  // Dans un dispositif à quatre lignes (ex. 4-2-3-1), les deux lignes du
-  // milieu doivent avoir des identités différentes. Sinon MCG/MCD pourrait
-  // exister deux fois et le serveur ne pourrait pas garantir l'unicité des
-  // emplacements.
-  if (lineCount >= 4 && lineIndex == 1) return _defensiveMidfieldLabels(count);
-  if (lineCount >= 4 && lineIndex == lineCount - 2) {
-    return _attackingMidfieldLabels(count);
-  }
-  return _midfieldLabels(count);
-}
-
-List<String> _defenseLabels(int count) => switch (count) {
-      1 => const ['DC'],
-      2 => const ['DCG', 'DCD'],
-      3 => const ['DCG', 'DC', 'DCD'],
-      4 => const ['DG', 'DCG', 'DCD', 'DD'],
-      5 => const ['DG', 'DCG', 'DC', 'DCD', 'DD'],
-      _ => List.generate(count, (index) => 'D${index + 1}'),
-    };
-
-List<String> _midfieldLabels(int count) => switch (count) {
-      1 => const ['MC'],
-      2 => const ['MCG', 'MCD'],
-      3 => const ['MCG', 'MC', 'MCD'],
-      4 => const ['MG', 'MCG', 'MCD', 'MD'],
-      5 => const ['MG', 'MCG', 'MC', 'MCD', 'MD'],
-      _ => List.generate(count, (index) => 'M${index + 1}'),
-    };
-
-List<String> _defensiveMidfieldLabels(int count) => switch (count) {
-      1 => const ['MDC'],
-      2 => const ['MDG', 'MDD'],
-      3 => const ['MDG', 'MDC', 'MDD'],
-      _ => _midfieldLabels(count),
-    };
-
-List<String> _attackingMidfieldLabels(int count) => switch (count) {
-      1 => const ['MOC'],
-      2 => const ['MOG', 'MOD'],
-      3 => const ['MOG', 'MOC', 'MOD'],
-      _ => _midfieldLabels(count),
-    };
-
-List<String> _attackLabels(int count) => switch (count) {
-      1 => const ['BU'],
-      2 => const ['BUG', 'BUD'],
-      3 => const ['AG', 'BU', 'AD'],
-      4 => const ['AG', 'BUG', 'BUD', 'AD'],
-      5 => const ['AG', 'AIG', 'BU', 'AID', 'AD'],
-      _ => List.generate(count, (index) => 'A${index + 1}'),
-    };
-
-/// Catalogue adapté au nombre exact de joueurs d'une équipe.
-///
-/// Les compositions à un ou deux joueurs n'ont naturellement qu'un seul
-/// dispositif crédible. À partir de trois joueurs, plusieurs variantes sont
-/// proposées pour que l'administrateur reste toujours décisionnaire.
-const Map<int, List<InternalTeamFormation>>
-    internalTeamFormationsByPlayerCount = {
-  1: [InternalTeamFormation(code: 'GB', outfieldLines: [])],
-  2: [
-    InternalTeamFormation(code: '1', outfieldLines: [1])
-  ],
-  3: [
-    InternalTeamFormation(code: '1-1', outfieldLines: [1, 1]),
-    InternalTeamFormation(code: '2', outfieldLines: [2]),
-  ],
-  4: [
-    InternalTeamFormation(code: '2-1', outfieldLines: [2, 1]),
-    InternalTeamFormation(code: '1-2', outfieldLines: [1, 2]),
-  ],
-  5: [
-    InternalTeamFormation(code: '2-1-1', outfieldLines: [2, 1, 1]),
-    InternalTeamFormation(code: '1-2-1', outfieldLines: [1, 2, 1]),
-    InternalTeamFormation(code: '2-2', outfieldLines: [2, 2]),
-  ],
-  6: [
-    InternalTeamFormation(code: '2-2-1', outfieldLines: [2, 2, 1]),
-    InternalTeamFormation(code: '2-1-2', outfieldLines: [2, 1, 2]),
-    InternalTeamFormation(code: '1-3-1', outfieldLines: [1, 3, 1]),
-  ],
-  7: [
-    InternalTeamFormation(code: '2-3-1', outfieldLines: [2, 3, 1]),
-    InternalTeamFormation(code: '3-2-1', outfieldLines: [3, 2, 1]),
-    InternalTeamFormation(code: '2-2-2', outfieldLines: [2, 2, 2]),
-  ],
-  8: [
-    InternalTeamFormation(code: '3-3-1', outfieldLines: [3, 3, 1]),
-    InternalTeamFormation(code: '2-3-2', outfieldLines: [2, 3, 2]),
-    InternalTeamFormation(code: '3-2-2', outfieldLines: [3, 2, 2]),
-  ],
-  9: [
-    InternalTeamFormation(code: '3-3-2', outfieldLines: [3, 3, 2]),
-    InternalTeamFormation(code: '3-2-3', outfieldLines: [3, 2, 3]),
-    InternalTeamFormation(code: '2-3-3', outfieldLines: [2, 3, 3]),
-  ],
-  10: [
-    InternalTeamFormation(code: '3-4-2', outfieldLines: [3, 4, 2]),
-    InternalTeamFormation(code: '4-3-2', outfieldLines: [4, 3, 2]),
-    InternalTeamFormation(code: '4-2-3', outfieldLines: [4, 2, 3]),
-    InternalTeamFormation(code: '3-3-3', outfieldLines: [3, 3, 3]),
-  ],
-  11: [
-    InternalTeamFormation(code: '4-4-2', outfieldLines: [4, 4, 2]),
-    InternalTeamFormation(code: '4-3-3', outfieldLines: [4, 3, 3]),
-    InternalTeamFormation(code: '4-2-3-1', outfieldLines: [4, 2, 3, 1]),
-    InternalTeamFormation(code: '3-5-2', outfieldLines: [3, 5, 2]),
-    InternalTeamFormation(code: '3-4-3', outfieldLines: [3, 4, 3]),
-    InternalTeamFormation(code: '5-3-2', outfieldLines: [5, 3, 2]),
-  ],
+const Map<int, InternalTeamFormation> internalDefaultFormations = {
+  1: InternalTeamFormation(
+    code: 'GB',
+    slots: [_gb],
+  ),
+  2: InternalTeamFormation(
+    code: '1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'MC', position: Offset(.50, .38)),
+    ],
+  ),
+  3: InternalTeamFormation(
+    code: '1-1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DC', position: Offset(.50, .64)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .23)),
+    ],
+  ),
+  4: InternalTeamFormation(
+    code: '2-1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DCG', position: Offset(.34, .65)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.66, .65)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .23)),
+    ],
+  ),
+  5: InternalTeamFormation(
+    code: '1-2-1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DC', position: Offset(.50, .67)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.34, .44)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.66, .44)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .22)),
+    ],
+  ),
+  6: InternalTeamFormation(
+    code: '2-2-1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DCG', position: Offset(.34, .66)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.66, .66)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.34, .44)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.66, .44)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .22)),
+    ],
+  ),
+  7: InternalTeamFormation(
+    code: '2-3-1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DCG', position: Offset(.34, .67)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.66, .67)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.24, .44)),
+      FootballFormationSlot(label: 'MC', position: Offset(.50, .42)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.76, .44)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .21)),
+    ],
+  ),
+  8: InternalTeamFormation(
+    code: '3-3-1',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DCG', position: Offset(.24, .66)),
+      FootballFormationSlot(label: 'DC', position: Offset(.50, .69)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.76, .66)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.24, .43)),
+      FootballFormationSlot(label: 'MC', position: Offset(.50, .42)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.76, .43)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .21)),
+    ],
+  ),
+  9: InternalTeamFormation(
+    code: '3-3-2',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DCG', position: Offset(.24, .66)),
+      FootballFormationSlot(label: 'DC', position: Offset(.50, .69)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.76, .66)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.24, .43)),
+      FootballFormationSlot(label: 'MC', position: Offset(.50, .42)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.76, .43)),
+      FootballFormationSlot(label: 'BUG', position: Offset(.38, .20)),
+      FootballFormationSlot(label: 'BUD', position: Offset(.62, .20)),
+    ],
+  ),
+  10: InternalTeamFormation(
+    code: '3-4-2',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DCG', position: Offset(.24, .66)),
+      FootballFormationSlot(label: 'DC', position: Offset(.50, .69)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.76, .66)),
+      FootballFormationSlot(label: 'MG', position: Offset(.15, .43)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.38, .45)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.62, .45)),
+      FootballFormationSlot(label: 'MD', position: Offset(.85, .43)),
+      FootballFormationSlot(label: 'BUG', position: Offset(.38, .20)),
+      FootballFormationSlot(label: 'BUD', position: Offset(.62, .20)),
+    ],
+  ),
+  11: InternalTeamFormation(
+    code: '4-3-3',
+    slots: [
+      _gb,
+      FootballFormationSlot(label: 'DG', position: Offset(.12, .64)),
+      FootballFormationSlot(label: 'DCG', position: Offset(.36, .69)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.64, .69)),
+      FootballFormationSlot(label: 'DD', position: Offset(.88, .64)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.30, .43)),
+      FootballFormationSlot(label: 'MC', position: Offset(.50, .46)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.70, .43)),
+      FootballFormationSlot(label: 'AG', position: Offset(.18, .20)),
+      FootballFormationSlot(label: 'BU', position: Offset(.50, .16)),
+      FootballFormationSlot(label: 'AD', position: Offset(.82, .20)),
+    ],
+  ),
 };
 
-List<InternalTeamFormation> internalFormationsForPlayerCount(int playerCount) {
-  if (playerCount <= 0) return const [];
+InternalTeamFormation? internalDefaultFormationForPlayerCount(int playerCount) {
+  if (playerCount <= 0) return null;
   final onFieldCount = playerCount > 11 ? 11 : playerCount;
-  if (onFieldCount == 11) {
-    return [
-      for (final formation in footballFormations)
-        InternalTeamFormation(
-          code: formation.code,
-          outfieldLines: const [],
-          explicitSlotLabels: formation.slotLabels,
-        ),
-    ];
-  }
-  return internalTeamFormationsByPlayerCount[onFieldCount] ?? const [];
+  return internalDefaultFormations[onFieldCount];
+}
+
+/// Compatibilité avec les appels existants : il n'existe désormais qu'une
+/// seule option, déterminée par le nombre de joueurs.
+List<InternalTeamFormation> internalFormationsForPlayerCount(int playerCount) {
+  final formation = internalDefaultFormationForPlayerCount(playerCount);
+  return formation == null ? const [] : [formation];
 }
 
 InternalTeamFormation? internalFormationByCode({
   required int playerCount,
   required String? code,
 }) {
-  if (code == null) return null;
-  for (final formation in internalFormationsForPlayerCount(playerCount)) {
-    if (formation.code == code) return formation;
-  }
-  return null;
+  final formation = internalDefaultFormationForPlayerCount(playerCount);
+  if (formation == null || formation.code != code) return null;
+  return formation;
 }
