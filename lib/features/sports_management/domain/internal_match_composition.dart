@@ -141,10 +141,10 @@ List<InternalCompositionEntry> normalizeInternalVisualEntries({
   final team1Formation = internalDefaultFormationForPlayerCount(team1Count);
   final team2Formation = internalDefaultFormationForPlayerCount(team2Count);
 
-  final normalizeTeam1 = team1Formation != null &&
-      team1Formation.code == team1FormationCode;
-  final normalizeTeam2 = team2Formation != null &&
-      team2Formation.code == team2FormationCode;
+  final normalizeTeam1 =
+      team1Formation != null && team1Formation.code == team1FormationCode;
+  final normalizeTeam2 =
+      team2Formation != null && team2Formation.code == team2FormationCode;
 
   return [
     for (final entry in entries)
