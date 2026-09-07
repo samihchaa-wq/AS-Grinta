@@ -1636,59 +1636,6 @@ class _PlayerChip extends StatelessWidget {
   }
 }
 
-class _LegacyInternalTeams extends StatelessWidget {
-  const _LegacyInternalTeams({
-    required this.team1Name,
-    required this.team2Name,
-    required this.team1,
-    required this.team2,
-  });
-
-  final String team1Name;
-  final String team2Name;
-  final List<InternalCompositionEntry> team1;
-  final List<InternalCompositionEntry> team2;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget team(String name, List<InternalCompositionEntry> entries) => Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                for (final entry in entries)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: _PlayerChip(
-                      entry: entry,
-                      editable: false,
-                      selected: false,
-                      onTap: () {},
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: team(team1Name, team1)),
-        const SizedBox(width: 10),
-        Expanded(child: team(team2Name, team2)),
-      ],
-    );
-  }
-}
 
 /// Profils indexés par participant du match. On réutilise exactement la même
 /// identité canonique et le même historique que la simulation du onze.
