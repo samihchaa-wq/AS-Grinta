@@ -85,15 +85,28 @@ class _InternalTeamCompositionViewState
     _team1Controller.text = composition.team1Name;
     _team2Controller.text = composition.team2Name;
     _syncingNames = false;
-    _entries = List.of(composition.entries);
     final team1Count =
         composition.entries.where((entry) => entry.teamNo == 1).length;
     final team2Count =
         composition.entries.where((entry) => entry.teamNo == 2).length;
-    _team1FormationCode =
+    final automaticTeam1 =
         internalDefaultFormationForPlayerCount(team1Count)?.code;
-    _team2FormationCode =
+    final automaticTeam2 =
         internalDefaultFormationForPlayerCount(team2Count)?.code;
+    final resetTeam1 = composition.team1FormationCode != null &&
+        composition.team1FormationCode != automaticTeam1;
+    final resetTeam2 = composition.team2FormationCode != null &&
+        composition.team2FormationCode != automaticTeam2;
+    _entries = [
+      for (final entry in composition.entries)
+        if ((entry.teamNo == 1 && resetTeam1) ||
+            (entry.teamNo == 2 && resetTeam2))
+          entry.copyWith(clearPlacement: true)
+        else
+          entry,
+    ];
+    _team1FormationCode = automaticTeam1;
+    _team2FormationCode = automaticTeam2;
     _notificationSent = composition.notificationSent;
 
     final team1 =
@@ -584,8 +597,14 @@ class _InternalTeamCompositionViewState
         final benchCounts =
             benchCountsAsync.valueOrNull ?? const <String, int>{};
         final validation = _validation(entries);
-        final legacyReadOnly =
-            !widget.editable && !composition.isVisualComplete;
+        final expectedTeam1Code =
+            internalDefaultFormationForPlayerCount(team1.length)?.code;
+        final expectedTeam2Code =
+            internalDefaultFormationForPlayerCount(team2.length)?.code;
+        final legacyReadOnly = !widget.editable &&
+            (!composition.isVisualComplete ||
+                composition.team1FormationCode != expectedTeam1Code ||
+                composition.team2FormationCode != expectedTeam2Code);
 
         final terrainEntries = _terrainTeam == 1 ? team1 : team2;
         final terrainCard = _InternalTeamCard(
