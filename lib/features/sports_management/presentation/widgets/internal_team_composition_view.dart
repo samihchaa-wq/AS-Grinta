@@ -2,9 +2,13 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/internal_player_grouping.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_identity.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_team_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -55,6 +59,7 @@ class _InternalTeamCompositionViewState
   @override
   void initState() {
     super.initState();
+    if (!widget.editable) _viewMode = 1;
     _team1Controller.addListener(_handleTeamNameChanged);
     _team2Controller.addListener(_handleTeamNameChanged);
   }
@@ -80,9 +85,28 @@ class _InternalTeamCompositionViewState
     _team1Controller.text = composition.team1Name;
     _team2Controller.text = composition.team2Name;
     _syncingNames = false;
-    _entries = List.of(composition.entries);
-    _team1FormationCode = composition.team1FormationCode;
-    _team2FormationCode = composition.team2FormationCode;
+    final team1Count =
+        composition.entries.where((entry) => entry.teamNo == 1).length;
+    final team2Count =
+        composition.entries.where((entry) => entry.teamNo == 2).length;
+    final automaticTeam1 =
+        internalDefaultFormationForPlayerCount(team1Count)?.code;
+    final automaticTeam2 =
+        internalDefaultFormationForPlayerCount(team2Count)?.code;
+    final resetTeam1 = composition.team1FormationCode != null &&
+        composition.team1FormationCode != automaticTeam1;
+    final resetTeam2 = composition.team2FormationCode != null &&
+        composition.team2FormationCode != automaticTeam2;
+    _entries = [
+      for (final entry in composition.entries)
+        if ((entry.teamNo == 1 && resetTeam1) ||
+            (entry.teamNo == 2 && resetTeam2))
+          entry.copyWith(clearPlacement: true)
+        else
+          entry,
+    ];
+    _team1FormationCode = automaticTeam1;
+    _team2FormationCode = automaticTeam2;
     _notificationSent = composition.notificationSent;
 
     final team1 =
@@ -161,71 +185,19 @@ class _InternalTeamCompositionViewState
     final entries = _entries;
     if (entries == null) return;
     for (var index = 0; index < entries.length; index += 1) {
-      if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
+      if (entries[index].teamNo == teamNo &&
+          entries[index].zone != 'available') {
         entries[index] = entries[index].copyWith(clearPlacement: true);
       }
     }
+    final teamCount = entries.where((entry) => entry.teamNo == teamNo).length;
+    final automaticCode =
+        internalDefaultFormationForPlayerCount(teamCount)?.code;
     if (teamNo == 1) {
-      _team1FormationCode = null;
+      _team1FormationCode = automaticCode;
     } else {
-      _team2FormationCode = null;
+      _team2FormationCode = automaticCode;
     }
-  }
-
-  void _changeFormation(int teamNo, String code) {
-    final entries = _entries;
-    if (!widget.editable || entries == null) return;
-    final team = entries.where((entry) => entry.teamNo == teamNo).toList();
-    final formation = internalFormationByCode(
-      playerCount: team.length,
-      code: code,
-    );
-    if (formation == null) return;
-
-    final field = team.where((entry) => entry.zone == 'field').toList();
-    final ordered = [
-      ...field.where((entry) => entry.isGoalkeeper),
-      ...field.where((entry) => !entry.isGoalkeeper),
-    ];
-    final placement = <String, FootballFormationSlot>{};
-    final overflow = <String>{};
-    for (var index = 0; index < ordered.length; index += 1) {
-      if (index < formation.slots.length) {
-        placement[ordered[index].participantId] = formation.slots[index];
-      } else {
-        overflow.add(ordered[index].participantId);
-      }
-    }
-    final benchBase = team.where((entry) => entry.zone == 'bench').length;
-    var extraBench = 0;
-
-    setState(() {
-      for (var index = 0; index < entries.length; index += 1) {
-        final entry = entries[index];
-        if (entry.teamNo != teamNo) continue;
-        if (placement[entry.participantId] case final slot?) {
-          entries[index] = entry.copyWith(
-            zone: 'field',
-            x: slot.position.dx,
-            y: slot.position.dy,
-            slotLabel: slot.label,
-          );
-        } else if (overflow.contains(entry.participantId)) {
-          entries[index] = entry.copyWith(
-            zone: 'bench',
-            sortOrder: benchBase + extraBench++,
-            clearSlot: true,
-          );
-        }
-      }
-      if (teamNo == 1) {
-        _team1FormationCode = code;
-      } else {
-        _team2FormationCode = code;
-      }
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
   }
 
   void _dropOnClassicSlot(
@@ -327,34 +299,6 @@ class _InternalTeamCompositionViewState
     final entries = _entries;
     if (entries == null || _saving) return;
 
-    if (compositionPublicationWillNotify(
-      alreadyPublished: _notificationSent,
-      sheetNamesPlayers: entries.any((entry) => entry.teamNo != null),
-      postMatch: false,
-    )) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Publier la composition ?'),
-          content: const Text(
-            'Publier la composition enverra une notification à tous les '
-            'joueurs convoqués.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Valider'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-    }
-
     setState(() => _saving = true);
     try {
       final saved = await ref
@@ -401,10 +345,10 @@ class _InternalTeamCompositionViewState
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Publier la composition ?'),
+          title: const Text('Mettre les compositions en ligne ?'),
           content: const Text(
-            'Publier la composition enverra une notification à tous les '
-            'joueurs convoqués.',
+            'Enregistrer les deux terrains enverra « Les compositions sont '
+            'en ligne » aux joueurs convoqués.',
           ),
           actions: [
             TextButton(
@@ -595,6 +539,9 @@ class _InternalTeamCompositionViewState
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
+    final positionArchive = widget.editable
+        ? ref.watch(playerPositionArchiveProvider).valueOrNull
+        : const <String, PlayerPositionProfile>{};
 
     return async.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -619,13 +566,47 @@ class _InternalTeamCompositionViewState
         final entries = _entries!;
         final unassigned =
             entries.where((entry) => entry.teamNo == null).toList();
+        final profilesByName = <String, PlayerPositionProfile>{
+          for (final profile
+              in (positionArchive ?? const <String, PlayerPositionProfile>{})
+                  .values)
+            normalizePlayerName(profile.displayName): profile,
+        };
+        List<InternalCompositionEntry> unassignedGroup(
+          InternalPlayerGroup group,
+        ) =>
+            unassigned
+                .where(
+                  (entry) =>
+                      internalPlayerGroupFor(
+                        isGuest: entry.isGuest,
+                        isGoalkeeper: entry.isGoalkeeper,
+                        profile: profilesByName[
+                            normalizePlayerName(entry.displayName)],
+                      ) ==
+                      group,
+                )
+                .toList(growable: false);
+        final unassignedDefenders =
+            unassignedGroup(InternalPlayerGroup.defenders);
+        final unassignedMidfielders =
+            unassignedGroup(InternalPlayerGroup.midfielders);
+        final unassignedAttackers =
+            unassignedGroup(InternalPlayerGroup.attackers);
+        final unassignedOther = unassignedGroup(InternalPlayerGroup.other);
         final team1 = entries.where((entry) => entry.teamNo == 1).toList();
         final team2 = entries.where((entry) => entry.teamNo == 2).toList();
         final benchCounts =
             benchCountsAsync.valueOrNull ?? const <String, int>{};
         final validation = _validation(entries);
-        final legacyReadOnly =
-            !widget.editable && !composition.isVisualComplete;
+        final expectedTeam1Code =
+            internalDefaultFormationForPlayerCount(team1.length)?.code;
+        final expectedTeam2Code =
+            internalDefaultFormationForPlayerCount(team2.length)?.code;
+        final legacyReadOnly = !widget.editable &&
+            (!composition.isVisualComplete ||
+                composition.team1FormationCode != expectedTeam1Code ||
+                composition.team2FormationCode != expectedTeam2Code);
 
         final terrainEntries = _terrainTeam == 1 ? team1 : team2;
         final terrainCard = _InternalTeamCard(
@@ -643,14 +624,11 @@ class _InternalTeamCompositionViewState
           jersey: _terrainTeam == 1 ? _team1Jersey : _team2Jersey,
           unavailableJersey: _terrainTeam == 1 ? _team2Jersey : _team1Jersey,
           entries: terrainEntries,
-          formationCode:
-              _terrainTeam == 1 ? _team1FormationCode : _team2FormationCode,
           editable: widget.editable,
           canReceiveSelected:
               _selectedEntry != null && _selectedEntry!.teamNo != _terrainTeam,
           onAssignSelected: () => _assignSelectedToTeam(_terrainTeam),
           onJerseySelected: (jersey) => _changeJersey(_terrainTeam, jersey),
-          onFormationSelected: (code) => _changeFormation(_terrainTeam, code),
           onDroppedOnSlot: (moving, slot) =>
               _dropOnClassicSlot(_terrainTeam, moving, slot),
           onRemoveFromField: (moving) =>
@@ -661,29 +639,31 @@ class _InternalTeamCompositionViewState
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment<int>(
-                  value: 0,
-                  label: Text('Sur papier'),
-                  icon: Icon(Icons.list_alt_rounded),
-                ),
-                ButtonSegment<int>(
-                  value: 1,
-                  label: Text('Sur terrain'),
-                  icon: Icon(Icons.sports_soccer_rounded),
-                ),
-              ],
-              selected: {_viewMode},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() {
-                  _viewMode = selection.first;
-                  _selectedParticipantId = null;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
+            if (widget.editable) ...[
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment<int>(
+                    value: 0,
+                    label: Text('Sur papier'),
+                    icon: Icon(Icons.list_alt_rounded),
+                  ),
+                  ButtonSegment<int>(
+                    value: 1,
+                    label: Text('Sur terrain'),
+                    icon: Icon(Icons.sports_soccer_rounded),
+                  ),
+                ],
+                selected: {_viewMode},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _viewMode = selection.first;
+                    _selectedParticipantId = null;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
             if (_viewMode == 0) ...[
               if (unassigned.isNotEmpty || widget.editable) ...[
                 Text(
@@ -691,15 +671,16 @@ class _InternalTeamCompositionViewState
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
-                _WaitingPool(
-                  key: const ValueKey('internal-unassigned-pool'),
-                  entries: unassigned,
+                _GroupedUnassignedPools(
+                  defenders: unassignedDefenders,
+                  midfielders: unassignedMidfielders,
+                  attackers: unassignedAttackers,
+                  other: unassignedOther,
                   editable: widget.editable,
                   selectedParticipantId: _selectedParticipantId,
                   canReceiveSelected: _selectedEntry?.teamNo != null,
                   onPoolTap: _moveSelectedToUnassigned,
                   onPlayerTap: _selectPlayer,
-                  emptyLabel: 'Tous les joueurs sont répartis.',
                 ),
                 const SizedBox(height: 16),
               ],
@@ -751,11 +732,14 @@ class _InternalTeamCompositionViewState
               ),
               const SizedBox(height: 14),
               if (legacyReadOnly)
-                _LegacyInternalTeams(
-                  team1Name: composition.team1Name,
-                  team2Name: composition.team2Name,
-                  team1: team1,
-                  team2: team2,
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text(
+                      'Les compositions ne sont pas encore en ligne.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 )
               else
                 terrainCard,
@@ -1133,12 +1117,10 @@ class _InternalTeamCard extends StatelessWidget {
     required this.jersey,
     required this.unavailableJersey,
     required this.entries,
-    required this.formationCode,
     required this.editable,
     required this.canReceiveSelected,
     required this.onAssignSelected,
     required this.onJerseySelected,
-    required this.onFormationSelected,
     required this.onDroppedOnSlot,
     required this.onRemoveFromField,
     required this.finishedBenchCounts,
@@ -1150,12 +1132,10 @@ class _InternalTeamCard extends StatelessWidget {
   final JerseyOption jersey;
   final JerseyOption unavailableJersey;
   final List<InternalCompositionEntry> entries;
-  final String? formationCode;
   final bool editable;
   final bool canReceiveSelected;
   final VoidCallback onAssignSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
-  final ValueChanged<String> onFormationSelected;
   final void Function(MatchCompositionEntry, FootballFormationSlot)
       onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
@@ -1189,11 +1169,7 @@ class _InternalTeamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formations = internalFormationsForPlayerCount(entries.length);
-    final formation = internalFormationByCode(
-      playerCount: entries.length,
-      code: formationCode,
-    );
+    final formation = internalDefaultFormationForPlayerCount(entries.length);
     final field = entries
         .where((entry) => entry.zone == 'field')
         .map(_classic)
@@ -1247,35 +1223,7 @@ class _InternalTeamCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            if (editable)
-              InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Dispositif',
-                  isDense: true,
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: formation?.code,
-                    hint: entries.isEmpty
-                        ? const Text('Aucun joueur')
-                        : const Text('Choisir le dispositif'),
-                    items: [
-                      for (final option in formations)
-                        DropdownMenuItem(
-                          value: option.code,
-                          child: Text(option.code),
-                        ),
-                    ],
-                    onChanged: entries.isEmpty
-                        ? null
-                        : (value) {
-                            if (value != null) onFormationSelected(value);
-                          },
-                  ),
-                ),
-              )
-            else if (formation != null)
+            if (formation != null)
               Text(
                 'Dispositif ${formation.code}',
                 textAlign: TextAlign.center,
@@ -1305,7 +1253,7 @@ class _InternalTeamCard extends StatelessWidget {
                 child: Text(
                   entries.isEmpty
                       ? 'Aucun joueur dans cette équipe.'
-                      : 'Choisis un dispositif pour afficher le terrain.',
+                      : 'Le terrain sera disponible dès que l’équipe contient un joueur.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -1497,6 +1445,82 @@ class _JerseyTarget extends StatelessWidget {
   }
 }
 
+class _GroupedUnassignedPools extends StatelessWidget {
+  const _GroupedUnassignedPools({
+    required this.defenders,
+    required this.midfielders,
+    required this.attackers,
+    required this.other,
+    required this.editable,
+    required this.selectedParticipantId,
+    required this.canReceiveSelected,
+    required this.onPoolTap,
+    required this.onPlayerTap,
+  });
+
+  final List<InternalCompositionEntry> defenders;
+  final List<InternalCompositionEntry> midfielders;
+  final List<InternalCompositionEntry> attackers;
+  final List<InternalCompositionEntry> other;
+  final bool editable;
+  final String? selectedParticipantId;
+  final bool canReceiveSelected;
+  final VoidCallback onPoolTap;
+  final ValueChanged<InternalCompositionEntry> onPlayerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <(String, List<InternalCompositionEntry>)>[
+      ('Défenseurs', defenders),
+      ('Milieux', midfielders),
+      ('Attaquants', attackers),
+      ('Autres', other),
+    ];
+
+    if (groups.every((group) => group.$2.isEmpty)) {
+      return _WaitingPool(
+        key: const ValueKey('internal-unassigned-pool'),
+        entries: const [],
+        editable: editable,
+        selectedParticipantId: selectedParticipantId,
+        canReceiveSelected: canReceiveSelected,
+        onPoolTap: onPoolTap,
+        onPlayerTap: onPlayerTap,
+        emptyLabel: 'Tous les joueurs sont répartis.',
+      );
+    }
+
+    return GestureDetector(
+      key: const ValueKey('internal-unassigned-pool'),
+      behavior: HitTestBehavior.opaque,
+      onTap: canReceiveSelected ? onPoolTap : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final group in groups)
+            if (group.$2.isNotEmpty) ...[
+              Text(
+                '${group.$1} (${group.$2.length})',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 6),
+              _WaitingPool(
+                entries: group.$2,
+                editable: editable,
+                selectedParticipantId: selectedParticipantId,
+                canReceiveSelected: false,
+                onPoolTap: onPoolTap,
+                onPlayerTap: onPlayerTap,
+                emptyLabel: '',
+              ),
+              const SizedBox(height: 10),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
 class _WaitingPool extends StatelessWidget {
   const _WaitingPool({
     super.key,
@@ -1610,60 +1634,6 @@ class _PlayerChip extends StatelessWidget {
         onTap: onTap,
         child: chip,
       ),
-    );
-  }
-}
-
-class _LegacyInternalTeams extends StatelessWidget {
-  const _LegacyInternalTeams({
-    required this.team1Name,
-    required this.team2Name,
-    required this.team1,
-    required this.team2,
-  });
-
-  final String team1Name;
-  final String team2Name;
-  final List<InternalCompositionEntry> team1;
-  final List<InternalCompositionEntry> team2;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget team(String name, List<InternalCompositionEntry> entries) => Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                for (final entry in entries)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: _PlayerChip(
-                      entry: entry,
-                      editable: false,
-                      selected: false,
-                      onTap: () {},
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: team(team1Name, team1)),
-        const SizedBox(width: 10),
-        Expanded(child: team(team2Name, team2)),
-      ],
     );
   }
 }

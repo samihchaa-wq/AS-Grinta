@@ -48,7 +48,7 @@ void main() {
     );
   });
 
-  test('les deux écrans de composition branchent la même règle', () {
+  test('le match entre nous ne publie que depuis les deux terrains', () {
     final composition = File(
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_composition.dart',
@@ -59,12 +59,20 @@ void main() {
     ).readAsStringSync();
 
     expect(composition, contains('compositionPublicationWillNotify('));
+    expect(composition, contains('Publier la composition ?'));
+
     expect(internal, contains('compositionPublicationWillNotify('));
-    for (final source in [composition, internal]) {
-      expect(source, contains('Publier la composition ?'));
-      expect(source, contains('enverra une notification à tous les '));
-      expect(source, contains('Valider'));
-    }
+    expect(internal, contains('Mettre les compositions en ligne ?'));
+    expect(internal, contains('Les compositions sont '));
+    expect(internal, contains('en ligne » aux joueurs convoqués.'));
+    expect(internal, isNot(contains('Publier la composition ?')));
+
+    final paperStart = internal.indexOf('Future<void> _savePaper()');
+    final visualStart = internal.indexOf('Future<void> _save()', paperStart);
+    expect(paperStart, greaterThanOrEqualTo(0));
+    expect(visualStart, greaterThan(paperStart));
+    final paperSource = internal.substring(paperStart, visualStart);
+    expect(paperSource, isNot(contains('compositionPublicationWillNotify(')));
   });
 
   test('le match entre nous s’appuie sur l’état connu du serveur', () {

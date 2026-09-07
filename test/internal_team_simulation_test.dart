@@ -23,21 +23,65 @@ InternalCompositionEntry fieldPlayer(
 
 void main() {
   group('formations entre nous', () {
-    test('un effectif supérieur à 11 utilise les formations à onze', () {
-      final formations = internalFormationsForPlayerCount(14);
+    const expectedCodes = <int, String>{
+      1: 'GB',
+      2: '1',
+      3: '1-1',
+      4: '2-1',
+      5: '1-2-1',
+      6: '2-2-1',
+      7: '2-3-1',
+      8: '3-3-1',
+      9: '3-3-2',
+      10: '3-4-2',
+      11: '4-3-3',
+    };
 
-      expect(formations, isNotEmpty);
+    test('chaque effectif de 1 à 11 n’a qu’un seul dispositif', () {
+      for (final entry in expectedCodes.entries) {
+        final formations = internalFormationsForPlayerCount(entry.key);
+
+        expect(formations, hasLength(1), reason: '${entry.key} joueurs');
+        expect(formations.single.code, entry.value);
+        expect(formations.single.playerCount, entry.key);
+      }
+    });
+
+    test('au-delà de 11, le onze reste automatiquement en 4-3-3', () {
+      final formation = internalDefaultFormationForPlayerCount(14);
+
+      expect(formation?.code, '4-3-3');
+      expect(formation?.playerCount, 11);
       expect(
-        formations.every((formation) => formation.playerCount == 11),
-        isTrue,
+        internalFormationByCode(playerCount: 14, code: '4-2-3-1'),
+        isNull,
       );
-      expect(
-        internalFormationByCode(
-          playerCount: 14,
-          code: '4-2-3-1',
-        )?.playerCount,
-        11,
-      );
+    });
+
+    test('le 3-3-2 garde trois lignes réalistes et deux pointes resserrées',
+        () {
+      final formation = internalDefaultFormationForPlayerCount(9)!;
+      final slots = {for (final slot in formation.slots) slot.label: slot};
+
+      expect(slots['BUG']!.position.dx, closeTo(.38, .001));
+      expect(slots['BUD']!.position.dx, closeTo(.62, .001));
+      expect(slots['BUG']!.position.dy, closeTo(.20, .001));
+      expect(slots['DC']!.position.dy, greaterThan(slots['MC']!.position.dy));
+      expect(slots['MC']!.position.dy, greaterThan(slots['BUG']!.position.dy));
+    });
+
+    test('tous les gabarits restent dans une zone visuelle sûre du terrain',
+        () {
+      for (final formation in internalDefaultFormations.values) {
+        expect(
+          formation.slots.map((slot) => slot.label).toSet(),
+          hasLength(formation.slots.length),
+        );
+        for (final slot in formation.slots) {
+          expect(slot.position.dx, inInclusiveRange(.12, .88));
+          expect(slot.position.dy, inInclusiveRange(.16, .85));
+        }
+      }
     });
 
     test('zéro joueur ne propose aucune formation', () {
@@ -71,7 +115,7 @@ void main() {
         matchId: 'm',
         team1Name: 'A',
         team2Name: 'B',
-        team1FormationCode: '4-4-2',
+        team1FormationCode: '4-3-3',
         team2FormationCode: 'GB',
         entries: entries,
       );

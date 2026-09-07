@@ -1,6 +1,6 @@
 begin;
 
-select plan(10);
+select plan(14);
 
 select ok(
   to_regprocedure(
@@ -92,6 +92,47 @@ select ok(
     'EXECUTE'
   ),
   'authenticated peut appeler V4'
+);
+
+
+select ok(
+  position(
+    'v_match_type = ''entre_nous''' in pg_get_functiondef(
+      'private.notify_composition_published(uuid)'::regprocedure
+    )
+  ) > 0
+  and position(
+    'entry.zone = ''available''' in pg_get_functiondef(
+      'private.notify_composition_published(uuid)'::regprocedure
+    )
+  ) > 0,
+  'la notification entre nous exige les deux terrains complets'
+);
+
+select ok(
+  position(
+    'Les compositions sont en ligne' in pg_get_functiondef(
+      'private.dispatch_composition_published_push(uuid,uuid[])'::regprocedure
+    )
+  ) > 0,
+  'le push entre nous utilise le libellé pluriel demandé'
+);
+
+
+select ok(
+  private.internal_default_formation_code(1) = 'GB'
+  and private.internal_default_formation_code(5) = '1-2-1'
+  and private.internal_default_formation_code(9) = '3-3-2'
+  and private.internal_default_formation_code(11) = '4-3-3'
+  and private.internal_default_formation_code(14) = '4-3-3',
+  'le serveur impose le dispositif unique de 1 à 11 joueurs'
+);
+
+select ok(
+  private.internal_v4_formation_slots('4-2-3-1') is null
+  and cardinality(private.internal_v4_formation_slots('3-3-2')) = 9
+  and cardinality(private.internal_v4_formation_slots('4-3-3')) = 11,
+  'les anciennes variantes ne sont plus acceptées par V4'
 );
 
 select * from finish();

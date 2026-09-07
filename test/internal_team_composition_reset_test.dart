@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_composition_view.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ void main() {
             internalMatchCompositionRepositoryProvider.overrideWithValue(
               repository,
             ),
+            playerPositionArchiveProvider.overrideWith((ref) async => const {}),
           ],
           child: MaterialApp(
             theme: AppTheme.dark,
@@ -115,6 +117,44 @@ void main() {
       expect(find.text('Compositions remises à zéro.'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'un joueur voit seulement le terrain et jamais le papier',
+    (tester) async {
+      final repository = _FakeInternalMatchCompositionRepository();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            internalMatchCompositionRepositoryProvider.overrideWithValue(
+              repository,
+            ),
+            playerPositionArchiveProvider.overrideWith((ref) async => const {}),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: InternalTeamCompositionView(
+                  matchId: _matchId,
+                  editable: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sur papier'), findsNothing);
+      expect(find.text('Sur terrain'), findsNothing);
+      expect(
+        find.text('Les compositions ne sont pas encore en ligne.'),
+        findsOneWidget,
+      );
+      expect(find.text('Non affectés (1)'), findsNothing);
+    },
+  );
 }
 
 class _FakeInternalMatchCompositionRepository
@@ -136,15 +176,15 @@ class _FakeInternalMatchCompositionRepository
   String? savedTeam1JerseyId;
   String? savedTeam2JerseyId;
 
-  // Des joueurs sont déjà répartis : côté serveur, la notification de mise en
-  // ligne est donc déjà partie, et republier n'en enverra pas d'autre.
+  // La répartition papier ne publie rien : tant que les deux terrains ne sont
+  // pas complets, la notification reste disponible.
   InternalMatchComposition current = const InternalMatchComposition(
     matchId: _matchId,
     team1Name: 'Orange mécanique',
     team2Name: 'Bleu nuit',
     team1JerseyId: 'orange',
     team2JerseyId: 'blue',
-    notificationSent: true,
+    notificationSent: false,
     entries: [
       InternalCompositionEntry(
         participantId: 'p1',
