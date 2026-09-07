@@ -1636,7 +1636,6 @@ class _PlayerChip extends StatelessWidget {
   }
 }
 
-
 /// Profils indexés par participant du match. On réutilise exactement la même
 /// identité canonique et le même historique que la simulation du onze.
 final _internalBenchCountsProvider = FutureProvider.autoDispose
