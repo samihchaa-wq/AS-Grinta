@@ -86,8 +86,14 @@ class _InternalTeamCompositionViewState
     _team2Controller.text = composition.team2Name;
     _syncingNames = false;
     _entries = List.of(composition.entries);
-    _team1FormationCode = composition.team1FormationCode;
-    _team2FormationCode = composition.team2FormationCode;
+    final team1Count =
+        composition.entries.where((entry) => entry.teamNo == 1).length;
+    final team2Count =
+        composition.entries.where((entry) => entry.teamNo == 2).length;
+    _team1FormationCode =
+        internalDefaultFormationForPlayerCount(team1Count)?.code;
+    _team2FormationCode =
+        internalDefaultFormationForPlayerCount(team2Count)?.code;
     _notificationSent = composition.notificationSent;
 
     final team1 =
@@ -170,68 +176,16 @@ class _InternalTeamCompositionViewState
         entries[index] = entries[index].copyWith(clearPlacement: true);
       }
     }
+    final teamCount = entries.where((entry) => entry.teamNo == teamNo).length;
+    final automaticCode =
+        internalDefaultFormationForPlayerCount(teamCount)?.code;
     if (teamNo == 1) {
-      _team1FormationCode = null;
+      _team1FormationCode = automaticCode;
     } else {
-      _team2FormationCode = null;
+      _team2FormationCode = automaticCode;
     }
   }
 
-  void _changeFormation(int teamNo, String code) {
-    final entries = _entries;
-    if (!widget.editable || entries == null) return;
-    final team = entries.where((entry) => entry.teamNo == teamNo).toList();
-    final formation = internalFormationByCode(
-      playerCount: team.length,
-      code: code,
-    );
-    if (formation == null) return;
-
-    final field = team.where((entry) => entry.zone == 'field').toList();
-    final ordered = [
-      ...field.where((entry) => entry.isGoalkeeper),
-      ...field.where((entry) => !entry.isGoalkeeper),
-    ];
-    final placement = <String, FootballFormationSlot>{};
-    final overflow = <String>{};
-    for (var index = 0; index < ordered.length; index += 1) {
-      if (index < formation.slots.length) {
-        placement[ordered[index].participantId] = formation.slots[index];
-      } else {
-        overflow.add(ordered[index].participantId);
-      }
-    }
-    final benchBase = team.where((entry) => entry.zone == 'bench').length;
-    var extraBench = 0;
-
-    setState(() {
-      for (var index = 0; index < entries.length; index += 1) {
-        final entry = entries[index];
-        if (entry.teamNo != teamNo) continue;
-        if (placement[entry.participantId] case final slot?) {
-          entries[index] = entry.copyWith(
-            zone: 'field',
-            x: slot.position.dx,
-            y: slot.position.dy,
-            slotLabel: slot.label,
-          );
-        } else if (overflow.contains(entry.participantId)) {
-          entries[index] = entry.copyWith(
-            zone: 'bench',
-            sortOrder: benchBase + extraBench++,
-            clearSlot: true,
-          );
-        }
-      }
-      if (teamNo == 1) {
-        _team1FormationCode = code;
-      } else {
-        _team2FormationCode = code;
-      }
-      _selectedParticipantId = null;
-      _dirty = true;
-    });
-  }
 
   void _dropOnClassicSlot(
     int teamNo,
@@ -656,7 +610,6 @@ class _InternalTeamCompositionViewState
               _selectedEntry != null && _selectedEntry!.teamNo != _terrainTeam,
           onAssignSelected: () => _assignSelectedToTeam(_terrainTeam),
           onJerseySelected: (jersey) => _changeJersey(_terrainTeam, jersey),
-          onFormationSelected: (code) => _changeFormation(_terrainTeam, code),
           onDroppedOnSlot: (moving, slot) =>
               _dropOnClassicSlot(_terrainTeam, moving, slot),
           onRemoveFromField: (moving) =>
@@ -1150,7 +1103,6 @@ class _InternalTeamCard extends StatelessWidget {
     required this.canReceiveSelected,
     required this.onAssignSelected,
     required this.onJerseySelected,
-    required this.onFormationSelected,
     required this.onDroppedOnSlot,
     required this.onRemoveFromField,
     required this.finishedBenchCounts,
@@ -1167,7 +1119,6 @@ class _InternalTeamCard extends StatelessWidget {
   final bool canReceiveSelected;
   final VoidCallback onAssignSelected;
   final ValueChanged<JerseyOption> onJerseySelected;
-  final ValueChanged<String> onFormationSelected;
   final void Function(MatchCompositionEntry, FootballFormationSlot)
       onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
@@ -1201,11 +1152,7 @@ class _InternalTeamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formations = internalFormationsForPlayerCount(entries.length);
-    final formation = internalFormationByCode(
-      playerCount: entries.length,
-      code: formationCode,
-    );
+    final formation = internalDefaultFormationForPlayerCount(entries.length);
     final field = entries
         .where((entry) => entry.zone == 'field')
         .map(_classic)
@@ -1259,35 +1206,7 @@ class _InternalTeamCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            if (editable)
-              InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Dispositif',
-                  isDense: true,
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: formation?.code,
-                    hint: entries.isEmpty
-                        ? const Text('Aucun joueur')
-                        : const Text('Choisir le dispositif'),
-                    items: [
-                      for (final option in formations)
-                        DropdownMenuItem(
-                          value: option.code,
-                          child: Text(option.code),
-                        ),
-                    ],
-                    onChanged: entries.isEmpty
-                        ? null
-                        : (value) {
-                            if (value != null) onFormationSelected(value);
-                          },
-                  ),
-                ),
-              )
-            else if (formation != null)
+            if (formation != null)
               Text(
                 'Dispositif ${formation.code}',
                 textAlign: TextAlign.center,
@@ -1317,7 +1236,7 @@ class _InternalTeamCard extends StatelessWidget {
                 child: Text(
                   entries.isEmpty
                       ? 'Aucun joueur dans cette équipe.'
-                      : 'Choisis un dispositif pour afficher le terrain.',
+                      : 'Le terrain sera disponible dès que l’équipe contient un joueur.',
                   textAlign: TextAlign.center,
                 ),
               ),
