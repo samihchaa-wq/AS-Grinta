@@ -58,7 +58,8 @@ void main() {
       );
     });
 
-    test('le 3-3-2 garde trois lignes réalistes et deux pointes resserrées', () {
+    test('le 3-3-2 garde trois lignes réalistes et deux pointes resserrées',
+        () {
       final formation = internalDefaultFormationForPlayerCount(9)!;
       final slots = {for (final slot in formation.slots) slot.label: slot};
 
@@ -69,7 +70,8 @@ void main() {
       expect(slots['MC']!.position.dy, greaterThan(slots['BUG']!.position.dy));
     });
 
-    test('tous les gabarits restent dans une zone visuelle sûre du terrain', () {
+    test('tous les gabarits restent dans une zone visuelle sûre du terrain',
+        () {
       for (final formation in internalDefaultFormations.values) {
         expect(
           formation.slots.map((slot) => slot.label).toSet(),
