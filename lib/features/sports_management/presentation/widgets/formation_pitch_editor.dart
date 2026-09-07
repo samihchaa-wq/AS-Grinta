@@ -461,7 +461,8 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     final staleCanonicalPosition = entry != null &&
         entry.slotLabel == slot.label &&
         (storedPosition - slot.position).distance >= .12;
-    final visualPosition = staleCanonicalPosition ? slot.position : storedPosition;
+    final visualPosition =
+        staleCanonicalPosition ? slot.position : storedPosition;
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
     final left =
