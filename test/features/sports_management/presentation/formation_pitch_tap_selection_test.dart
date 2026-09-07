@@ -11,6 +11,7 @@ MatchCompositionEntry _entry({
   required MatchCompositionZone zone,
   double? x,
   double? y,
+  String? slotLabel,
 }) {
   return MatchCompositionEntry(
     participantId: id,
@@ -25,6 +26,7 @@ MatchCompositionEntry _entry({
         zone == MatchCompositionZone.field ? 'starter' : 'substitute',
     x: x,
     y: y,
+    slotLabel: slotLabel,
   );
 }
 
@@ -188,6 +190,49 @@ void main() {
       expect(moved?.participantId, 'second');
       expect(destination?.label, 'GB');
       expect(FormationPitchTapSelection.hasSelection, isFalse);
+    },
+  );
+
+  testWidgets(
+    'le libellé du poste garde les joueurs visibles malgré d’anciennes coordonnées',
+    (tester) async {
+      const bug = FootballFormationSlot(
+        label: 'BUG',
+        position: Offset(.38, .20),
+      );
+      const bud = FootballFormationSlot(
+        label: 'BUD',
+        position: Offset(.62, .20),
+      );
+      final leftStriker = _entry(
+        id: 'left-striker',
+        name: 'Simon',
+        zone: MatchCompositionZone.field,
+        x: .14,
+        y: .14,
+        slotLabel: 'BUG',
+      );
+      final rightStriker = _entry(
+        id: 'right-striker',
+        name: 'Allan',
+        zone: MatchCompositionZone.field,
+        x: .86,
+        y: .14,
+        slotLabel: 'BUD',
+      );
+
+      await tester.pumpWidget(
+        _harness(
+          slots: const [bug, bud],
+          field: [leftStriker, rightStriker],
+          onDrop: (_, __) {},
+        ),
+      );
+
+      expect(find.text('Simon'), findsOneWidget);
+      expect(find.text('Allan'), findsOneWidget);
+      expect(find.text('BUG'), findsNothing);
+      expect(find.text('BUD'), findsNothing);
     },
   );
 }
