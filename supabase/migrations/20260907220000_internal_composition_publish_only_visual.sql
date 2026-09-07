@@ -169,6 +169,15 @@ begin
        or v_team2_field <> least(v_team2_count, 11)
        or v_team1_bench <> greatest(v_team1_count - 11, 0)
        or v_team2_bench <> greatest(v_team2_count - 11, 0)
+       or not exists (
+         select 1
+         from public.match_internal_compositions composition
+         where composition.match_id = p_match_id
+           and composition.team1_formation =
+             private.internal_default_formation_code(v_team1_count)
+           and composition.team2_formation =
+             private.internal_default_formation_code(v_team2_count)
+       )
        or exists (
          select 1
          from public.match_internal_composition_entries entry
