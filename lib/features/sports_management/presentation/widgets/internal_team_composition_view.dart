@@ -185,7 +185,8 @@ class _InternalTeamCompositionViewState
     final entries = _entries;
     if (entries == null) return;
     for (var index = 0; index < entries.length; index += 1) {
-      if (entries[index].teamNo == teamNo && entries[index].slotLabel != null) {
+      if (entries[index].teamNo == teamNo &&
+          entries[index].zone != 'available') {
         entries[index] = entries[index].copyWith(clearPlacement: true);
       }
     }
