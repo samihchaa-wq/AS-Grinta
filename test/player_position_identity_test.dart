@@ -104,4 +104,47 @@ void main() {
       );
     });
   });
+
+  group('relabelPlayerPositionProfilesForDisplay', () {
+    test('raccorde un surnom visible au profil de la même identité', () {
+      final relabelled = relabelPlayerPositionProfilesForDisplay(
+        profiles: <String, PlayerPositionProfile>{
+          'luka-id': profile('Luka Brunel'),
+          'milan-id': profile('Milan Couzin'),
+        },
+        displayNamesByPlayerId: const {
+          'luka-id': 'Lulu',
+          'milan-id': 'Pipo',
+        },
+      );
+
+      final profilesByName = <String, PlayerPositionProfile>{
+        for (final entry in relabelled.values)
+          normalizePlayerName(entry.displayName): entry,
+      };
+
+      expect(profilesByName[normalizePlayerName('Lulu')], isNotNull);
+      expect(profilesByName[normalizePlayerName('Pipo')], isNotNull);
+      expect(relabelled['luka-id']?.appearances, 10);
+      expect(relabelled['luka-id']?.mainSlotLabel, 'MDC');
+    });
+
+    test('ne relie jamais deux identités portant le même libellé visible', () {
+      final original = <String, PlayerPositionProfile>{
+        'alex-1': profile('Alex Martin'),
+        'alex-2': profile('Alex Dupont'),
+      };
+      final relabelled = relabelPlayerPositionProfilesForDisplay(
+        profiles: original,
+        displayNamesByPlayerId: const {
+          'alex-1': 'Alex',
+          'alex-2': 'Alex',
+        },
+      );
+
+      expect(relabelled, same(original));
+      expect(relabelled['alex-1']?.displayName, 'Alex Martin');
+      expect(relabelled['alex-2']?.displayName, 'Alex Dupont');
+    });
+  });
 }
