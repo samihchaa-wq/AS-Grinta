@@ -45,3 +45,57 @@ Map<String, PlayerPositionProfile> realignPlayerPositionProfiles({
   }
   return moved ? realigned : archive;
 }
+
+/// Donne aux profils leur libellé réellement affiché aujourd'hui.
+///
+/// Les compositions « entre nous » affichent le surnom quand il existe,
+/// sinon le prénom. Leur regroupement papier indexe ensuite les profils par ce
+/// libellé. Sans ce raccord, un profil archivé sous « Luka Brunel » ne peut
+/// pas être retrouvé quand la composition affiche « Lulu ».
+///
+/// L'identité canonique reste la seule clé de rapprochement :
+/// [displayNamesByPlayerId] est indexé par `players.id`. En cas de doublon de
+/// libellé visible, on conserve volontairement les noms d'archive afin de ne
+/// jamais attribuer le profil d'un homonyme à l'autre.
+Map<String, PlayerPositionProfile> relabelPlayerPositionProfilesForDisplay({
+  required Map<String, PlayerPositionProfile> profiles,
+  required Map<String, String> displayNamesByPlayerId,
+}) {
+  if (profiles.isEmpty || displayNamesByPlayerId.isEmpty) return profiles;
+
+  final displayNameCounts = <String, int>{};
+  for (final entry in displayNamesByPlayerId.entries) {
+    if (!profiles.containsKey(entry.key)) continue;
+    final normalized = normalizePlayerName(entry.value);
+    if (normalized.isEmpty) continue;
+    displayNameCounts.update(
+      normalized,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+  }
+
+  var changed = false;
+  final relabelled = <String, PlayerPositionProfile>{};
+  for (final entry in profiles.entries) {
+    final requested = displayNamesByPlayerId[entry.key]?.trim();
+    final normalized = requested == null ? '' : normalizePlayerName(requested);
+    if (requested == null ||
+        requested.isEmpty ||
+        displayNameCounts[normalized] != 1 ||
+        requested == entry.value.displayName) {
+      relabelled[entry.key] = entry.value;
+      continue;
+    }
+
+    changed = true;
+    relabelled[entry.key] = PlayerPositionProfile(
+      displayName: requested,
+      appearances: entry.value.appearances,
+      samples: entry.value.samples,
+      totalWeight: entry.value.totalWeight,
+    );
+  }
+
+  return changed ? relabelled : profiles;
+}
