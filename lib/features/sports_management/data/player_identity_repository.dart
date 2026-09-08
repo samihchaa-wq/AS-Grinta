@@ -4,12 +4,34 @@ import 'package:as_grinta/features/sports_management/domain/player_position_prof
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Résout un nom de joueur de l'archive vers l'identité canonique qui porte
-/// aujourd'hui son histoire.
+const _displayNamesKey = '__display_names_by_player_id';
+
+class PlayerIdentityResolution {
+  const PlayerIdentityResolution({
+    required this.identitiesByName,
+    required this.displayNamesByPlayerId,
+  });
+
+  static const empty = PlayerIdentityResolution(
+    identitiesByName: <String, String>{},
+    displayNamesByPlayerId: <String, String>{},
+  );
+
+  final Map<String, String> identitiesByName;
+  final Map<String, String> displayNamesByPlayerId;
+}
+
+/// Résout les joueurs de l'archive vers leur identité canonique actuelle.
 abstract interface class PlayerIdentityRepository {
-  /// Renvoie les identités trouvées, indexées par nom normalisé. Un nom
-  /// ambigu ou inconnu est simplement absent de la réponse.
-  Future<Map<String, String>> resolveIdentitiesByName(List<String> names);
+  /// Une seule résolution serveur fournit à la fois :
+  /// - nom d'archive normalisé -> `players.id` canonique ;
+  /// - `players.id` -> libellé réellement affiché aujourd'hui.
+  ///
+  /// Le second bloc est optionnel côté serveur pour rester compatible avec une
+  /// base qui n'aurait pas encore reçu la migration associée.
+  Future<PlayerIdentityResolution> resolvePlayerPositionIdentities(
+    List<String> names,
+  );
 }
 
 class SupabasePlayerIdentityRepository implements PlayerIdentityRepository {
@@ -18,7 +40,7 @@ class SupabasePlayerIdentityRepository implements PlayerIdentityRepository {
   final SupabaseClient _client;
 
   @override
-  Future<Map<String, String>> resolveIdentitiesByName(
+  Future<PlayerIdentityResolution> resolvePlayerPositionIdentities(
     List<String> names,
   ) async {
     final wanted = names
@@ -26,19 +48,39 @@ class SupabasePlayerIdentityRepository implements PlayerIdentityRepository {
         .where((name) => name.isNotEmpty)
         .toSet()
         .toList(growable: false);
-    if (wanted.isEmpty) return const {};
+    if (wanted.isEmpty) return PlayerIdentityResolution.empty;
 
     final response = await _client.rpc(
       'resolve_player_identities',
       params: {'p_names': wanted},
     );
-    if (response is! Map) return const {};
+    if (response is! Map) return PlayerIdentityResolution.empty;
 
-    return {
-      for (final entry in Map<String, dynamic>.from(response).entries)
-        if (entry.value?.toString().trim() case final playerId?)
-          if (playerId.isNotEmpty) entry.key: playerId,
-    };
+    final json = Map<String, dynamic>.from(response);
+    final rawDisplayNames = json.remove(_displayNamesKey);
+
+    final identities = <String, String>{};
+    for (final entry in json.entries) {
+      final value = entry.value;
+      if (value is! String) continue;
+      final playerId = value.trim();
+      if (playerId.isNotEmpty) identities[entry.key] = playerId;
+    }
+
+    final displayNames = <String, String>{};
+    if (rawDisplayNames is Map) {
+      for (final entry in Map<String, dynamic>.from(rawDisplayNames).entries) {
+        final displayName = entry.value?.toString().trim();
+        if (displayName != null && displayName.isNotEmpty) {
+          displayNames[entry.key] = displayName;
+        }
+      }
+    }
+
+    return PlayerIdentityResolution(
+      identitiesByName: identities,
+      displayNamesByPlayerId: displayNames,
+    );
   }
 }
 
@@ -46,25 +88,32 @@ final playerIdentityRepositoryProvider = Provider<PlayerIdentityRepository>(
   (ref) => SupabasePlayerIdentityRepository(ref.watch(supabaseClientProvider)),
 );
 
-/// L'archive des postes, réancrée sur les identités canoniques d'aujourd'hui.
+/// L'archive des postes, réancrée sur les identités canoniques d'aujourd'hui
+/// et libellée comme l'effectif courant.
 ///
-/// Sans ce réancrage, une fusion d'identités suffit à faire disparaître le
-/// poste de référence d'un joueur : sa clé dans le fichier généré pointe alors
-/// sur une fiche supprimée. On repasse donc par le nom, qui survit à la
-/// fusion.
+/// La résolution reste un seul aller-retour réseau, comme avant ce correctif :
+/// elle ne rajoute donc aucune dépendance asynchrone aux autres écrans qui
+/// utilisent les profils de poste.
 ///
-/// Le relevé figé du fichier reste le repli : si la base ne répond pas, mieux
-/// vaut des postes un peu datés que pas de postes du tout.
+/// Le serveur continue aussi d'accepter les anciens clients : si le bloc de
+/// libellés courants n'est pas présent, on garde simplement les noms d'archive.
 final playerPositionArchiveProvider =
     FutureProvider<Map<String, PlayerPositionProfile>>((ref) async {
   try {
-    final identities = await ref
+    final resolution = await ref
         .watch(playerIdentityRepositoryProvider)
-        .resolveIdentitiesByName([
+        .resolvePlayerPositionIdentities([
       for (final profile in kPlayerPositionProfiles.values)
         if (profile.displayName.isNotEmpty) profile.displayName,
     ]);
-    return realignPlayerPositionProfiles(identitiesByName: identities);
+
+    final profiles = realignPlayerPositionProfiles(
+      identitiesByName: resolution.identitiesByName,
+    );
+    return relabelPlayerPositionProfilesForDisplay(
+      profiles: profiles,
+      displayNamesByPlayerId: resolution.displayNamesByPlayerId,
+    );
   } catch (_) {
     return kPlayerPositionProfiles;
   }
