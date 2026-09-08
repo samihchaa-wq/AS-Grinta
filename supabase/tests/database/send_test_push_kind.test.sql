@@ -66,6 +66,12 @@ select throws_ok(
   'un type hors liste blanche est refusé'
 );
 
+select throws_ok(
+  $$select public.send_test_push_kind('admin_availability_change')$$,
+  '42501',
+  'le test de changement de disponibilité est réservé aux admins côté serveur'
+);
+
 select is(
   public.send_test_push_kind('test')->>'reason',
   'no_subscription',
