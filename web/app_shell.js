@@ -5,6 +5,7 @@
   var deploymentCheckInFlight = false;
   var deploymentCheckIntervalMs = 300000;
   var deploymentMarker = '_asg_release';
+  var flutterFirstFrameSeen = false;
 
   function extractDeploymentVersion(source) {
     var match = source.match(/AS_GRINTA_WEB_VERSION\s*=\s*['"]([^'"]+)['"]/);
@@ -56,45 +57,72 @@
 
   window.asGrintaUpdate = {
     _worker: null,
+    _pending: false,
+    _status: null,
+
     show: function (worker) {
+      if (!worker) return;
       this._worker = worker;
-      if (!worker || document.getElementById('as-grinta-update-bar')) return;
-      var bar = document.createElement('div');
-      bar.id = 'as-grinta-update-bar';
-      bar.textContent = 'Nouvelle version disponible — appuyez pour mettre à jour';
-      bar.setAttribute('aria-live', 'polite');
-      bar.setAttribute('role', 'button');
-      bar.setAttribute('tabindex', '0');
-      bar.setAttribute('style', [
-        'position:fixed', 'top:0', 'left:0', 'right:0', 'width:100%',
-        'z-index:2147483647', 'border:0',
-        'background:#FBE80C', 'color:#041224',
-        'font:700 14px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
-        'padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px',
-        'text-align:center', 'cursor:pointer',
-        'box-shadow:0 2px 10px rgba(0,0,0,.35)'
+      this._pending = true;
+      this._showStatus();
+
+      // Au démarrage, ou pendant que l'app est en arrière-plan, la nouvelle
+      // version prend immédiatement le contrôle. Si l'utilisateur est déjà
+      // actif dans Flutter, on attend qu'il quitte l'app afin de ne pas couper
+      // une saisie ou une mutation en cours.
+      if (!flutterFirstFrameSeen || document.visibilityState !== 'visible') {
+        this.activate();
+      }
+    },
+
+    _showStatus: function () {
+      if (this._status || document.getElementById('as-grinta-update-status')) {
+        return;
+      }
+
+      var status = document.createElement('div');
+      status.id = 'as-grinta-update-status';
+      status.textContent = 'Mise à jour d’AS Grinta…';
+      status.setAttribute('aria-live', 'polite');
+      status.setAttribute('role', 'status');
+      status.setAttribute('style', [
+        'position:fixed',
+        'left:50%',
+        'bottom:calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        'transform:translateX(-50%)',
+        'z-index:2147483647',
+        'max-width:calc(100% - 32px)',
+        'background:rgba(4,18,36,.92)',
+        'color:#fff',
+        'font:600 13px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+        'padding:9px 13px',
+        'border-radius:999px',
+        'box-shadow:0 4px 16px rgba(0,0,0,.24)',
+        'text-align:center',
+        'pointer-events:none'
       ].join(';'));
 
-      var self = this;
-      function activateUpdate() {
-        if (!self._worker) return;
-        bar.textContent = 'Mise à jour de ASG…';
-        bar.removeEventListener('click', activateUpdate);
-        bar.removeEventListener('keydown', onKeydown);
-        self._worker.postMessage({ type: 'SKIP_WAITING' });
-      }
-      function onKeydown(event) {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          activateUpdate();
-        }
-      }
+      document.body.appendChild(status);
+      this._status = status;
+    },
 
-      bar.addEventListener('click', activateUpdate);
-      bar.addEventListener('keydown', onKeydown);
-      document.body.appendChild(bar);
+    activate: function () {
+      if (!this._pending || !this._worker) return;
+      var worker = this._worker;
+      this._worker = null;
+      this._pending = false;
+      worker.postMessage({ type: 'SKIP_WAITING' });
     }
   };
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+      window.asGrintaUpdate.activate();
+    }
+  });
+  window.addEventListener('pagehide', function () {
+    window.asGrintaUpdate.activate();
+  });
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(
@@ -262,7 +290,10 @@
     inner.appendChild(block);
   }
 
-  window.addEventListener('flutter-first-frame', dismissSplash);
+  window.addEventListener('flutter-first-frame', function () {
+    flutterFirstFrameSeen = true;
+    dismissSplash();
+  });
   splashStalledTimer = setTimeout(showSplashStalled, 15000);
 
   var bootstrap = document.createElement('script');
