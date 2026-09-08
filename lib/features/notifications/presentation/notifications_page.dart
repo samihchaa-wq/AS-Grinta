@@ -19,11 +19,15 @@ class NotificationsPage extends ConsumerWidget {
         onRefresh: () async {
           ref
             ..invalidate(pushStatusProvider)
-            ..invalidate(appPreferencesProvider);
+            ..invalidate(appPreferencesProvider)
+            ..invalidate(adminAvailabilityChangeNotificationProvider);
           await Future.wait([
             ref.read(pushStatusProvider.future),
             ref.read(appPreferencesProvider.future),
           ]);
+          if (ref.read(isAdminViewProvider)) {
+            await ref.read(adminAvailabilityChangeNotificationProvider.future);
+          }
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -33,6 +37,7 @@ class NotificationsPage extends ConsumerWidget {
             _MandatoryNotificationsCard(),
             SizedBox(height: 12),
             _OptionalNotificationsCard(),
+            _AdminAvailabilityNotificationCard(),
             _NotificationActionsRow(),
             _AdminKillSwitchCard(),
           ],
@@ -182,6 +187,82 @@ class _OptionalNotificationsCard extends ConsumerWidget {
   }
 }
 
+final adminAvailabilityChangeNotificationProvider =
+    FutureProvider.autoDispose<bool>((ref) async {
+  final response = await ref.read(supabaseClientProvider).rpc('get_my_profile');
+  if (response is! Map) return true;
+  final profile = Map<String, dynamic>.from(response);
+  return profile['notify_admin_availability_change'] != false;
+});
+
+class _AdminAvailabilityNotificationCard extends ConsumerStatefulWidget {
+  const _AdminAvailabilityNotificationCard();
+
+  @override
+  ConsumerState<_AdminAvailabilityNotificationCard> createState() =>
+      _AdminAvailabilityNotificationCardState();
+}
+
+class _AdminAvailabilityNotificationCardState
+    extends ConsumerState<_AdminAvailabilityNotificationCard> {
+  bool _updating = false;
+
+  Future<void> _toggle(bool enabled) async {
+    setState(() => _updating = true);
+    var message = enabled
+        ? 'Notification de changement de disponibilité activée.'
+        : 'Notification de changement de disponibilité désactivée.';
+    try {
+      final result = await ref.read(supabaseClientProvider).rpc(
+        'update_my_admin_availability_notification',
+        params: {'p_enabled': enabled},
+      );
+      if (result != true) {
+        throw StateError('Preference not saved');
+      }
+      ref.invalidate(adminAvailabilityChangeNotificationProvider);
+    } catch (_) {
+      message = 'Impossible d’enregistrer ce réglage.';
+    }
+    if (!mounted) return;
+    setState(() => _updating = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ref.watch(isAdminViewProvider)) return const SizedBox.shrink();
+    final preferenceAsync =
+        ref.watch(adminAvailabilityChangeNotificationProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Card(
+        child: preferenceAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: GrintaProgressIndicator()),
+          ),
+          error: (_, __) => const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Impossible de charger le réglage administrateur.'),
+          ),
+          data: (enabled) => SwitchListTile.adaptive(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            title: const Text('Changement de disponibilité d’un joueur'),
+            subtitle: const Text(
+              'Quand un joueur passe de Présent à Absent ou inversement.',
+            ),
+            value: enabled,
+            onChanged: _updating ? null : _toggle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NotificationActionsRow extends ConsumerWidget {
   const _NotificationActionsRow();
 
@@ -241,6 +322,11 @@ const _testNotificationOptions = <_TestNotificationOption>[
   _TestNotificationOption(
     'admin_pending_signup',
     'Nouveau compte en attente',
+    adminOnly: true,
+  ),
+  _TestNotificationOption(
+    'admin_availability_change',
+    'Changement de disponibilité',
     adminOnly: true,
   ),
 ];
@@ -466,9 +552,6 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
           );
         }
 
-        // Les trois notifications essentielles ne se coupent pas une par une.
-        // Sans ce bouton, la seule sortie etait de retirer l'autorisation dans
-        // les reglages du navigateur, hors de l'application.
         if (status.subscribed) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
