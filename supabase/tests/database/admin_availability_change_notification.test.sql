@@ -33,8 +33,8 @@ select is(
     'available',
     '2026-09-08 19:42:00+00'::timestamptz
   ),
-  'Bruno est passé de absent à présent à 21h42.',
-  'Absent -> Présent utilise le libellé demandé et l’heure de Paris'
+  'Bruno est passé d''absent à présent à 21h42.',
+  'Absent -> Présent utilise une formulation naturelle et l’heure de Paris'
 );
 
 select is(
