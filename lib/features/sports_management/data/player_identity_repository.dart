@@ -4,18 +4,34 @@ import 'package:as_grinta/features/sports_management/domain/player_position_prof
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Résout un nom de joueur de l'archive vers l'identité canonique qui porte
-/// aujourd'hui son histoire.
-abstract interface class PlayerIdentityRepository {
-  /// Renvoie les identités trouvées, indexées par nom normalisé. Un nom
-  /// ambigu ou inconnu est simplement absent de la réponse.
-  Future<Map<String, String>> resolveIdentitiesByName(List<String> names);
+const _displayNamesKey = '__display_names_by_player_id';
 
-  /// Renvoie le libellé actuellement affiché pour chaque identité canonique.
+class PlayerIdentityResolution {
+  const PlayerIdentityResolution({
+    required this.identitiesByName,
+    required this.displayNamesByPlayerId,
+  });
+
+  static const empty = PlayerIdentityResolution(
+    identitiesByName: <String, String>{},
+    displayNamesByPlayerId: <String, String>{},
+  );
+
+  final Map<String, String> identitiesByName;
+  final Map<String, String> displayNamesByPlayerId;
+}
+
+/// Résout les joueurs de l'archive vers leur identité canonique actuelle.
+abstract interface class PlayerIdentityRepository {
+  /// Une seule résolution serveur fournit à la fois :
+  /// - nom d'archive normalisé -> `players.id` canonique ;
+  /// - `players.id` -> libellé réellement affiché aujourd'hui.
   ///
-  /// C'est le surnom du profil lorsqu'il existe, sinon son prénom, puis le
-  /// prénom de l'effectif pour les joueurs sans compte actif.
-  Future<Map<String, String>> resolveCurrentDisplayNamesByPlayerId();
+  /// Le second bloc est optionnel côté serveur pour rester compatible avec une
+  /// base qui n'aurait pas encore reçu la migration associée.
+  Future<PlayerIdentityResolution> resolvePlayerPositionIdentities(
+    List<String> names,
+  );
 }
 
 class SupabasePlayerIdentityRepository implements PlayerIdentityRepository {
@@ -24,7 +40,7 @@ class SupabasePlayerIdentityRepository implements PlayerIdentityRepository {
   final SupabaseClient _client;
 
   @override
-  Future<Map<String, String>> resolveIdentitiesByName(
+  Future<PlayerIdentityResolution> resolvePlayerPositionIdentities(
     List<String> names,
   ) async {
     final wanted = names
@@ -32,55 +48,40 @@ class SupabasePlayerIdentityRepository implements PlayerIdentityRepository {
         .where((name) => name.isNotEmpty)
         .toSet()
         .toList(growable: false);
-    if (wanted.isEmpty) return const {};
+    if (wanted.isEmpty) return PlayerIdentityResolution.empty;
 
     final response = await _client.rpc(
       'resolve_player_identities',
       params: {'p_names': wanted},
     );
-    if (response is! Map) return const {};
+    if (response is! Map) return PlayerIdentityResolution.empty;
 
-    return {
-      for (final entry in Map<String, dynamic>.from(response).entries)
-        if (entry.value?.toString().trim() case final playerId?)
-          if (playerId.isNotEmpty) entry.key: playerId,
-    };
-  }
+    final json = Map<String, dynamic>.from(response);
+    final rawDisplayNames = json.remove(_displayNamesKey);
 
-  @override
-  Future<Map<String, String>> resolveCurrentDisplayNamesByPlayerId() async {
-    final seasonRows = await _client
-        .from('season_players')
-        .select('player_id, first_name')
-        .eq('is_active', true);
-    final profileRows = await _client
-        .from('profiles')
-        .select('player_id, surnom, first_name')
-        .eq('status', 'active');
+    final identities = <String, String>{};
+    for (final entry in json.entries) {
+      final value = entry.value;
+      if (value is! String) continue;
+      final playerId = value.trim();
+      if (playerId.isNotEmpty) identities[entry.key] = playerId;
+    }
 
     final displayNames = <String, String>{};
-    for (final row in seasonRows) {
-      final playerId = _cleanText(row['player_id']);
-      final firstName = _cleanText(row['first_name']);
-      if (playerId != null && firstName != null) {
-        displayNames[playerId] = firstName;
+    if (rawDisplayNames is Map) {
+      for (final entry in Map<String, dynamic>.from(rawDisplayNames).entries) {
+        final displayName = entry.value?.toString().trim();
+        if (displayName != null && displayName.isNotEmpty) {
+          displayNames[entry.key] = displayName;
+        }
       }
     }
-    for (final row in profileRows) {
-      final playerId = _cleanText(row['player_id']);
-      final displayName =
-          _cleanText(row['surnom']) ?? _cleanText(row['first_name']);
-      if (playerId != null && displayName != null) {
-        displayNames[playerId] = displayName;
-      }
-    }
-    return displayNames;
-  }
-}
 
-String? _cleanText(Object? value) {
-  final text = value?.toString().trim();
-  return text == null || text.isEmpty ? null : text;
+    return PlayerIdentityResolution(
+      identitiesByName: identities,
+      displayNamesByPlayerId: displayNames,
+    );
+  }
 }
 
 final playerIdentityRepositoryProvider = Provider<PlayerIdentityRepository>(
@@ -90,43 +91,30 @@ final playerIdentityRepositoryProvider = Provider<PlayerIdentityRepository>(
 /// L'archive des postes, réancrée sur les identités canoniques d'aujourd'hui
 /// et libellée comme l'effectif courant.
 ///
-/// Sans ce réancrage, une fusion d'identités suffit à faire disparaître le
-/// poste de référence d'un joueur : sa clé dans le fichier généré pointe alors
-/// sur une fiche supprimée. On repasse donc par le nom, qui survit à la
-/// fusion.
+/// La résolution reste un seul aller-retour réseau, comme avant ce correctif :
+/// elle ne rajoute donc aucune dépendance asynchrone aux autres écrans qui
+/// utilisent les profils de poste.
 ///
-/// Le libellé courant est ensuite appliqué via l'identité canonique. Ainsi une
-/// composition qui affiche « Lulu » retrouve bien le profil archivé de « Luka
-/// Brunel », sans dépendre d'une comparaison approximative de noms.
-///
-/// Si la résolution canonique échoue (par exemple dans un environnement sans
-/// Supabase), on rend immédiatement le relevé figé : la lecture optionnelle des
-/// libellés courants ne doit jamais retarder le chargement des écrans.
+/// Le serveur continue aussi d'accepter les anciens clients : si le bloc de
+/// libellés courants n'est pas présent, on garde simplement les noms d'archive.
 final playerPositionArchiveProvider =
     FutureProvider<Map<String, PlayerPositionProfile>>((ref) async {
-  final repository = ref.watch(playerIdentityRepositoryProvider);
-  Map<String, PlayerPositionProfile> profiles;
-
   try {
-    final identities = await repository.resolveIdentitiesByName([
+    final resolution = await ref
+        .watch(playerIdentityRepositoryProvider)
+        .resolvePlayerPositionIdentities([
       for (final profile in kPlayerPositionProfiles.values)
         if (profile.displayName.isNotEmpty) profile.displayName,
     ]);
-    profiles = realignPlayerPositionProfiles(
-      identitiesByName: identities,
+
+    final profiles = realignPlayerPositionProfiles(
+      identitiesByName: resolution.identitiesByName,
+    );
+    return relabelPlayerPositionProfilesForDisplay(
+      profiles: profiles,
+      displayNamesByPlayerId: resolution.displayNamesByPlayerId,
     );
   } catch (_) {
     return kPlayerPositionProfiles;
-  }
-
-  try {
-    final displayNames =
-        await repository.resolveCurrentDisplayNamesByPlayerId();
-    return relabelPlayerPositionProfilesForDisplay(
-      profiles: profiles,
-      displayNamesByPlayerId: displayNames,
-    );
-  } catch (_) {
-    return profiles;
   }
 });
