@@ -85,30 +85,36 @@ void main() {
     );
 
     test(
-      'la mise à jour attend une action utilisateur avant de prendre le contrôle',
+      'la mise à jour est automatique sans bandeau bloquant',
       () {
         expect(shell, contains("aria-live', 'polite'"));
-        expect(shell, contains('Nouvelle version disponible'));
-        expect(shell, contains('function activateUpdate()'));
+        expect(shell, contains("role', 'status'"));
+        expect(shell, contains('Mise à jour d’AS Grinta…'));
         expect(
           shell,
-          contains("self._worker.postMessage({ type: 'SKIP_WAITING' })"),
+          contains('Mise à jour prête — automatique à la prochaine ouverture'),
         );
+        expect(shell, isNot(contains('Nouvelle version disponible')));
+        expect(shell, isNot(contains("role', 'button'")));
+        expect(shell, isNot(contains('as-grinta-update-bar')));
         expect(
           shell,
-          contains("bar.addEventListener('click', activateUpdate)"),
+          contains("this._worker.postMessage({ type: 'SKIP_WAITING' })"),
         );
+        expect(shell, contains('function applyPendingDeploymentWhenSafe()'));
+        expect(shell, contains("window.addEventListener('pagehide'"));
+        expect(shell, contains('flutterFirstFrameSeen = true'));
 
         final considerStart = shell.indexOf('function considerWorker(worker)');
-        final updateFoundStart = shell.indexOf(
-          "registration.addEventListener('updatefound'",
-        );
+        final refreshStart = shell.indexOf('function refreshRegistration()');
         expect(considerStart, greaterThanOrEqualTo(0));
-        expect(updateFoundStart, greaterThan(considerStart));
+        expect(refreshStart, greaterThan(considerStart));
 
-        final considerWorker = shell.substring(considerStart, updateFoundStart);
-        expect(considerWorker, contains('window.asGrintaUpdate.show(worker)'));
-        expect(considerWorker, isNot(contains('SKIP_WAITING')));
+        final considerWorker = shell.substring(considerStart, refreshStart);
+        expect(
+          considerWorker,
+          contains('window.asGrintaUpdate.prepare(worker)'),
+        );
       },
     );
   });
