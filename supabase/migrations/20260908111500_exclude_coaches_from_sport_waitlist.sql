@@ -46,9 +46,6 @@ begin
     raise exception 'Sport season not found' using errcode = 'P0002';
   end if;
 
-  -- Backstop pour les anciennes données ou une bascule Coach faite avant ce
-  -- correctif. Les mises à jour futures sont également nettoyées par le
-  -- trigger de synchronisation du flag Coach ci-dessous.
   delete from public.sport_waitlist_entries entry
   using public.season_players player
   where entry.season_id = p_season_id
@@ -140,9 +137,6 @@ begin
 end;
 $function$;
 
--- Le flag Coach rend déjà les participants des matchs à venir inéligibles.
--- On étend cette même frontière métier pour retirer immédiatement le joueur
--- de la liste d'attente s'il y figurait au moment du changement de statut.
 create or replace function private.apply_coach_flag_to_participants()
 returns trigger
 language plpgsql
