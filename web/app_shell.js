@@ -5,6 +5,9 @@
   var deploymentCheckInFlight = false;
   var deploymentCheckIntervalMs = 300000;
   var deploymentMarker = '_asg_release';
+  var flutterFirstFrameSeen = false;
+  var pendingDeploymentVersion = '';
+  var updateNavigationInProgress = false;
 
   function extractDeploymentVersion(source) {
     var match = source.match(/AS_GRINTA_WEB_VERSION\s*=\s*['"]([^'"]+)['"]/);
@@ -22,6 +25,49 @@
     } catch (_) {}
   }
 
+  function navigateToDeploymentVersion(freshVersion) {
+    if (!freshVersion || updateNavigationInProgress) return false;
+    try {
+      var targetUrl = new URL(window.location.href);
+      if (targetUrl.searchParams.get(deploymentMarker) === freshVersion) {
+        return false;
+      }
+      targetUrl.searchParams.set(deploymentMarker, freshVersion);
+      updateNavigationInProgress = true;
+      if (window.asGrintaUpdate) {
+        window.asGrintaUpdate.showStatus('Mise à jour d’AS Grinta…', false);
+      }
+      window.location.replace(targetUrl.toString());
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function applyPendingDeploymentWhenSafe() {
+    if (!pendingDeploymentVersion) return false;
+    if (flutterFirstFrameSeen && document.visibilityState === 'visible') {
+      return false;
+    }
+    var freshVersion = pendingDeploymentVersion;
+    pendingDeploymentVersion = '';
+    return navigateToDeploymentVersion(freshVersion);
+  }
+
+  function scheduleDeploymentVersion(freshVersion) {
+    pendingDeploymentVersion = freshVersion;
+    if (!flutterFirstFrameSeen || document.visibilityState !== 'visible') {
+      applyPendingDeploymentWhenSafe();
+      return;
+    }
+    if (window.asGrintaUpdate) {
+      window.asGrintaUpdate.showStatus(
+        'Mise à jour prête — automatique à la prochaine ouverture',
+        true
+      );
+    }
+  }
+
   async function checkDeploymentVersion() {
     if (deploymentCheckInFlight) return;
     deploymentCheckInFlight = true;
@@ -34,12 +80,11 @@
       var freshVersion = extractDeploymentVersion(await response.text());
       if (!freshVersion || freshVersion === asGrintaWebVersion) return;
 
-      var targetUrl = new URL(window.location.href);
-      if (targetUrl.searchParams.get(deploymentMarker) === freshVersion) {
+      var currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get(deploymentMarker) === freshVersion) {
         return;
       }
-      targetUrl.searchParams.set(deploymentMarker, freshVersion);
-      window.location.replace(targetUrl.toString());
+      scheduleDeploymentVersion(freshVersion);
     } catch (_) {
       // Une vérification de fraîcheur ne doit jamais bloquer le démarrage.
     } finally {
@@ -48,53 +93,110 @@
   }
 
   clearCurrentDeploymentMarker();
-  checkDeploymentVersion();
-  setInterval(checkDeploymentVersion, deploymentCheckIntervalMs);
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') checkDeploymentVersion();
-  });
 
   window.asGrintaUpdate = {
     _worker: null,
-    show: function (worker) {
+    _activationRequested: false,
+    _indicator: null,
+    _indicatorTimer: null,
+
+    showStatus: function (message, autoHide) {
+      if (!document.body) return;
+      if (this._indicatorTimer) {
+        clearTimeout(this._indicatorTimer);
+        this._indicatorTimer = null;
+      }
+
+      var indicator = this._indicator;
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'as-grinta-update-status';
+        indicator.setAttribute('aria-live', 'polite');
+        indicator.setAttribute('role', 'status');
+        indicator.setAttribute('style', [
+          'position:fixed', 'left:50%', 'bottom:calc(env(safe-area-inset-bottom, 0px) + 18px)',
+          'transform:translateX(-50%)', 'z-index:2147483647',
+          'max-width:calc(100% - 32px)', 'width:max-content',
+          'background:rgba(4,18,36,.94)', 'color:#fff',
+          'font:600 13px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+          'padding:9px 13px', 'border-radius:999px', 'text-align:center',
+          'box-shadow:0 4px 18px rgba(0,0,0,.24)', 'pointer-events:none'
+        ].join(';'));
+        document.body.appendChild(indicator);
+        this._indicator = indicator;
+      }
+
+      indicator.textContent = message;
+      if (autoHide) {
+        var self = this;
+        this._indicatorTimer = setTimeout(function () {
+          self.hideStatus();
+        }, 4500);
+      }
+    },
+
+    hideStatus: function () {
+      if (this._indicatorTimer) {
+        clearTimeout(this._indicatorTimer);
+        this._indicatorTimer = null;
+      }
+      if (this._indicator && this._indicator.parentNode) {
+        this._indicator.parentNode.removeChild(this._indicator);
+      }
+      this._indicator = null;
+    },
+
+    activate: function () {
+      if (!this._worker || this._activationRequested) return;
+      this._activationRequested = true;
+      if (document.visibilityState === 'visible') {
+        this.showStatus('Mise à jour d’AS Grinta…', false);
+      }
+      this._worker.postMessage({ type: 'SKIP_WAITING' });
+    },
+
+    prepare: function (worker) {
+      if (!worker || !navigator.serviceWorker.controller) return;
       this._worker = worker;
-      if (!worker || document.getElementById('as-grinta-update-bar')) return;
-      var bar = document.createElement('div');
-      bar.id = 'as-grinta-update-bar';
-      bar.textContent = 'Nouvelle version disponible — appuyez pour mettre à jour';
-      bar.setAttribute('aria-live', 'polite');
-      bar.setAttribute('role', 'button');
-      bar.setAttribute('tabindex', '0');
-      bar.setAttribute('style', [
-        'position:fixed', 'top:0', 'left:0', 'right:0', 'width:100%',
-        'z-index:2147483647', 'border:0',
-        'background:#FBE80C', 'color:#041224',
-        'font:700 14px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
-        'padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px',
-        'text-align:center', 'cursor:pointer',
-        'box-shadow:0 2px 10px rgba(0,0,0,.35)'
-      ].join(';'));
+      this._activationRequested = false;
 
-      var self = this;
-      function activateUpdate() {
-        if (!self._worker) return;
-        bar.textContent = 'Mise à jour de ASG…';
-        bar.removeEventListener('click', activateUpdate);
-        bar.removeEventListener('keydown', onKeydown);
-        self._worker.postMessage({ type: 'SKIP_WAITING' });
-      }
-      function onKeydown(event) {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          activateUpdate();
-        }
+      // Au démarrage ou lorsque l’app est déjà en arrière-plan, la nouvelle
+      // version prend la main immédiatement. Une app déjà utilisée reste en
+      // place jusqu’à ce qu’elle passe en arrière-plan afin de ne pas couper
+      // une saisie ou une action métier en cours.
+      if (!flutterFirstFrameSeen || document.visibilityState !== 'visible') {
+        this.activate();
+        return;
       }
 
-      bar.addEventListener('click', activateUpdate);
-      bar.addEventListener('keydown', onKeydown);
-      document.body.appendChild(bar);
+      this.showStatus(
+        'Mise à jour prête — automatique à la prochaine ouverture',
+        true
+      );
+    },
+
+    activateWhenSafe: function () {
+      if (!this._worker || this._activationRequested) return;
+      if (!flutterFirstFrameSeen || document.visibilityState !== 'visible') {
+        this.activate();
+      }
     }
   };
+
+  checkDeploymentVersion();
+  setInterval(checkDeploymentVersion, deploymentCheckIntervalMs);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      checkDeploymentVersion();
+      return;
+    }
+    if (applyPendingDeploymentWhenSafe()) return;
+    window.asGrintaUpdate.activateWhenSafe();
+  });
+  window.addEventListener('pagehide', function () {
+    if (applyPendingDeploymentWhenSafe()) return;
+    window.asGrintaUpdate.activateWhenSafe();
+  });
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(
@@ -105,7 +207,13 @@
 
       function considerWorker(worker) {
         if (!worker || !navigator.serviceWorker.controller) return;
-        window.asGrintaUpdate.show(worker);
+        window.asGrintaUpdate.prepare(worker);
+      }
+
+      function refreshRegistration() {
+        registration.update().then(function () {
+          considerWorker(registration.waiting);
+        }).catch(function () {});
       }
 
       considerWorker(registration.waiting);
@@ -117,16 +225,16 @@
         });
       });
 
-      registration.update();
-      setInterval(function () { registration.update(); }, 300000);
+      refreshRegistration();
+      setInterval(refreshRegistration, 300000);
       document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') registration.update();
+        if (document.visibilityState === 'visible') refreshRegistration();
       });
     }).catch(function () {});
 
     var refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function () {
-      if (refreshing) return;
+      if (refreshing || updateNavigationInProgress) return;
       refreshing = true;
       window.location.reload();
     });
@@ -262,7 +370,10 @@
     inner.appendChild(block);
   }
 
-  window.addEventListener('flutter-first-frame', dismissSplash);
+  window.addEventListener('flutter-first-frame', function () {
+    flutterFirstFrameSeen = true;
+    dismissSplash();
+  });
   splashStalledTimer = setTimeout(showSplashStalled, 15000);
 
   var bootstrap = document.createElement('script');
