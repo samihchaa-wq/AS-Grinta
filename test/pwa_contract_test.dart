@@ -54,7 +54,7 @@ void main() {
 
     test('un seul service worker est enregistré', () {
       expect(bootstrap, contains('_flutter.loader.load();'));
-      expect(bootstrap, isNot(contains('serviceWorkerSettings')));
+      expect(bootstrap, isNot(contains('serviceWorkerSettings'));
       expect(shell, contains("'sw.js?v='"));
     });
 
@@ -85,19 +85,26 @@ void main() {
     );
 
     test(
-      'la mise à jour attend une action utilisateur avant de prendre le contrôle',
+      'la mise à jour est automatique et n’affiche plus de bandeau bloquant',
       () {
         expect(shell, contains("aria-live', 'polite'"));
-        expect(shell, contains('Nouvelle version disponible'));
-        expect(shell, contains('function activateUpdate()'));
+        expect(shell, contains('Mise à jour d’AS Grinta…'));
+        expect(shell, contains("status.setAttribute('role', 'status')"));
+        expect(shell, isNot(contains('Nouvelle version disponible')));
+        expect(shell, isNot(contains('as-grinta-update-bar')));
+        expect(shell, isNot(contains("addEventListener('click', activateUpdate)")));
         expect(
           shell,
-          contains("self._worker.postMessage({ type: 'SKIP_WAITING' })"),
+          contains("worker.postMessage({ type: 'SKIP_WAITING' })"),
         );
         expect(
           shell,
-          contains("bar.addEventListener('click', activateUpdate)"),
+          contains(
+            "!flutterFirstFrameSeen || document.visibilityState !== 'visible'",
+          ),
         );
+        expect(shell, contains("document.visibilityState === 'hidden'"));
+        expect(shell, contains('window.asGrintaUpdate.activate();'));
 
         final considerStart = shell.indexOf('function considerWorker(worker)');
         final updateFoundStart = shell.indexOf(
@@ -108,7 +115,6 @@ void main() {
 
         final considerWorker = shell.substring(considerStart, updateFoundStart);
         expect(considerWorker, contains('window.asGrintaUpdate.show(worker)'));
-        expect(considerWorker, isNot(contains('SKIP_WAITING')));
       },
     );
   });
