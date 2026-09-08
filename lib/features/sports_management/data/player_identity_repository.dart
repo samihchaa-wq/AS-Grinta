@@ -99,12 +99,13 @@ final playerIdentityRepositoryProvider = Provider<PlayerIdentityRepository>(
 /// composition qui affiche « Lulu » retrouve bien le profil archivé de « Luka
 /// Brunel », sans dépendre d'une comparaison approximative de noms.
 ///
-/// Chaque lecture live a son propre repli : si l'une échoue, on conserve le
-/// meilleur état déjà obtenu plutôt que de perdre tout le profil de postes.
+/// Si la résolution canonique échoue (par exemple dans un environnement sans
+/// Supabase), on rend immédiatement le relevé figé : la lecture optionnelle des
+/// libellés courants ne doit jamais retarder le chargement des écrans.
 final playerPositionArchiveProvider =
     FutureProvider<Map<String, PlayerPositionProfile>>((ref) async {
   final repository = ref.watch(playerIdentityRepositoryProvider);
-  var profiles = kPlayerPositionProfiles;
+  Map<String, PlayerPositionProfile> profiles;
 
   try {
     final identities = await repository.resolveIdentitiesByName([
@@ -113,22 +114,19 @@ final playerPositionArchiveProvider =
     ]);
     profiles = realignPlayerPositionProfiles(
       identitiesByName: identities,
-      archive: profiles,
     );
   } catch (_) {
-    // Le relevé figé reste utilisable si la résolution d'identité échoue.
+    return kPlayerPositionProfiles;
   }
 
   try {
     final displayNames =
         await repository.resolveCurrentDisplayNamesByPlayerId();
-    profiles = relabelPlayerPositionProfilesForDisplay(
+    return relabelPlayerPositionProfilesForDisplay(
       profiles: profiles,
       displayNamesByPlayerId: displayNames,
     );
   } catch (_) {
-    // Un échec de libellé ne doit pas annuler un réancrage déjà réussi.
+    return profiles;
   }
-
-  return profiles;
 });
