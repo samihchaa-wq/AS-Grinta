@@ -156,9 +156,9 @@ $function$;
 revoke all on function private.notify_admin_player_availability_change()
   from public, anon, authenticated;
 
--- Ajoute un aperçu dédié au menu Test du centre des notifications. Les types
--- réservés aux admins sont aussi protégés côté serveur afin qu'un joueur ne
--- puisse pas les appeler directement via RPC.
+-- Ajoute un aperçu dédié au menu Test du centre des notifications. Le nouveau
+-- type de test est protégé côté serveur afin qu'un joueur ne puisse pas
+-- l'appeler directement via RPC, sans modifier les anciens types existants.
 create or replace function public.send_test_push_kind(p_kind text)
 returns jsonb
 language plpgsql
@@ -178,7 +178,7 @@ begin
     raise exception 'Active profile required' using errcode = '42501';
   end if;
 
-  if v_kind in ('admin_pending_signup', 'admin_availability_change')
+  if v_kind = 'admin_availability_change'
      and not public.is_admin() then
     raise exception 'Active administrator role required' using errcode = '42501';
   end if;
