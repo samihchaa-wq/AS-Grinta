@@ -56,7 +56,10 @@ Map<String, PlayerPositionProfile> realignPlayerPositionProfiles({
 /// L'identité canonique reste la seule clé de rapprochement :
 /// [displayNamesByPlayerId] est indexé par `players.id`. En cas de doublon de
 /// libellé visible, on conserve volontairement les noms d'archive afin de ne
-/// jamais attribuer le profil d'un homonyme à l'autre.
+/// jamais attribuer le profil d'un homonyme à l'autre. Le comptage porte sur
+/// tous les joueurs visibles, même ceux qui n'ont pas encore de profil de
+/// poste : un homonyme sans historique ne doit jamais hériter de celui d'un
+/// autre joueur.
 Map<String, PlayerPositionProfile> relabelPlayerPositionProfilesForDisplay({
   required Map<String, PlayerPositionProfile> profiles,
   required Map<String, String> displayNamesByPlayerId,
@@ -65,7 +68,6 @@ Map<String, PlayerPositionProfile> relabelPlayerPositionProfilesForDisplay({
 
   final displayNameCounts = <String, int>{};
   for (final entry in displayNamesByPlayerId.entries) {
-    if (!profiles.containsKey(entry.key)) continue;
     final normalized = normalizePlayerName(entry.value);
     if (normalized.isEmpty) continue;
     displayNameCounts.update(
