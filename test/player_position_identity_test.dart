@@ -146,5 +146,24 @@ void main() {
       expect(relabelled['alex-1']?.displayName, 'Alex Martin');
       expect(relabelled['alex-2']?.displayName, 'Alex Dupont');
     });
+
+    test('un homonyme sans profil bloque aussi tout raccord ambigu', () {
+      final original = <String, PlayerPositionProfile>{
+        'alex-avec-historique': profile('Alex Martin'),
+      };
+      final relabelled = relabelPlayerPositionProfilesForDisplay(
+        profiles: original,
+        displayNamesByPlayerId: const {
+          'alex-avec-historique': 'Alex',
+          'alex-sans-historique': 'Alex',
+        },
+      );
+
+      expect(relabelled, same(original));
+      expect(
+        relabelled['alex-avec-historique']?.displayName,
+        'Alex Martin',
+      );
+    });
   });
 }
