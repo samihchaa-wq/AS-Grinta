@@ -17,7 +17,7 @@ stable
 set search_path to ''
 as $function$
 declare
-  v_old_label text;
+  v_from_label text;
   v_new_label text;
   v_name text := coalesce(nullif(btrim(p_display_name), ''), 'Un joueur');
 begin
@@ -27,9 +27,9 @@ begin
     return null;
   end if;
 
-  v_old_label := case p_old_status
-    when 'available' then 'présent'
-    else 'absent'
+  v_from_label := case p_old_status
+    when 'available' then 'de présent'
+    else 'd''absent'
   end;
   v_new_label := case p_new_status
     when 'available' then 'présent'
@@ -37,9 +37,9 @@ begin
   end;
 
   return format(
-    '%s est passé de %s à %s à %s.',
+    '%s est passé %s à %s à %s.',
     v_name,
-    v_old_label,
+    v_from_label,
     v_new_label,
     to_char(coalesce(p_changed_at, now()) at time zone 'Europe/Paris', 'HH24"h"MI')
   );
