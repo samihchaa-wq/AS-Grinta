@@ -242,8 +242,13 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       if (_effectifSaving || _busy) _scheduleEffectifSave();
       return;
     }
-    final limit = _validatedSquadLimit(showError: false);
-    if (limit == null) return;
+    // Une limite momentanément invalide — le champ vidé pour être réécrit —
+    // ne doit pas emporter la convocation avec elle : elle était abandonnée
+    // en silence, et l'admin repartait en croyant avoir convoqué. On garde
+    // alors la limite que le serveur connaît déjà ; le champ affiche de son
+    // côté l'erreur qui explique pourquoi elle n'a pas changé.
+    final limit =
+        _validatedSquadLimit(showError: false) ?? convocations.squadSizeLimit;
 
     _effectifAutosave?.cancel();
     final revision = _effectifRevision;

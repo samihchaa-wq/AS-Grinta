@@ -20,7 +20,7 @@ Les mots de passe ne sont pas stockés dans les tables applicatives. L’authent
 
 L’application ne propose actuellement **aucune RPC d’export personnel automatique**. L’ancien `export_my_personal_data()` a été retiré de la surface publique.
 
-La page **Données personnelles** indique au membre de contacter un administrateur du club pour consulter, corriger ou demander la suppression d’une donnée le concernant. Une demande doit être traitée en vérifiant séparément les données de compte et les faits sportifs historiques.
+L’application ne contient plus de page **Données personnelles** : elle n’était accessible depuis aucun écran et a été retirée. Un membre qui souhaite consulter, corriger ou faire supprimer une donnée le concernant s’adresse donc directement à un administrateur du club. Une demande doit être traitée en vérifiant séparément les données de compte et les faits sportifs historiques.
 
 ## Suppression d’un compte
 
