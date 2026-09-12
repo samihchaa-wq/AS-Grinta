@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/sports_management/data/guest_players_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/admin_match_selection.dart';
 import 'package:as_grinta/features/sports_management/domain/guest_player_models.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
@@ -52,7 +53,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
       final selected = _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
-          : (matches.isEmpty ? null : matches.first.id);
+          : defaultAdminMatchId(matches);
       setState(() {
         _matches = matches;
         _selectedMatchId = selected;
@@ -366,6 +367,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
     final assigned = _matchGuests?.guests ?? const [];
     final assignedIds = {for (final guest in assigned) guest.guestPlayerId};
     final catalog = _showArchived ? _catalog.guests : _catalog.active;
+    final matchId = _selectedMatchId;
 
     return RefreshIndicator(
       onRefresh: _loadMatches,
@@ -458,8 +460,14 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed:
-                        _busy ? null : () => context.push('/admin/composition'),
+                    // Le match choisi ici doit suivre : sans lui, l'écran de
+                    // composition repartait sur sa propre sélection par défaut
+                    // et l'admin préparait une autre rencontre sans le voir.
+                    onPressed: _busy || matchId == null
+                        ? null
+                        : () => context.push(
+                              '/matches/$matchId/composition?step=composition',
+                            ),
                     icon: const Icon(Icons.dashboard_customize_outlined),
                     label: const Text('Ouvrir la composition'),
                   ),

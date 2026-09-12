@@ -123,7 +123,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final selected = _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
-          : (matches.isEmpty ? null : matches.first.id);
+          : defaultAdminMatchId(matches);
       if (selected != _selectedMatchId) {
         _clearEffectifTapSelection();
       }
