@@ -276,7 +276,7 @@ class _ModernMonthView extends ConsumerWidget {
                             ? AdminMatchOptionsButton(match: match)
                             : null,
                       )
-                    : _MonthlyMatchCard(
+                    : MonthlyMatchCard(
                         match: match,
                         adminActions: isAdmin
                             ? AdminMatchOptionsButton(match: match)
@@ -522,8 +522,13 @@ class ClubEventCard extends ConsumerWidget {
   }
 }
 
-class _MonthlyMatchCard extends StatelessWidget {
-  const _MonthlyMatchCard({required this.match, required this.adminActions});
+/// Carte d'un match à venir dans la vue « Par mois » du calendrier.
+class MonthlyMatchCard extends StatelessWidget {
+  const MonthlyMatchCard({
+    super.key,
+    required this.match,
+    required this.adminActions,
+  });
 
   final MatchModel match;
   final Widget? adminActions;
@@ -531,6 +536,7 @@ class _MonthlyMatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final phase = match.phase();
+    final address = match.address?.trim();
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
@@ -610,6 +616,44 @@ class _MonthlyMatchCard extends StatelessWidget {
                                   fontWeight: FontWeight.w400,
                                 ),
                       ),
+                      if (address != null && address.isNotEmpty) ...[
+                        const SizedBox(height: 7),
+                        InkWell(
+                          onTap: () => showMatchAddressSheet(context, address),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusSm,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.place_outlined,
+                                  size: 16,
+                                  color: border,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    address,
+                                    textAlign: TextAlign.start,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          color: AppTheme.textSecondary,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
