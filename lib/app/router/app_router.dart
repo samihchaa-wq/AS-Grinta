@@ -30,6 +30,7 @@ import 'package:as_grinta/features/sports_management/presentation/match_lineup_p
 import 'package:as_grinta/features/sports_management/presentation/match_report_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
+import 'package:as_grinta/features/unavailability/presentation/unavailability_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -212,6 +213,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/notifications',
                 builder: (_, __) => const NotificationsPage(),
+              ),
+              GoRoute(
+                path: '/unavailability',
+                builder: (_, __) => const UnavailabilityPage(),
               ),
             ],
           ),

@@ -43,6 +43,9 @@ class MatchAvailability {
     required this.kickoffAt,
     required this.canRespond,
     required this.compositionState,
+    this.unavailabilityReason,
+    this.unavailabilityStartsOn,
+    this.unavailabilityEndsOn,
   });
 
   final String matchId;
@@ -57,6 +60,15 @@ class MatchAvailability {
   final DateTime kickoffAt;
   final bool canRespond;
   final String compositionState;
+
+  /// Renseignés quand ce match tombe dans une période d'indisponibilité que le
+  /// joueur a lui-même déclarée. La réponse de disponibilité est alors fermée,
+  /// et c'est la seule explication à lui donner.
+  final String? unavailabilityReason;
+  final DateTime? unavailabilityStartsOn;
+  final DateTime? unavailabilityEndsOn;
+
+  bool get isUnavailablePeriod => unavailabilityReason != null;
 
   bool get compositionAlreadyPublished =>
       compositionState == 'published' ||
@@ -104,6 +116,9 @@ class MatchAvailability {
       kickoffAt: requiredDate('kickoff_at'),
       canRespond: map['can_respond'] == true,
       compositionState: requiredString('composition_state'),
+      unavailabilityReason: _optionalText(map['unavailability_reason']),
+      unavailabilityStartsOn: optionalDate('unavailability_starts_on'),
+      unavailabilityEndsOn: optionalDate('unavailability_ends_on'),
     );
   }
 

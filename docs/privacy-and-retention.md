@@ -12,7 +12,8 @@ L’application peut conserver :
 - badges et sélections mises en avant ;
 - liens avec les effectifs et les feuilles de match ;
 - abonnements Web Push et journaux techniques de livraison ;
-- bulletins Homme du match, isolés des lectures client et administrateur ordinaires.
+- bulletins Homme du match, isolés des lectures client et administrateur ordinaires ;
+- indisponibilités déclarées, avec leur période et leur raison en texte libre.
 
 Les mots de passe ne sont pas stockés dans les tables applicatives. L’authentification est gérée par Supabase Auth.
 
@@ -42,6 +43,22 @@ La désinscription retire l’abonnement du navigateur concerné. La suppression
 
 Les journaux de livraison ne doivent jamais contenir les secrets Web Push du navigateur. Ils ne doivent conserver que les informations techniques nécessaires au diagnostic et à l’idempotence prévues par le schéma actuel.
 
+## Indisponibilités déclarées
+
+La raison d’une indisponibilité est saisie librement par le joueur. Elle peut
+donc contenir un motif personnel, y compris de santé : elle doit rester traitée
+comme une donnée sensible.
+
+- la table n’est lisible ni par `anon` ni directement par les clients
+  `authenticated` ;
+- un joueur ne lit que ses propres périodes ;
+- seuls les administrateurs lisent l’ensemble, et uniquement en lecture ;
+- la raison n’apparaît jamais dans le tableau des disponibilités d’un match ni
+  pour les autres joueurs ;
+- pendant une période active, la raison est recopiée dans le commentaire privé
+  de la participation au match concerné, qui suit le même régime d’accès ;
+- la suppression d’un compte supprime ses périodes par cascade.
+
 ## Homme du match
 
 La table des bulletins n’est directement lisible ni par `anon` ni par les clients `authenticated`. Les résultats exposés à l’application sont agrégés sans rendre l’identité des votants consultable.
@@ -49,6 +66,7 @@ La table des bulletins n’est directement lisible ni par `anon` ni par les clie
 ## Contrôles périodiques
 
 - vérifier qu’aucune vue ou RPC client n’expose l’identité d’un votant ;
+- vérifier qu’aucune lecture client n’expose la raison d’une indisponibilité en dehors de son auteur et des administrateurs ;
 - vérifier l’absence de secrets Push dans les journaux ;
 - tester les parcours de suppression sur un environnement isolé avant toute modification sensible ;
 - contrôler les fichiers photo orphelins ;

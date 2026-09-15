@@ -22,6 +22,7 @@ values
   ('public', 'match_sport_motm_elections'),
   ('public', 'match_sport_motm_results'),
   ('public', 'match_sport_motm_votes'),
+  ('public', 'player_unavailabilities'),
   ('public', 'sport_availability_notification_events');
 
 select is(
@@ -36,8 +37,8 @@ select is(
      and relation.relkind = 'r'
     where relation.relrowsecurity
   ),
-  13::bigint,
-  'RLS reste activée sur les treize tables internes'
+  14::bigint,
+  'RLS reste activée sur les quatorze tables internes'
 );
 
 select is(
@@ -54,7 +55,7 @@ select is(
       and regexp_replace(coalesce(policy.qual, ''), '[()[:space:]]', '', 'g') = 'false'
       and regexp_replace(coalesce(policy.with_check, ''), '[()[:space:]]', '', 'g') = 'false'
   ),
-  13::bigint,
+  14::bigint,
   'chaque table possède une politique restrictive de refus client'
 );
 
@@ -99,7 +100,7 @@ select is(
       'SELECT,INSERT,UPDATE,DELETE'
     )
   ),
-  13::bigint,
+  14::bigint,
   'le service interne conserve tous les privilèges nécessaires'
 );
 

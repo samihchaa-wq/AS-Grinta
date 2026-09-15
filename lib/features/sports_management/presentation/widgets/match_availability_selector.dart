@@ -6,6 +6,7 @@ import 'package:as_grinta/features/sports_management/data/match_availability_boa
 import 'package:as_grinta/features/sports_management/data/match_availability_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
+import 'package:as_grinta/features/unavailability/domain/player_unavailability.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -73,6 +74,21 @@ class _MatchAvailabilitySelectorState
         ),
       ),
       data: (value) {
+        // Une indisponibilité déclarée ferme la réponse : plutôt que de faire
+        // disparaître le bloc sans rien dire, on rappelle au joueur ce qu'il a
+        // lui-même saisi et où le modifier.
+        if (value != null &&
+            value.isUnavailablePeriod &&
+            DateTime.now().isBefore(value.kickoffAt)) {
+          return Padding(
+            padding: EdgeInsets.only(
+              top: widget.topSpacing,
+              bottom: widget.bottomSpacing,
+            ),
+            child: _DeclaredUnavailabilityCard(availability: value),
+          );
+        }
+
         if (value == null || !value.canRespond) {
           return const SizedBox.shrink();
         }
@@ -320,6 +336,67 @@ class _AvailabilityPanel extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Rappel affiché à la place des boutons quand le match tombe dans une période
+/// d'indisponibilité déclarée par le joueur.
+class _DeclaredUnavailabilityCard extends StatelessWidget {
+  const _DeclaredUnavailabilityCard({required this.availability});
+
+  final MatchAvailability availability;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final starts = availability.unavailabilityStartsOn;
+    final ends = availability.unavailabilityEndsOn;
+    final period = starts == null || ends == null
+        ? null
+        : formatUnavailabilityPeriod(starts, ends);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.event_busy_outlined, color: AppTheme.warning),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    period == null
+                        ? 'Tu es déclaré indisponible'
+                        : 'Tu es déclaré indisponible $period',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w400),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    availability.unavailabilityReason ?? '',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Tu ne fais pas partie de l’effectif convocable pour ce '
+                    'match. Modifie ou annule ta période dans Paramètres.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
