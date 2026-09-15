@@ -1,5 +1,24 @@
 export const MAX_PUSH_DELIVERY_ATTEMPTS = 2;
 
+/// Combien de temps le service de notification garde un message pour un
+/// appareil injoignable.
+///
+/// Passé ce délai, le message est jeté et rien ne le rattrape : le destinataire
+/// ne saura jamais qu'on a cherché à le joindre. Notre journal, lui, continue
+/// d'afficher un envoi réussi, parce que le service l'avait bien accepté.
+///
+/// Une heure était trop court. Un téléphone éteint, en avion, dans le métro ou
+/// simplement hors réseau au mauvais moment perdait définitivement l'ouverture
+/// des disponibilités — constaté le 15 septembre 2026 sur un joueur qui avait
+/// reçu sans problème celle de la semaine précédente.
+///
+/// Vingt-quatre heures couvrent une nuit et une journée de travail. Aucune de
+/// nos notifications n'est urgente à la minute : la plus serrée prévient d'un
+/// match le lendemain, et les relances de disponibilité se répètent à J-3 et
+/// J-1. Au-delà d'une journée, un message deviendrait trompeur plutôt
+/// qu'utile.
+export const PUSH_DELIVERY_TTL_SECONDS = 86_400;
+
 export type PushFailureClass = "expired" | "retryable" | "permanent";
 
 export type PushDeliveryOutcome<T> =
