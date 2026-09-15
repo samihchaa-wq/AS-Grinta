@@ -90,6 +90,61 @@ void main() {
     expect(parsed.isCoach, isTrue);
     expect(parsed.canBeSelected, isFalse);
   });
+
+  group('Le compteur d’une colonne d’effectif', () {
+    test('compte le coach à part pour ne pas gonfler le nombre de joueurs', () {
+      final players = [
+        for (var index = 0; index < 12; index++)
+          _convocationPlayer(
+            participantId: 'joueur-$index',
+            convoked: true,
+            isCoach: false,
+          ),
+        _convocationPlayer(
+          participantId: 'coach',
+          convoked: true,
+          isCoach: true,
+        ),
+      ];
+
+      expect(effectifCountLabel(players), '12 + coach');
+    });
+
+    test('reste un simple total quand aucun coach n’est dans la colonne', () {
+      final players = [
+        _convocationPlayer(
+          participantId: 'joueur',
+          convoked: true,
+          isCoach: false,
+        ),
+      ];
+
+      expect(effectifCountLabel(players), '1');
+      expect(effectifCountLabel(const []), '0');
+    });
+
+    test('accorde le pluriel au-delà d’un coach', () {
+      final players = [
+        _convocationPlayer(
+          participantId: 'joueur',
+          convoked: true,
+          isCoach: false,
+        ),
+        _convocationPlayer(
+          participantId: 'coach-1',
+          convoked: true,
+          isCoach: true,
+        ),
+        _convocationPlayer(
+          participantId: 'coach-2',
+          convoked: true,
+          isCoach: true,
+        ),
+      ];
+
+      expect(effectifCountLabel(players), '1 + 2 coachs');
+    });
+  });
 }
 
 ConvocationPlayer _convocationPlayer({
