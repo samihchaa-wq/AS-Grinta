@@ -226,40 +226,20 @@ select ok(
 );
 
 -- ---------------------------------------------------------------------------
--- 3. Sortir de l'effectif sort de la rotation, sans rien effacer.
+-- 3. Sortir de l'effectif ne touche à aucune ligne existante.
+--
+-- Un membre désactivé reste dans l'instantané des matchs où il figurait déjà :
+-- sa réponse et sa place y appartiennent. Le retirer de la rotation reste le
+-- geste explicite d'un administrateur qui resynchronise le match.
 -- ---------------------------------------------------------------------------
+
+update public.match_sport_participants
+set availability_status = 'available'
+where match_id = current_setting('test.late_match')::uuid
+  and season_player_id = '9d000000-0000-0000-0000-000000000002';
 
 update public.season_players
 set is_active = false
-where id = '9d000000-0000-0000-0000-000000000002';
-
-select is(
-  (
-    select participant.is_eligible
-    from public.match_sport_participants participant
-    where participant.match_id = current_setting('test.late_match')::uuid
-      and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
-  ),
-  false,
-  'le membre désactivé quitte la rotation du match à venir'
-);
-
-select ok(
-  exists (
-    select 1
-    from public.match_sport_participants participant
-    where participant.match_id = current_setting('test.late_match')::uuid
-      and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
-  ),
-  'sa ligne de participation est conservée, rien n’est effacé'
-);
-
--- ---------------------------------------------------------------------------
--- 4. Revenir dans l'effectif ramène dans la rotation.
--- ---------------------------------------------------------------------------
-
-update public.season_players
-set is_active = true
 where id = '9d000000-0000-0000-0000-000000000002';
 
 select is(
@@ -270,26 +250,82 @@ select is(
       and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
   ),
   true,
-  'le membre réactivé revient dans la rotation du match à venir'
+  'la désactivation ne retire pas le membre de la rotation du match en cours'
+);
+
+select is(
+  (
+    select participant.availability_status::text
+    from public.match_sport_participants participant
+    where participant.match_id = current_setting('test.late_match')::uuid
+      and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
+  ),
+  'available',
+  'sa réponse déjà donnée est conservée telle quelle'
+);
+
+-- ---------------------------------------------------------------------------
+-- 4. Pendant l'absence, aucun nouveau match ; au retour, tout est rattrapé.
+-- ---------------------------------------------------------------------------
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select set_config(
+  'test.match_pendant_absence',
+  public.create_match_with_odds_and_sport_limit(
+    '9b000000-0000-0000-0000-000000000001',
+    '9c000000-0000-0000-0000-000000000001',
+    ((now() + interval '17 days') at time zone 'Europe/Paris')::date,
+    ((now() + interval '17 days') at time zone 'Europe/Paris')::time,
+    'domicile', 2.10, 3.20, 2.90, 14
+  )::text,
+  true
+);
+
+reset role;
+
+select ok(
+  not exists (
+    select 1
+    from public.match_sport_participants participant
+    where participant.match_id
+          = current_setting('test.match_pendant_absence')::uuid
+      and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
+  ),
+  'un membre hors effectif n’entre pas dans un match programmé sans lui'
 );
 
 update public.season_players
-set is_active = false
-where id = '9d000000-0000-0000-0000-000000000003';
-
-update public.season_players
 set is_active = true
-where id = '9d000000-0000-0000-0000-000000000003';
+where id = '9d000000-0000-0000-0000-000000000002';
 
 select is(
   (
     select participant.is_eligible
     from public.match_sport_participants participant
-    where participant.match_id = current_setting('test.late_match')::uuid
+    where participant.match_id
+          = current_setting('test.match_pendant_absence')::uuid
+      and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
+  ),
+  true,
+  'son retour dans l’effectif le rattache au match programmé sans lui'
+);
+
+select is(
+  (
+    select participant.is_eligible
+    from public.match_sport_participants participant
+    where participant.match_id
+          = current_setting('test.match_pendant_absence')::uuid
       and participant.season_player_id = '9d000000-0000-0000-0000-000000000003'
   ),
   false,
-  'la réactivation ne fait jamais entrer un coach dans la rotation'
+  'le coach rejoint lui aussi le nouveau match, toujours hors rotation'
 );
 
 select * from finish();

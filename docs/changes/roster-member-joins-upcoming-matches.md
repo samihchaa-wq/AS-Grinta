@@ -24,14 +24,12 @@ cause.
 
 ## Ce qui change
 
-L'effectif de la saison et les matchs à venir restent alignés tout seuls.
+Entrer dans l'effectif rattache automatiquement aux matchs à venir.
 
 - **Arrivée dans l'effectif** : la personne reçoit immédiatement sa ligne de
   participation sur tous les matchs à venir déjà programmés.
-- **Retour dans l'effectif** après une désactivation : ses lignes manquantes
-  sont créées et elle revient dans la rotation.
-- **Sortie de l'effectif** : elle quitte la rotation des matchs à venir, mais
-  sa ligne est conservée — une réponse déjà donnée n'est jamais effacée.
+- **Retour dans l'effectif** après une absence : elle récupère les lignes des
+  matchs programmés pendant son absence.
 
 Le sens de « joueur de rotation » reste celui fixé le 15 septembre 2026 par le
 changement du rôle Coach : un coach reçoit bien sa ligne de participation, hors
@@ -39,6 +37,14 @@ rotation, donc il est notifié et il répond, sans consommer de place.
 
 ## Ce qui ne change pas
 
+Le correctif est volontairement étroit : il ne fait que créer des lignes
+manquantes. Il n'en modifie ni n'en supprime aucune.
+
+- **Sortir de l'effectif ne touche à rien.** Un membre désactivé reste dans
+  l'instantané des matchs où il figurait déjà, avec la réponse qu'il avait
+  donnée. C'est une garantie existante du produit : un joueur désactivé après
+  coup reste finalisable sur son match. Retirer quelqu'un de la rotation reste
+  le geste explicite d'un administrateur qui resynchronise le match.
 - **Les matchs passés ne sont jamais touchés.** Leur liste de participants
   reste exactement telle qu'elle a été jouée et validée.
 - **Les matchs d'une autre saison** ne sont jamais complétés par l'effectif
@@ -50,9 +56,9 @@ rotation, donc il est notifié et il répond, sans consommer de place.
 
 ## Rattrapage à l'installation
 
-La migration complète les matchs à venir déjà programmés. L'opération est sans
-effet sur une base déjà cohérente : au moment de l'écriture de ce document, la
-production n'avait plus rien à rattraper.
+La migration complète les matchs à venir déjà programmés, par création
+uniquement. L'opération est sans effet sur une base déjà cohérente : au moment
+de l'écriture de ce document, la production n'avait plus rien à rattraper.
 
 ## Vérifications faites
 
@@ -63,12 +69,21 @@ transactions annulées, sans rien y laisser :
   rotation ;
 - une arrivée coach reçoit les mêmes lignes, hors rotation ;
 - aucune ligne n'est créée sur les matchs passés ;
-- une désactivation conserve la ligne et la réponse déjà donnée, et sort de la
-  rotation ;
-- une réactivation ramène dans la rotation, et jamais un coach ;
+- une désactivation ne modifie ni la rotation ni la réponse déjà donnée ;
+- un retour dans l'effectif recrée la ligne manquante d'un match programmé
+  pendant l'absence ;
 - le rattrapage ne crée aucune ligne sur une base déjà cohérente.
 
 Le scénario complet, y compris la notification d'ouverture des disponibilités
 qui atteint enfin l'arrivée tardive, est couvert par
 `supabase/tests/database/roster_member_joins_upcoming_matches.test.sql`, exécuté
 par la CI sur une base reconstruite depuis l'historique canonique.
+
+## Effet sur un décor de test existant
+
+`supabase/tests/database/live_prekickoff_lineup_swap.test.sql` construisait son
+décor dans cet ordre : match, workflow, puis effectif, puis participants aux
+identifiants choisis à la main. Ces participants existent désormais déjà quand
+le décor tente de les insérer. L'effectif y est donc constitué avant le match,
+ce qui rend les identifiants choisis de nouveau libres. Aucune assertion du
+test n'a été modifiée.

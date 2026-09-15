@@ -29,6 +29,34 @@ values (
   'open'
 );
 
+-- L'effectif est posé avant le match : depuis
+-- 20260915103000_roster_member_joins_upcoming_matches, un membre ajouté alors
+-- qu'un match à venir existe déjà y reçoit automatiquement sa ligne de
+-- participation. Ce décor veut choisir lui-même les identifiants de ses
+-- participants, donc il constitue l'effectif d'abord.
+insert into public.season_players(
+  id, season_id, first_name, last_name, is_goalkeeper, is_active, position
+)
+values
+  (
+    '42200000-0000-0000-0000-000000000031',
+    '42200000-0000-0000-0000-000000000010',
+    'Titulaire',
+    'Test',
+    false,
+    true,
+    1
+  ),
+  (
+    '42200000-0000-0000-0000-000000000032',
+    '42200000-0000-0000-0000-000000000010',
+    'Remplacant',
+    'Test',
+    false,
+    true,
+    2
+  );
+
 insert into public.matches(
   id,
   season_id,
@@ -64,29 +92,6 @@ values (
   '42200000-0000-0000-0000-000000000001',
   '42200000-0000-0000-0000-000000000001'
 );
-
-insert into public.season_players(
-  id, season_id, first_name, last_name, is_goalkeeper, is_active, position
-)
-values
-  (
-    '42200000-0000-0000-0000-000000000031',
-    '42200000-0000-0000-0000-000000000010',
-    'Titulaire',
-    'Test',
-    false,
-    true,
-    1
-  ),
-  (
-    '42200000-0000-0000-0000-000000000032',
-    '42200000-0000-0000-0000-000000000010',
-    'Remplacant',
-    'Test',
-    false,
-    true,
-    2
-  );
 
 insert into public.match_sport_participants(
   id, match_id, season_player_id, is_eligible, selection_status
