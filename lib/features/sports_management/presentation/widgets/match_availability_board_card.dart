@@ -76,7 +76,11 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
     final noResponse = board.playersWith(
       MatchAvailabilityBoardStatus.noResponse,
     );
-    final overLimit = board.convoked.length > board.squadSizeLimit;
+    // Le coach est dans l'effectif mais ne prend la place d'aucun joueur :
+    // il ne doit pas déclencher l'alerte de dépassement.
+    final countedConvoked =
+        board.convoked.where((player) => !player.isCoach).length;
+    final overLimit = countedConvoked > board.squadSizeLimit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -212,9 +216,14 @@ class _BoardGroup extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     side: BorderSide(color: color.withValues(alpha: .45)),
                     backgroundColor: color.withValues(alpha: .10),
-                    avatar: player.isGuest
-                        ? const Icon(Icons.person_add_alt_1_outlined, size: 16)
-                        : null,
+                    avatar: player.isCoach
+                        ? const Icon(Icons.sports_outlined, size: 16)
+                        : player.isGuest
+                            ? const Icon(
+                                Icons.person_add_alt_1_outlined,
+                                size: 16,
+                              )
+                            : null,
                     label: Text(player.firstNameOnly),
                   ),
               ],

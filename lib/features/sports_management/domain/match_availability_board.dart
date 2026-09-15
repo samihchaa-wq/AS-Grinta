@@ -22,6 +22,7 @@ class MatchAvailabilityBoardPlayer {
     required this.status,
     required this.convocationStatus,
     required this.isGuest,
+    this.isCoach = false,
     this.waitlistPosition,
     this.serverName,
   });
@@ -36,6 +37,7 @@ class MatchAvailabilityBoardPlayer {
       convocationStatus:
           (json['convocation_status'] ?? 'not_applicable').toString(),
       isGuest: json['is_guest'] == true,
+      isCoach: json['is_coach'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
       serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,
     );
@@ -47,6 +49,10 @@ class MatchAvailabilityBoardPlayer {
   final MatchAvailabilityBoardStatus status;
   final String convocationStatus;
   final bool isGuest;
+
+  /// Membre du staff coché « Coach » : présent dans l'effectif, jamais dans la
+  /// composition et jamais dans la rotation de la liste d'attente.
+  final bool isCoach;
   final int? waitlistPosition;
 
   /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom.
@@ -70,6 +76,7 @@ class MatchAvailabilityBoardPlayer {
       convocationStatus == 'convoked';
   bool get isWaitlisted =>
       !isGuest &&
+      !isCoach &&
       status == MatchAvailabilityBoardStatus.present &&
       convocationStatus != 'convoked';
 }

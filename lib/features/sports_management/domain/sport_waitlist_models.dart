@@ -165,6 +165,7 @@ class ConvocationPlayer {
     this.availabilityUpdatedAt,
     this.guestPlayerId,
     this.isGuest = false,
+    this.isCoach = false,
     this.isGoalkeeper = false,
     this.serverName,
     this.photoUrl,
@@ -183,6 +184,7 @@ class ConvocationPlayer {
       serverName: _nullableText(json['display_name']),
       photoUrl: _nullableText(json['photo_url']),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
+      isCoach: json['is_coach'] == true,
       isGoalkeeper: json['is_goalkeeper'] == true,
       availabilityStatus:
           (json['availability_status'] ?? 'no_response').toString(),
@@ -210,6 +212,11 @@ class ConvocationPlayer {
   final String firstName;
   final String lastName;
   final bool isGuest;
+
+  /// Membre du staff coché « Coach ». Il apparaît dans l'effectif dès qu'il se
+  /// dit présent, mais il n'entre jamais dans la composition d'équipe et ne
+  /// consomme aucune place du quota de convoqués.
+  final bool isCoach;
   final bool isGoalkeeper;
   final String availabilityStatus;
 
@@ -259,7 +266,10 @@ class ConvocationPlayer {
 
   /// Vrai quand le joueur peut être aligné : la convocation décidée par
   /// l'administrateur prime sur la disponibilité que le joueur a déclarée.
-  bool get canBeSelected => isConvoked;
+  ///
+  /// Le coach est convoqué dans l'effectif mais n'entre jamais sur la feuille
+  /// de match : le serveur refuse toute composition qui le contient.
+  bool get canBeSelected => isConvoked && !isCoach;
 }
 
 class MatchConvocations {

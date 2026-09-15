@@ -218,13 +218,13 @@ class MatchComposition {
       version: 0,
       hasUnpublishedChanges: true,
       squadSizeExceptionApproved: false,
+      // Le coach est dans l'effectif mais jamais sur la feuille de match :
+      // le serveur refuse une composition qui le contient, donc l'écran ne
+      // doit même pas le proposer.
       entries: [
-        for (var index = 0; index < convocations.players.length; index += 1)
-          _initialEntry(
-            convocations.players[index],
-            index,
-            goalkeeperSeasonPlayerIds,
-          ),
+        for (final (index, player)
+            in convocations.players.where((player) => !player.isCoach).indexed)
+          _initialEntry(player, index, goalkeeperSeasonPlayerIds),
       ],
     );
   }
