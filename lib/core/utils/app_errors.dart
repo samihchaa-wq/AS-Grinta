@@ -66,6 +66,9 @@ String _fromMessage(String raw) {
     'composition',
     'effectif',
     'notification',
+    'indisponibilité',
+    'période',
+    'raison',
   ];
 
   final patterns = <String, String>{

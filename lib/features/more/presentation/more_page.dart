@@ -43,6 +43,16 @@ class MorePage extends ConsumerWidget {
             const SizedBox(height: 10),
             Card(
               child: ListTile(
+                leading: const Icon(Icons.event_busy_outlined),
+                title: const Text('Indisponibilité'),
+                subtitle: const Text('Déclarer une période d’absence'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/unavailability'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
                 leading: const Icon(Icons.format_list_numbered_rounded),
                 title: const Text('Liste d’attente'),
                 trailing: const Icon(Icons.chevron_right),

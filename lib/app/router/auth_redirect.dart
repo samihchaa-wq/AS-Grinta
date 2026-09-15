@@ -194,11 +194,16 @@ bool _isSportsManagementRoute(Uri uri) {
       }.contains(segments.last);
   final isPlayerWaitlistRoute =
       segments.length == 1 && segments.first == 'waitlist';
+  // Le module Indisponibilité n'a de sens que si la gestion sportive tourne :
+  // sans elle, il n'y a ni effectif convocable ni convocation à éviter.
+  final isUnavailabilityRoute =
+      segments.length == 1 && segments.first == 'unavailability';
 
   return isPlayerMatchRoute ||
       isAdminMatchRoute ||
       isAdminRotationRoute ||
-      isPlayerWaitlistRoute;
+      isPlayerWaitlistRoute ||
+      isUnavailabilityRoute;
 }
 
 String? _safeLocalRedirect(String? value) {

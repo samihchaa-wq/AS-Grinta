@@ -60,6 +60,7 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 Le module actuel comprend notamment :
 
 - disponibilités ;
+- indisponibilités déclarées à l’avance ;
 - liste d’attente et rotation ;
 - convocations ;
 - joueurs de l’effectif et invités ;
@@ -68,6 +69,28 @@ Le module actuel comprend notamment :
 - présence finale, buts, passes décisives et clean sheets ;
 - statistiques ;
 - vote collectif et anonyme de l’Homme du match.
+
+### Indisponibilité déclarée
+
+Depuis Paramètres, chaque joueur déclare lui-même les périodes où il ne sera pas
+là, avec une raison en texte libre. Les bornes sont des dates pleines, incluses,
+lues en Europe/Paris.
+
+- Un match dont le coup d’envoi tombe dans la période pose automatiquement le
+  joueur **absent** : il sort de l’effectif convocable, et les notifications qui
+  en découlent ne lui sont plus envoyées (`docs/NOTIFICATIONS_V2.md`).
+- S’il était déjà convoqué sur un match publié, il se retire exactement comme
+  une désistement ordinaire : le suivant de la liste d’attente monte, et son
+  tour n’est pas consommé avant l’heure limite.
+- Pendant la période, ni lui ni un administrateur ne peut répondre à la
+  disponibilité des matchs concernés : la période est la seule source de vérité.
+- La période reste modifiable et annulable tant qu’elle n’est pas terminée.
+  L’annulation rend les matchs concernés à « sans réponse », sauf ceux où le
+  joueur s’était déjà déclaré absent lui-même : cette réponse lui appartient.
+- Un match programmé après coup, ou déplacé vers une autre date, est rattrapé
+  automatiquement.
+- Seuls les administrateurs voient l’ensemble des indisponibilités du club, en
+  lecture seule, avec l’auteur, la date de saisie, la période et la raison.
 
 Les postes de référence utilisés par la simulation de composition ne sont saisis nulle part : ils sont **déduits des compositions réellement alignées**, et suivent donc l’évolution des joueurs.
 

@@ -17,6 +17,24 @@ nécessitent toutefois que le Web Push soit autorisé sur l’appareil.
 Il n’existe plus de rappel automatique de disponibilité à J-3 ou J-1.
 Le rappel manuel du staff reste disponible.
 
+## Indisponibilité déclarée
+
+Un joueur qui a déclaré une période d’indisponibilité sort de l’effectif
+convocable pour les matchs dont le coup d’envoi tombe dans cette période. Il en
+découle qu’il ne reçoit, pour ces matchs-là :
+
+- ni l’ouverture des disponibilités ;
+- ni les rappels manuels du staff, puisqu’ils ne visent que les réponses
+  manquantes et que la sienne est déjà posée ;
+- ni la convocation, puisqu’il n’est plus convocable ;
+- ni la mise en ligne de la composition, y compris pour un match « entre nous »
+  dont l’envoi couvre habituellement tout le club.
+
+Le reste de la vie du club continue de lui parvenir normalement : rappel de
+pronostic, vote Homme du match et son résultat, annonces de match. Annuler ou
+raccourcir la période le remet dans le circuit, sans rattraper les
+notifications déjà passées.
+
 ## Notifications facultatives
 
 Les réglages utilisateur actuels couvrent notamment :

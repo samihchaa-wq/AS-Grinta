@@ -61,6 +61,7 @@ void main() {
       _route('/profile'),
       _route('/stats'),
       _route('/notifications'),
+      _route('/unavailability'),
       _route('/auth/loading'),
       _route('/auth/sign-in'),
       _route('/auth/register'),
@@ -199,8 +200,12 @@ String? _expectedRedirect({
   final adminSportRootRoute = segments.length == 2 &&
       segments.first == 'admin' &&
       const {'composition', 'guests', 'motm', 'waitlist'}.contains(suffix);
-  final sportRoute =
-      playerSportRoute || adminSportMatchRoute || adminSportRootRoute;
+  final playerRootSportRoute = segments.length == 1 &&
+      const {'waitlist', 'unavailability'}.contains(suffix);
+  final sportRoute = playerSportRoute ||
+      adminSportMatchRoute ||
+      adminSportRootRoute ||
+      playerRootSportRoute;
 
   if (sportRoute && !sportsManagementEnabled) {
     if (segments.length == 3 &&
