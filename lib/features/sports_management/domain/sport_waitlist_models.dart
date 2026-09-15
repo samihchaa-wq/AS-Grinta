@@ -272,6 +272,24 @@ class ConvocationPlayer {
   bool get canBeSelected => isConvoked && !isCoach;
 }
 
+/// Libellé du compteur affiché en tête d'une colonne d'effectif.
+///
+/// Le coach n'est pas un joueur de rotation et ne prend la place de personne.
+/// Le fondre dans le total laisserait croire qu'une place de l'effectif est
+/// occupée : « Convoqués (13) » pour douze joueurs et le coach. On le compte
+/// donc à part, « 12 + coach », pour que le nombre de joueurs reste lisible
+/// d'un coup d'œil.
+///
+/// Sans coach dans la colonne, le libellé reste le simple total.
+String effectifCountLabel(List<ConvocationPlayer> players) {
+  final coaches = players.where((player) => player.isCoach).length;
+  if (coaches == 0) return '${players.length}';
+
+  final others = players.length - coaches;
+  final coachLabel = coaches == 1 ? 'coach' : '$coaches coachs';
+  return '$others + $coachLabel';
+}
+
 class MatchConvocations {
   const MatchConvocations({
     required this.matchId,
