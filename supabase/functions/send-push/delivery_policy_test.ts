@@ -4,6 +4,7 @@ import {
   classifyPushFailure,
   executePushDelivery,
   MAX_PUSH_DELIVERY_ATTEMPTS,
+  PUSH_DELIVERY_TTL_SECONDS,
   pushRetryDelayMs,
 } from "./delivery_policy.ts";
 
@@ -87,3 +88,13 @@ Deno.test("arrête la relance après la limite", async () => {
   if (outcome.success) throw new Error("Expected a failed delivery");
   assertEquals(outcome.failureClass, "retryable");
 });
+
+Deno.test(
+  "un appareil injoignable garde sa notification vingt-quatre heures",
+  () => {
+    // Une heure laissait perdre définitivement l'ouverture des disponibilités
+    // à qui avait son téléphone coupé au mauvais moment, sans que rien ne le
+    // signale : le journal d'envoi affiche un succès dans les deux cas.
+    assertEquals(PUSH_DELIVERY_TTL_SECONDS, 86_400);
+  },
+);

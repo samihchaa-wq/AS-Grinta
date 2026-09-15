@@ -87,7 +87,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
                       const SizedBox(width: 7),
                       Expanded(
                         child: Text(
-                          '$title (${players.length})',
+                          '$title (${effectifCountLabel(players)})',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:
