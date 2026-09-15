@@ -2,7 +2,10 @@
 // Appelée par la base via pg_net avec le jeton interne x-push-token.
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
-import { executePushDelivery } from "./delivery_policy.ts";
+import {
+  executePushDelivery,
+  PUSH_DELIVERY_TTL_SECONDS,
+} from "./delivery_policy.ts";
 import {
   readBoundedJson,
   RequestBodyTooLargeError,
@@ -87,7 +90,7 @@ async function sendFixedPayloadToProfiles(
       webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         message,
-        { TTL: 3600, urgency: "high" },
+        { TTL: PUSH_DELIVERY_TTL_SECONDS, urgency: "high" },
       )
     );
     if (outcome.success) {
@@ -307,7 +310,7 @@ Deno.serve(async (req: Request) => {
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
           payload,
-          { TTL: 3600, urgency: "high" },
+          { TTL: PUSH_DELIVERY_TTL_SECONDS, urgency: "high" },
         )
       );
 
