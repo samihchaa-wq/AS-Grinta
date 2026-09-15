@@ -30,6 +30,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         .where(
           (player) =>
               !player.isGuest &&
+              !player.isCoach &&
               _desiredEffectifStatus(player) == ConvocationStatus.notConvoked,
         )
         .toList();
@@ -88,7 +89,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     ConvocationPlayer player,
     ConvocationStatus status,
   ) async {
-    if (_busy || _locked || player.isGuest) return;
+    // Le coach suit sa seule réponse : il n'y a aucune décision d'effectif à
+    // prendre pour lui, et le serveur refuserait celle-ci.
+    if (_busy || _locked || player.isGuest || player.isCoach) return;
     final current = _desiredEffectifStatus(player);
     if (current == status) return;
     // Sortir un joueur de la liste d'attente le prévient aussitôt, et la
@@ -218,9 +221,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   Map<String, ConvocationStatus> _effectifDecisions(
     MatchConvocations convocations,
   ) {
+    // Le coach n'entre dans aucune décision : sa propre réponse suffit à le
+    // poser dans l'effectif, et le serveur refuse une décision à son nom.
     return {
       for (final player in convocations.players)
         if (!player.isGuest &&
+            !player.isCoach &&
             player.seasonPlayerId.isNotEmpty &&
             _desiredEffectifStatus(player) != ConvocationStatus.notApplicable)
           player.seasonPlayerId: _desiredEffectifStatus(player),
@@ -566,9 +572,17 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     }
   }
 
+  /// Convoqués qui comptent dans la limite d'effectif.
+  ///
+  /// Le coach est convoqué mais ne prend la place d'aucun joueur : il ne doit
+  /// jamais déclencher l'avertissement de dépassement.
+  List<ConvocationPlayer> get _convokedPlayersAgainstLimit =>
+      _convokedPlayers.where((player) => !player.isCoach).toList();
+
   Widget _buildEffectif() {
     final limit = int.tryParse(_limitController.text) ?? 14;
-    final over = _convokedPlayers.length > limit;
+    final countedConvoked = _convokedPlayersAgainstLimit.length;
+    final over = countedConvoked > limit;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -599,7 +613,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 if (!_isInternalMatch && over) ...[
                   const SizedBox(height: 10),
                   Text(
-                    '${_convokedPlayers.length} joueurs pour une limite de $limit.',
+                    '$countedConvoked joueurs pour une limite de $limit.',
                     style: const TextStyle(
                       color: Colors.orange,
                       fontWeight: FontWeight.w400,

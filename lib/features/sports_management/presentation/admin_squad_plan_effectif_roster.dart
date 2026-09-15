@@ -261,7 +261,9 @@ class _EffectifAvatarGrid extends StatelessWidget {
           child: tile,
         );
 
-        if (draggable && !player.isGuest) {
+        // Le coach ne se déplace pas d'une colonne à l'autre : il n'y a
+        // aucune décision d'effectif à prendre pour lui, sa réponse décide.
+        if (draggable && !player.isGuest && !player.isCoach) {
           final autoScroll = DragAutoScroller(context);
           content = LongPressDraggable<ConvocationPlayer>(
             data: player,
@@ -343,7 +345,20 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (player.isGuest && onTap != null)
+              if (player.isCoach)
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Tooltip(
+                    message:
+                        'Coach : dans l’effectif, hors quota et hors composition',
+                    child: Icon(
+                      Icons.sports_outlined,
+                      size: 14,
+                      color: color,
+                    ),
+                  ),
+                )
+              else if (player.isGuest && onTap != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 2),
                   child: Icon(Icons.close, size: 13, color: color),

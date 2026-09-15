@@ -13,7 +13,13 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 - Auto-inscription puis validation du compte.
 - Deux niveaux d’accès applicatifs : `pronostiqueur` (Utilisateur) et `admin`.
 - Un Admin possède tous les droits d’administration du club.
-- Coach et gardien sont des attributs sportifs et n’accordent aucun droit applicatif supplémentaire.
+- Gardien est un attribut sportif et n’accorde aucun droit applicatif supplémentaire.
+- Coach est un attribut sportif : le coach garde toutes les fonctionnalités du
+  club (notifications, disponibilités, pronostics, vote Homme du match) et peut
+  piloter le Live des matchs de sa saison. Il apparaît dans l’effectif du match
+  dès qu’il se dit présent, hors quota de convoqués, mais jamais dans la
+  composition d’équipe, jamais dans la liste d’attente, et jamais dans les
+  « Statistiques Joueurs » — il reste présent dans les « Statistiques Pronos ».
 - Les anciennes valeurs `moderateur` sont converties en `admin` ; les anciens clients restent tolérés pendant la transition.
 - Les comptes inactifs ne peuvent pas utiliser les fonctions métier protégées.
 - Les joueurs de l’effectif peuvent être liés à un compte.
