@@ -35,10 +35,9 @@ where id between
   '9a000000-0000-0000-0000-000000000001'
   and '9a000000-0000-0000-0000-000000000004';
 
+-- Une seule saison peut être ouverte à la fois (idx_seasons_open).
 insert into public.seasons (id, name, status)
-values
-  ('9b000000-0000-0000-0000-000000000001', '2097-2098', 'open'),
-  ('9b000000-0000-0000-0000-000000000002', '2098-2099', 'open');
+values ('9b000000-0000-0000-0000-000000000001', '2097-2098', 'open');
 
 insert into public.opponents (id, name)
 values ('9c000000-0000-0000-0000-000000000001', 'Retard FC');
@@ -90,19 +89,6 @@ select set_config(
     '9c000000-0000-0000-0000-000000000001',
     ((now() + interval '10 days') at time zone 'Europe/Paris')::date,
     ((now() + interval '10 days') at time zone 'Europe/Paris')::time,
-    'domicile', 2.10, 3.20, 2.90, 14
-  )::text,
-  true
-);
-
--- Un match d'une autre saison, pour prouver que le rattrapage reste borné.
-select set_config(
-  'test.other_season_match',
-  public.create_match_with_odds_and_sport_limit(
-    '9b000000-0000-0000-0000-000000000002',
-    '9c000000-0000-0000-0000-000000000001',
-    ((now() + interval '11 days') at time zone 'Europe/Paris')::date,
-    ((now() + interval '11 days') at time zone 'Europe/Paris')::time,
     'domicile', 2.10, 3.20, 2.90, 14
   )::text,
   true
@@ -175,11 +161,11 @@ select is(
   (
     select count(*)::bigint
     from public.match_sport_participants participant
-    where participant.match_id
-          = current_setting('test.other_season_match')::uuid
+    where participant.season_player_id
+          = '9d000000-0000-0000-0000-000000000002'
   ),
-  0::bigint,
-  'le match d’une autre saison n’est jamais complété par cet effectif'
+  1::bigint,
+  'elle ne reçoit qu’une ligne : celle du seul match à venir programmé'
 );
 
 -- ---------------------------------------------------------------------------
