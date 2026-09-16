@@ -314,8 +314,17 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
         fileExt: ext,
       );
       final catalog = await repo.fetchCatalog(includeArchived: true);
+      // La liste des invités du match affiche la même pastille : sans ce
+      // rechargement, l'invité y garderait ses initiales jusqu'au prochain
+      // passage sur l'écran.
+      final matchId = _selectedMatchId;
+      final matchGuests =
+          matchId == null ? null : await repo.fetchMatchGuests(matchId);
       if (!mounted) return;
-      setState(() => _catalog = catalog);
+      setState(() {
+        _catalog = catalog;
+        if (matchGuests != null) _matchGuests = matchGuests;
+      });
       _showMessage('Photo de ${guest.displayName} mise à jour.');
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
@@ -431,12 +440,12 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                     for (final guest in assigned)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          child: Icon(
-                            guest.isGoalkeeper
-                                ? Icons.sports_handball_outlined
-                                : Icons.person_outline,
-                          ),
+                        leading: PlayerAvatar(
+                          photoUrl: guest.photoUrl,
+                          name: guest.firstName,
+                          lastName: guest.lastName,
+                          isGoalkeeper: guest.isGoalkeeper,
+                          size: 40,
                         ),
                         title: Text(guest.displayName),
                         subtitle: Text(

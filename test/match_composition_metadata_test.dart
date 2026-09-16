@@ -28,6 +28,54 @@ void main() {
     expect(moved.isMotm, isTrue);
   });
 
+  test('copyWith keeps every display field it was not asked to change', () {
+    const entry = MatchCompositionEntry(
+      participantId: 'participant',
+      seasonPlayerId: 'player',
+      guestPlayerId: 'guest',
+      displayName: 'Samih',
+      lastInitial: 'C',
+      isGuest: true,
+      isGoalkeeper: true,
+      zone: MatchCompositionZone.field,
+      x: .4,
+      y: .6,
+      slotLabel: 'GB',
+      photoUrl: 'players/samih.jpg',
+      goals: 2,
+      assists: 3,
+      isMotm: true,
+      isVacant: true,
+      sortOrder: 7,
+      availabilityStatus: 'absent',
+      convocationStatus: 'convoked',
+      selectionStatus: 'starter',
+    );
+
+    final copy = entry.copyWith(sortOrder: 9);
+
+    expect(copy.sortOrder, 9);
+    expect(copy.participantId, entry.participantId);
+    expect(copy.seasonPlayerId, entry.seasonPlayerId);
+    expect(copy.guestPlayerId, entry.guestPlayerId);
+    expect(copy.displayName, entry.displayName);
+    expect(copy.lastInitial, entry.lastInitial);
+    expect(copy.isGuest, entry.isGuest);
+    expect(copy.isGoalkeeper, entry.isGoalkeeper);
+    expect(copy.zone, entry.zone);
+    expect(copy.x, entry.x);
+    expect(copy.y, entry.y);
+    expect(copy.slotLabel, entry.slotLabel);
+    expect(copy.photoUrl, entry.photoUrl);
+    expect(copy.goals, entry.goals);
+    expect(copy.assists, entry.assists);
+    expect(copy.isMotm, entry.isMotm);
+    expect(copy.isVacant, entry.isVacant);
+    expect(copy.availabilityStatus, entry.availabilityStatus);
+    expect(copy.convocationStatus, entry.convocationStatus);
+    expect(copy.selectionStatus, entry.selectionStatus);
+  });
+
   test('post-match initialization selects only actual present players', () {
     final finalization = SportMatchFinalization(
       matchId: 'match',
