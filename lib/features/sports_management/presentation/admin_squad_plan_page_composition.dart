@@ -32,34 +32,24 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             if (!base.canBeSelected)
               base.moveTo(MatchCompositionZone.notSelected)
             else if (savedById[base.participantId] case final previous?)
-              MatchCompositionEntry(
-                participantId: base.participantId,
-                seasonPlayerId: base.seasonPlayerId,
-                guestPlayerId: base.guestPlayerId,
-                displayName: base.displayName,
-                lastInitial: base.lastInitial,
-                isGuest: base.isGuest,
-                isGoalkeeper: base.isGoalkeeper,
-                zone: previous.zone == MatchCompositionZone.field
-                    ? MatchCompositionZone.field
-                    : MatchCompositionZone.bench,
-                x: previous.zone == MatchCompositionZone.field
-                    ? previous.x
-                    : null,
-                y: previous.zone == MatchCompositionZone.field
-                    ? previous.y
-                    : null,
-                slotLabel: previous.slotLabel,
-                photoUrl: previous.photoUrl ?? base.photoUrl,
-                goals: previous.goals,
-                isMotm: previous.isMotm,
-                sortOrder: previous.sortOrder,
-                availabilityStatus: base.availabilityStatus,
-                convocationStatus: base.convocationStatus,
-                selectionStatus: previous.zone == MatchCompositionZone.field
-                    ? 'starter'
-                    : 'substitute',
-              )
+              // L'identité vient de l'effectif à jour, le placement et les
+              // statistiques de la composition enregistrée.
+              base
+                  .copyWith(
+                    slotLabel: previous.slotLabel,
+                    photoUrl: previous.photoUrl ?? base.photoUrl,
+                    goals: previous.goals,
+                    assists: previous.assists,
+                    isMotm: previous.isMotm,
+                  )
+                  .moveTo(
+                    previous.zone == MatchCompositionZone.field
+                        ? MatchCompositionZone.field
+                        : MatchCompositionZone.bench,
+                    x: previous.x,
+                    y: previous.y,
+                    sortOrder: previous.sortOrder,
+                  )
             else
               base.moveTo(MatchCompositionZone.bench),
         ],
@@ -83,40 +73,24 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         entries: [
           for (final base in baseline.entries)
             if (savedById[base.participantId] case final previous?)
-              MatchCompositionEntry(
-                participantId: base.participantId,
-                seasonPlayerId: base.seasonPlayerId,
-                guestPlayerId: base.guestPlayerId,
-                displayName: base.displayName,
-                lastInitial: base.lastInitial,
-                isGuest: base.isGuest,
-                isGoalkeeper: base.isGoalkeeper,
-                zone: base.canBeSelected
-                    ? previous.zone == MatchCompositionZone.field
-                        ? MatchCompositionZone.field
-                        : MatchCompositionZone.bench
-                    : MatchCompositionZone.notSelected,
-                x: base.canBeSelected &&
-                        previous.zone == MatchCompositionZone.field
-                    ? previous.x
-                    : null,
-                y: base.canBeSelected &&
-                        previous.zone == MatchCompositionZone.field
-                    ? previous.y
-                    : null,
-                slotLabel: previous.slotLabel,
-                photoUrl: base.photoUrl ?? previous.photoUrl,
-                goals: base.goals,
-                isMotm: base.isMotm,
-                sortOrder: previous.sortOrder,
-                availabilityStatus: base.availabilityStatus,
-                convocationStatus: base.convocationStatus,
-                selectionStatus: base.canBeSelected
-                    ? previous.zone == MatchCompositionZone.field
-                        ? 'starter'
-                        : 'substitute'
-                    : 'not_selected',
-              )
+              // Après le match, c'est le compte rendu qui fait foi pour les
+              // buts et les passes ; seule la mise en place vient de la
+              // composition enregistrée.
+              base
+                  .copyWith(
+                    slotLabel: previous.slotLabel,
+                    photoUrl: base.photoUrl ?? previous.photoUrl,
+                  )
+                  .moveTo(
+                    base.canBeSelected
+                        ? previous.zone == MatchCompositionZone.field
+                            ? MatchCompositionZone.field
+                            : MatchCompositionZone.bench
+                        : MatchCompositionZone.notSelected,
+                    x: previous.x,
+                    y: previous.y,
+                    sortOrder: previous.sortOrder,
+                  )
             else
               base,
         ],
@@ -209,6 +183,11 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     );
   }
 
+  /// Déplace une vignette de joueur d'une zone à l'autre.
+  ///
+  /// Tout ce qui s'affiche dessus — photo, buts, passes décisives, couronne —
+  /// est conservé : recopier ces champs un par un avait déjà fait disparaître
+  /// la photo des joueurs dès qu'on les déplaçait.
   MatchCompositionEntry _entryWithStatus(
     MatchCompositionEntry entry,
     MatchCompositionZone zone, {
@@ -216,31 +195,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     double? y,
     int? sortOrder,
   }) {
-    return MatchCompositionEntry(
-      participantId: entry.participantId,
-      seasonPlayerId: entry.seasonPlayerId,
-      guestPlayerId: entry.guestPlayerId,
-      displayName: entry.displayName,
-      lastInitial: entry.lastInitial,
-      isGuest: entry.isGuest,
-      isGoalkeeper: entry.isGoalkeeper,
-      zone: zone,
-      x: zone == MatchCompositionZone.field ? x : null,
-      y: zone == MatchCompositionZone.field ? y : null,
-      slotLabel: entry.slotLabel,
-      photoUrl: entry.photoUrl,
-      goals: entry.goals,
-      isMotm: entry.isMotm,
-      sortOrder: sortOrder ?? entry.sortOrder,
-      availabilityStatus: entry.availabilityStatus,
-      convocationStatus: entry.convocationStatus,
-      selectionStatus: switch (zone) {
-        MatchCompositionZone.field => 'starter',
-        MatchCompositionZone.bench => 'substitute',
-        MatchCompositionZone.notSelected => 'not_selected',
-        MatchCompositionZone.available => 'undecided',
-      },
-    );
+    return entry.moveTo(zone, x: x, y: y, sortOrder: sortOrder);
   }
 
   void _applyFormation(String code) {

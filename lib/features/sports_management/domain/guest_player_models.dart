@@ -69,9 +69,11 @@ class MatchGuestParticipant {
     required this.isReusable,
     required this.selectionStatus,
     this.archivedAt,
+    this.photoUrl,
   });
 
   factory MatchGuestParticipant.fromJson(Map<String, dynamic> json) {
+    final rawPhoto = json['photo_url']?.toString().trim();
     return MatchGuestParticipant(
       participantId: json['participant_id'].toString(),
       guestPlayerId: json['guest_player_id'].toString(),
@@ -82,6 +84,7 @@ class MatchGuestParticipant {
       isReusable: json['is_reusable'] == true,
       selectionStatus: (json['selection_status'] ?? 'undecided').toString(),
       archivedAt: _dateOrNull(json['archived_at']),
+      photoUrl: (rawPhoto != null && rawPhoto.isNotEmpty) ? rawPhoto : null,
     );
   }
 
@@ -94,6 +97,7 @@ class MatchGuestParticipant {
   final bool isReusable;
   final String selectionStatus;
   final DateTime? archivedAt;
+  final String? photoUrl;
 }
 
 class MatchGuests {

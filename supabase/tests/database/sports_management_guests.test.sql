@@ -332,6 +332,29 @@ select is(
   'le snapshot public conserve le marqueur invité'
 );
 
+-- La pastille d'un invité doit afficher sa photo là où elle l'affiche déjà
+-- dans le catalogue : la liste des invités du match reçoit donc la même clé.
+reset role;
+update public.guest_players
+set photo_url = 'guest/' || current_setting('test.guest_id') || '/avatar_1.jpg'
+where id = current_setting('test.guest_id')::uuid;
+
+set local role authenticated;
+
+select is(
+  public.admin_get_match_guests(
+    current_setting('test.guest_match')::uuid
+  ) #>> '{guests,0,photo_url}',
+  'guest/' || current_setting('test.guest_id') || '/avatar_1.jpg',
+  'la photo de l’invité remonte dans la liste des invités du match'
+);
+
+select is(
+  public.admin_get_guest_players(false) #>> '{guests,0,photo_url}',
+  'guest/' || current_setting('test.guest_id') || '/avatar_1.jpg',
+  'la photo de l’invité remonte aussi dans le catalogue réutilisable'
+);
+
 select public.admin_set_guest_archived(
   current_setting('test.guest_id')::uuid,
   true,

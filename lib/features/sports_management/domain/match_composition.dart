@@ -124,6 +124,44 @@ class MatchCompositionEntry {
   /// la disponibilité déclarée. Le serveur applique la même règle.
   bool get canBeSelected => convocationStatus == 'convoked';
 
+  /// Copie la vignette en ne changeant que ce qui est fourni.
+  ///
+  /// Tout le reste — photo, initiale, buts, passes décisives, couronne,
+  /// emplacement vide — est repris tel quel. Recopier ces champs à la main
+  /// dans chaque écran a déjà fait disparaître la photo des joueurs d'une
+  /// composition : passer par ici est le seul moyen sûr.
+  MatchCompositionEntry copyWith({
+    String? slotLabel,
+    String? photoUrl,
+    int? goals,
+    int? assists,
+    bool? isMotm,
+    int? sortOrder,
+  }) {
+    return MatchCompositionEntry(
+      participantId: participantId,
+      seasonPlayerId: seasonPlayerId,
+      guestPlayerId: guestPlayerId,
+      displayName: displayName,
+      lastInitial: lastInitial,
+      isGuest: isGuest,
+      isGoalkeeper: isGoalkeeper,
+      zone: zone,
+      x: x,
+      y: y,
+      slotLabel: slotLabel ?? this.slotLabel,
+      photoUrl: photoUrl ?? this.photoUrl,
+      goals: goals ?? this.goals,
+      assists: assists ?? this.assists,
+      isMotm: isMotm ?? this.isMotm,
+      isVacant: isVacant,
+      sortOrder: sortOrder ?? this.sortOrder,
+      availabilityStatus: availabilityStatus,
+      convocationStatus: convocationStatus,
+      selectionStatus: selectionStatus,
+    );
+  }
+
   MatchCompositionEntry moveTo(
     MatchCompositionZone nextZone, {
     double? x,

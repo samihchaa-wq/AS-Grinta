@@ -45,6 +45,7 @@ void main() {
           'is_goalkeeper': true,
           'is_reusable': true,
           'selection_status': 'starter',
+          'photo_url': 'guest/guest-1/avatar_1.jpg',
         },
       ],
     });
@@ -53,5 +54,6 @@ void main() {
     expect(matchGuests.guests.single.participantId, 'participant-1');
     expect(matchGuests.guests.single.selectionStatus, 'starter');
     expect(matchGuests.guests.single.isGoalkeeper, isTrue);
+    expect(matchGuests.guests.single.photoUrl, 'guest/guest-1/avatar_1.jpg');
   });
 }
