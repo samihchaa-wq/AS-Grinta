@@ -83,6 +83,7 @@ void main() {
           turnShouldConsume: false,
           turnState: WaitlistTurnState.notApplicable,
           promotedAfterWithdrawalAt: null,
+          photoUrl: 'players/alex.jpg',
         ),
         ConvocationPlayer(
           participantId: 'participant-2',
@@ -108,6 +109,12 @@ void main() {
     );
 
     expect(composition.entries.length, 2);
+    expect(
+      composition.entries
+          .singleWhere((entry) => entry.participantId == 'participant-1')
+          .photoUrl,
+      'players/alex.jpg',
+    );
     expect(composition.availableCount, 1);
     expect(composition.notSelectedCount, 1);
     expect(
