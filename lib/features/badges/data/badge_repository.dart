@@ -136,6 +136,136 @@ class Armoire {
   }
 }
 
+/// Range le catalogue en trois sections d'armoire à partir des données déjà
+/// chargées. Fonction pure : c'est elle qui décide quels badges sont visibles,
+/// donc elle est testable sans base de données.
+Armoire buildArmoire({
+  required List<BadgeDef> catalog,
+  required Map<String, DateTime> earnedAt,
+  required Set<String> featuredCodes,
+  required Set<String> seenCodes,
+  required Map<String, int> metrics,
+  required Map<String, int> displayMetrics,
+  required Map<String, int> starCounts,
+}) {
+  final byCode = {for (final b in catalog) b.code: b};
+  bool isNewBadge(String code) =>
+      earnedAt.containsKey(code) && !seenCodes.contains(code);
+
+  int? personalDisplayValue(BadgeDef def) {
+    final metric = def.metric;
+    if (metric == null) return null;
+    return displayMetrics[metric] ?? metrics[metric] ?? 0;
+  }
+
+  final validated = <ArmoireBadge>[];
+  final inProgress = <ArmoireBadge>[];
+  final locked = <ArmoireBadge>[];
+
+  // Paliers : par métrique, on montre TOUS les paliers déjà gagnés + le
+  // suivant « en cours » avec sa progression.
+  // Les badges « standalone » (exploits autonomes) forment chacun leur propre
+  // groupe (clé = code), donc ils s'affichent séparément, sans barème gradué.
+  final byMetric = <String, List<BadgeDef>>{};
+  for (final b in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
+    final key = b.standalone ? 'code:${b.code}' : b.metric!;
+    byMetric.putIfAbsent(key, () => []).add(b);
+  }
+  byMetric.forEach((groupKey, tiers) {
+    tiers.sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0));
+    final metric = tiers.first.metric!;
+    final value = metrics[metric] ?? 0;
+    // Barème à un seul palier (titres, exploits autonomes) : pas de barre de
+    // progression ni de compteur « 0/1 · plus que 1 ».
+    final singleTier = tiers.length == 1;
+    // Un palier est « validé » dès qu'il a été GAGNÉ (ligne profile_badges),
+    // et le reste à vie — même si la stat de la saison est retombée. Chaque
+    // palier gagné garde sa propre vignette : franchir « Vétéran » ne fait
+    // pas disparaître « Fidèle ». Le premier palier pas encore gagné part
+    // en « en cours ».
+    final owned = <BadgeDef>[];
+    BadgeDef? nextUnowned;
+    for (final t in tiers) {
+      if (earnedAt.containsKey(t.code)) {
+        owned.add(t);
+      } else {
+        nextUnowned ??= t;
+      }
+    }
+    for (var i = 0; i < owned.length; i++) {
+      final tier = owned[i];
+      // Seul le palier le plus haut porte le cumul réel (« 132 matchs ») :
+      // sur les paliers déjà dépassés, ce chiffre serait répété à
+      // l'identique, donc chacun affiche son propre seuil.
+      final isHighestOwned = i == owned.length - 1;
+      validated.add(ArmoireBadge(
+        def: tier,
+        state: BadgeState.validated,
+        displayValue:
+            isHighestOwned ? personalDisplayValue(tier) : tier.threshold,
+        awardedAt: earnedAt[tier.code],
+        stars: starCounts[tier.code] ?? 1,
+        isNew: isNewBadge(tier.code),
+      ));
+    }
+    if (nextUnowned != null) {
+      if (nextUnowned.secret) {
+        // Badge secret pas encore gagné : reste masqué (« ??? ») dans la
+        // section « À débloquer », sans dévoiler son nom ni sa condition.
+        locked.add(ArmoireBadge(def: nextUnowned, state: BadgeState.locked));
+      } else {
+        inProgress.add(ArmoireBadge(
+          def: nextUnowned,
+          state: BadgeState.inProgress,
+          current: singleTier ? null : value,
+          target: singleTier ? null : nextUnowned.threshold,
+          displayValue: value,
+        ));
+      }
+    }
+  });
+
+  // Titres et badges custom : acquis une seule fois, à vie.
+  for (final b in catalog.where((b) => b.kind != 'tier')) {
+    if (earnedAt.containsKey(b.code)) {
+      validated.add(ArmoireBadge(
+        def: b,
+        state: BadgeState.validated,
+        displayValue: personalDisplayValue(b),
+        awardedAt: earnedAt[b.code],
+        stars: starCounts[b.code] ?? 1,
+        isNew: isNewBadge(b.code),
+      ));
+    } else {
+      locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
+    }
+  }
+
+  // Badges arborés qui ne sont plus dans le palier courant (ex. un badge
+  // saisonnier après un changement de saison) : on les garde visibles dans
+  // « Validés » pour que la personne puisse toujours les voir et les retirer.
+  final shownCodes = {for (final v in validated) v.def.code};
+  for (final code in featuredCodes) {
+    if (shownCodes.contains(code)) continue;
+    final def = byCode[code];
+    if (def == null) continue;
+    validated.add(ArmoireBadge(
+      def: def,
+      state: BadgeState.validated,
+      displayValue: personalDisplayValue(def),
+      awardedAt: earnedAt[code],
+      stars: starCounts[code] ?? 1,
+      isNew: isNewBadge(code),
+    ));
+  }
+
+  validated.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
+  inProgress.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
+  locked.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
+
+  return Armoire(validated: validated, inProgress: inProgress, locked: locked);
+}
+
 class BadgeRepository {
   BadgeRepository(this._client);
 
@@ -172,7 +302,6 @@ class BadgeRepository {
         if (m['featured'] == true) featuredCodes.add(code);
       }
     }
-    final byCode = {for (final b in catalog) b.code: b};
 
     // Badges déjà consultés : ceux gagnés mais absents d'ici affichent la
     // pastille « nouveau ».
@@ -184,8 +313,6 @@ class BadgeRepository {
       for (final r in seenRows as List)
         Map<String, dynamic>.from(r as Map)['badge_code'].toString(),
     };
-    bool isNewBadge(String code) =>
-        earnedAt.containsKey(code) && !seenCodes.contains(code);
 
     // Deux valeurs par métrique : `current_value` pilote toujours la
     // progression/déblocage ; `display_value` pilote seulement le chiffre du
@@ -220,113 +347,15 @@ class BadgeRepository {
       }
     }
 
-    int? personalDisplayValue(BadgeDef def) {
-      final metric = def.metric;
-      if (metric == null) return null;
-      return displayMetrics[metric] ?? metrics[metric] ?? 0;
-    }
-
-    final validated = <ArmoireBadge>[];
-    final inProgress = <ArmoireBadge>[];
-    final locked = <ArmoireBadge>[];
-
-    // Paliers : par métrique, on montre le palier validé le plus haut + le
-    // suivant « en cours » avec sa progression.
-    // Les badges « standalone » (exploits autonomes) forment chacun leur propre
-    // groupe (clé = code), donc ils s'affichent séparément, sans barème gradué.
-    final byMetric = <String, List<BadgeDef>>{};
-    for (final b
-        in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
-      final key = b.standalone ? 'code:${b.code}' : b.metric!;
-      byMetric.putIfAbsent(key, () => []).add(b);
-    }
-    byMetric.forEach((groupKey, tiers) {
-      tiers.sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0));
-      final metric = tiers.first.metric!;
-      final value = metrics[metric] ?? 0;
-      // Barème à un seul palier (titres, exploits autonomes) : pas de barre de
-      // progression ni de compteur « 0/1 · plus que 1 ».
-      final singleTier = tiers.length == 1;
-      // Un palier est « validé » dès qu'il a été GAGNÉ (ligne profile_badges),
-      // et le reste à vie — même si la stat de la saison est retombée. On
-      // affiche le plus haut palier gagné + le premier palier pas encore gagné
-      // « en cours ».
-      BadgeDef? highestOwned;
-      BadgeDef? nextUnowned;
-      for (final t in tiers) {
-        if (earnedAt.containsKey(t.code)) {
-          highestOwned = t;
-        } else {
-          nextUnowned ??= t;
-        }
-      }
-      if (highestOwned != null) {
-        validated.add(ArmoireBadge(
-          def: highestOwned,
-          state: BadgeState.validated,
-          displayValue: personalDisplayValue(highestOwned),
-          awardedAt: earnedAt[highestOwned.code],
-          stars: starCounts[highestOwned.code] ?? 1,
-          isNew: isNewBadge(highestOwned.code),
-        ));
-      }
-      if (nextUnowned != null) {
-        if (nextUnowned.secret) {
-          // Badge secret pas encore gagné : reste masqué (« ??? ») dans la
-          // section « À débloquer », sans dévoiler son nom ni sa condition.
-          locked.add(ArmoireBadge(def: nextUnowned, state: BadgeState.locked));
-        } else {
-          inProgress.add(ArmoireBadge(
-            def: nextUnowned,
-            state: BadgeState.inProgress,
-            current: singleTier ? null : value,
-            target: singleTier ? null : nextUnowned.threshold,
-            displayValue: value,
-          ));
-        }
-      }
-    });
-
-    // Titres et badges custom : acquis une seule fois, à vie.
-    for (final b in catalog.where((b) => b.kind != 'tier')) {
-      if (earnedAt.containsKey(b.code)) {
-        validated.add(ArmoireBadge(
-          def: b,
-          state: BadgeState.validated,
-          displayValue: personalDisplayValue(b),
-          awardedAt: earnedAt[b.code],
-          stars: starCounts[b.code] ?? 1,
-          isNew: isNewBadge(b.code),
-        ));
-      } else {
-        locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
-      }
-    }
-
-    // Badges arborés qui ne sont plus dans le palier courant (ex. un badge
-    // saisonnier après un changement de saison) : on les garde visibles dans
-    // « Validés » pour que la personne puisse toujours les voir et les retirer.
-    final shownCodes = {for (final v in validated) v.def.code};
-    for (final code in featuredCodes) {
-      if (shownCodes.contains(code)) continue;
-      final def = byCode[code];
-      if (def == null) continue;
-      validated.add(ArmoireBadge(
-        def: def,
-        state: BadgeState.validated,
-        displayValue: personalDisplayValue(def),
-        awardedAt: earnedAt[code],
-        stars: starCounts[code] ?? 1,
-        isNew: isNewBadge(code),
-      ));
-    }
-
-    validated.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
-    inProgress.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
-    locked.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
-
-    return Armoire(
-        validated: validated, inProgress: inProgress, locked: locked);
+    return buildArmoire(
+      catalog: catalog,
+      earnedAt: earnedAt,
+      featuredCodes: featuredCodes,
+      seenCodes: seenCodes,
+      metrics: metrics,
+      displayMetrics: displayMetrics,
+      starCounts: starCounts,
+    );
   }
 
   /// Marque un badge comme consulté (fait disparaître sa pastille « nouveau »).
