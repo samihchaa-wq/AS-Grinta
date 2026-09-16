@@ -669,7 +669,13 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       fit: BoxFit.cover,
       gaplessPlayback: true,
       filterQuality: FilterQuality.medium,
-      webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+      // Les vues HTML créent un overlay de composition par avatar sur le Web.
+      // Sur iOS, la grille d'effectif pouvait ainsi dépasser les ressources de
+      // WebKit et faire recharger toute la page. Supabase autorise le chargement
+      // CORS des URLs signées : Flutter peut donc décoder l'image normalement.
+      // On ne retombe sur un élément HTML que pour une éventuelle URL externe
+      // qui refuserait le chargement CORS.
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : _initials(fallbackSize),
       errorBuilder: (context, error, stack) {
