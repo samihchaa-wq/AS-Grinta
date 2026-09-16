@@ -330,6 +330,7 @@ MatchCompositionEntry _initialEntry(
     zone: selectable
         ? MatchCompositionZone.available
         : MatchCompositionZone.notSelected,
+    photoUrl: player.photoUrl,
     sortOrder: index,
     availabilityStatus: player.availabilityStatus,
     convocationStatus: player.convocationStatus.wireValue,
