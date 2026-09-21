@@ -25,8 +25,6 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Le mode « Aperçu utilisateur » doit survivre à un rechargement.
-    unawaited(restoreViewAsUserPreference(ref));
   }
 
   @override
