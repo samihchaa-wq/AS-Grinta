@@ -4,6 +4,7 @@ import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
+import 'package:as_grinta/features/matches/presentation/match_encounter_route.dart';
 import 'package:as_grinta/features/weather/presentation/match_weather_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -245,8 +246,10 @@ class _EncounterChip extends StatelessWidget {
       encounter.grintaScore,
       encounter.opponentScore,
     );
-    final encounterId = encounter.id?.trim();
-    final canOpen = encounterId != null && encounterId.isNotEmpty;
+    final route = matchEncounterRoute(
+      encounterId: encounter.id,
+      isHistorical: encounter.isHistorical,
+    );
     final dateLabel =
         encounter.date == null ? null : AppFormats.date(encounter.date!);
     final chip = Container(
@@ -290,16 +293,13 @@ class _EncounterChip extends StatelessWidget {
         ],
       ),
     );
-    if (!canOpen) return chip;
+    if (route == null) return chip;
     return Semantics(
       button: true,
-      label: dateLabel == null ? 'Ouvrir ce match' : 'Ouvrir le match du $dateLabel',
+      label:
+          dateLabel == null ? 'Ouvrir ce match' : 'Ouvrir le match du $dateLabel',
       child: InkWell(
-        onTap: () => context.push(
-          encounter.isHistorical
-              ? '/matches/history/$encounterId'
-              : '/matches/$encounterId',
-        ),
+        onTap: () => context.push(route),
         borderRadius: BorderRadius.circular(8),
         child: chip,
       ),
