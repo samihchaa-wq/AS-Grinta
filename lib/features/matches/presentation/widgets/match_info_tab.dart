@@ -7,6 +7,7 @@ import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/weather/presentation/match_weather_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Onglet « Info » d'une fiche de match : heure, adresse cliquable et les
@@ -244,7 +245,11 @@ class _EncounterChip extends StatelessWidget {
       encounter.grintaScore,
       encounter.opponentScore,
     );
-    return Container(
+    final encounterId = encounter.id?.trim();
+    final canOpen = encounterId != null && encounterId.isNotEmpty;
+    final dateLabel =
+        encounter.date == null ? null : AppFormats.date(encounter.date!);
+    final chip = Container(
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
       decoration: BoxDecoration(
@@ -267,12 +272,12 @@ class _EncounterChip extends StatelessWidget {
               ),
             ),
           ),
-          if (encounter.date != null) ...[
+          if (dateLabel != null) ...[
             const SizedBox(height: 1),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                AppFormats.date(encounter.date!),
+                dateLabel,
                 maxLines: 1,
                 style: TextStyle(
                   color: color.withValues(alpha: .82),
@@ -283,6 +288,20 @@ class _EncounterChip extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+    if (!canOpen) return chip;
+    return Semantics(
+      button: true,
+      label: dateLabel == null ? 'Ouvrir ce match' : 'Ouvrir le match du $dateLabel',
+      child: InkWell(
+        onTap: () => context.push(
+          encounter.isHistorical
+              ? '/matches/history/$encounterId'
+              : '/matches/$encounterId',
+        ),
+        borderRadius: BorderRadius.circular(8),
+        child: chip,
       ),
     );
   }
