@@ -8,7 +8,7 @@ L’application peut conserver :
 
 - identité affichée, identifiant, surnom et photo facultative ;
 - rôle, statut et préférences de notification ;
-- pronostics de matchs et de saison ;
+- pronostics de matchs ;
 - badges et sélections mises en avant ;
 - liens avec les effectifs et les feuilles de match ;
 - abonnements Web Push et journaux techniques de livraison ;

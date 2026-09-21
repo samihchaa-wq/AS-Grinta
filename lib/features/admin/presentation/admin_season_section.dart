@@ -54,7 +54,7 @@ class _SeasonCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Paris buteur',
+                        'Saison',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
@@ -65,68 +65,9 @@ class _SeasonCard extends ConsumerWidget {
                       ),
                     ],
                   )
-                : Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Paris buteur',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      Switch.adaptive(
-                        value: !openSeason.predictionsLocked,
-                        onChanged: (enabled) async {
-                          final lock = !enabled;
-                          if (lock) {
-                            final confirmed = await showDialog<bool>(
-                                  context: context,
-                                  builder: (dialogContext) => AlertDialog(
-                                    title: const Text('Fermer les paris ?'),
-                                    content: const Text(
-                                      'Les pronostics de saison de tout le '
-                                      'monde deviendront visibles et ne '
-                                      'pourront plus être modifiés. Le '
-                                      'classement de saison démarre.',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(
-                                          dialogContext,
-                                          false,
-                                        ),
-                                        child: const Text('Annuler'),
-                                      ),
-                                      FilledButton(
-                                        onPressed: () => Navigator.pop(
-                                          dialogContext,
-                                          true,
-                                        ),
-                                        child: const Text('Fermer'),
-                                      ),
-                                    ],
-                                  ),
-                                ) ??
-                                false;
-                            if (!confirmed) return;
-                          }
-                          try {
-                            await ref
-                                .read(adminRepositoryProvider)
-                                .setSeasonPredictionsLock(
-                                  seasonId: openSeason.id,
-                                  locked: lock,
-                                );
-                            ref.invalidate(adminDashboardProvider);
-                          } catch (error) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(humanizeError(error))),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ],
+                : Text(
+                    'Saison ${openSeason.name}',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
           ),
         ),

@@ -200,8 +200,8 @@ select is(
       and trigger.tgname = 'trg_shared_data_change'
       and not trigger.tgisinternal
   ),
-  23::bigint,
-  'les 23 tables partagées critiques déclenchent le signal'
+  22::bigint,
+  'les 22 tables partagées critiques déclenchent le signal'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)

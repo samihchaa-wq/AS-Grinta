@@ -227,13 +227,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/stats',
                 pageBuilder: (context, state) {
                   final section = state.uri.queryParameters['section'];
-                  final view = state.uri.queryParameters['view'];
                   return NoTransitionPage(
-                    key: ValueKey<String>('stats:$section:$view'),
-                    child: StatsHubPage(
-                      initialSection: section,
-                      initialRankingView: view,
-                    ),
+                    key: ValueKey<String>('stats:$section'),
+                    child: StatsHubPage(initialSection: section),
                   );
                 },
               ),
@@ -246,10 +242,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: (context, state) {
           final category = state.uri.queryParameters['category'];
           if (category == 'matches' || category == null) return '/matches';
-          final view = category == 'scorers'
-              ? 'scorers'
-              : state.uri.queryParameters['view'] ?? 'matches';
-          return '/stats?section=rankings&view=$view';
+          return '/stats?section=rankings';
         },
       ),
       // Hors de la barre de navigation : le bilan de saison est un passage
@@ -263,7 +256,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
       GoRoute(
         path: '/predictions/leaderboard',
-        redirect: (_, __) => '/stats?section=rankings&view=matches',
+        redirect: (_, __) => '/stats?section=rankings',
       ),
       GoRoute(
         path: '/statistics',

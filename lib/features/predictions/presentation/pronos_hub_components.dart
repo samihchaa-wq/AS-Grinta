@@ -8,17 +8,16 @@ const _leaderboardPointsFlex = 12;
 class _LeaderboardCard extends ConsumerStatefulWidget {
   const _LeaderboardCard({
     required this.entries,
-    required this.points,
     this.onRefresh,
-    this.showMatchStats = false,
     this.badgeSize,
   });
 
   final List<LeaderboardEntry> entries;
-  final double Function(LeaderboardEntry) points;
   final Future<void> Function()? onRefresh;
-  final bool showMatchStats;
   final double? badgeSize;
+
+  /// Score affiché : les points de pronostic de match, en entiers.
+  double points(LeaderboardEntry entry) => entry.matchPoints * 100;
 
   @override
   ConsumerState<_LeaderboardCard> createState() => _LeaderboardCardState();
@@ -28,10 +27,8 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
   _LbCol _sort = _LbCol.points;
   bool _desc = true;
 
-  double _first(LeaderboardEntry e) =>
-      widget.showMatchStats ? e.matchBons.toDouble() : e.matchPoints * 100;
-  double _second(LeaderboardEntry e) =>
-      widget.showMatchStats ? e.matchExacts.toDouble() : e.seasonPoints;
+  double _first(LeaderboardEntry e) => e.matchBons.toDouble();
+  double _second(LeaderboardEntry e) => e.matchExacts.toDouble();
 
   /// Valeur qui fait le classement dans la colonne actuellement triee. Le
   /// depart d'egalite du tri en est exclu, sinon aucune egalite ne serait
@@ -131,7 +128,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
         child: Row(
           children: [
             SortableHeaderCell(
-              label: widget.showMatchStats ? 'Bons' : 'Matchs',
+              label: 'Bons',
               flex: _leaderboardValueFlex,
               active: _sort == _LbCol.first,
               descending: _desc,
@@ -139,7 +136,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
               style: style,
             ),
             SortableHeaderCell(
-              label: widget.showMatchStats ? 'Exacts' : 'Buteurs',
+              label: 'Exacts',
               flex: _leaderboardValueFlex,
               active: _sort == _LbCol.second,
               descending: _desc,

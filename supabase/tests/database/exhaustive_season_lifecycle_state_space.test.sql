@@ -20,11 +20,11 @@ where id between
   'b6100000-0000-0000-0000-000000000001'
   and 'b6100000-0000-0000-0000-000000000003';
 
-insert into public.seasons(id, name, status, season_predictions_locked_at)
+insert into public.seasons(id, name, status)
 values
-  ('b6200000-0000-0000-0000-000000000001', '2090-2091', 'open', null),
-  ('b6200000-0000-0000-0000-000000000002', '2089-2090', 'terminee', null),
-  ('b6200000-0000-0000-0000-000000000003', '2088-2089', 'archived', null);
+  ('b6200000-0000-0000-0000-000000000001', '2090-2091', 'open'),
+  ('b6200000-0000-0000-0000-000000000002', '2089-2090', 'terminee'),
+  ('b6200000-0000-0000-0000-000000000003', '2088-2089', 'archived');
 
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper,
@@ -44,21 +44,6 @@ values
     'b6100000-0000-0000-0000-000000000003'
   );
 
-select is(
-  (
-    select count(*)
-    from public.season_predictions
-    where season_id = 'b6200000-0000-0000-0000-000000000001'
-      and predictor_profile_id in (
-        'b6100000-0000-0000-0000-000000000001',
-        'b6100000-0000-0000-0000-000000000002',
-        'b6100000-0000-0000-0000-000000000003'
-      )
-  ),
-  6::bigint,
-  'les deux joueurs sont préremplis pour les trois profils actifs'
-);
-
 select set_config(
   'request.jwt.claims',
   '{"sub":"b6100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -74,7 +59,6 @@ create temporary table pg_temp.season_name_state_space(
   returned_name text,
   returned_status text,
   open_count integer not null,
-  lock_cleared boolean not null,
   sqlstate text,
   message text,
   mismatch boolean not null
@@ -94,7 +78,6 @@ declare
   v_returned_name text;
   v_returned_status text;
   v_open_count integer;
-  v_lock_cleared boolean;
   v_mismatch boolean;
 begin
   for v_name, v_expected in
@@ -121,17 +104,16 @@ begin
     v_message := null;
     v_returned_name := null;
     v_returned_status := null;
-    v_lock_cleared := false;
 
     update public.seasons
-    set status = 'archived', season_predictions_locked_at = null
+    set status = 'archived'
     where id in (
       'b6200000-0000-0000-0000-000000000001',
       'b6200000-0000-0000-0000-000000000002',
       'b6200000-0000-0000-0000-000000000003'
     );
     update public.seasons
-    set status = 'open', season_predictions_locked_at = now()
+    set status = 'open'
     where id = 'b6200000-0000-0000-0000-000000000001';
 
     begin
@@ -143,8 +125,8 @@ begin
     end;
 
     if v_id is not null then
-      select name, status, season_predictions_locked_at is null
-      into v_returned_name, v_returned_status, v_lock_cleared
+      select name, status
+      into v_returned_name, v_returned_status
       from public.seasons where id = v_id;
     end if;
     select count(*)::integer into v_open_count
@@ -156,14 +138,13 @@ begin
           v_returned_name is distinct from btrim(v_name)
           or v_returned_status is distinct from 'open'
           or v_open_count is distinct from 1
-          or not v_lock_cleared
         )
       );
 
     insert into pg_temp.season_name_state_space values (
       v_case, v_name, v_expected, v_ok,
       v_returned_name, v_returned_status, v_open_count,
-      v_lock_cleared, v_state, v_message, v_mismatch
+      v_state, v_message, v_mismatch
     );
 
     if v_id is not null
@@ -175,10 +156,10 @@ end;
 $state_space$;
 
 select diag(format(
-  'STATE_SPACE season_name case=%s name=%s expected=%s observed=%s returned=%s status=%s open=%s lock_cleared=%s sqlstate=%s message=%s',
+  'STATE_SPACE season_name case=%s name=%s expected=%s observed=%s returned=%s status=%s open=%s sqlstate=%s message=%s',
   case_number, coalesce(quote_nullable(proposed_name), 'NULL'),
   expected_success, observed_success, coalesce(returned_name, '-'),
-  coalesce(returned_status, '-'), open_count, lock_cleared,
+  coalesce(returned_status, '-'), open_count,
   coalesce(sqlstate, '-'), coalesce(message, '-')
 ))
 from pg_temp.season_name_state_space order by case_number;
@@ -310,396 +291,6 @@ select is((select count(*) from pg_temp.season_status_state_space), 15::bigint,
 select is((select count(*) from pg_temp.season_status_state_space where mismatch), 0::bigint,
   'les transitions conservent au plus une saison ouverte');
 
-create temporary table pg_temp.season_lock_state_space(
-  season_status text not null,
-  lock_mode text not null,
-  expected_success boolean not null,
-  observed_success boolean not null,
-  expected_locked boolean not null,
-  observed_locked boolean not null,
-  sqlstate text,
-  message text,
-  mismatch boolean not null
-) on commit drop;
-grant select, insert, update, delete
-on pg_temp.season_lock_state_space to authenticated;
-
-do $state_space$
-declare
-  v_status text;
-  v_mode text;
-  v_value boolean;
-  v_expected boolean;
-  v_ok boolean;
-  v_state text;
-  v_message text;
-  v_expected_locked boolean;
-  v_observed_locked boolean;
-begin
-  foreach v_status in array array['open', 'terminee', 'archived'] loop
-    foreach v_mode in array array['unlock', 'lock', 'null'] loop
-      update public.seasons
-      set status = 'archived', season_predictions_locked_at = null
-      where id in (
-        'b6200000-0000-0000-0000-000000000001',
-        'b6200000-0000-0000-0000-000000000002',
-        'b6200000-0000-0000-0000-000000000003'
-      );
-      update public.seasons set status = v_status
-      where id = 'b6200000-0000-0000-0000-000000000001';
-
-      v_value := case v_mode
-        when 'unlock' then false
-        when 'lock' then true
-        else null
-      end;
-      v_expected := v_status = 'open' and v_value is not null;
-      v_expected_locked := v_expected and coalesce(v_value, false);
-      v_ok := true;
-      v_state := null;
-      v_message := null;
-      begin
-        perform public.set_season_predictions_lock(
-          'b6200000-0000-0000-0000-000000000001'::uuid,
-          v_value
-        );
-      exception when others then
-        v_ok := false;
-        v_state := sqlstate;
-        v_message := sqlerrm;
-      end;
-
-      select season_predictions_locked_at is not null
-      into v_observed_locked
-      from public.seasons
-      where id = 'b6200000-0000-0000-0000-000000000001';
-
-      insert into pg_temp.season_lock_state_space values (
-        v_status, v_mode, v_expected, v_ok,
-        v_expected_locked, v_observed_locked,
-        v_state, v_message,
-        v_ok is distinct from v_expected
-          or v_observed_locked is distinct from v_expected_locked
-      );
-    end loop;
-  end loop;
-end;
-$state_space$;
-
-select is((select count(*) from pg_temp.season_lock_state_space), 9::bigint,
-  'neuf combinaisons de statut et verrou sont exécutées');
-select is((select count(*) from pg_temp.season_lock_state_space where mismatch), 0::bigint,
-  'seule une saison ouverte accepte un verrou booléen explicite');
-
-reset role;
-
-create or replace function pg_temp.prepare_prediction_case(
-  p_status text,
-  p_locked boolean,
-  p_predictor uuid,
-  p_value integer
-)
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-begin
-  -- The state-space reuses the same rows between mutually incompatible cases.
-  -- Clear the previous artificial prediction first so the normal competition
-  -- guards can legitimately reset an uncommitted lock/status for the next case.
-  update public.season_predictions prediction
-  set category = case when player.is_goalkeeper then 'clean_sheets' else 'buts' end,
-      predicted_value_30 = 0,
-      is_filled = false
-  from public.season_players player
-  where prediction.season_player_id = player.id
-    and prediction.season_id = 'b6200000-0000-0000-0000-000000000001';
-
-  update public.seasons
-  set status = 'archived', season_predictions_locked_at = null
-  where id in (
-    'b6200000-0000-0000-0000-000000000001',
-    'b6200000-0000-0000-0000-000000000002',
-    'b6200000-0000-0000-0000-000000000003'
-  );
-  update public.seasons
-  set status = p_status,
-      season_predictions_locked_at = case when p_locked then now() else null end
-  where id = 'b6200000-0000-0000-0000-000000000001';
-
-  update public.season_predictions
-  set category = 'buts', predicted_value_30 = p_value, is_filled = true
-  where season_id = 'b6200000-0000-0000-0000-000000000001'
-    and predictor_profile_id = p_predictor
-    and season_player_id = 'b6300000-0000-0000-0000-000000000001';
-end;
-$function$;
-grant execute on function pg_temp.prepare_prediction_case(text, boolean, uuid, integer)
-to authenticated;
-
-create temporary table pg_temp.season_prediction_write_state_space(
-  season_status text not null,
-  locked boolean not null,
-  proposed_value integer not null,
-  expected_success boolean not null,
-  observed_success boolean not null,
-  expected_value integer not null,
-  observed_value integer not null,
-  sqlstate text,
-  message text,
-  mismatch boolean not null
-) on commit drop;
-grant select, insert, update, delete
-on pg_temp.season_prediction_write_state_space to authenticated;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"b6100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-select throws_ok(
-  $$update public.season_predictions
-    set predicted_value_30 = 8, is_filled = true
-    where season_id = 'b6200000-0000-0000-0000-000000000001'
-      and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
-      and season_player_id = 'b6300000-0000-0000-0000-000000000001'$$,
-  '42501',
-  'authenticated ne peut pas UPDATE season_predictions directement'
-);
-
-select throws_ok(
-  $$insert into public.season_predictions(
-      season_id, predictor_profile_id, season_player_id,
-      category, predicted_value_30, is_filled
-    )
-    values(
-      'b6200000-0000-0000-0000-000000000001',
-      'b6100000-0000-0000-0000-000000000002',
-      'b6300000-0000-0000-0000-000000000001',
-      'buts', 8, true
-    )$$,
-  '42501',
-  'authenticated ne peut pas INSERT season_predictions directement'
-);
-
-do $state_space$
-declare
-  v_status text;
-  v_locked boolean;
-  v_value integer;
-  v_expected boolean;
-  v_ok boolean;
-  v_state text;
-  v_message text;
-  v_observed integer;
-  v_expected_value integer;
-begin
-  foreach v_status in array array['open', 'terminee', 'archived'] loop
-    foreach v_locked in array array[false, true] loop
-      foreach v_value in array array[-1, 0, 99, 100] loop
-        perform pg_temp.prepare_prediction_case(
-          v_status, v_locked,
-          'b6100000-0000-0000-0000-000000000002', 7
-        );
-        v_expected := v_status = 'open'
-          and not v_locked
-          and v_value between 0 and 99;
-        v_ok := true;
-        v_state := null;
-        v_message := null;
-        begin
-          perform public.save_my_season_predictions(
-            'b6200000-0000-0000-0000-000000000001'::uuid,
-            jsonb_build_array(
-              jsonb_build_object(
-                'season_player_id',
-                'b6300000-0000-0000-0000-000000000001',
-                'category',
-                'buts',
-                'predicted_value_30',
-                v_value
-              ),
-              jsonb_build_object(
-                'season_player_id',
-                'b6300000-0000-0000-0000-000000000002',
-                'category',
-                'clean_sheets',
-                'predicted_value_30',
-                0
-              )
-            )
-          );
-        exception when others then
-          v_ok := false;
-          v_state := sqlstate;
-          v_message := sqlerrm;
-        end;
-
-        select predicted_value_30 into v_observed
-        from public.season_predictions
-        where season_id = 'b6200000-0000-0000-0000-000000000001'
-          and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
-          and season_player_id = 'b6300000-0000-0000-0000-000000000001';
-        v_expected_value := case when v_expected then v_value else 7 end;
-
-        insert into pg_temp.season_prediction_write_state_space values (
-          v_status, v_locked, v_value, v_expected, v_ok,
-          v_expected_value, v_observed, v_state, v_message,
-          v_ok is distinct from v_expected
-            or v_observed is distinct from v_expected_value
-        );
-      end loop;
-    end loop;
-  end loop;
-end;
-$state_space$;
-
-reset role;
-select diag(format(
-  'STATE_SPACE season_rpc_write status=%s locked=%s value=%s expected=%s observed=%s persisted=%s/%s sqlstate=%s message=%s',
-  season_status, locked, proposed_value, expected_success, observed_success,
-  expected_value, observed_value, coalesce(sqlstate, '-'), coalesce(message, '-')
-))
-from pg_temp.season_prediction_write_state_space
-order by season_status, locked, proposed_value;
-
-select is((select count(*) from pg_temp.season_prediction_write_state_space), 24::bigint,
-  '24 écritures de pronostic saisonnier sont exécutées via RPC');
-select is((select count(*) from pg_temp.season_prediction_write_state_space where expected_success), 2::bigint,
-  'seules deux valeurs passent via RPC sur une saison ouverte et déverrouillée');
-select is((select count(*) from pg_temp.season_prediction_write_state_space where mismatch), 0::bigint,
-  'la RPC protège statut, verrou, roster et bornes');
-
-create temporary table pg_temp.season_prediction_validator_state_space(
-  player_kind text not null,
-  proposed_category text not null,
-  proposed_value integer not null,
-  expected_success boolean not null,
-  observed_success boolean not null,
-  sqlstate text,
-  message text,
-  mismatch boolean not null
-) on commit drop;
-
-do $state_space$
-declare
-  v_kind text;
-  v_category text;
-  v_value integer;
-  v_player uuid;
-  v_baseline text;
-  v_expected boolean;
-  v_ok boolean;
-  v_state text;
-  v_message text;
-begin
-  foreach v_kind in array array['field', 'goalkeeper'] loop
-    foreach v_category in array array['buts', 'clean_sheets'] loop
-      foreach v_value in array array[-1, 0, 30, 31, 99, 100] loop
-        v_player := case v_kind
-          when 'field' then 'b6300000-0000-0000-0000-000000000001'::uuid
-          else 'b6300000-0000-0000-0000-000000000002'::uuid
-        end;
-        v_baseline := case v_kind when 'field' then 'buts' else 'clean_sheets' end;
-        update public.season_predictions
-        set category = v_baseline, predicted_value_30 = 0, is_filled = false
-        where season_id = 'b6200000-0000-0000-0000-000000000001'
-          and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
-          and season_player_id = v_player;
-
-        v_expected := case v_kind
-          when 'field' then v_category = 'buts' and v_value between 0 and 99
-          else v_category = 'clean_sheets' and v_value between 0 and 30
-        end;
-        v_ok := true;
-        v_state := null;
-        v_message := null;
-        begin
-          update public.season_predictions
-          set category = v_category, predicted_value_30 = v_value
-          where season_id = 'b6200000-0000-0000-0000-000000000001'
-            and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
-            and season_player_id = v_player;
-        exception when others then
-          v_ok := false;
-          v_state := sqlstate;
-          v_message := sqlerrm;
-        end;
-
-        insert into pg_temp.season_prediction_validator_state_space values (
-          v_kind, v_category, v_value, v_expected, v_ok,
-          v_state, v_message, v_ok is distinct from v_expected
-        );
-      end loop;
-    end loop;
-  end loop;
-end;
-$state_space$;
-
-select is((select count(*) from pg_temp.season_prediction_validator_state_space), 24::bigint,
-  '24 combinaisons joueur, catégorie et valeur sont exécutées');
-select is((select count(*) from pg_temp.season_prediction_validator_state_space where expected_success), 6::bigint,
-  'six combinaisons catégorie et bornes sont valides');
-select is((select count(*) from pg_temp.season_prediction_validator_state_space where mismatch), 0::bigint,
-  'joueurs de champ et gardiens respectent leurs catégories et plafonds');
-
-create temporary table pg_temp.season_prediction_read_state_space(
-  season_status text not null,
-  locked boolean not null,
-  expected_visible boolean not null,
-  observed_visible boolean not null,
-  mismatch boolean not null
-) on commit drop;
-grant select, insert, update, delete
-on pg_temp.season_prediction_read_state_space to authenticated;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"b6100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-do $state_space$
-declare
-  v_status text;
-  v_locked boolean;
-  v_expected boolean;
-  v_visible boolean;
-begin
-  foreach v_status in array array['open', 'terminee', 'archived'] loop
-    foreach v_locked in array array[false, true] loop
-      perform pg_temp.prepare_prediction_case(
-        v_status, v_locked,
-        'b6100000-0000-0000-0000-000000000003', 12
-      );
-      v_expected := v_locked or v_status = 'archived';
-      select exists (
-        select 1 from public.season_predictions
-        where season_id = 'b6200000-0000-0000-0000-000000000001'
-          and predictor_profile_id = 'b6100000-0000-0000-0000-000000000003'
-          and season_player_id = 'b6300000-0000-0000-0000-000000000001'
-      ) into v_visible;
-
-      insert into pg_temp.season_prediction_read_state_space values (
-        v_status, v_locked, v_expected, v_visible,
-        v_visible is distinct from v_expected
-      );
-    end loop;
-  end loop;
-end;
-$state_space$;
-
-select is((select count(*) from pg_temp.season_prediction_read_state_space), 6::bigint,
-  'six états de visibilité adverse sont exécutés');
-select is((select count(*) from pg_temp.season_prediction_read_state_space where expected_visible), 4::bigint,
-  'les pronostics adverses sont visibles après verrou ou archivage');
-select is((select count(*) from pg_temp.season_prediction_read_state_space where mismatch), 0::bigint,
-  'les pronostics adverses restent secrets avant révélation');
-
 reset role;
 select set_config(
   'request.jwt.claims',
@@ -719,14 +310,6 @@ select throws_ok(
   '42501', 'Active administrator role required',
   'un joueur ne peut pas modifier le statut d’une saison'
 );
-select throws_ok(
-  $$select public.set_season_predictions_lock(
-    'b6200000-0000-0000-0000-000000000001'::uuid, true
-  )$$,
-  '42501', 'Active administrator role required',
-  'un joueur ne peut pas verrouiller les pronostics de saison'
-);
-
 reset role;
 select * from finish();
 rollback;

@@ -13,7 +13,6 @@ import 'package:as_grinta/features/matches/presentation/matches_controller.dart'
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
-import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -256,9 +255,6 @@ class SharedDataRefreshCoordinator {
       ..invalidate(statisticsPeriodProvider)
       ..invalidate(teamStatisticsPeriodProvider)
       ..invalidate(leaderboardProvider)
-      ..invalidate(enhancedSeasonLockedProvider)
-      ..invalidate(enhancedSeasonGaugesProvider)
-      ..invalidate(enhancedSeasonCompletedMatchesProvider)
       ..invalidate(adminDashboardProvider)
       ..invalidate(openSeasonIdProvider)
       ..invalidate(rosterProvider)

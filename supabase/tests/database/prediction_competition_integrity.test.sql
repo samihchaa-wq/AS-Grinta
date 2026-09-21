@@ -89,30 +89,6 @@ select ok(exists(select 1 from public.v_classement_general
 update public.profiles set status='active' where id='fc100000-0000-0000-0000-000000000002';
 
 insert into public.seasons(id,name,status)
-values('fc200000-0000-0000-0000-000000000002','2086-2087','open');
-insert into public.season_players(id,season_id,first_name,last_name,is_goalkeeper,is_active,position)
-values('fc400000-0000-0000-0000-000000000001','fc200000-0000-0000-0000-000000000002','Target','Season',false,true,1);
-select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
-select public.save_my_season_predictions('fc200000-0000-0000-0000-000000000002',
-  jsonb_build_array(jsonb_build_object('season_player_id','fc400000-0000-0000-0000-000000000001','category','buts','predicted_value_30',10)));
-reset role;
-select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
-select public.set_season_predictions_lock('fc200000-0000-0000-0000-000000000002',true);
-select throws_ok($$select public.set_season_predictions_lock('fc200000-0000-0000-0000-000000000002'::uuid,false)$$,
-  '22023','Les pronostics de saison révélés sont définitivement figés.',
-  'filled revealed season predictions cannot unlock');
-select public.set_season_status('fc200000-0000-0000-0000-000000000002','archived');
-select throws_ok($$select public.set_season_status('fc200000-0000-0000-0000-000000000002'::uuid,'open')$$,
-  '22023','Une saison avec des données de compétition ne peut pas être rouverte.',
-  'archived competition season cannot reopen');
-reset role;
-select ok(exists(select 1 from public.season_prediction_roster_captures
-  where season_id='fc200000-0000-0000-0000-000000000002'),
-  'committed roster snapshot survives archive');
-
-insert into public.seasons(id,name,status)
 values('fc200000-0000-0000-0000-000000000003','2085-2086','open');
 insert into public.opponents(id,name)
 values('fc300000-0000-0000-0000-000000000002','Title Integrity FC');
@@ -136,6 +112,47 @@ select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-00000000
 select public.finalize_match_postgame(current_setting('test.title_match')::uuid,0,'[]'::jsonb,null,1);
 set local role authenticated;
 select public.archive_match(current_setting('test.title_match')::uuid);
+reset role;
+
+-- Le titre « meilleur prono match » exige cinq pronostics remplis sur la
+-- saison. La fenêtre de pronostic n'ouvre qu'à six jours du coup d'envoi, donc
+-- un seul match peut être pronostiqué par le chemin normal dans ce scénario :
+-- il l'a été ci-dessus. Les quatre matchs terminés qui suivent sont écrits
+-- directement, avec les mêmes pronostics, uniquement pour atteindre le seuil.
+set local session_replication_role = replica;
+do $extra_matches$
+declare
+  v_match uuid;
+  v_index integer;
+begin
+  for v_index in 1..4 loop
+    insert into public.matches(
+      season_id, opponent_id, match_date, match_time, kickoff_at, location,
+      planned_duration_minutes, status, score_as_grinta, score_adverse,
+      created_by, match_type, competition, result_validated_at
+    ) values (
+      'fc200000-0000-0000-0000-000000000003',
+      'fc300000-0000-0000-0000-000000000002',
+      date '2014-03-17' + v_index,
+      time '21:00',
+      (date '2014-03-17' + v_index) + time '20:00',
+      'domicile', 90, 'archive', 0, 1,
+      'fc100000-0000-0000-0000-000000000001', 'amical', 'championnat', now()
+    ) returning id into v_match;
+
+    insert into public.match_predictions(
+      match_id, profile_id, predicted_score_as_grinta,
+      predicted_score_adverse, is_filled
+    ) values
+      (v_match, 'fc100000-0000-0000-0000-000000000002', 2, 0, true),
+      (v_match, 'fc100000-0000-0000-0000-000000000003', 1, 0, true);
+  end loop;
+end;
+$extra_matches$;
+set local session_replication_role = origin;
+
+select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+set local role authenticated;
 select public.set_season_status('fc200000-0000-0000-0000-000000000003','archived');
 reset role;
 select ok(not exists(select 1 from public.season_awards
@@ -145,8 +162,11 @@ select ok(not exists(select 1 from public.season_awards
 select ok(exists(select 1 from public.season_awards
   where season_id='fc200000-0000-0000-0000-000000000003'
     and profile_id='fc100000-0000-0000-0000-000000000002'
-    and award_type='best_pred_overall'),
-  'best real predictor is promoted to overall title');
+    and award_type='best_pred_match'),
+  'best real predictor is promoted to match prediction title');
+select throws_ok($$select public.set_season_status('fc200000-0000-0000-0000-000000000003'::uuid,'open')$$,
+  '22023','Une saison avec des données de compétition ne peut pas être rouverte.',
+  'archived competition season cannot reopen');
 
 select * from finish();
 rollback;

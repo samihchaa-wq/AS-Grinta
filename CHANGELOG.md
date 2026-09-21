@@ -2,6 +2,17 @@
 
 Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
+## Non publié
+
+### Produit
+
+- retrait du pari « Buteurs » (pronostic de saison) : saisie, verrouillage des
+  paris, gel de l'effectif, classement Buteurs, bonus d'ordre, titres
+  « meilleur prono joueurs » et « meilleur pronostiqueur global », et leurs
+  badges ;
+- le pronostic de match devient la seule compétition : les trois onglets de
+  classement (Matchs, Buteurs, Global) laissent place à un classement unique.
+
 ## 0.2.2+4 — 2026-07-27
 
 ### Sécurité et données

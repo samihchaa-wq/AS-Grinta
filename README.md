@@ -53,7 +53,6 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 - Les pronostics restent privés avant la validation du résultat.
 - Le multiplicateur / portefeuille **×2 ne fait plus partie du produit actuel**.
 - Les anciennes migrations et certaines signatures de compatibilité peuvent encore contenir des traces de ×2.
-- Les pronostics de saison restent gérés séparément.
 
 ## Gestion sportive
 
