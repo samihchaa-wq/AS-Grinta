@@ -45,6 +45,18 @@ select throws_ok(format('select public.save_match_prediction(%L::uuid,1,0)',curr
   '22023','Les matchs entre nous ne sont pas ouverts aux pronostics.',
   'official RPC rejects internal match');
 reset role;
+
+select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+set local role authenticated;
+select ok(exists(select 1 from public.v_classement_general
+  where profile_id='fc100000-0000-0000-0000-000000000002'),
+  'another authenticated player sees a predictor before predictions are revealed');
+select is((select count(*) from public.match_predictions
+  where match_id=current_setting('test.match')::uuid
+    and profile_id='fc100000-0000-0000-0000-000000000002'),0::bigint,
+  'leaderboard participation does not reveal another current prediction row');
+reset role;
+
 select ok(exists(select 1 from public.v_classement_general
   where profile_id='fc100000-0000-0000-0000-000000000002'),
   'active real predictor appears after the first filled match prediction');
