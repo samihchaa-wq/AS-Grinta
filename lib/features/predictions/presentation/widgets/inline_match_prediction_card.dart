@@ -330,22 +330,31 @@ class _HeadToHead extends StatelessWidget {
             style: TextStyle(color: AppTheme.textSecondary),
           )
         else
-          Wrap(
-            spacing: AppSpacing.contentGap,
-            runSpacing: AppSpacing.contentGap,
+          Row(
             children: matches.map((match) {
               final route = matchEncounterRoute(
                 encounterId: match.id,
                 isHistorical: match.isHistorical,
               );
               final dateLabel = AppFormats.date(match.date);
-              return MatchResultScoreChip(
-                scoreGrinta: match.scoreGrinta ?? 0,
-                scoreOpponent: match.scoreOpponent ?? 0,
-                subtitle: dateLabel,
-                semanticLabel:
-                    route == null ? null : 'Ouvrir le match du $dateLabel',
-                onTap: route == null ? null : () => context.push(route),
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: match == matches.last ? 0 : 4,
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: MatchResultScoreChip(
+                      scoreGrinta: match.scoreGrinta ?? 0,
+                      scoreOpponent: match.scoreOpponent ?? 0,
+                      subtitle: dateLabel,
+                      semanticLabel:
+                          route == null ? null : 'Ouvrir le match du $dateLabel',
+                      onTap: route == null ? null : () => context.push(route),
+                    ),
+                  ),
+                ),
               );
             }).toList(),
           ),
