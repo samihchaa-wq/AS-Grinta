@@ -1,9 +1,7 @@
 import 'dart:ui';
 
 import 'package:as_grinta/app/shell/module_navigation.dart';
-import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -160,7 +158,6 @@ class _AppShellState extends ConsumerState<AppShell>
     _previousShellIndex = currentShellIndex;
     _previousLocationPath = currentLocationPath;
 
-    final viewingAsUser = ref.watch(viewAsUserProvider);
     final moduleTheme = Theme.of(context).copyWith(
       // Chaque route reste opaque afin que la page précédente ne traverse pas
       // le canvas pendant un geste Retour/Suivant du navigateur.
@@ -179,10 +176,6 @@ class _AppShellState extends ConsumerState<AppShell>
             bottom: !useRail,
             child: Column(
               children: [
-                if (viewingAsUser)
-                  _PreviewBanner(
-                    onExit: () => setViewAsUser(ref, false),
-                  ),
                 Expanded(
                   child: useRail
                       ? Row(
@@ -292,59 +285,6 @@ class _DesktopNavigation extends StatelessWidget {
           label: Text('Statistiques'),
         ),
       ],
-    );
-  }
-}
-
-class _PreviewBanner extends StatelessWidget {
-  const _PreviewBanner({required this.onExit});
-
-  final VoidCallback onExit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.admin,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.screenGutter,
-            vertical: AppSpacing.microGap,
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.visibility_outlined,
-                size: 17,
-                color: Colors.white,
-              ),
-              const SizedBox(width: AppSpacing.contentGap),
-              const Expanded(
-                child: Text(
-                  'Aperçu utilisateur',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: onExit,
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  visualDensity: VisualDensity.compact,
-                ),
-                child: const Text(
-                  'Revenir en admin',
-                  style: TextStyle(fontWeight: FontWeight.w400),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

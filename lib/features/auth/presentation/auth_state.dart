@@ -5,7 +5,6 @@ import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 const _signInTimeout = Duration(seconds: 12);
@@ -390,43 +389,10 @@ final authControllerProvider =
   return AuthController(repository);
 });
 
-const _viewAsUserPreferenceKey = 'as_grinta.view_as_user';
-
-/// Mode « Aperçu utilisateur » d'un administrateur.
-///
-/// À modifier via [setViewAsUser], qui le mémorise : sans persistance, un
-/// simple rechargement rendait ses boutons d'administration à l'admin sans le
-/// prévenir, alors qu'il se croyait toujours en aperçu.
-final viewAsUserProvider = StateProvider<bool>((ref) => false);
-
-/// Bascule le mode aperçu et le mémorise localement.
-Future<void> setViewAsUser(WidgetRef ref, bool value) async {
-  ref.read(viewAsUserProvider.notifier).state = value;
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_viewAsUserPreferenceKey, value);
-  } catch (_) {
-    // Stockage local indisponible (navigation privée, quota) : l'aperçu reste
-    // simplement non persistant.
-  }
-}
-
-/// Restaure le mode aperçu mémorisé. Appelé une fois au démarrage.
-Future<void> restoreViewAsUserPreference(WidgetRef ref) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_viewAsUserPreferenceKey) == true) {
-      ref.read(viewAsUserProvider.notifier).state = true;
-    }
-  } catch (_) {
-    // Ignoré : l'aperçu reprend simplement sa valeur par défaut.
-  }
-}
-
 final isRealAdminProvider = Provider<bool>((ref) {
   return ref.watch(authControllerProvider).profile?.role.isAdmin == true;
 });
 
 final isAdminViewProvider = Provider<bool>((ref) {
-  return ref.watch(isRealAdminProvider) && !ref.watch(viewAsUserProvider);
+  return ref.watch(isRealAdminProvider);
 });
