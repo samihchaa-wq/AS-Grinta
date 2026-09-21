@@ -169,10 +169,49 @@ void main() {
 
     expect(repository.submittedKnownVersion, 1);
   });
+
+  testWidgets(
+    'inséré dans une page qui défile, tout le compte rendu reste atteignable',
+    (tester) async {
+      // Le Tableau Blanc pose le compte rendu au milieu du défilement de la
+      // fiche du match. S'il ouvrait sa propre zone de défilement, la liste
+      // des buts serait coupée et le bouton de validation hors d'atteinte.
+      await _pump(
+        tester,
+        _repository(_report(scoreAsGrinta: 6)),
+        embedded: true,
+      );
+
+      await tester.tap(find.widgetWithText(Tab, 'Faits du match'));
+      await tester.pumpAndSettle();
+
+      // Les six buts sont posés d'un coup : aucun n'est enfermé dans un
+      // sous-défilement.
+      expect(find.text('Non attribué'), findsNWidgets(6));
+
+      final validate = find.text('VALIDER LE COMPTE RENDU');
+      await tester.scrollUntilVisible(
+        validate,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+      final button = tester.getRect(validate);
+      expect(button.top, greaterThanOrEqualTo(0));
+      expect(button.bottom, lessThanOrEqualTo(screen.height));
+    },
+  );
 }
 
 Future<void> _pump(
-    WidgetTester tester, _FakeReportRepository repository) async {
+  WidgetTester tester,
+  _FakeReportRepository repository, {
+  bool embedded = false,
+}) async {
+  const view = MatchReportView(matchId: 'match-1');
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -182,7 +221,16 @@ Future<void> _pump(
         // Les vagues d'encre chargent un shader indisponible dans certains
         // environnements de test : le rendu n'apporte rien ici.
         theme: ThemeData(splashFactory: NoSplash.splashFactory),
-        home: const Scaffold(body: MatchReportView(matchId: 'match-1')),
+        home: Scaffold(
+          body: embedded
+              ? ListView(
+                  children: const [
+                    SizedBox(height: 160),
+                    MatchReportView(matchId: 'match-1', embedded: true),
+                  ],
+                )
+              : view,
+        ),
       ),
     ),
   );

@@ -63,7 +63,9 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
               'compte rendu par le coach.',
         );
       }
-      return MatchReportView(matchId: matchId);
+      // Le Tableau Blanc est toujours posé dans une page qui défile déjà :
+      // le compte rendu ne doit pas ouvrir une seconde zone de défilement.
+      return MatchReportView(matchId: matchId, embedded: true);
     }
 
     final lineup = bundle.lineup;

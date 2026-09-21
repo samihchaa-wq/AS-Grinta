@@ -47,10 +47,17 @@ class MatchReportView extends ConsumerStatefulWidget {
     super.key,
     required this.matchId,
     this.onPublished,
+    this.embedded = false,
   });
 
   final String matchId;
   final VoidCallback? onPublished;
+
+  /// `true` quand le compte rendu est posé dans une page qui défile déjà
+  /// (l'onglet Live). Il s'affiche alors en pleine hauteur, sans zone de
+  /// défilement propre : tout descend avec la page, bouton de validation
+  /// compris.
+  final bool embedded;
 
   @override
   ConsumerState<MatchReportView> createState() => _MatchReportViewState();
@@ -558,12 +565,10 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
     if (report == null || lineup == null) return const SizedBox.shrink();
 
     return Column(
+      mainAxisSize: widget.embedded ? MainAxisSize.min : MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (!report.isEditable)
-          const _ReadOnlyNotice()
-        else
-          const SizedBox.shrink(),
+        if (!report.isEditable) const _ReadOnlyNotice(),
         _ReportScoreHeader(
           opponentName: report.opponentName,
           scoreAsGrinta: _scoreAsGrinta,
@@ -593,57 +598,35 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
             Tab(height: 42, text: 'Faits du match'),
           ],
         ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabs,
-            children: [
-              // Les deux onglets gardent leur état : passer de l'un à l'autre
-              // ne perd aucune modification.
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_editable)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: OutlinedButton.icon(
-                          onPressed: _saving ? null : _addPlayer,
-                          icon: const Icon(Icons.person_add_alt_1_rounded),
-                          label: const Text('Ajouter un joueur'),
-                        ),
-                      ),
-                    MatchSquadEditor(
-                      lineup: lineup,
-                      editable: _editable && !_saving,
-                      onDroppedOnSlot: _dropOnSlot,
-                      onMoveToBench: _moveToBench,
-                      onRemoveFromSquad: _removeFromSquad,
-                      onFormationChanged: _changeFormation,
-                      formationBusy: _saving,
-                      header: _SquadHint(
-                        starters: lineup
-                            .entriesFor(MatchCompositionZone.field)
-                            .length,
-                      ),
-                    ),
-                  ],
+        if (widget.embedded)
+          // Imbriquer une zone de défilement dans celle de la page couperait
+          // la liste en deux et rendrait le bouton du bas inatteignable :
+          // l'onglet actif s'affiche donc entier, et c'est la page qui défile.
+          AnimatedBuilder(
+            animation: _tabs,
+            builder: (context, _) => Padding(
+              padding: _tabs.index == 0 ? _squadPadding : _goalsPadding,
+              child: _tabs.index == 0 ? _squadTab(lineup) : _goalsTab(report),
+            ),
+          )
+        else
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              children: [
+                // Les deux onglets gardent leur état : passer de l'un à
+                // l'autre ne perd aucune modification.
+                SingleChildScrollView(
+                  padding: _squadPadding,
+                  child: _squadTab(lineup),
                 ),
-              ),
-              SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                child: MatchGoalActionsEditor(
-                  goalActions: _goals,
-                  squad: _squad,
-                  opponentName: report.opponentName,
-                  editable: _editable && !_saving,
-                  onChanged: _updateGoal,
-                  onReorder: _reorderGoals,
+                SingleChildScrollView(
+                  padding: _goalsPadding,
+                  child: _goalsTab(report),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         SafeArea(
           top: false,
           child: Padding(
@@ -662,6 +645,49 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
           ),
         ),
       ],
+    );
+  }
+
+  static const _squadPadding = EdgeInsets.fromLTRB(16, 14, 16, 20);
+  static const _goalsPadding = EdgeInsets.fromLTRB(16, 12, 16, 20);
+
+  Widget _squadTab(MatchComposition lineup) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_editable)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: OutlinedButton.icon(
+              onPressed: _saving ? null : _addPlayer,
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Ajouter un joueur'),
+            ),
+          ),
+        MatchSquadEditor(
+          lineup: lineup,
+          editable: _editable && !_saving,
+          onDroppedOnSlot: _dropOnSlot,
+          onMoveToBench: _moveToBench,
+          onRemoveFromSquad: _removeFromSquad,
+          onFormationChanged: _changeFormation,
+          formationBusy: _saving,
+          header: _SquadHint(
+            starters: lineup.entriesFor(MatchCompositionZone.field).length,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _goalsTab(MatchSportReport report) {
+    return MatchGoalActionsEditor(
+      goalActions: _goals,
+      squad: _squad,
+      opponentName: report.opponentName,
+      editable: _editable && !_saving,
+      onChanged: _updateGoal,
+      onReorder: _reorderGoals,
     );
   }
 }
