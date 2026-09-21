@@ -29,17 +29,13 @@ class LeaderboardRepository {
   final SupabaseClient _client;
 
   Future<List<LeaderboardEntry>> fetchCurrentLeaderboard() async {
-    final response = await _client
-        .from('v_classement_general')
-        .select('''
+    final response = await _client.from('v_classement_general').select('''
           profile_id,
           first_name,
           match_points,
           match_bons,
           match_exacts
-        ''')
-        .order('match_points', ascending: false)
-        .order('first_name');
+        ''').order('match_points', ascending: false).order('first_name');
 
     final rows = (response as List)
         .map((row) => Map<String, dynamic>.from(row as Map))

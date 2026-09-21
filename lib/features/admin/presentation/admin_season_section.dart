@@ -65,15 +65,9 @@ class _SeasonCard extends ConsumerWidget {
                       ),
                     ],
                   )
-                : Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Saison ${openSeason.name}',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                    ],
+                : Text(
+                    'Saison ${openSeason.name}',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
           ),
         ),
