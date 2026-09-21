@@ -82,7 +82,7 @@ void main() {
       expect(databaseContract, contains("'match_composition_publications'"));
       expect(
         databaseContract,
-        contains('les 23 tables partagées critiques déclenchent le signal'),
+        contains('les 22 tables partagées critiques déclenchent le signal'),
       );
     },
   );
