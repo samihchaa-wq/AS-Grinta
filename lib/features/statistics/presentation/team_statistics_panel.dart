@@ -49,7 +49,8 @@ class TeamStatisticsPanel extends ConsumerWidget {
             const _TeamSectionTitle('Buts marqués'),
             const SizedBox(height: 10),
             _TeamGoalsCard(statistics: statistics),
-            if (statistics.recentResults.isNotEmpty) ...[
+            if (period == StatisticsPeriod.current &&
+                statistics.recentResults.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sectionGap),
               const _TeamSectionTitle('Derniers matchs'),
               const SizedBox(height: 10),
