@@ -54,11 +54,21 @@ class MatchEncounter {
     required this.grintaScore,
     required this.opponentScore,
     this.date,
+    this.id,
+    this.isHistorical = false,
   });
 
   final int grintaScore;
   final int opponentScore;
   final DateTime? date;
+
+  /// Identifiant de la rencontre source. Absent uniquement tant que le backend
+  /// n'a pas encore déployé la version enrichie de l'historique.
+  final String? id;
+
+  /// Vrai pour une rencontre compactée dans historical_match_scores, faux
+  /// pour un match encore présent dans matches.
+  final bool isHistorical;
 }
 
 /// Données de l'onglet « Info » d'un match : heure, adresse (celle de l'équipe
@@ -202,6 +212,8 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
           grintaScore: (map['grinta_score'] as num?)?.toInt() ?? 0,
           opponentScore: (map['opponent_score'] as num?)?.toInt() ?? 0,
           date: DateTime.tryParse('${map['encounter_date'] ?? ''}')?.toLocal(),
+          id: _clean(map['encounter_id']),
+          isHistorical: map['is_historical'] == true,
         ),
       );
     }
