@@ -12,6 +12,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   badges ;
 - le pronostic de match devient la seule compétition : les trois onglets de
   classement (Matchs, Buteurs, Global) laissent place à un classement unique.
+- compte rendu d'un match terminé : la liste des buts s'affiche en entier dans
+  la page et le bouton « Valider le compte rendu » redevient atteignable ; il
+  n'y a plus de zone de défilement imbriquée qui coupait la saisie des buteurs
+  et des passeurs.
 
 ## 0.2.2+4 — 2026-07-27
 
