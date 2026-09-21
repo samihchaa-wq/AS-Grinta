@@ -296,8 +296,9 @@ class _EncounterChip extends StatelessWidget {
     if (route == null) return chip;
     return Semantics(
       button: true,
-      label:
-          dateLabel == null ? 'Ouvrir ce match' : 'Ouvrir le match du $dateLabel',
+      label: dateLabel == null
+          ? 'Ouvrir ce match'
+          : 'Ouvrir le match du $dateLabel',
       child: InkWell(
         onTap: () => context.push(route),
         borderRadius: BorderRadius.circular(8),
