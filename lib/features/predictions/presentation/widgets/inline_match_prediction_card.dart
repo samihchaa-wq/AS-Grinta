@@ -3,6 +3,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/matches/presentation/match_encounter_route.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
@@ -333,22 +334,18 @@ class _HeadToHead extends StatelessWidget {
             spacing: AppSpacing.contentGap,
             runSpacing: AppSpacing.contentGap,
             children: matches.map((match) {
-              final encounterId = match.id?.trim();
+              final route = matchEncounterRoute(
+                encounterId: match.id,
+                isHistorical: match.isHistorical,
+              );
               final dateLabel = AppFormats.date(match.date);
               return MatchResultScoreChip(
                 scoreGrinta: match.scoreGrinta ?? 0,
                 scoreOpponent: match.scoreOpponent ?? 0,
                 subtitle: dateLabel,
-                semanticLabel: encounterId == null || encounterId.isEmpty
-                    ? null
-                    : 'Ouvrir le match du $dateLabel',
-                onTap: encounterId == null || encounterId.isEmpty
-                    ? null
-                    : () => context.push(
-                          match.isHistorical
-                              ? '/matches/history/$encounterId'
-                              : '/matches/$encounterId',
-                        ),
+                semanticLabel:
+                    route == null ? null : 'Ouvrir le match du $dateLabel',
+                onTap: route == null ? null : () => context.push(route),
               );
             }).toList(),
           ),
