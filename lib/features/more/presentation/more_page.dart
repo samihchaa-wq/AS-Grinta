@@ -14,7 +14,6 @@ class MorePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isRealAdmin = ref.watch(isRealAdminProvider);
-    final viewingAsUser = ref.watch(viewAsUserProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
@@ -57,14 +56,12 @@ class MorePage extends ConsumerWidget {
                 title: const Text('Liste d’attente'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push(
-                  isRealAdmin && !viewingAsUser
-                      ? '/admin/waitlist'
-                      : '/waitlist',
+                  isRealAdmin ? '/admin/waitlist' : '/waitlist',
                 ),
               ),
             ),
           ],
-          if (isRealAdmin && !viewingAsUser) ...[
+          if (isRealAdmin) ...[
             const SizedBox(height: 10),
             Card(
               child: ListTile(
@@ -99,20 +96,6 @@ class MorePage extends ConsumerWidget {
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/admin'),
-              ),
-            ),
-          ],
-          if (isRealAdmin) ...[
-            const SizedBox(height: 10),
-            Card(
-              child: SwitchListTile(
-                secondary: const Icon(Icons.visibility_outlined),
-                title: const Text(
-                  'Aperçu utilisateur',
-                  style: TextStyle(fontWeight: FontWeight.w400),
-                ),
-                value: viewingAsUser,
-                onChanged: (value) => setViewAsUser(ref, value),
               ),
             ),
           ],
