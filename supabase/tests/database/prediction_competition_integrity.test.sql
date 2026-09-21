@@ -112,6 +112,47 @@ select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-00000000
 select public.finalize_match_postgame(current_setting('test.title_match')::uuid,0,'[]'::jsonb,null,1);
 set local role authenticated;
 select public.archive_match(current_setting('test.title_match')::uuid);
+reset role;
+
+-- Le titre « meilleur prono match » exige cinq pronostics remplis sur la
+-- saison. La fenêtre de pronostic n'ouvre qu'à six jours du coup d'envoi, donc
+-- un seul match peut être pronostiqué par le chemin normal dans ce scénario :
+-- il l'a été ci-dessus. Les quatre matchs terminés qui suivent sont écrits
+-- directement, avec les mêmes pronostics, uniquement pour atteindre le seuil.
+set local session_replication_role = replica;
+do $extra_matches$
+declare
+  v_match uuid;
+  v_index integer;
+begin
+  for v_index in 1..4 loop
+    insert into public.matches(
+      season_id, opponent_id, match_date, match_time, kickoff_at, location,
+      planned_duration_minutes, status, score_as_grinta, score_adverse,
+      created_by, match_type, competition, result_validated_at
+    ) values (
+      'fc200000-0000-0000-0000-000000000003',
+      'fc300000-0000-0000-0000-000000000002',
+      date '2014-03-17' + v_index,
+      time '21:00',
+      (date '2014-03-17' + v_index) + time '20:00',
+      'domicile', 90, 'archive', 0, 1,
+      'fc100000-0000-0000-0000-000000000001', 'amical', 'championnat', now()
+    ) returning id into v_match;
+
+    insert into public.match_predictions(
+      match_id, profile_id, predicted_score_as_grinta,
+      predicted_score_adverse, is_filled
+    ) values
+      (v_match, 'fc100000-0000-0000-0000-000000000002', 2, 0, true),
+      (v_match, 'fc100000-0000-0000-0000-000000000003', 1, 0, true);
+  end loop;
+end;
+$extra_matches$;
+set local session_replication_role = origin;
+
+select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+set local role authenticated;
 select public.set_season_status('fc200000-0000-0000-0000-000000000003','archived');
 reset role;
 select ok(not exists(select 1 from public.season_awards
