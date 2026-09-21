@@ -91,6 +91,9 @@ from eligible_profiles profile
 left join match_totals match_total on match_total.profile_id = profile.id
 left join match_flags match_stat on match_stat.profile_id = profile.id;
 
+-- La vue est recréée, pas remplacée : ses droits repartent des privilèges par
+-- défaut, qui sont plus larges. On rétablit explicitement la lecture seule.
+revoke all on public.v_classement_general from public, anon, authenticated;
 grant select on public.v_classement_general to authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -506,6 +509,9 @@ end;
 $function$;
 
 alter function public.profile_badge_metrics(uuid) owner to postgres;
+revoke all on function public.profile_badge_metrics(uuid) from public, anon;
+grant execute on function public.profile_badge_metrics(uuid)
+  to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 5. Rapport d'intégrité : le contrôle des grilles de saison disparaît
