@@ -45,6 +45,9 @@ select throws_ok(format('select public.save_match_prediction(%L::uuid,1,0)',curr
   '22023','Les matchs entre nous ne sont pas ouverts aux pronostics.',
   'official RPC rejects internal match');
 reset role;
+select ok(exists(select 1 from public.v_classement_general
+  where profile_id='fc100000-0000-0000-0000-000000000002'),
+  'active real predictor appears after the first filled match prediction');
 select is((select predicted_score_as_grinta from public.match_predictions
   where match_id=current_setting('test.match')::uuid
     and profile_id='fc100000-0000-0000-0000-000000000002'),1,
