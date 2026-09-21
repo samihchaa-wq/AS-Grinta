@@ -87,12 +87,12 @@ where id in (
 );
 
 select ok(
-  exists (
+  not exists (
     select 1
     from public.v_classement_general
     where profile_id = 'fb100000-0000-0000-0000-000000000001'
   ),
-  'an active real pronosticator remains visible in the leaderboard'
+  'an active real profile with no filled prediction stays out of the leaderboard'
 );
 
 select ok(
@@ -123,17 +123,17 @@ select is(
       'fb100000-0000-0000-0000-000000000002'::uuid
     )
   ),
-  1::bigint,
-  'an authenticated player can read the leaderboard and still cannot see the QA account'
+  0::bigint,
+  'an authenticated player can read the leaderboard and sees neither zero-prediction nor QA accounts'
 );
 
 select ok(
-  exists (
+  not exists (
     select 1
     from public.v_classement_general
     where profile_id = 'fb100000-0000-0000-0000-000000000001'
   ),
-  'the authenticated player sees the real leaderboard entry'
+  'the authenticated player does not see a real account before its first prediction'
 );
 
 reset role;
