@@ -321,7 +321,7 @@ class _PlayersPinnedHeader extends StatelessWidget {
         children: [
           Expanded(
             child: SortableHeaderCell(
-              label: 'Joueur',
+              label: 'Joueurs',
               align: TextAlign.center,
               active: sort == _PlayerStatCol.name,
               descending: descending,
