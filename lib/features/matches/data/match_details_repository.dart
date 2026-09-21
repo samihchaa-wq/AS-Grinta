@@ -8,12 +8,16 @@ class HeadToHeadMatch {
     required this.scoreGrinta,
     required this.scoreOpponent,
     this.location = '',
+    this.id,
+    this.isHistorical = false,
   });
 
   final DateTime date;
   final String location;
   final int? scoreGrinta;
   final int? scoreOpponent;
+  final String? id;
+  final bool isHistorical;
 }
 
 class MatchStatLine {
@@ -202,6 +206,8 @@ class MatchDetailsRepository {
                 DateTime.tryParse('${row['encounter_date']}') ?? DateTime(1970),
             scoreGrinta: (row['grinta_score'] as num?)?.toInt(),
             scoreOpponent: (row['opponent_score'] as num?)?.toInt(),
+            id: row['encounter_id']?.toString(),
+            isHistorical: row['is_historical'] == true,
           ),
         )
         .toList();
