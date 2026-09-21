@@ -38,7 +38,6 @@ Les 23 fonctions suivantes sont des points d’entrée applicatifs. L’audit de
 - `get_or_create_opponent(text)`
 - `open_or_create_season(text)`
 - `preview_match_odds(uuid,text)`
-- `set_season_predictions_lock(uuid,boolean)`
 - `set_season_status(uuid,text)`
 - `staff_app_integrity_report()`
 - `staff_award_badge(uuid,text)`

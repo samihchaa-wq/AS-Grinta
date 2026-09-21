@@ -8,32 +8,19 @@ class LeaderboardEntry {
     required this.profileId,
     required this.name,
     required this.matchPoints,
-    required this.seasonPoints,
-    required this.totalPoints,
     required this.matchBons,
     required this.matchExacts,
-    required this.seasonBons,
-    required this.seasonExacts,
   });
 
   final String profileId;
   final String name;
 
-  /// Points bruts sur chaque compétition (pour l'affichage détaillé).
+  /// Points bruts du pronostic de match (pour l'affichage détaillé).
   final double matchPoints;
-  final double seasonPoints;
-
-  /// Score final : addition directe des points matchs et saison.
-  final double totalPoints;
 
   /// Statistiques matchs : bons vainqueurs et scores exacts trouvés.
   final int matchBons;
   final int matchExacts;
-
-  /// Statistiques saison : joueurs où l'on est le plus proche (égalités
-  /// comprises) et où l'on a trouvé le bon nombre de buts.
-  final int seasonBons;
-  final int seasonExacts;
 }
 
 class LeaderboardRepository {
@@ -48,14 +35,9 @@ class LeaderboardRepository {
           profile_id,
           first_name,
           match_points,
-          season_points,
-          total_points,
           match_bons,
-          match_exacts,
-          season_bons,
-          season_exacts
+          match_exacts
         ''')
-        .order('total_points', ascending: false)
         .order('match_points', ascending: false)
         .order('first_name');
 
@@ -93,12 +75,8 @@ class LeaderboardRepository {
         profileId: profileId,
         name: displayName,
         matchPoints: (map['match_points'] as num?)?.toDouble() ?? 0,
-        seasonPoints: (map['season_points'] as num?)?.toDouble() ?? 0,
-        totalPoints: (map['total_points'] as num?)?.toDouble() ?? 0,
         matchBons: (map['match_bons'] as num?)?.toInt() ?? 0,
         matchExacts: (map['match_exacts'] as num?)?.toInt() ?? 0,
-        seasonBons: (map['season_bons'] as num?)?.toInt() ?? 0,
-        seasonExacts: (map['season_exacts'] as num?)?.toInt() ?? 0,
       );
     }).toList();
   }

@@ -42,21 +42,6 @@ values
   ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Gardien', 'Tests', true, true, 1),
   ('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Buteur', 'Tests', false, true, 2);
 
-select is(
-  (
-    select count(*)
-    from public.season_predictions
-    where season_id = '20000000-0000-0000-0000-000000000001'
-      and predictor_profile_id in (
-        '10000000-0000-0000-0000-000000000001',
-        '10000000-0000-0000-0000-000000000002',
-        '10000000-0000-0000-0000-000000000003'
-      )
-  ),
-  6::bigint,
-  'les pronostics saisonniers sont préremplis automatiquement'
-);
-
 -- Match dans la fenêtre J-6 : deux pronostics sont saisis puis le match est
 -- marqué terminé afin de vérifier la révélation des pronostics après résultat.
 insert into public.matches (

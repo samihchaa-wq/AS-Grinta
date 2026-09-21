@@ -89,30 +89,6 @@ select ok(exists(select 1 from public.v_classement_general
 update public.profiles set status='active' where id='fc100000-0000-0000-0000-000000000002';
 
 insert into public.seasons(id,name,status)
-values('fc200000-0000-0000-0000-000000000002','2086-2087','open');
-insert into public.season_players(id,season_id,first_name,last_name,is_goalkeeper,is_active,position)
-values('fc400000-0000-0000-0000-000000000001','fc200000-0000-0000-0000-000000000002','Target','Season',false,true,1);
-select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
-select public.save_my_season_predictions('fc200000-0000-0000-0000-000000000002',
-  jsonb_build_array(jsonb_build_object('season_player_id','fc400000-0000-0000-0000-000000000001','category','buts','predicted_value_30',10)));
-reset role;
-select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
-select public.set_season_predictions_lock('fc200000-0000-0000-0000-000000000002',true);
-select throws_ok($$select public.set_season_predictions_lock('fc200000-0000-0000-0000-000000000002'::uuid,false)$$,
-  '22023','Les pronostics de saison révélés sont définitivement figés.',
-  'filled revealed season predictions cannot unlock');
-select public.set_season_status('fc200000-0000-0000-0000-000000000002','archived');
-select throws_ok($$select public.set_season_status('fc200000-0000-0000-0000-000000000002'::uuid,'open')$$,
-  '22023','Une saison avec des données de compétition ne peut pas être rouverte.',
-  'archived competition season cannot reopen');
-reset role;
-select ok(exists(select 1 from public.season_prediction_roster_captures
-  where season_id='fc200000-0000-0000-0000-000000000002'),
-  'committed roster snapshot survives archive');
-
-insert into public.seasons(id,name,status)
 values('fc200000-0000-0000-0000-000000000003','2085-2086','open');
 insert into public.opponents(id,name)
 values('fc300000-0000-0000-0000-000000000002','Title Integrity FC');
@@ -145,8 +121,11 @@ select ok(not exists(select 1 from public.season_awards
 select ok(exists(select 1 from public.season_awards
   where season_id='fc200000-0000-0000-0000-000000000003'
     and profile_id='fc100000-0000-0000-0000-000000000002'
-    and award_type='best_pred_overall'),
-  'best real predictor is promoted to overall title');
+    and award_type='best_pred_match'),
+  'best real predictor is promoted to match prediction title');
+select throws_ok($$select public.set_season_status('fc200000-0000-0000-0000-000000000003'::uuid,'open')$$,
+  '22023','Une saison avec des données de compétition ne peut pas être rouverte.',
+  'archived competition season cannot reopen');
 
 select * from finish();
 rollback;

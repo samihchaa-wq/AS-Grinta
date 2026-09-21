@@ -227,7 +227,6 @@ jobs:
             public:seasons \
             public:matches \
             public:match_predictions \
-            public:season_predictions \
             auth:users; do
             schema=${spec%%:*}
             table=${spec#*:}

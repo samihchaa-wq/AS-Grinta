@@ -76,12 +76,8 @@ String _rawDescriptorFor({
       return 'MONSIEUR VICTOIRE · SAISON';
     case 'title_mvp_king':
       return 'BALLON D’OR · SAISON';
-    case 'title_best_pred_player':
-      return 'L’ANALYSTE · SAISON';
     case 'title_best_pred_match':
       return 'LE VISIONNAIRE · SAISON';
-    case 'title_best_pred_overall':
-      return 'LE CERVEAU · SAISON';
   }
   switch (code) {
     case 'exploit_remplace_gardien':

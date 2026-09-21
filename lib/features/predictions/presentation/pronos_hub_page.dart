@@ -6,7 +6,6 @@ import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
@@ -19,10 +18,7 @@ import 'package:as_grinta/features/matches/presentation/calendar_matches_view.da
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
-import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
-import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
-import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,18 +28,12 @@ part 'pronos_hub_history_section.dart';
 part 'pronos_hub_ranking_sections.dart';
 part 'pronos_hub_components.dart';
 
-enum _PronosCategory { matches, scorers, general }
-
-enum _GeneralRankingView { matches, scorers, general }
+enum _PronosCategory { matches, general }
 
 class PronosHubPage extends ConsumerStatefulWidget {
-  const PronosHubPage({super.key, this.initialCategory, this.initialView});
+  const PronosHubPage({super.key, this.initialCategory});
 
   final String? initialCategory;
-
-  /// Sous-onglet préselectionné du classement général : 'matches', 'scorers'
-  /// ou 'general'. Utilisé pour les liens directs vers un classement.
-  final String? initialView;
 
   @override
   ConsumerState<PronosHubPage> createState() => _PronosHubPageState();
@@ -68,7 +58,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   _PronosCategory _categoryFrom(String? value) {
     return switch (value) {
-      'scorers' => _PronosCategory.scorers,
       'general' => _PronosCategory.general,
       _ => _PronosCategory.matches,
     };
@@ -80,10 +69,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final content = switch (_category) {
       _PronosCategory.matches => const CalendarMatchesView(),
-      _PronosCategory.scorers => const _ScorerRankingView(),
-      _PronosCategory.general => _GeneralRankingsSection(
-          initialView: widget.initialView,
-        ),
+      _PronosCategory.general => const _GeneralRankingsSection(),
     };
 
     return Scaffold(
@@ -91,7 +77,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       appBar: GrintaAppBar(
         title: Text(switch (_category) {
           _PronosCategory.matches => 'Calendrier',
-          _PronosCategory.scorers => 'Prono joueurs',
           _PronosCategory.general => 'Classements',
         }),
         actions: grintaHomeActions(context),
@@ -127,15 +112,10 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
 /// Panneau de classement réutilisable dans l'onglet Stats.
 class RankingsPanel extends StatelessWidget {
-  const RankingsPanel({super.key, this.initialView});
-
-  final String? initialView;
+  const RankingsPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return _GeneralRankingsSection(
-      initialView: initialView,
-      badgeSize: statisticsBadgeSize,
-    );
+    return const _GeneralRankingsSection(badgeSize: statisticsBadgeSize);
   }
 }

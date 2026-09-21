@@ -348,8 +348,6 @@ class _AdminMatchActions extends ConsumerWidget {
       ..invalidate(_calendarPredictionProvider)
       ..invalidate(inlineMatchPredictionProvider)
       ..invalidate(leaderboardProvider)
-      ..invalidate(enhancedSeasonGaugesProvider)
-      ..invalidate(enhancedSeasonCompletedMatchesProvider)
       ..invalidate(matchDetailsProvider(match.id));
     await ref.read(predictionsControllerProvider.notifier).load();
   }

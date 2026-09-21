@@ -32,8 +32,7 @@ create table public.seasons (
   name text not null unique,
   status text not null default 'open'
     check (status in ('open', 'terminee', 'archived')),
-  created_at timestamptz not null default now(),
-  season_predictions_locked_at timestamptz
+  created_at timestamptz not null default now()
 );
 create unique index seasons_single_open_idx
   on public.seasons(status) where status = 'open';
@@ -107,19 +106,6 @@ create table public.match_predictions (
   updated_at timestamptz not null default now(),
   use_x2 boolean not null default false,
   unique(match_id, profile_id)
-);
-
-create table public.season_predictions (
-  id uuid primary key default gen_random_uuid(),
-  season_id uuid not null references public.seasons(id) on delete restrict,
-  predictor_profile_id uuid not null references public.profiles(id) on delete cascade,
-  category text not null check (category in ('buts', 'clean_sheets')),
-  predicted_value_30 integer not null default 0 check (predicted_value_30 >= 0),
-  is_filled boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  season_player_id uuid not null references public.season_players(id) on delete cascade,
-  unique(season_id, predictor_profile_id, season_player_id, category)
 );
 
 create table public.match_attendance (
@@ -783,7 +769,6 @@ alter table public.season_players enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_odds enable row level security;
 alter table public.match_predictions enable row level security;
-alter table public.season_predictions enable row level security;
 alter table public.match_attendance enable row level security;
 alter table public.match_man_of_match enable row level security;
 alter table public.match_player_stats enable row level security;
@@ -793,7 +778,6 @@ grant select on public.seasons, public.opponents, public.season_players,
   public.matches, public.match_odds, public.match_attendance,
   public.match_man_of_match, public.match_player_stats to authenticated;
 grant select, insert, update on public.match_predictions to authenticated;
-grant select, insert, update on public.season_predictions to authenticated;
 grant all on all tables in schema public to service_role;
 
 create policy authenticated_read_profiles
@@ -844,17 +828,6 @@ with check (
   profile_id = (select auth.uid())
   and (select private.is_active_profile())
 );
-
-create policy read_own_season_predictions
-on public.season_predictions for select to authenticated
-using (predictor_profile_id = (select auth.uid()));
-create policy own_season_predictions_insert
-on public.season_predictions for insert to authenticated
-with check (predictor_profile_id = (select auth.uid()));
-create policy own_season_predictions_update
-on public.season_predictions for update to authenticated
-using (predictor_profile_id = (select auth.uid()))
-with check (predictor_profile_id = (select auth.uid()));
 
 -- Dans la suite, le troisième argument de throws_ok est une description.
 -- Cette surcharge locale vérifie uniquement le SQLSTATE, puis transmet la description.

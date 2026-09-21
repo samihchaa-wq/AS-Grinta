@@ -19,10 +19,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 enum _StatsSection { rankings, players, team }
 
 class StatsHubPage extends StatefulWidget {
-  const StatsHubPage({super.key, this.initialSection, this.initialRankingView});
+  const StatsHubPage({super.key, this.initialSection});
 
   final String? initialSection;
-  final String? initialRankingView;
 
   @override
   State<StatsHubPage> createState() => _StatsHubPageState();
@@ -106,9 +105,7 @@ class _StatsHubPageState extends State<StatsHubPage> {
               ),
             Expanded(
               child: switch (_section) {
-                _StatsSection.rankings => RankingsPanel(
-                    initialView: widget.initialRankingView,
-                  ),
+                _StatsSection.rankings => const RankingsPanel(),
                 _StatsSection.players => _PlayersPanel(period: _period),
                 _StatsSection.team => TeamStatisticsPanel(period: _period),
               },

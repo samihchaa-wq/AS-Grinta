@@ -33,8 +33,7 @@ pilote le Live des matchs de sa saison, et il n'est pas un joueur de rotation.
    aucun tour, et son absence ne fait monter personne. Il n'y a donc aucune
    décision d'effectif à prendre pour lui : sa seule réponse décide.
 3. **Pas une ligne de joueur.** Il n'apparaît ni dans les « Statistiques
-   Joueurs », ni parmi les candidats à l'Homme du match, ni parmi les cibles du
-   pari de saison (buteurs / clean sheets).
+   Joueurs », ni parmi les candidats à l'Homme du match.
 
 ## Comment c'est tenu côté serveur
 

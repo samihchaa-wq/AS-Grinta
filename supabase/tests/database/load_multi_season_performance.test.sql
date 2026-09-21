@@ -271,33 +271,6 @@ join load_season_players lsp
   on lsp.season_index = lm.season_index
  and lsp.player_index = ((lm.match_index * 3 - 1) % 60) + 1;
 
-insert into public.season_predictions(
-  season_id,
-  predictor_profile_id,
-  season_player_id,
-  category,
-  predicted_value_30,
-  is_filled,
-  created_at,
-  updated_at
-)
-select
-  ls.season_id,
-  lp.profile_id,
-  lsp.season_player_id,
-  category,
-  (lp.player_index + target_player_index + ls.season_index) % 31,
-  true,
-  now(),
-  now()
-from load_seasons ls
-cross join load_profiles lp
-cross join generate_series(1, 5) as target_player_index
-cross join (values ('buts'::text), ('clean_sheets'::text)) categories(category)
-join load_season_players lsp
-  on lsp.season_index = ls.season_index
- and lsp.player_index = target_player_index;
-
 insert into public.historical_player_statistics(
   scope,
   season_name,
@@ -356,7 +329,6 @@ analyze public.season_players;
 analyze public.matches;
 analyze public.match_odds;
 analyze public.match_predictions;
-analyze public.season_predictions;
 analyze public.match_attendance;
 analyze public.match_player_stats;
 analyze public.match_man_of_match;
@@ -369,8 +341,6 @@ select is((select count(*) from public.matches), 480::bigint,
   'le scénario contient plusieurs centaines de matchs');
 select is((select count(*) from public.match_predictions), 28800::bigint,
   'le scénario contient 28 800 pronostics de match');
-select is((select count(*) from public.season_predictions), 4800::bigint,
-  'le scénario contient 4 800 pronostics de saison');
 select is((select count(*) from public.match_attendance), 9600::bigint,
   'le scénario contient 9 600 lignes de présence');
 select is((select count(*) from public.match_player_stats), 2400::bigint,
@@ -431,48 +401,16 @@ with match_scores as (
   join public.matches m on m.id = mp.match_id
    and m.status in ('termine', 'archive')
   group by mp.profile_id
-), actual_season_values as (
-  select
-    sp.season_id,
-    sp.id as season_player_id,
-    coalesce(sum(mps.goals), 0)::integer as goals,
-    count(*) filter (where mps.clean_sheet)::integer as clean_sheets
-  from public.season_players sp
-  left join public.match_player_stats mps on mps.season_player_id = sp.id
-  group by sp.season_id, sp.id
-), season_scores as (
-  select
-    prediction.predictor_profile_id as profile_id,
-    sum(
-      case prediction.category
-        when 'buts' then greatest(
-          0,
-          100 - abs(prediction.predicted_value_30 - actual.goals) * 10
-        )
-        else greatest(
-          0,
-          100 - abs(prediction.predicted_value_30 - actual.clean_sheets) * 10
-        )
-      end
-    )::bigint as season_points
-  from public.season_predictions prediction
-  join actual_season_values actual
-    on actual.season_id = prediction.season_id
-   and actual.season_player_id = prediction.season_player_id
-  where prediction.is_filled
-  group by prediction.predictor_profile_id
 )
 select
   p.id as profile_id,
   p.surnom,
   coalesce(ms.match_points, 0) as match_points,
-  coalesce(ss.season_points, 0) as season_points,
-  coalesce(ms.match_points, 0) + coalesce(ss.season_points, 0) as total_points,
+  coalesce(ms.match_points, 0) as total_points,
   coalesce(ms.correct_results, 0) as correct_results,
   coalesce(ms.exact_scores, 0) as exact_scores
 from public.profiles p
 left join match_scores ms on ms.profile_id = p.id
-left join season_scores ss on ss.profile_id = p.id
 where p.status = 'active'
 order by total_points desc, p.id;
 
@@ -549,42 +487,6 @@ left join badge_counts bc on bc.profile_id = p.id
 where p.status = 'active'
 order by p.id;
 
-create temporary view load_season_prediction_summary as
-with actual as (
-  select
-    sp.season_id,
-    sp.id as season_player_id,
-    coalesce(sum(mps.goals), 0)::integer as actual_goals,
-    count(*) filter (where mps.clean_sheet)::integer as actual_clean_sheets
-  from public.season_players sp
-  left join public.match_player_stats mps on mps.season_player_id = sp.id
-  group by sp.season_id, sp.id
-)
-select
-  prediction.predictor_profile_id,
-  count(*)::bigint as predictions,
-  count(*) filter (
-    where prediction.category = 'buts'
-      and prediction.predicted_value_30 = actual.actual_goals
-  )::bigint as exact_goal_predictions,
-  count(*) filter (
-    where prediction.category = 'clean_sheets'
-      and prediction.predicted_value_30 = actual.actual_clean_sheets
-  )::bigint as exact_clean_sheet_predictions,
-  sum(
-    case prediction.category
-      when 'buts' then abs(prediction.predicted_value_30 - actual.actual_goals)
-      else abs(prediction.predicted_value_30 - actual.actual_clean_sheets)
-    end
-  )::bigint as total_absolute_error
-from public.season_predictions prediction
-join actual
-  on actual.season_id = prediction.season_id
- and actual.season_player_id = prediction.season_player_id
-where prediction.is_filled
-group by prediction.predictor_profile_id
-order by prediction.predictor_profile_id;
-
 create temporary table load_benchmark_results (
   query_name text not null,
   iteration integer not null,
@@ -644,10 +546,6 @@ select pg_temp.run_load_benchmark(
 select pg_temp.run_load_benchmark(
   'badge_metrics',
   'select * from pg_temp.load_badge_metrics'
-);
-select pg_temp.run_load_benchmark(
-  'season_prediction_summary',
-  'select * from pg_temp.load_season_prediction_summary'
 );
 
 select diag(format(
