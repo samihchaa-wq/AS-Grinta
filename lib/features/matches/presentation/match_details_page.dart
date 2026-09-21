@@ -20,6 +20,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
+int compareMatchPredictionResultsForDisplay(
+  MatchPredictionResult a,
+  MatchPredictionResult b, {
+  required String? currentProfileId,
+}) {
+  final pointsComparison = b.points.compareTo(a.points);
+  if (pointsComparison != 0) return pointsComparison;
+
+  final aIsCurrent =
+      currentProfileId != null && a.profileId == currentProfileId;
+  final bIsCurrent =
+      currentProfileId != null && b.profileId == currentProfileId;
+  if (aIsCurrent != bIsCurrent) return aIsCurrent ? -1 : 1;
+
+  final nameComparison =
+      a.name.trim().toLowerCase().compareTo(b.name.trim().toLowerCase());
+  if (nameComparison != 0) return nameComparison;
+
+  // Deterministic fallback for duplicate display names.
+  return a.profileId.compareTo(b.profileId);
+}
+
 class MatchDetailsPage extends ConsumerWidget {
   const MatchDetailsPage({super.key, required this.matchId});
 
@@ -564,10 +586,7 @@ class _PredictionsTable extends StatelessWidget {
     BuildContext context,
     MatchPredictionResult prediction,
   ) {
-    final resultColor = _colorFor(prediction);
-    final isCurrentUser =
-        currentProfileId != null && prediction.profileId == currentProfileId;
-    final highlightColor = isCurrentUser ? AppTheme.accent : resultColor;
+    final highlightColor = _colorFor(prediction);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -576,11 +595,8 @@ class _PredictionsTable extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: highlightColor == null
             ? null
-            : Border.all(
-                color: highlightColor,
-                width: isCurrentUser ? 2.2 : 1.7,
-              ),
-        color: highlightColor?.withValues(alpha: isCurrentUser ? .16 : .08),
+            : Border.all(color: highlightColor, width: 1.7),
+        color: highlightColor?.withValues(alpha: .08),
       ),
       child: Row(
         children: [
@@ -623,6 +639,15 @@ class _PredictionsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sortedPredictions = predictions.toList()
+      ..sort(
+        (a, b) => compareMatchPredictionResultsForDisplay(
+          a,
+          b,
+          currentProfileId: currentProfileId,
+        ),
+      );
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -631,7 +656,7 @@ class _PredictionsTable extends StatelessWidget {
           children: [
             Text('Prono', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            for (final prediction in predictions)
+            for (final prediction in sortedPredictions)
               _predictionRow(context, prediction),
           ],
         ),
