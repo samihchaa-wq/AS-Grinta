@@ -8,6 +8,7 @@ import 'package:as_grinta/features/predictions/data/predictions_repository.dart'
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
@@ -332,9 +333,22 @@ class _HeadToHead extends StatelessWidget {
             spacing: AppSpacing.contentGap,
             runSpacing: AppSpacing.contentGap,
             children: matches.map((match) {
+              final encounterId = match.id?.trim();
+              final dateLabel = AppFormats.date(match.date);
               return MatchResultScoreChip(
                 scoreGrinta: match.scoreGrinta ?? 0,
                 scoreOpponent: match.scoreOpponent ?? 0,
+                subtitle: dateLabel,
+                semanticLabel: encounterId == null || encounterId.isEmpty
+                    ? null
+                    : 'Ouvrir le match du $dateLabel',
+                onTap: encounterId == null || encounterId.isEmpty
+                    ? null
+                    : () => context.push(
+                          match.isHistorical
+                              ? '/matches/history/$encounterId'
+                              : '/matches/$encounterId',
+                        ),
               );
             }).toList(),
           ),
