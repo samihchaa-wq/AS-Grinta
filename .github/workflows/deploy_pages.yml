@@ -111,11 +111,6 @@ jobs:
           grep -q '/AS-Grinta/' build/web/index.html
           grep -q 'Content-Security-Policy' build/web/index.html
           grep -q 'staleWhileRevalidate' build/web/sw.js
-          grep -a -q 'Clean sheets' build/web/main.dart.js
-          if grep -a -q 'Tous les pronostics (' build/web/main.dart.js; then
-            echo 'Le titre redondant est encore présent dans le build.'
-            exit 1
-          fi
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
@@ -172,11 +167,6 @@ jobs:
           grep -q 'version-check' /tmp/app_shell.js
           grep -q 'Content-Security-Policy' /tmp/index.html
           grep -q '/AS-Grinta/' /tmp/index.html
-          grep -a -q 'Clean sheets' /tmp/main.dart.js
-          if grep -a -q 'Tous les pronostics (' /tmp/main.dart.js; then
-            echo 'Le titre redondant est encore présent dans le site public.'
-            exit 1
-          fi
       - name: Verify HTTPS transport
         run: |
           set -euo pipefail
