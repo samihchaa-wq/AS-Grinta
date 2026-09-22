@@ -225,12 +225,15 @@ select is(
 );
 select is(
   (
-    select extract(epoch from (closes_at - opens_at))::integer
-    from public.match_sport_motm_elections
-    where match_id = current_setting('test.motm_match')::uuid
+    select extract(epoch from (
+      election.closes_at - (match.kickoff_at + interval '24 hours')
+    ))::integer
+    from public.match_sport_motm_elections election
+    join public.matches match on match.id = election.match_id
+    where election.match_id = current_setting('test.motm_match')::uuid
   ),
-  86400,
-  'la fenêtre automatique de vote dure vingt-quatre heures pleines'
+  0,
+  'la fermeture automatique est exactement vingt-quatre heures après le coup d’envoi prévu'
 );
 
 select set_config(
@@ -473,12 +476,15 @@ select is(
 );
 select is(
   (
-    select extract(epoch from (closes_at - opens_at))::integer
-    from public.match_sport_motm_elections
-    where match_id = current_setting('test.motm_match')::uuid
+    select extract(epoch from (
+      election.closes_at - (match.kickoff_at + interval '24 hours')
+    ))::integer
+    from public.match_sport_motm_elections election
+    join public.matches match on match.id = election.match_id
+    where election.match_id = current_setting('test.motm_match')::uuid
   ),
-  86400,
-  'la relance administrateur ouvre une fenêtre complète de vingt-quatre heures'
+  0,
+  'la relance administrateur conserve l’échéance fixe à coup d’envoi plus vingt-quatre heures'
 );
 select is(
   (
