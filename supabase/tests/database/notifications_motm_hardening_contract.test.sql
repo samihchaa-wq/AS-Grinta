@@ -32,15 +32,24 @@ select ok(
 );
 
 select ok(
-  position(
+  to_regprocedure('private.match_motm_closes_at(uuid)') is not null
+  and position(
+    'kickoff_at' in
+    pg_get_functiondef('private.match_motm_closes_at(uuid)'::regprocedure)
+  ) > 0
+  and position(
     'interval ''24 hours''' in
+    pg_get_functiondef('private.match_motm_closes_at(uuid)'::regprocedure)
+  ) > 0
+  and position(
+    'match_motm_closes_at' in
     pg_get_functiondef('private.ensure_match_motm_election(uuid)'::regprocedure)
   ) > 0
   and position(
-    'match_motm_opens_at' in
+    'v_opens_at + interval ''24 hours''' in
     pg_get_functiondef('private.ensure_match_motm_election(uuid)'::regprocedure)
-  ) > 0,
-  'la fermeture HDM est fixée à vingt-quatre heures après la validation'
+  ) = 0,
+  'la fermeture HDM est fixée à vingt-quatre heures après le coup d’envoi prévu'
 );
 
 select ok(
@@ -50,17 +59,16 @@ select ok(
     )
   ) > 0
   and position(
+    'CLOSES_AT = V_CLOSES_AT' in upper(
+      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+    )
+  ) > 0
+  and position(
+    'match_motm_closes_at' in
+    pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+  ) > 0
+  and position(
     'CLOSES_AT = V_OPENS_AT' in upper(
-      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
-    )
-  ) > 0
-  and position(
-    '24 HOURS' in upper(
-      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
-    )
-  ) > 0
-  and position(
-    'LEAST' in upper(
       pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
     )
   ) = 0
@@ -68,7 +76,19 @@ select ok(
     'transition_match_motm_election' in
     pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
   ) > 0,
-  'une validation Stats/Live impose exactement la fenêtre validation plus vingt-quatre heures'
+  'une validation Stats/Live conserve l’ouverture à la validation et la fermeture à coup d’envoi plus vingt-quatre heures'
+);
+
+select ok(
+  position(
+    'match_motm_closes_at' in
+    pg_get_functiondef('private.admin_restart_match_motm_vote(uuid,text)'::regprocedure)
+  ) > 0
+  and position(
+    'validated_at + interval ''24 hours''' in
+    pg_get_functiondef('private.admin_restart_match_motm_vote(uuid,text)'::regprocedure)
+  ) = 0,
+  'une relance administrateur ne prolonge pas l’échéance au-delà de coup d’envoi plus vingt-quatre heures'
 );
 
 select ok(
