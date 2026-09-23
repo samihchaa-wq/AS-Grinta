@@ -66,19 +66,24 @@ Future<void> _pump(
   WidgetTester tester,
   SportMotmVote vote, {
   MatchComposition? composition,
+  void Function()? onCompositionFetch,
+  MatchDetailsData? details,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        matchDetailsProvider(_matchId).overrideWith((ref) async => _details()),
+        matchDetailsProvider(_matchId)
+            .overrideWith((ref) async => details ?? _details()),
         sportMotmVoteProvider(_matchId).overrideWith((ref) async => vote),
         authControllerProvider.overrideWith(
           (ref) => AuthController(_FakeAuthRepository()),
         ),
         sportsManagementEnabledProvider.overrideWithValue(true),
         isAdminViewProvider.overrideWithValue(false),
-        publishedMatchCompositionProvider(_matchId)
-            .overrideWith((ref) async => composition),
+        publishedMatchCompositionProvider(_matchId).overrideWith((ref) async {
+          onCompositionFetch?.call();
+          return composition;
+        }),
         matchGoalActionsProvider(_matchId).overrideWith((ref) async => []),
         matchLiveTimelineProvider(_matchId).overrideWith((ref) async => null),
       ],
@@ -113,6 +118,10 @@ void main() {
     );
 
     expect(find.text('Votes HDM'), findsOneWidget);
+    // Fermé à l'ouverture de la fiche : le classement s'affiche au toucher.
+    expect(find.text('4 voix'), findsNothing);
+    await tester.tap(find.text('Votes HDM'));
+    await tester.pumpAndSettle();
     final card = find.ancestor(
       of: find.text('Votes HDM'),
       matching: find.byType(Card),
@@ -129,6 +138,75 @@ void main() {
     final david = tester.getTopLeft(find.text('David')).dy;
     final alice = tester.getTopLeft(find.text('Alice')).dy;
     expect(bruno < david && david < alice, isTrue);
+  });
+
+  testWidgets(
+      'scrolling down then back up keeps the composition loaded, '
+      'so the page does not jump', (tester) async {
+    var fetches = 0;
+    final base = _details();
+    await _pump(
+      tester,
+      _vote('closed', [_candidate('a', 'Alice', 3, winner: true)]),
+      onCompositionFetch: () => fetches++,
+      // Assez de pronos pour pousser la composition loin hors de l'écran.
+      details: MatchDetailsData(
+        matchId: base.matchId,
+        opponentId: base.opponentId,
+        opponentName: base.opponentName,
+        isInternal: base.isInternal,
+        kickoffAt: base.kickoffAt,
+        status: base.status,
+        resultValidatedAt: base.resultValidatedAt,
+        location: base.location,
+        address: base.address,
+        matchType: base.matchType,
+        championshipRound: base.championshipRound,
+        scoreGrinta: base.scoreGrinta,
+        scoreOpponent: base.scoreOpponent,
+        oddsWin: null,
+        oddsDraw: null,
+        oddsLoss: null,
+        predictionParticipantCount: 60,
+        headToHead: const [],
+        playerStats: const [],
+        startingLineup: const [],
+        predictions: [
+          for (var i = 0; i < 60; i++)
+            MatchPredictionResult(
+              profileId: 'p$i',
+              name: 'Joueur $i',
+              scoreGrinta: 2,
+              scoreOpponent: 1,
+              points: 3,
+              usedX2: false,
+            ),
+        ],
+      ),
+      composition: MatchComposition.tryFromRpc({
+        'match_id': _matchId,
+        'status': 'published',
+        'entries': [
+          {'participant_id': 'a', 'display_name': 'Alice', 'zone': 'bench'},
+        ],
+      }),
+    );
+    expect(fetches, 1);
+
+    // Prono ouvert : la page devient assez longue pour sortir la
+    // composition de l'écran.
+    await tester.tap(find.text('Prono'));
+    await tester.pumpAndSettle();
+
+    final list = find.byType(Scrollable).first;
+    await tester.drag(list, const Offset(0, -20000));
+    await tester.pumpAndSettle();
+    await tester.drag(list, const Offset(0, 20000));
+    await tester.pumpAndSettle();
+
+    expect(fetches, 1);
+    // Prono reste ouvert après l'aller-retour.
+    expect(find.text('Joueur 0'), findsOneWidget);
   });
 
   testWidgets('Votes HDM stays hidden while the vote is open', (tester) async {

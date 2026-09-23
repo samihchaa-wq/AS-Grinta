@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/collapsible_section_card.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
@@ -58,16 +59,14 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
     final rows = _buildRows(goals ?? const [], substitutions);
     if (rows.isEmpty) return const SizedBox.shrink();
 
-    return Card(
-      child: ExpansionTile(
-        leading: const Icon(Icons.timeline_rounded),
-        title: const Text('Faits du match'),
-        initiallyExpanded: true,
-        children: [
-          for (final row in rows) _FactLine(row: row),
-          const SizedBox(height: 8),
-        ],
-      ),
+    return CollapsibleSectionCard(
+      storageKey: 'match-$matchId-faits',
+      icon: Icons.timeline_rounded,
+      title: 'Faits du match',
+      children: [
+        for (final row in rows) _FactLine(row: row),
+        const SizedBox(height: 8),
+      ],
     );
   }
 

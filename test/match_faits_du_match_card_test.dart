@@ -32,6 +32,11 @@ void main() {
     );
   }
 
+  Future<void> openCard(WidgetTester tester) async {
+    await tester.tap(find.text('Faits du match'));
+    await tester.pumpAndSettle();
+  }
+
   MatchGoalAction goal(
     Map<String, Object?> json, [
     int index = 0,
@@ -72,7 +77,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Le bloc est fermé à l'ouverture de la fiche.
     expect(find.text('Faits du match'), findsOneWidget);
+    expect(find.text('Sofiane (passe Yanis)'), findsNothing);
+
+    await openCard(tester);
     expect(find.text('Sofiane (passe Yanis)'), findsOneWidget);
     expect(find.text('Karim'), findsNothing);
   });
@@ -102,6 +111,7 @@ void main() {
       timeline: null,
     );
     await tester.pumpAndSettle();
+    await openCard(tester);
 
     expect(find.text('Faits du match'), findsOneWidget);
     expect(find.text('Samih'), findsOneWidget);
@@ -127,6 +137,7 @@ void main() {
       ],
     );
     await tester.pumpAndSettle();
+    await openCard(tester);
 
     expect(find.text('—'), findsOneWidget);
   });
@@ -160,6 +171,7 @@ void main() {
       }),
     );
     await tester.pumpAndSettle();
+    await openCard(tester);
 
     expect(find.text('Samih'), findsOneWidget);
     expect(find.text('Nabil'), findsOneWidget);
