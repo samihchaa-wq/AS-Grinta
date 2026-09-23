@@ -5,6 +5,9 @@ import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Couleur unique des badges manuels/mystère créés depuis l'administration.
+const kCustomBadgeColorHex = '#F97316';
+
 /// Une personne à qui décerner un badge.
 class AdminPerson {
   const AdminPerson({
@@ -122,7 +125,8 @@ class BadgeAdminRepository {
     });
   }
 
-  /// Crée un badge manuel directement avec son illustration finale.
+  /// Crée un badge manuel/mystère directement avec son illustration finale.
+  /// Sa couleur est toujours l'orange des badges mystère.
   ///
   /// Le visuel est téléversé avant la RPC afin que la ligne `badges` soit créée
   /// d'un seul coup avec son image. Si la création SQL échoue, le fichier tout
@@ -131,7 +135,6 @@ class BadgeAdminRepository {
     required String name,
     required Uint8List imageBytes,
     String description = '',
-    String? color,
   }) async {
     if (imageBytes.isEmpty) {
       throw ArgumentError.value(imageBytes, 'imageBytes', 'Image requise');
@@ -152,7 +155,7 @@ class BadgeAdminRepository {
         'p_emoji': '🏅',
         'p_description': description,
         'p_image_url': imageUrl,
-        'p_color': color ?? '#C0455B',
+        'p_color': kCustomBadgeColorHex,
       });
     } catch (_) {
       try {
