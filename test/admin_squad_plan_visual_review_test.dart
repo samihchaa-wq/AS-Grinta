@@ -80,6 +80,41 @@ void main() {
     await _capture(tester, 'effectif_compact_enregistrer.png');
   });
 
+  testWidgets('affiche le coach en premier parmi les convoqués', (
+    tester,
+  ) async {
+    await _setPhoneViewport(tester);
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(withCoach: true),
+      initialStep: 'effectif',
+    );
+
+    final coach = find.byKey(const ValueKey('effectif-player-coach'));
+    final highestWaitlist = find.byKey(const ValueKey('effectif-player-p3'));
+    final nextWaitlist = find.byKey(const ValueKey('effectif-player-p2'));
+    final lowestWaitlist = find.byKey(const ValueKey('effectif-player-p1'));
+
+    expect(coach, findsOneWidget);
+    expect(highestWaitlist, findsOneWidget);
+    expect(nextWaitlist, findsOneWidget);
+    expect(lowestWaitlist, findsOneWidget);
+
+    final coachTopLeft = tester.getTopLeft(coach);
+    final highestTopLeft = tester.getTopLeft(highestWaitlist);
+    final nextTopLeft = tester.getTopLeft(nextWaitlist);
+    final lowestTopLeft = tester.getTopLeft(lowestWaitlist);
+
+    // Le coach est l'unique exception : il prend la première case, puis les
+    // joueurs gardent leur ordre actuel, du plus loin au plus haut de la liste
+    // d'attente (3, 2, 1).
+    expect(coachTopLeft.dy, closeTo(highestTopLeft.dy, .5));
+    expect(coachTopLeft.dx, lessThan(highestTopLeft.dx));
+    expect(highestTopLeft.dy, closeTo(nextTopLeft.dy, .5));
+    expect(highestTopLeft.dx, lessThan(nextTopLeft.dx));
+    expect(lowestTopLeft.dy, greaterThan(highestTopLeft.dy));
+  });
+
   testWidgets('captures the compact composition controls', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
@@ -549,6 +584,7 @@ MatchConvocations _withAvailability(
 MatchConvocations _convocations({
   bool published = true,
   bool withWaitlisted = false,
+  bool withCoach = false,
 }) {
   final players = [
     _player(
@@ -589,6 +625,14 @@ MatchConvocations _convocations({
       availabilityStatus: 'no_response',
       status: ConvocationStatus.notApplicable,
     ),
+    if (withCoach)
+      _player(
+        id: 'coach',
+        seasonPlayerId: 'sp-coach',
+        name: 'Philippe',
+        status: ConvocationStatus.convoked,
+        isCoach: true,
+      ),
   ];
 
   return MatchConvocations(
@@ -616,6 +660,7 @@ ConvocationPlayer _player({
   required ConvocationStatus status,
   String availabilityStatus = 'available',
   bool isGoalkeeper = false,
+  bool isCoach = false,
   int? waitlistPosition,
 }) {
   return ConvocationPlayer(
@@ -634,6 +679,7 @@ ConvocationPlayer _player({
         ? WaitlistTurnState.pending
         : WaitlistTurnState.waived,
     promotedAfterWithdrawalAt: null,
+    isCoach: isCoach,
     isGoalkeeper: isGoalkeeper,
   );
 }
