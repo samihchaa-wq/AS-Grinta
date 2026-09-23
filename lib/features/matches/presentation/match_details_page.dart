@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/collapsible_section_card.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
@@ -198,6 +199,7 @@ class MatchDetailsPage extends ConsumerWidget {
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
+                    matchId: matchId,
                     predictions: details.predictions,
                     actualGrinta: details.scoreGrinta ?? 0,
                     actualOpponent: details.scoreOpponent ?? 0,
@@ -649,21 +651,12 @@ class _MotmVotesCard extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Votes HDM',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              ...rows,
-            ],
-          ),
-        ),
+      child: CollapsibleSectionCard(
+        storageKey: 'match-$matchId-votes-hdm',
+        icon: Icons.emoji_events_outlined,
+        title: 'Votes HDM',
+        childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+        children: rows,
       ),
     );
   }
@@ -671,6 +664,7 @@ class _MotmVotesCard extends ConsumerWidget {
 
 class _PredictionsTable extends StatelessWidget {
   const _PredictionsTable({
+    required this.matchId,
     required this.predictions,
     required this.actualGrinta,
     required this.actualOpponent,
@@ -678,6 +672,7 @@ class _PredictionsTable extends StatelessWidget {
     required this.currentProfileId,
   });
 
+  final String matchId;
   final List<MatchPredictionResult> predictions;
   final int actualGrinta;
   final int actualOpponent;
@@ -764,19 +759,15 @@ class _PredictionsTable extends StatelessWidget {
         ),
       );
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Prono', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
-            for (final prediction in sortedPredictions)
-              _predictionRow(context, prediction),
-          ],
-        ),
-      ),
+    return CollapsibleSectionCard(
+      storageKey: 'match-$matchId-prono',
+      icon: Icons.scoreboard_outlined,
+      title: 'Prono',
+      childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+      children: [
+        for (final prediction in sortedPredictions)
+          _predictionRow(context, prediction),
+      ],
     );
   }
 }

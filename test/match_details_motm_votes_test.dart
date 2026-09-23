@@ -118,6 +118,10 @@ void main() {
     );
 
     expect(find.text('Votes HDM'), findsOneWidget);
+    // Fermé à l'ouverture de la fiche : le classement s'affiche au toucher.
+    expect(find.text('4 voix'), findsNothing);
+    await tester.tap(find.text('Votes HDM'));
+    await tester.pumpAndSettle();
     final card = find.ancestor(
       of: find.text('Votes HDM'),
       matching: find.byType(Card),
@@ -189,6 +193,11 @@ void main() {
     );
     expect(fetches, 1);
 
+    // Prono ouvert : la page devient assez longue pour sortir la
+    // composition de l'écran.
+    await tester.tap(find.text('Prono'));
+    await tester.pumpAndSettle();
+
     final list = find.byType(Scrollable).first;
     await tester.drag(list, const Offset(0, -20000));
     await tester.pumpAndSettle();
@@ -196,6 +205,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(fetches, 1);
+    // Prono reste ouvert après l'aller-retour.
+    expect(find.text('Joueur 0'), findsOneWidget);
   });
 
   testWidgets('Votes HDM stays hidden while the vote is open', (tester) async {
