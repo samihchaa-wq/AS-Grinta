@@ -162,6 +162,12 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                   preferences.copyWith(compositionNotifications: value),
                 ),
               ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Badge débloqué'),
+                value: preferences.badgeNotifications,
+                onChanged: (value) => _updateBadges(context, ref, value),
+              ),
             ],
           ),
         ),
@@ -176,6 +182,25 @@ class _OptionalNotificationsCard extends ConsumerWidget {
   ) async {
     try {
       await ref.read(preferencesRepositoryProvider).update(preferences);
+      ref.invalidate(appPreferencesProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible d’enregistrer ce réglage.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateBadges(
+    BuildContext context,
+    WidgetRef ref,
+    bool enabled,
+  ) async {
+    try {
+      await ref
+          .read(preferencesRepositoryProvider)
+          .updateBadgeNotifications(enabled);
       ref.invalidate(appPreferencesProvider);
     } catch (_) {
       if (context.mounted) {
@@ -319,6 +344,8 @@ const _testNotificationOptions = <_TestNotificationOption>[
   _TestNotificationOption('motm_open', 'Vote Homme du match'),
   _TestNotificationOption('motm_result_general', 'Résultat Homme du match'),
   _TestNotificationOption('motm_result_winner', 'Élu Homme du match'),
+  _TestNotificationOption('badge_unlocked', 'Badge débloqué'),
+  _TestNotificationOption('badges_unlocked', 'Plusieurs badges débloqués'),
   _TestNotificationOption(
     'admin_pending_signup',
     'Nouveau compte en attente',

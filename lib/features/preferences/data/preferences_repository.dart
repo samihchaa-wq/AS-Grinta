@@ -8,6 +8,7 @@ class AppPreferences {
     this.motmVoteNotifications = true,
     this.convocationNotifications = true,
     this.compositionNotifications = true,
+    this.badgeNotifications = true,
   });
 
   /// Prévenir à J−5 lorsqu'un pronostic n'est pas encore rempli.
@@ -22,11 +23,15 @@ class AppPreferences {
   /// Prévenir à la mise en ligne de la composition d'un match.
   final bool compositionNotifications;
 
+  /// Prévenir lorsqu'un joueur débloque un ou plusieurs badges.
+  final bool badgeNotifications;
+
   AppPreferences copyWith({
     bool? predictionNotifications,
     bool? motmVoteNotifications,
     bool? convocationNotifications,
     bool? compositionNotifications,
+    bool? badgeNotifications,
   }) {
     return AppPreferences(
       predictionNotifications:
@@ -37,6 +42,7 @@ class AppPreferences {
           convocationNotifications ?? this.convocationNotifications,
       compositionNotifications:
           compositionNotifications ?? this.compositionNotifications,
+      badgeNotifications: badgeNotifications ?? this.badgeNotifications,
     );
   }
 }
@@ -60,6 +66,7 @@ class PreferencesRepository {
       motmVoteNotifications: row['notify_motm_vote'] != false,
       convocationNotifications: row['notify_convocation'] != false,
       compositionNotifications: row['notify_composition'] != false,
+      badgeNotifications: row['notify_badges'] != false,
     );
   }
 
@@ -72,6 +79,18 @@ class PreferencesRepository {
         'p_notify_convocation': preferences.convocationNotifications,
         'p_notify_composition': preferences.compositionNotifications,
       },
+    );
+    if (result != true) {
+      throw StateError('Les préférences n’ont pas pu être enregistrées.');
+    }
+  }
+
+  /// Réglage séparé : update_my_notification_preferences garde sa signature
+  /// pour les versions de l'application déjà installées.
+  Future<void> updateBadgeNotifications(bool enabled) async {
+    final result = await _client.rpc(
+      'update_my_badge_notifications',
+      params: {'p_enabled': enabled},
     );
     if (result != true) {
       throw StateError('Les préférences n’ont pas pu être enregistrées.');
