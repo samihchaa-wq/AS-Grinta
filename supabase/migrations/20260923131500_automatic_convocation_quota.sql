@@ -53,7 +53,7 @@ begin
   update public.match_sport_participants participant
   set convocation_status = 'not_applicable',
       convocation_manual_override = false,
-      waitlist_position_snapshot = waitlist.position,
+      waitlist_position_snapshot = ranked.waitlist_position,
       waitlist_recommended_not_convoked = false,
       waitlist_turn_should_consume = false,
       waitlist_turn_state = case
@@ -91,6 +91,7 @@ begin
   with ranked as (
     select
       participant.id,
+      waitlist.position as waitlist_position,
       row_number() over (
         order by waitlist.position desc, participant.id
       ) as keep_rank
@@ -126,9 +127,6 @@ begin
       waitlist_turn_updated_at = now(),
       updated_at = now()
   from ranked
-  join public.sport_waitlist_entries waitlist
-    on waitlist.season_player_id = participant.season_player_id
-   and waitlist.season_id = v_season_id
   where participant.id = ranked.id;
 
   -- Coach: present in the effectif when available, but never consumes quota.
