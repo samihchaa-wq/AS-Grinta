@@ -513,7 +513,9 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
       final match = entry.match!;
       return MatchHistoryCard(
         match: match,
-        adminActions: isAdmin ? AdminMatchOptionsButton(match: match) : null,
+        adminActions: isAdmin && AdminMatchOptionsButton.hasOptions(match)
+            ? AdminMatchOptionsButton(match: match)
+            : null,
       );
     case _FeedKind.historicalMatch:
       return HistoricalMatchCard(match: entry.historical!);
@@ -579,7 +581,7 @@ class _UpcomingMatchCard extends ConsumerWidget {
                   textAlign: TextAlign.start,
                 ),
         ),
-        if (isAdmin) ...[
+        if (isAdmin && AdminMatchOptionsButton.hasOptions(match)) ...[
           const SizedBox(width: AppSpacing.microGap),
           SizedBox(
             width: 48,

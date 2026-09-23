@@ -61,7 +61,7 @@ class HomeNextMatchCard extends StatelessWidget {
                   textAlign: TextAlign.start,
                 ),
         ),
-        if (isAdmin) ...[
+        if (isAdmin && AdminMatchOptionsButton.hasOptions(match)) ...[
           const SizedBox(width: AppSpacing.microGap),
           SizedBox(
             width: 48,
