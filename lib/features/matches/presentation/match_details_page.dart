@@ -504,6 +504,11 @@ class _CompletedCompositionCard extends ConsumerWidget {
       photoByName[entry.displayName.trim().toLowerCase()] = photoUrl;
     }
 
+    final motmKeys = {
+      for (final player in details.startingLineup)
+        if (player.isManOfTheMatch) player.name.trim().toLowerCase(),
+    };
+
     void addPlayer(String rawName, int goals) {
       final name = rawName.trim();
       if (name.isEmpty) return;
@@ -514,6 +519,7 @@ class _CompletedCompositionCard extends ConsumerWidget {
           name: name,
           goals: goals,
           photoUrl: photoByName[key],
+          isMotm: motmKeys.contains(key),
         );
       }
     }
