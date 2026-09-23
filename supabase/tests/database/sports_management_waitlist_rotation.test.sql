@@ -227,8 +227,8 @@ select is(
       and availability_status = 'available'
       and convocation_status = 'convoked'
   ),
-  3,
-  'les disponibles restent convoqués tant que l’admin ne tranche pas'
+  2,
+  'la limite convoqués est appliquée automatiquement aux joueurs disponibles'
 );
 
 select public.admin_reorder_sport_waitlist(
@@ -253,8 +253,8 @@ select is(
       and availability_status = 'available'
       and convocation_status = 'convoked'
   ),
-  3,
-  'réordonner la liste ne modifie pas l’effectif sans décision admin'
+  2,
+  'réordonner la liste conserve automatiquement la limite convoqués'
 );
 
 select public.admin_set_match_convocation(
