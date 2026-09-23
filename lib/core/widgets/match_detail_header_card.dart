@@ -3,8 +3,11 @@ import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:flutter/material.dart';
 
-/// Module « Info » d'une fiche de match terminé — même gabarit qu'il s'agisse
-/// d'un match du système Live ou d'un match archivé importé.
+/// En-tête d'une fiche de match terminé (affiche, score, date, adresse) —
+/// même gabarit qu'il s'agisse d'un match du système Live ou d'un match
+/// archivé importé. Homme du match, buteurs et passeurs se lisent sur le
+/// terrain juste en dessous (couronne, ballons, crampons) : l'en-tête ne
+/// les répète pas. Seul le lien vers le vote HDM en cours y reste.
 ///
 /// L'affiche et le score restent strictement portés par [MatchFixture]. Les
 /// informations absentes de la source sont simplement omises : aucune valeur
@@ -22,12 +25,8 @@ class MatchDetailHeaderCard extends StatelessWidget {
     this.kickoffTimeLabel,
     this.matchTypeLabel,
     this.address,
-    this.manOfMatchNames = const [],
     this.motmActionLabel,
     this.onMotmTap,
-    this.scorerLabels = const [],
-    this.assistLabels = const [],
-    this.teamScoredZero = false,
   });
 
   final String homeName;
@@ -39,19 +38,8 @@ class MatchDetailHeaderCard extends StatelessWidget {
   final String? kickoffTimeLabel;
   final String? matchTypeLabel;
   final String? address;
-  final List<String> manOfMatchNames;
   final String? motmActionLabel;
   final VoidCallback? onMotmTap;
-  final List<String> scorerLabels;
-
-  /// Passeurs décisifs. Vide pour les matchs antérieurs au suivi des passes
-  /// décisives : la ligne disparaît alors au lieu d'annoncer « Aucun ».
-  final List<String> assistLabels;
-
-  /// Conservé pour compatibilité avec les appels existants. Un match à zéro
-  /// but n'affiche plus une ligne « Buteurs · Aucun » : une donnée absente est
-  /// désormais entièrement omise de la fiche.
-  final bool teamScoredZero;
 
   @override
   Widget build(BuildContext context) {
@@ -60,59 +48,15 @@ class MatchDetailHeaderCard extends StatelessWidget {
     final cleanType = matchTypeLabel?.trim();
     final cleanAddress = address?.trim();
     final cleanMotmAction = motmActionLabel?.trim();
-    final motmNames = manOfMatchNames
-        .map((name) => name.trim())
-        .where((name) => name.isNotEmpty)
-        .toList(growable: false);
-    final scorers = scorerLabels
-        .map((label) => label.trim())
-        .where((label) => label.isNotEmpty)
-        .toList(growable: false);
-    final assists = assistLabels
-        .map((label) => label.trim())
-        .where((label) => label.isNotEmpty)
-        .toList(growable: false);
-
     final summaryParts = <String>[
       if (cleanDate.isNotEmpty) cleanDate,
       if (cleanTime != null && cleanTime.isNotEmpty) cleanTime,
       if (cleanType != null && cleanType.isNotEmpty) cleanType,
     ];
 
-    final postMatchRows = <Widget>[
-      if (motmNames.isNotEmpty)
-        _MetadataLine(
-          text: 'HDM · ${motmNames.join(' · ')}',
-        )
-      else if (cleanMotmAction != null &&
-          cleanMotmAction.isNotEmpty &&
-          onMotmTap != null)
-        InkWell(
-          onTap: onMotmTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: _MetadataLine(
-              text: cleanMotmAction,
-              color: AppTheme.accent,
-              trailing: const Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: AppTheme.accent,
-              ),
-            ),
-          ),
-        ),
-      if (scorers.isNotEmpty)
-        _MetadataLine(
-          text: 'Buteurs · ${scorers.join(' · ')}',
-        ),
-      if (assists.isNotEmpty)
-        _MetadataLine(
-          icon: Icons.emoji_events_outlined,
-          text: 'Passeurs · ${assists.join(' · ')}',
-        ),
-    ];
+    final showMotmAction = cleanMotmAction != null &&
+        cleanMotmAction.isNotEmpty &&
+        onMotmTap != null;
 
     return Card(
       child: Padding(
@@ -153,14 +97,26 @@ class MatchDetailHeaderCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (postMatchRows.isNotEmpty) ...[
+            if (showMotmAction) ...[
               const SizedBox(height: 22),
               const Divider(height: 1),
               const SizedBox(height: 18),
-              for (var index = 0; index < postMatchRows.length; index += 1) ...[
-                if (index > 0) const SizedBox(height: 10),
-                postMatchRows[index],
-              ],
+              InkWell(
+                onTap: onMotmTap,
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: _MetadataLine(
+                    text: cleanMotmAction,
+                    color: AppTheme.accent,
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppTheme.accent,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ],
         ),
@@ -172,13 +128,11 @@ class MatchDetailHeaderCard extends StatelessWidget {
 class _MetadataLine extends StatelessWidget {
   const _MetadataLine({
     required this.text,
-    this.icon,
     this.color,
     this.trailing,
   });
 
   final String text;
-  final IconData? icon;
   final Color? color;
   final Widget? trailing;
 
@@ -189,10 +143,6 @@ class _MetadataLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (icon != null) ...[
-          Icon(icon, size: 18, color: foregroundColor),
-          const SizedBox(width: 9),
-        ],
         Expanded(
           child: Text(
             text,

@@ -118,10 +118,6 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
   }
 
   Widget _historicalHeader(HistoricalMatchResult match) {
-    final scorerLabels = [
-      for (final scorer in detail?.scorers ?? const <HistoricalScorer>[])
-        scorer.goals > 1 ? '${scorer.name} ×${scorer.goals}' : scorer.name,
-    ];
     return MatchDetailHeaderCard(
       homeName: match.isHome ? 'AS Grinta' : match.opponentName,
       awayName: match.isHome ? match.opponentName : 'AS Grinta',
@@ -132,9 +128,6 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
       kickoffTimeLabel: match.hasTime ? AppFormats.time(match.date) : null,
       matchTypeLabel: match.matchTypeLabel,
       address: match.address,
-      manOfMatchNames: detail?.motmNames ?? const <String>[],
-      scorerLabels: scorerLabels,
-      teamScoredZero: match.grintaScore == 0,
     );
   }
 }

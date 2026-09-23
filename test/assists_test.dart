@@ -89,60 +89,9 @@ void main() {
     expect(assists, {'sam': 1, 'flo': 1});
   });
 
-  testWidgets('la fiche du match annonce les passeurs décisifs', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: MatchDetailHeaderCard(
-              homeName: 'AS Grinta',
-              awayName: 'Test FC',
-              grintaIsHome: true,
-              homeScore: 3,
-              awayScore: 0,
-              dateLabel: '27 août 2026',
-              scorerLabels: ['Flo ×2', 'Sam'],
-              assistLabels: ['Sam ×2', 'Flo'],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('Buteurs · Flo ×2 · Sam'), findsOneWidget);
-    expect(find.text('Passeurs · Sam ×2 · Flo'), findsOneWidget);
-  });
-
   testWidgets(
-    'un match sans passe décisive suivie n’affiche pas la ligne Passeurs',
-    (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: MatchDetailHeaderCard(
-                homeName: 'AS Grinta',
-                awayName: 'Test FC',
-                grintaIsHome: true,
-                homeScore: 1,
-                awayScore: 0,
-                dateLabel: '27 août 2026',
-                scorerLabels: ['Flo'],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.textContaining('Passeurs'), findsNothing);
-    },
-  );
-
-  testWidgets('les métadonnées terminées sont regroupées sans libellés', (
-    tester,
-  ) async {
+      'l’en-tête de la fiche garde date et adresse, sans lignes '
+      'HDM, buteurs ni passeurs', (tester) async {
     const address =
         'Complexe sportif - Chemin des Garrosses - 31180 - Rouffiac-Tolosan';
 
@@ -160,8 +109,6 @@ void main() {
               kickoffTimeLabel: '21h00',
               matchTypeLabel: 'Championnat · J23',
               address: address,
-              manOfMatchNames: ['Allan'],
-              scorerLabels: ['Allan ×3', 'Aki ×2'],
             ),
           ),
         ),
@@ -173,41 +120,36 @@ void main() {
       findsOneWidget,
     );
     expect(find.text(address), findsOneWidget);
-    expect(find.byIcon(Icons.calendar_today_outlined), findsNothing);
-    expect(find.byIcon(Icons.place_outlined), findsNothing);
-    expect(find.byIcon(Icons.workspace_premium_outlined), findsNothing);
-    expect(find.byIcon(Icons.sports_soccer_rounded), findsNothing);
-    expect(find.textContaining('Date ·'), findsNothing);
-    expect(find.textContaining('Coup d’envoi ·'), findsNothing);
-    expect(find.textContaining('Type ·'), findsNothing);
-    expect(find.textContaining('Adresse ·'), findsNothing);
-    expect(find.byType(Divider), findsOneWidget);
+    expect(find.textContaining('HDM'), findsNothing);
+    expect(find.textContaining('Buteurs'), findsNothing);
+    expect(find.textContaining('Passeurs'), findsNothing);
+    expect(find.byType(Divider), findsNothing);
   });
 
-  testWidgets('une information de résumé absente ne laisse aucune ligne', (
+  testWidgets('le lien vers le vote HDM en cours reste dans l’en-tête', (
     tester,
   ) async {
+    var tapped = false;
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
             child: MatchDetailHeaderCard(
               homeName: 'AS Grinta',
               awayName: 'Test FC',
               grintaIsHome: true,
-              homeScore: 0,
-              awayScore: 1,
+              homeScore: 1,
+              awayScore: 0,
               dateLabel: '27/08/26',
-              teamScoredZero: true,
+              motmActionLabel: 'Voter pour l’Homme du match',
+              onMotmTap: () => tapped = true,
             ),
           ),
         ),
       ),
     );
 
-    expect(find.textContaining('HDM'), findsNothing);
-    expect(find.textContaining('Buteurs'), findsNothing);
-    expect(find.textContaining('Passeurs'), findsNothing);
-    expect(find.byType(Divider), findsNothing);
+    await tester.tap(find.text('Voter pour l’Homme du match'));
+    expect(tapped, isTrue);
   });
 }

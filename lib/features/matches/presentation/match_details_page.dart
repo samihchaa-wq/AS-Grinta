@@ -126,35 +126,12 @@ class MatchDetailsPage extends ConsumerWidget {
             final vote = sportsEnabled
                 ? ref.watch(sportMotmVoteProvider(matchId)).valueOrNull
                 : null;
-            final fallbackMotmNames = details.startingLineup
-                .where((player) => player.isManOfTheMatch)
-                .map((player) => player.name)
-                .toList(growable: false);
-            final motmNames =
-                vote != null && vote.isClosed && vote.winners.isNotEmpty
-                    ? vote.winners
-                        .map((winner) => winner.displayName)
-                        .toList(growable: false)
-                    : fallbackMotmNames;
             final motmActionLabel =
                 vote != null && vote.isOpen && vote.isEligibleVoter
                     ? (vote.hasVoted
                         ? 'Vote HDM enregistré'
                         : 'Voter pour l’Homme du match')
                     : null;
-            final scorerLabels = [
-              for (final stat in details.playerStats)
-                if (stat.goals > 0)
-                  stat.goals > 1 ? '${stat.name} ×${stat.goals}' : stat.name,
-            ];
-            final assistLabels = [
-              for (final stat in details.playerStats)
-                if (stat.assists > 0)
-                  stat.assists > 1
-                      ? '${stat.name} ×${stat.assists}'
-                      : stat.name,
-            ];
-
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
@@ -176,14 +153,10 @@ class MatchDetailsPage extends ConsumerWidget {
                   kickoffTimeLabel: AppFormats.time(details.kickoffAt),
                   matchTypeLabel: details.matchTypeLabel,
                   address: details.address,
-                  manOfMatchNames: motmNames,
                   motmActionLabel: motmActionLabel,
                   onMotmTap: motmActionLabel == null
                       ? null
                       : () => context.push('/matches/$matchId/vote'),
-                  scorerLabels: scorerLabels,
-                  assistLabels: assistLabels,
-                  teamScoredZero: details.scoreGrinta == 0,
                 ),
                 _CompletedCompositionCard(
                   details: details,
