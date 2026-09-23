@@ -156,6 +156,16 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         (phase == MatchDisplayPhase.live ||
             phase == MatchDisplayPhase.awaitingValidation);
 
+    // Match validé depuis plus de 24 h : plus rien à modifier, annuler ou
+    // supprimer. Le crayon ouvrirait un menu vide, on ne l'affiche pas.
+    if (!canEditIdentity &&
+        !canEnterStats &&
+        !canFinishInternal &&
+        !canCancel &&
+        !canDelete) {
+      return const SizedBox.shrink();
+    }
+
     return PopupMenuButton<String>(
       tooltip: 'Options du match',
       icon: const Icon(Icons.edit_outlined),
