@@ -65,7 +65,9 @@ class _EffectifAvatarColumn extends StatelessWidget {
             final highlightedTarget = candidates.isNotEmpty || canTapTarget;
             final section = AnimatedContainer(
               duration: const Duration(milliseconds: 140),
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 13),
+              // Marges latérales serrées : sur un téléphone, les trois
+              // colonnes laissent ainsi assez de place aux prénoms.
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 13),
               decoration: BoxDecoration(
                 color: Color.alphaBlend(
                   color.withValues(alpha: highlightedTarget ? .20 : .11),
@@ -198,7 +200,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var column = 0; column < _columns; column++) ...[
-                if (column > 0) const SizedBox(width: 8),
+                if (column > 0) const SizedBox(width: 4),
                 Expanded(
                   child: row + column < players.length
                       ? _playerCell(
@@ -312,7 +314,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           constraints: const BoxConstraints(minHeight: 39),
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
           decoration: BoxDecoration(
             color: selected
                 ? selectionColor.withValues(alpha: .16)
@@ -332,7 +334,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                 size: 30,
                 fallbackScale: .9,
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   player.shortName,

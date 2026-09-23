@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _captureKey = Key('admin-squad-plan-visual-review');
 const _matchId = 'match-visual-review';
+const _minNameSlot = 56.0;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -113,6 +114,32 @@ void main() {
     expect(highestTopLeft.dy, closeTo(nextTopLeft.dy, .5));
     expect(highestTopLeft.dx, lessThan(nextTopLeft.dx));
     expect(lowestTopLeft.dy, greaterThan(highestTopLeft.dy));
+  });
+
+  testWidgets('les prénoms gardent assez de place sur un iPhone', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(393, 852));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(withCoach: true),
+      initialStep: 'effectif',
+    );
+
+    // Place laissée au prénom à côté d'une icône : le coach (sifflet) et un
+    // sans réponse (cloche de relance). « Philippe » ou « Nicolas » y
+    // étaient coupés avec les anciennes marges.
+    double nameSlotWidth(String name) => tester
+        .getSize(
+          find
+              .ancestor(of: find.text(name), matching: find.byType(Expanded))
+              .first,
+        )
+        .width;
+
+    expect(nameSlotWidth('Philippe'), greaterThanOrEqualTo(_minNameSlot));
+    expect(nameSlotWidth('Emma'), greaterThanOrEqualTo(_minNameSlot));
   });
 
   testWidgets('captures the compact composition controls', (tester) async {
