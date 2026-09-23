@@ -110,7 +110,7 @@ begin
           then 'convoked'::public.sport_convocation_status
         else 'not_convoked'::public.sport_convocation_status
       end,
-      waitlist_position_snapshot = waitlist.position,
+      waitlist_position_snapshot = ranked.waitlist_position,
       waitlist_recommended_not_convoked = ranked.keep_rank > v_auto_slots,
       waitlist_turn_should_consume = ranked.keep_rank > v_auto_slots,
       waitlist_turn_state = case
