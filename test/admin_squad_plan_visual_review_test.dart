@@ -91,8 +91,7 @@ void main() {
     );
 
     final coach = find.byKey(const ValueKey('effectif-player-coach'));
-    final highestWaitlist =
-        find.byKey(const ValueKey('effectif-player-p3'));
+    final highestWaitlist = find.byKey(const ValueKey('effectif-player-p3'));
     final nextWaitlist = find.byKey(const ValueKey('effectif-player-p2'));
     final lowestWaitlist = find.byKey(const ValueKey('effectif-player-p1'));
 
