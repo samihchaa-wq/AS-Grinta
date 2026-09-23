@@ -248,6 +248,9 @@ List<CompletedPlayerSummary> historicalFallbackPlayers(
   HistoricalMatchDetail detail,
 ) {
   final playersByName = <String, CompletedPlayerSummary>{};
+  final motmKeys = {
+    for (final name in detail.motmNames) name.trim().toLowerCase(),
+  };
 
   void addPlayer(String rawName, int goals) {
     final name = rawName.trim();
@@ -268,6 +271,7 @@ List<CompletedPlayerSummary> historicalFallbackPlayers(
         goals: goals,
         photoUrl: detail.photoUrlByLabel[name],
         lastInitial: detail.lastInitialByLabel[name],
+        isMotm: motmKeys.contains(key),
       );
     }
   }

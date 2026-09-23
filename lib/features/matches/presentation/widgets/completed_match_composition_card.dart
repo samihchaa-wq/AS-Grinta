@@ -11,10 +11,14 @@ class CompletedPlayerSummary {
     required this.goals,
     this.photoUrl,
     this.lastInitial,
+    this.isMotm = false,
   });
 
   final String name;
   final int goals;
+
+  /// Homme du match : une couronne 👑 suit son prénom dans la liste.
+  final bool isMotm;
 
   /// Photo du joueur, quand l'archive la connaît. Sans elle, la pastille
   /// retombe sur les initiales, comme sur le terrain d'une composition.
@@ -242,10 +246,13 @@ class CompletedPlayersList extends StatelessWidget {
       children: [
         for (var index = 0; index < players.length; index += 1) ...[
           Semantics(
-            label: players[index].goals == 0
-                ? players[index].name
-                : '${players[index].name}, ${players[index].goals} '
+            label: [
+              players[index].name,
+              if (players[index].isMotm) 'Homme du match',
+              if (players[index].goals > 0)
+                '${players[index].goals} '
                     '${players[index].goals == 1 ? 'but' : 'buts'}',
+            ].join(', '),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
@@ -259,12 +266,27 @@ class CompletedPlayersList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // La couronne colle au prénom, à gauche du ballon qui
+                  // reste aligné à droite.
                   Expanded(
-                    child: Text(
-                      players[index].name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w400,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            players[index].name,
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w400,
+                                    ),
                           ),
+                        ),
+                        if (players[index].isMotm) ...[
+                          const SizedBox(width: 6),
+                          const ExcludeSemantics(
+                            child: Text('👑', style: TextStyle(fontSize: 18)),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (players[index].goals > 0) ...[
