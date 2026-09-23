@@ -58,6 +58,20 @@ class MatchDetailsPage extends ConsumerWidget {
       authControllerProvider.select((state) => state.profile?.id),
     );
 
+    // Composition et faits du match sont des blocs de la liste qui ne
+    // restent construits que tant qu'ils sont proches de l'écran. Sans
+    // écoute ici, leurs données se libèrent dès qu'on défile plus bas, puis
+    // se rechargent en remontant : le bloc repart à hauteur nulle et fait
+    // sauter le défilement. On les garde donc en vie tant que la page est
+    // ouverte.
+    if (sportsEnabled) {
+      void keepAlive(Object? _, Object? __) {}
+      ref
+        ..listen(publishedMatchCompositionProvider(matchId), keepAlive)
+        ..listen(matchLiveTimelineProvider(matchId), keepAlive)
+        ..listen(matchGoalActionsProvider(matchId), keepAlive);
+    }
+
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Match')),
       body: RefreshIndicator(
