@@ -25,24 +25,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   final _descController = TextEditingController();
   final _searchController = TextEditingController();
   Uint8List? _badgeImageBytes;
-  String _colorHex = '#C0455B';
   bool _creating = false;
   String _query = '';
-
-  static const List<String> _colorChoices = [
-    '#C0455B',
-    '#2E6BE6',
-    '#2E9E63',
-    '#D9A400',
-    '#17A6A0',
-    '#7C3CFF',
-    '#FF9D2E',
-    '#FF4FCB',
-    '#1DCBFF',
-    '#E8B923',
-    '#B8860B',
-    '#55617F',
-  ];
 
   @override
   void dispose() {
@@ -54,7 +38,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
 
   Future<void> _editNewBadgeImage() async {
     if (_creating) return;
-    final badgeColor = parseBadgeColor(_colorHex) ?? kDefaultBadgeColor;
+    final badgeColor =
+        parseBadgeColor(kCustomBadgeColorHex) ?? kDefaultBadgeColor;
     final edited = await showBadgeImageCropDialog(
       context,
       badgeColor: badgeColor,
@@ -92,16 +77,12 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
         name: name,
         description: _descController.text.trim(),
         imageBytes: imageBytes,
-        color: _colorHex,
       );
       ref.invalidate(badgeCatalogProvider);
       if (mounted) {
         _nameController.clear();
         _descController.clear();
-        setState(() {
-          _badgeImageBytes = null;
-          _colorHex = '#C0455B';
-        });
+        setState(() => _badgeImageBytes = null);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Badge « $name » créé.')));
       }
@@ -129,9 +110,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             descController: _descController,
             imageBytes: _badgeImageBytes,
             creating: _creating,
-            colorChoices: _colorChoices,
-            selectedColor: _colorHex,
-            onColorSelected: (c) => setState(() => _colorHex = c),
             onEditImage: _editNewBadgeImage,
             onResetImage: _resetNewBadgeImage,
             onCreate: _createBadge,
@@ -275,9 +253,6 @@ class _CreateBadgeCard extends StatelessWidget {
     required this.descController,
     required this.imageBytes,
     required this.creating,
-    required this.colorChoices,
-    required this.selectedColor,
-    required this.onColorSelected,
     required this.onEditImage,
     required this.onResetImage,
     required this.onCreate,
@@ -287,9 +262,6 @@ class _CreateBadgeCard extends StatelessWidget {
   final TextEditingController descController;
   final Uint8List? imageBytes;
   final bool creating;
-  final List<String> colorChoices;
-  final String selectedColor;
-  final ValueChanged<String> onColorSelected;
   final VoidCallback onEditImage;
   final VoidCallback onResetImage;
   final VoidCallback onCreate;
@@ -310,58 +282,13 @@ class _CreateBadgeCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Le badge est maintenant créé directement dans son format final : '
-              'couleur, illustration recadrée, nom et description.',
+              'Le badge est créé directement comme badge mystère, avec le '
+              'fond orange standard, son illustration, son nom et sa description.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 18),
             Text(
-              '1. Couleur du badge',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              hasImage
-                  ? 'La couleur est verrouillée après le recadrage pour que le '
-                      'fond de l’illustration reste parfaitement identique.'
-                  : 'Choisis d’abord la couleur : elle sert aussi de fond à '
-                      'l’illustration pendant le recadrage.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 10),
-            IgnorePointer(
-              ignoring: hasImage || creating,
-              child: Opacity(
-                opacity: hasImage ? .55 : 1,
-                child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final hex in colorChoices)
-                      GestureDetector(
-                        onTap: () => onColorSelected(hex),
-                        child: Container(
-                          width: 34,
-                          height: 34,
-                          decoration: BoxDecoration(
-                            color: parseBadgeColor(hex),
-                            borderRadius: BorderRadius.circular(9),
-                            border: Border.all(
-                              color: hex == selectedColor
-                                  ? Colors.white
-                                  : Colors.transparent,
-                              width: 2.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              '2. Illustration',
+              '1. Illustration',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
@@ -380,7 +307,7 @@ class _CreateBadgeCard extends StatelessWidget {
                     builder: (context, _) => BadgeEmblem(
                       emoji: '🏅',
                       imageBytes: imageBytes,
-                      color: selectedColor,
+                      color: kCustomBadgeColorHex,
                       descriptor: BadgeDescriptor(
                         nameController.text.trim().isEmpty
                             ? 'NOM DU BADGE'
@@ -430,7 +357,7 @@ class _CreateBadgeCard extends StatelessWidget {
                               Icons.restart_alt_rounded,
                               size: 18,
                             ),
-                            label: const Text('Changer la couleur'),
+                            label: const Text('Choisir une autre image'),
                           ),
                         ],
                       ],
@@ -441,7 +368,7 @@ class _CreateBadgeCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              '3. Informations',
+              '2. Informations',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
