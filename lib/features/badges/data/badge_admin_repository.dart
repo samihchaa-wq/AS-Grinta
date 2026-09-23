@@ -174,13 +174,6 @@ class BadgeAdminRepository {
       'p_badge_code': code,
     });
   }
-
-  Future<void> revokeBadge(String code, String profileId) async {
-    await _client.rpc('staff_revoke_badge', params: {
-      'p_profile_id': profileId,
-      'p_badge_code': code,
-    });
-  }
 }
 
 final badgeAdminRepositoryProvider = Provider<BadgeAdminRepository>((ref) {

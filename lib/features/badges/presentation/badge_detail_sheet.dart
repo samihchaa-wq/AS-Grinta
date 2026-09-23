@@ -235,7 +235,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                       Icons.workspace_premium_outlined,
                       size: 18,
                     ),
-                    label: const Text('Attribuer / Retirer ce badge'),
+                    label: const Text('Décerner ce badge'),
                   ),
                 ),
               ],
