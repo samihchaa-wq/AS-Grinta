@@ -5,6 +5,8 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
@@ -57,6 +59,27 @@ void main() {
       expect(
         const AuthState(isLoading: false, isSaving: false).isBusy,
         isFalse,
+      );
+    });
+  });
+
+  group('couleur des cotes de pronostic', () {
+    test('AS Grinta est vert à domicile comme à l’extérieur', () {
+      expect(
+        predictionOddAccentForSide(isHomeSide: true, isGrintaHome: true),
+        const Color(0xFF39E784),
+      );
+      expect(
+        predictionOddAccentForSide(isHomeSide: false, isGrintaHome: false),
+        const Color(0xFF39E784),
+      );
+      expect(
+        predictionOddAccentForSide(isHomeSide: false, isGrintaHome: true),
+        const Color(0xFFFF6B6B),
+      );
+      expect(
+        predictionOddAccentForSide(isHomeSide: true, isGrintaHome: false),
+        const Color(0xFFFF6B6B),
       );
     });
   });
