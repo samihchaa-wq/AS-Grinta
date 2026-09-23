@@ -15,6 +15,7 @@ import 'package:as_grinta/features/matches/presentation/widgets/completed_match_
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -177,6 +178,8 @@ class MatchDetailsPage extends ConsumerWidget {
                   matchId: matchId,
                   sportsEnabled: sportsEnabled,
                 ),
+                if (vote != null && vote.isClosed && vote.winners.isNotEmpty)
+                  _MotmVotesCard(vote: vote),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -548,6 +551,85 @@ class _CompletedCompositionCard extends ConsumerWidget {
       child: CompletedCompositionCard(
         composition: composition,
         fallbackPlayers: _playersFromMatchDetails(composition),
+      ),
+    );
+  }
+}
+
+/// Classement du vote Homme du match, affiché seulement une fois le scrutin
+/// clos et le vainqueur révélé. Seuls les joueurs ayant reçu au moins une
+/// voix apparaissent ; les ex æquo partagent le même rang.
+class _MotmVotesCard extends StatelessWidget {
+  const _MotmVotesCard({required this.vote});
+
+  final SportMotmVote vote;
+
+  @override
+  Widget build(BuildContext context) {
+    final ranked = vote.candidates
+        .where((candidate) => (candidate.votesCount ?? 0) > 0)
+        .toList()
+      ..sort((a, b) {
+        final votesComparison =
+            (b.votesCount ?? 0).compareTo(a.votesCount ?? 0);
+        if (votesComparison != 0) return votesComparison;
+        return a.displayName
+            .trim()
+            .toLowerCase()
+            .compareTo(b.displayName.trim().toLowerCase());
+      });
+    if (ranked.isEmpty) return const SizedBox.shrink();
+
+    final rows = <Widget>[];
+    var rank = 0;
+    int? previousVotes;
+    for (var i = 0; i < ranked.length; i++) {
+      final candidate = ranked[i];
+      final votes = candidate.votesCount ?? 0;
+      if (votes != previousVotes) rank = i + 1;
+      previousVotes = votes;
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 28,
+                child: Text(
+                  '$rank',
+                  style: const TextStyle(color: AppTheme.textSecondary),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  candidate.displayName,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text('$votes voix'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Votes HDM',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              ...rows,
+            ],
+          ),
+        ),
       ),
     );
   }
