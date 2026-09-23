@@ -72,6 +72,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   }
 
   int _convokedOrder(ConvocationPlayer a, ConvocationPlayer b) {
+    // Seule exception à l'ordre inversé de la liste d'attente : le coach
+    // apparaît toujours en premier parmi les convoqués.
+    if (a.isCoach != b.isCoach) return a.isCoach ? -1 : 1;
+
     final ap = a.waitlistPosition;
     final bp = b.waitlistPosition;
     if (ap == null && bp == null) {
