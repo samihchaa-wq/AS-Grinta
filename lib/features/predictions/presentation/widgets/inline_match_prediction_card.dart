@@ -166,7 +166,9 @@ class _InlineMatchPredictionCardState
                       ),
                       selected:
                           item.isHome ? grinta > opponent : opponent > grinta,
-                      accent: const Color(0xFF39E784),
+                      accent: item.isHome
+                          ? const Color(0xFF39E784)
+                          : const Color(0xFFFF6B6B),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.contentGap),
@@ -187,7 +189,9 @@ class _InlineMatchPredictionCardState
                       ),
                       selected:
                           item.isHome ? grinta < opponent : opponent < grinta,
-                      accent: const Color(0xFFFF6B6B),
+                      accent: item.isHome
+                          ? const Color(0xFFFF6B6B)
+                          : const Color(0xFF39E784),
                     ),
                   ),
                 ],
