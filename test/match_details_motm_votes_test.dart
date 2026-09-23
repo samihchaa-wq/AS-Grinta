@@ -8,7 +8,9 @@ import 'package:as_grinta/features/matches/presentation/match_details_page.dart'
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,7 +62,11 @@ SportMotmVote _vote(String state, List<Map<String, dynamic>> candidates) =>
       'candidates': candidates,
     });
 
-Future<void> _pump(WidgetTester tester, SportMotmVote vote) async {
+Future<void> _pump(
+  WidgetTester tester,
+  SportMotmVote vote, {
+  MatchComposition? composition,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -72,7 +78,7 @@ Future<void> _pump(WidgetTester tester, SportMotmVote vote) async {
         sportsManagementEnabledProvider.overrideWithValue(true),
         isAdminViewProvider.overrideWithValue(false),
         publishedMatchCompositionProvider(_matchId)
-            .overrideWith((ref) async => null),
+            .overrideWith((ref) async => composition),
         matchGoalActionsProvider(_matchId).overrideWith((ref) async => []),
         matchLiveTimelineProvider(_matchId).overrideWith((ref) async => null),
       ],
@@ -93,14 +99,33 @@ void main() {
         _candidate('c', 'Chloé', 0),
         _candidate('d', 'David', 2),
       ]),
+      composition: MatchComposition.tryFromRpc({
+        'match_id': _matchId,
+        'status': 'published',
+        'entries': [
+          {
+            'participant_id': 'b',
+            'display_name': 'Brunito',
+            'zone': 'bench',
+          },
+        ],
+      }),
     );
 
     expect(find.text('Votes HDM'), findsOneWidget);
+    final card = find.ancestor(
+      of: find.text('Votes HDM'),
+      matching: find.byType(Card),
+    );
+    Finder inCard(Finder finder) => find.descendant(of: card, matching: finder);
+    // Le surnom de la composition remplace le nom du scrutin, avec sa pastille.
+    expect(inCard(find.text('Brunito')), findsOneWidget);
+    expect(inCard(find.byType(PlayerAvatar)), findsNWidgets(3));
     expect(find.text('4 voix'), findsOneWidget);
     expect(find.text('2 voix'), findsOneWidget);
     expect(find.text('1 voix'), findsOneWidget);
     expect(find.text('Chloé'), findsNothing);
-    final bruno = tester.getTopLeft(find.text('Bruno').last).dy;
+    final bruno = tester.getTopLeft(inCard(find.text('Brunito'))).dy;
     final david = tester.getTopLeft(find.text('David')).dy;
     final alice = tester.getTopLeft(find.text('Alice')).dy;
     expect(bruno < david && david < alice, isTrue);

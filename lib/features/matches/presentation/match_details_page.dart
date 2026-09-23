@@ -16,6 +16,7 @@ import 'package:as_grinta/features/sports_management/data/match_composition_repo
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -179,7 +180,7 @@ class MatchDetailsPage extends ConsumerWidget {
                   sportsEnabled: sportsEnabled,
                 ),
                 if (vote != null && vote.isClosed && vote.winners.isNotEmpty)
-                  _MotmVotesCard(vote: vote),
+                  _MotmVotesCard(matchId: matchId, vote: vote),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -559,13 +560,25 @@ class _CompletedCompositionCard extends ConsumerWidget {
 /// Classement du vote Homme du match, affiché seulement une fois le scrutin
 /// clos et le vainqueur révélé. Seuls les joueurs ayant reçu au moins une
 /// voix apparaissent ; les ex æquo partagent le même rang.
-class _MotmVotesCard extends StatelessWidget {
-  const _MotmVotesCard({required this.vote});
+///
+/// Nom et photo viennent de la composition publiée, comme sur le terrain
+/// juste au-dessus ; sans composition, on garde le nom du scrutin (surnom
+/// sinon prénom) et une pastille d'initiales.
+class _MotmVotesCard extends ConsumerWidget {
+  const _MotmVotesCard({required this.matchId, required this.vote});
 
+  final String matchId;
   final SportMotmVote vote;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final composition =
+        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
+    final entriesByParticipant = {
+      for (final entry
+          in composition?.entries ?? const <MatchCompositionEntry>[])
+        entry.participantId: entry,
+    };
     final ranked = vote.candidates
         .where((candidate) => (candidate.votesCount ?? 0) > 0)
         .toList()
@@ -586,6 +599,8 @@ class _MotmVotesCard extends StatelessWidget {
     for (var i = 0; i < ranked.length; i++) {
       final candidate = ranked[i];
       final votes = candidate.votesCount ?? 0;
+      final entry = entriesByParticipant[candidate.participantId];
+      final name = entry?.displayName ?? candidate.displayName;
       if (votes != previousVotes) rank = i + 1;
       previousVotes = votes;
       rows.add(
@@ -600,11 +615,16 @@ class _MotmVotesCard extends StatelessWidget {
                   style: const TextStyle(color: AppTheme.textSecondary),
                 ),
               ),
+              PlayerAvatar(
+                photoUrl: entry?.photoUrl,
+                name: name,
+                lastName: entry?.lastInitial,
+                isGoalkeeper: candidate.isGoalkeeper,
+                size: 36,
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  candidate.displayName,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text(name, overflow: TextOverflow.ellipsis),
               ),
               Text('$votes voix'),
             ],
