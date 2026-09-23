@@ -12,6 +12,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
+const Color _grintaOddAccent = Color(0xFF39E784);
+const Color _opponentOddAccent = Color(0xFFFF6B6B);
+
+Color predictionOddAccentForSide({
+  required bool isHomeSide,
+  required bool isGrintaHome,
+}) {
+  return isHomeSide == isGrintaHome ? _grintaOddAccent : _opponentOddAccent;
+}
+
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
   return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
@@ -166,9 +176,10 @@ class _InlineMatchPredictionCardState
                       ),
                       selected:
                           item.isHome ? grinta > opponent : opponent > grinta,
-                      accent: item.isHome
-                          ? const Color(0xFF39E784)
-                          : const Color(0xFFFF6B6B),
+                      accent: predictionOddAccentForSide(
+                        isHomeSide: true,
+                        isGrintaHome: item.isHome,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.contentGap),
@@ -189,9 +200,10 @@ class _InlineMatchPredictionCardState
                       ),
                       selected:
                           item.isHome ? grinta < opponent : opponent < grinta,
-                      accent: item.isHome
-                          ? const Color(0xFFFF6B6B)
-                          : const Color(0xFF39E784),
+                      accent: predictionOddAccentForSide(
+                        isHomeSide: false,
+                        isGrintaHome: item.isHome,
+                      ),
                     ),
                   ),
                 ],
