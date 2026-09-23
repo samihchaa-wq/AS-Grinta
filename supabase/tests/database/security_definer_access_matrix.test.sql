@@ -87,6 +87,8 @@ insert into reviewed_open_definers (fonction, motif) values
    'n’écrit que la ligne du demandeur, et seulement si son profil est actif'),
   ('update_my_notification_preferences(boolean,boolean,boolean,boolean)',
    'n’écrit que la ligne du demandeur, et seulement si son profil est actif'),
+  ('update_my_badge_notifications(boolean)',
+   'n’écrit que la ligne du demandeur, et seulement si son profil est actif'),
   ('private.configure_match_sport_workflow(uuid,integer)',
    'délègue à private.configure_match_sport_workflow_v2, qui exige admin'),
   ('private.sync_match_sport_workflow(uuid)',

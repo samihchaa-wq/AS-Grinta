@@ -107,6 +107,9 @@ create table if not exists private.badge_unlock_push_queue (
   primary key (profile_id, badge_id)
 );
 
+create index if not exists badge_unlock_push_queue_badge_id_idx
+  on private.badge_unlock_push_queue (badge_id);
+
 comment on table private.badge_unlock_push_queue is
   'Badges débloqués en attente de notification, regroupés par joueur par private.process_badge_unlock_notifications.';
 
