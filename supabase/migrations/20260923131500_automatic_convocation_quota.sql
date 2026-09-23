@@ -53,7 +53,7 @@ begin
   update public.match_sport_participants participant
   set convocation_status = 'not_applicable',
       convocation_manual_override = false,
-      waitlist_position_snapshot = ranked.waitlist_position,
+      waitlist_position_snapshot = waitlist.position,
       waitlist_recommended_not_convoked = false,
       waitlist_turn_should_consume = false,
       waitlist_turn_state = case
