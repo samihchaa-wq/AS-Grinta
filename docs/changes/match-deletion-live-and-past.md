@@ -32,5 +32,4 @@ remplaçait toute la liste du calendrier par une carte « Matchs indisponibles �
 
 - Migration : `20260828090000_allow_admin_delete_locked_match.sql`.
 - Test pgTAP : `supabase/tests/database/admin_delete_locked_match.test.sql`.
-- Validation : la suite pgTAP tourne dans la CI Supabase du dépôt. La migration
-  n'a pas été appliquée sur staging depuis cette session.
+- Validation : la suite pgTAP tourne dans la CI Supabase du dépôt.

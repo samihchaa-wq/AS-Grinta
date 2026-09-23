@@ -68,5 +68,4 @@ attribuer ».
   aux tables qu'elle touche : échange accepté avant le coup d'envoi sans
   événement créé, échange non déclaré toujours refusé match lancé, échange
   déclaré accepté avec son événement. La suite pgTAP complète tourne dans la CI
-  Supabase du dépôt. La migration n'a pas été appliquée sur staging depuis
-  cette session.
+  Supabase du dépôt.
