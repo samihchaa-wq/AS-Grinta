@@ -8,4 +8,16 @@ void main() {
     expect(descriptor.label, 'GARDIEN');
     expect(descriptor.period, isNull);
   });
+
+  test('le nom d’un badge mystère est écrit en majuscules, accents compris',
+      () {
+    final descriptor = badgeDescriptorFor(
+      code: 'custom_mal_chauff_1790198442991',
+      category: 'faits_de_jeu',
+      name: 'Mal échauffé',
+    );
+
+    expect(descriptor.label, 'MAL ÉCHAUFFÉ');
+    expect(descriptor.period, isNull);
+  });
 }

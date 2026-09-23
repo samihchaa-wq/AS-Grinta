@@ -2,6 +2,7 @@ import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -135,5 +136,123 @@ void main() {
       expect(outline.strokeWidth, greaterThan(0), reason: label);
       expect(fillText.style?.color, Colors.white, reason: label);
     }
+  });
+
+  testWidgets(
+      'avec ou sans nombre, tous les emblèmes ont exactement la même hauteur',
+      (tester) async {
+    const keys = [Key('complet'), Key('titre'), Key('palmares')];
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              BadgeEmblemBody(
+                key: Key('complet'),
+                size: 100,
+                base: Color(0xFF57C785),
+                descriptor: BadgeDescriptor('MATCHS', 'CARRIÈRE'),
+                value: '268',
+                child: SizedBox.shrink(),
+              ),
+              BadgeEmblemBody(
+                key: Key('titre'),
+                size: 100,
+                base: Color(0xFF57C785),
+                descriptor: BadgeDescriptor('QUINTUPLÉ'),
+                child: SizedBox.shrink(),
+              ),
+              BadgeEmblemBody(
+                key: Key('palmares'),
+                size: 100,
+                base: Color(0xFF57C785),
+                descriptor: BadgeDescriptor('SOULIER D’OR', 'SAISON'),
+                child: SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    for (final key in keys) {
+      expect(
+        tester.getSize(find.byKey(key)).height,
+        closeTo(100 * badgeEmblemHeightRatio(), 0.01),
+        reason: '$key',
+      );
+    }
+  });
+
+  testWidgets('un titre long passe à la ligne au lieu d’être rétréci',
+      (tester) async {
+    const title = 'AU FOUR ET AU MOULIN';
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: BadgeEmblemBody(
+              size: 200,
+              base: Color(0xFFF97316),
+              descriptor: BadgeDescriptor(title),
+              child: SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    final fill = find.byWidgetPredicate(
+      (widget) =>
+          widget is RichText &&
+          widget.text.toPlainText() == title &&
+          widget.text.style?.foreground == null,
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(fill);
+    final fontSize = tester.widget<RichText>(fill).text.style!.fontSize!;
+
+    // Plusieurs lignes, sans dépasser le socle ni couper le titre.
+    expect(paragraph.didExceedMaxLines, isFalse);
+    expect(paragraph.size.height, greaterThan(fontSize * 1.5));
+    expect(paragraph.size.width, lessThanOrEqualTo(200));
+    // Le titre garde une taille lisible, bien au-dessus du critère d’un badge
+    // chiffré (9,5 % de la largeur).
+    expect(fontSize, greaterThan(200 * 0.095));
+  });
+
+  testWidgets('un mot trop large pour le badge est réduit, jamais coupé',
+      (tester) async {
+    const title = 'ANTICONSTITUTIONNELLEMENT';
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: BadgeEmblemBody(
+              size: 100,
+              base: Color(0xFFF97316),
+              descriptor: BadgeDescriptor(title),
+              child: SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    final fill = find.byWidgetPredicate(
+      (widget) =>
+          widget is RichText &&
+          widget.text.toPlainText() == title &&
+          widget.text.style?.foreground == null,
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(fill);
+    final fontSize = tester.widget<RichText>(fill).text.style!.fontSize!;
+
+    // Une seule ligne : le mot tient entier dans la largeur du badge.
+    expect(paragraph.size.height, lessThan(fontSize * 1.5));
+    expect(paragraph.didExceedMaxLines, isFalse);
+    expect(fontSize, lessThan(100 * 0.14));
   });
 }

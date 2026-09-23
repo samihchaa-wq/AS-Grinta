@@ -140,7 +140,7 @@ void main() {
     expect(
       drawn.height,
       closeTo(
-        48 * badgeEmblemHeightRatio(hasValue: true, hasPeriod: true),
+        48 * badgeEmblemHeightRatio(),
         0.5,
       ),
     );
@@ -280,12 +280,7 @@ void main() {
     expect(
       drawn.height,
       closeTo(
-        48 *
-            badgeEmblemHeightRatio(
-              hasValue: false,
-              hasPeriod: true,
-              hasStar: true,
-            ),
+        48 * badgeEmblemHeightRatio(hasStar: true),
         0.5,
       ),
     );

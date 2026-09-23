@@ -1,11 +1,16 @@
 import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:flutter/material.dart';
 
-/// Proportions des quatre zones de l'emblème, rapportées à sa largeur.
+/// Proportions des zones de l'emblème, rapportées à sa largeur.
 const kBadgeIllustrationRatio = 0.97;
 const _valueRatio = 0.21;
-const _labelRatio = 0.15;
-const _periodRatio = 0.15;
+const _lineRatio = 0.15;
+
+/// Hauteur du socle sous l'illustration. Elle est la même pour tous les
+/// emblèmes : celle d'un badge complet (nombre, critère, temporalité). Un
+/// badge sans nombre donne cette place à son titre, qui peut alors passer à la
+/// ligne au lieu d'être rétréci.
+const _socleRatio = _valueRatio + 2 * _lineRatio;
 
 /// Taille d'une étoile de palmarès, rapportée à la largeur de l'emblème.
 const kBadgeEmblemStarRatio = 0.2;
@@ -17,18 +22,12 @@ const kBadgeEmblemStarOverhangRatio = kBadgeEmblemStarRatio / 2;
 /// Hauteur totale de l'emblème pour une largeur de 1, débord des étoiles
 /// compris.
 ///
-/// L'emblème empile image, nombre, critère et temporalité : les zones absentes
-/// (badge sans valeur, critère sans période) ne réservent aucune place.
-double badgeEmblemHeightRatio({
-  required bool hasValue,
-  required bool hasPeriod,
-  bool hasStar = false,
-}) {
+/// Le rectangle a toujours la même hauteur, avec ou sans nombre : seules les
+/// étoiles de palmarès ajoutent leur débord au-dessus.
+double badgeEmblemHeightRatio({bool hasStar = false}) {
   return (hasStar ? kBadgeEmblemStarOverhangRatio : 0) +
       kBadgeIllustrationRatio +
-      (hasValue ? _valueRatio : 0) +
-      _labelRatio +
-      (hasPeriod ? _periodRatio : 0);
+      _socleRatio;
 }
 
 Color _shiftBadgeTone(Color color, double lightnessDelta) {
@@ -66,6 +65,15 @@ class BadgeEmblemBody extends StatelessWidget {
     final period = descriptor.period;
     final illustrationTone = _shiftBadgeTone(base, 0.02);
     final bandsTone = _shiftBadgeTone(base, -0.24);
+    // Le critère prend tout ce que le nombre et la temporalité laissent du
+    // socle : une ligne sur un badge complet, bien plus sur un badge sans
+    // nombre.
+    final labelRatio = switch ((hasValue, period != null)) {
+      (true, true) => _lineRatio,
+      (true, false) => 2 * _lineRatio,
+      (false, true) => _valueRatio + _lineRatio,
+      (false, false) => _socleRatio,
+    };
 
     return Container(
       width: size,
@@ -96,17 +104,25 @@ class BadgeEmblemBody extends StatelessWidget {
               ),
             ),
           _Band(
-            height: size * _labelRatio,
+            height: size * labelRatio,
             color: bandsTone,
-            child: _BandText(
-              descriptor.label,
-              fontSize: size * 0.095,
-              color: Colors.white,
-            ),
+            child: hasValue
+                ? _BandText(
+                    descriptor.label,
+                    fontSize: size * 0.095,
+                    color: Colors.white,
+                  )
+                : _TitleText(
+                    descriptor.label,
+                    width: size * (1 - 2 * _titleInsetRatio),
+                    height: size * (labelRatio - _titleInsetRatio),
+                    fontSize: size * 0.14,
+                    color: Colors.white,
+                  ),
           ),
           if (period != null)
             _Band(
-              height: size * _periodRatio,
+              height: size * _lineRatio,
               color: bandsTone,
               child: _BandText(
                 period,
@@ -189,6 +205,131 @@ class _BandText extends StatelessWidget {
             style: _style(foreground: outline),
           ),
           Text(text, maxLines: 1, style: _style(fill: color)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Marge laissée autour d'un titre sur plusieurs lignes, pour qu'il ne morde
+/// pas sur les coins arrondis de l'emblème.
+const _titleInsetRatio = 0.07;
+
+/// Titre d'un badge sans nombre : il occupe tout le socle et passe à la ligne
+/// entre deux mots au lieu d'être rétréci sur une seule ligne.
+///
+/// Le texte part de [fontSize] et ne diminue que s'il ne tient pas dans
+/// [width] × [height] en trois lignes au plus, sans couper un mot. Comme dans
+/// [_BandText], un trait noir est peint sous le remplissage blanc.
+class _TitleText extends StatelessWidget {
+  const _TitleText(
+    this.text, {
+    required this.width,
+    required this.height,
+    required this.fontSize,
+    required this.color,
+  });
+
+  final String text;
+  final double width;
+  final double height;
+  final double fontSize;
+  final Color color;
+
+  static const _maxLines = 3;
+
+  TextStyle _style(double size, {Color? fill, Paint? foreground}) {
+    return TextStyle(
+      color: fill,
+      foreground: foreground,
+      fontSize: size,
+      fontWeight: FontWeight.w400,
+      // Proportionnel à la taille : la largeur du texte suit alors exactement
+      // sa taille, ce qui permet de la calculer d'un coup.
+      letterSpacing: size * 0.015,
+      height: 1.05,
+    );
+  }
+
+  TextPainter _layout(String value, TextStyle style, TextDirection direction) {
+    return TextPainter(
+      text: TextSpan(text: value, style: style),
+      textAlign: TextAlign.center,
+      textDirection: direction,
+      maxLines: _maxLines,
+    )..layout(maxWidth: width);
+  }
+
+  /// La plus grande taille, au plus [fontSize], à laquelle le titre tient.
+  double _fittedSize(TextStyle inherited, TextDirection direction) {
+    // Un mot plus large que le badge serait coupé en plein milieu : le plus
+    // long fixe donc une première limite, calculée d'un coup.
+    var widestWord = '';
+    var widestWidth = 0.0;
+    for (final word in text.split(RegExp(r'\s+'))) {
+      if (word.isEmpty) continue;
+      final painter = TextPainter(
+        text: TextSpan(text: word, style: inherited.merge(_style(fontSize))),
+        textDirection: direction,
+        maxLines: 1,
+      )..layout();
+      if (painter.width > widestWidth) {
+        widestWidth = painter.width;
+        widestWord = word;
+      }
+      painter.dispose();
+    }
+    var size =
+        widestWidth > width ? fontSize * width / widestWidth * 0.98 : fontSize;
+
+    // Puis le titre entier doit tenir en trois lignes dans la hauteur du
+    // socle, sans que le mot le plus long ne soit coupé.
+    for (var attempt = 0; attempt < 40; attempt++) {
+      final style = inherited.merge(_style(size));
+      final whole = _layout(text, style, direction);
+      final word = _layout(widestWord, style, direction);
+      final fits = !whole.didExceedMaxLines &&
+          whole.height <= height &&
+          word.computeLineMetrics().length <= 1;
+      whole.dispose();
+      word.dispose();
+      if (fits) break;
+      size *= 0.92;
+    }
+    return size;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inherited = DefaultTextStyle.of(context).style;
+    final direction = Directionality.maybeOf(context) ?? TextDirection.ltr;
+    final size = _fittedSize(inherited, direction);
+
+    final outline = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = size * 0.16
+      ..strokeJoin = StrokeJoin.round
+      ..color = Colors.black;
+
+    // RichText plutôt que Text : le rendu reprend exactement le style mesuré
+    // ci-dessus, sans agrandissement ni graisse ajoutés par les réglages
+    // d'accessibilité, qui feraient déborder le titre de son socle.
+    Widget layer(TextStyle style) => RichText(
+          text: TextSpan(text: text, style: inherited.merge(style)),
+          textAlign: TextAlign.center,
+          textDirection: direction,
+          maxLines: _maxLines,
+          overflow: TextOverflow.clip,
+        );
+
+    return SizedBox(
+      width: width,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          layer(_style(size, foreground: outline)),
+          layer(_style(size, fill: color)),
         ],
       ),
     );
