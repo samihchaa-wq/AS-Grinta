@@ -631,7 +631,7 @@ class _BadgesSlide extends ConsumerWidget {
                     (contraintes.maxWidth - (colonnes - 1) * ecart) / colonnes;
                 final embleme = largeur < 87 ? largeur : 87.0;
                 // Tous les emblèmes n'ont pas la même hauteur : un badge de
-                // palmarès porte une étoile et n'affiche pas de nombre. On
+                // palmarès porte des étoiles au-dessus du rectangle. On
                 // réserve la plus grande hauteur pour tout le monde, et on
                 // pose chaque emblème sur ce même socle : sinon les lignes de
                 // la grille se décalent les unes par rapport aux autres.
@@ -690,18 +690,7 @@ class _BadgesSlide extends ConsumerWidget {
 /// La hauteur d'un emblème rapportée à sa largeur, telle que l'armoire la
 /// calcule.
 double _hauteurEmbleme(ArmoireBadge badge) {
-  final valeur = baremeLabelFor(badge.def.metric, badge.def.threshold);
-  final descripteur = badgeDescriptorFor(
-    code: badge.def.code,
-    metric: badge.def.metric,
-    category: badge.def.category,
-    name: badge.def.name,
-  );
-  return badgeEmblemHeightRatio(
-    hasValue: valeur != null,
-    hasPeriod: descripteur.period != null,
-    hasStar: badge.def.hasStar,
-  );
+  return badgeEmblemHeightRatio(hasStar: badge.def.hasStar);
 }
 
 class _BadgeTile extends StatelessWidget {

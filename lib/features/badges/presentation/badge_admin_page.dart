@@ -122,7 +122,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           const SizedBox(height: 4),
           Text(
             'Touche un badge pour voir son barème complet, modifier son image '
-            'et l’attribuer ou le retirer.',
+            'et le décerner.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -311,7 +311,7 @@ class _CreateBadgeCard extends StatelessWidget {
                       descriptor: BadgeDescriptor(
                         nameController.text.trim().isEmpty
                             ? 'NOM DU BADGE'
-                            : nameController.text.trim(),
+                            : nameController.text.trim().toUpperCase(),
                       ),
                       size: 92,
                     ),
@@ -418,7 +418,11 @@ class _CreateBadgeCard extends StatelessWidget {
   }
 }
 
-/// Feuille pour décerner / retirer un badge à des personnes.
+/// Feuille pour décerner un badge.
+///
+/// Un badge décerné ne se retire plus : la liste ne propose donc que les
+/// personnes qui ne l'ont pas encore, et chaque attribution est confirmée
+/// avant d'être envoyée.
 class _AwardSheet extends ConsumerStatefulWidget {
   const _AwardSheet({required this.badge});
   final BadgeDef badge;
@@ -461,23 +465,46 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
     }
   }
 
-  Future<void> _toggle(AdminPerson person) async {
-    final repo = ref.read(badgeAdminRepositoryProvider);
-    final has = _awardees.contains(person.id);
+  Future<bool> _confirm(AdminPerson person) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Décerner « ${widget.badge.name} » ?'),
+        content: Text(
+          '${person.name} recevra ce badge. Une fois décerné, il ne pourra '
+          'plus lui être retiré.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Décerner'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<void> _award(AdminPerson person) async {
+    if (!await _confirm(person) || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy.add(person.id));
     try {
-      if (has) {
-        await repo.revokeBadge(widget.badge.code, person.id);
-        _awardees.remove(person.id);
-      } else {
-        await repo.awardBadge(widget.badge.code, person.id);
-        _awardees.add(person.id);
-      }
+      await ref
+          .read(badgeAdminRepositoryProvider)
+          .awardBadge(widget.badge.code, person.id);
+      if (!mounted) return;
+      // La personne disparaît de la liste : elle a désormais le badge.
+      setState(() => _awardees.add(person.id));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Badge décerné à ${person.name}.')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(humanizeError(e))));
-      }
+      messenger.showSnackBar(SnackBar(content: Text(humanizeError(e))));
     } finally {
       if (mounted) setState(() => _busy.remove(person.id));
     }
@@ -487,6 +514,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
   Widget build(BuildContext context) {
     final peopleAsync = ref.watch(adminPeopleProvider);
     final goalkeeperOnly = widget.badge.code == 'role_goalkeeper';
+    final holders = _awardees.length;
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -511,15 +539,32 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   code: widget.badge.code,
                   metric: widget.badge.metric,
                   category: widget.badge.category,
+                  name: widget.badge.name,
                 ),
                 showStar: widget.badge.hasStar,
                 size: 81,
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  widget.badge.name,
-                  style: Theme.of(context).textTheme.titleLarge,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.badge.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    if (!_loading && _error == null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        switch (holders) {
+                          0 => 'Encore décerné à personne.',
+                          1 => 'Déjà décerné à 1 personne.',
+                          _ => 'Déjà décerné à $holders personnes.',
+                        },
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -551,22 +596,23 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                 loading: () => const Center(child: GrintaProgressIndicator()),
                 error: (e, _) => Text(humanizeError(e)),
                 data: (people) {
-                  final eligiblePeople = goalkeeperOnly
-                      ? people.where((p) => p.isGoalkeeper).toList()
-                      : people;
+                  final candidates = people
+                      .where((p) => !goalkeeperOnly || p.isGoalkeeper)
+                      .where((p) => !_awardees.contains(p.id))
+                      .toList();
                   final filtered = _query.isEmpty
-                      ? eligiblePeople
-                      : eligiblePeople
+                      ? candidates
+                      : candidates
                           .where((p) => p.name.toLowerCase().contains(_query))
                           .toList();
                   return ListView(
                     shrinkWrap: true,
                     children: [
                       for (final p in filtered)
-                        CheckboxListTile(
-                          value: _awardees.contains(p.id),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
                           title: Text(p.name),
-                          secondary: _busy.contains(p.id)
+                          trailing: _busy.contains(p.id)
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
@@ -574,17 +620,23 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : null,
-                          onChanged:
-                              _busy.contains(p.id) ? null : (_) => _toggle(p),
+                              : FilledButton.tonal(
+                                  onPressed:
+                                      _busy.isEmpty ? () => _award(p) : null,
+                                  child: const Text('Décerner'),
+                                ),
                         ),
                       if (filtered.isEmpty)
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
-                            goalkeeperOnly
-                                ? 'Aucun gardien trouvé.'
-                                : 'Aucune personne trouvée.',
+                            candidates.isEmpty
+                                ? goalkeeperOnly
+                                    ? 'Tous les gardiens ont déjà ce badge.'
+                                    : 'Tout le monde a déjà ce badge.'
+                                : goalkeeperOnly
+                                    ? 'Aucun gardien trouvé.'
+                                    : 'Aucune personne trouvée.',
                           ),
                         ),
                     ],

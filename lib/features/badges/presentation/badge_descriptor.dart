@@ -20,7 +20,9 @@ BadgeDescriptor badgeDescriptorFor({
 }) {
   final customName = name?.trim();
   if (code?.startsWith('custom_') == true && customName?.isNotEmpty == true) {
-    return BadgeDescriptor(customName!);
+    // Le nom d'un badge mystère est saisi librement : il est écrit en
+    // majuscules sur le socle, comme tous les autres critères.
+    return BadgeDescriptor(customName!.toUpperCase());
   }
   final raw = _rawDescriptorFor(code: code, metric: metric, category: category);
   final parts = raw.split(' · ');

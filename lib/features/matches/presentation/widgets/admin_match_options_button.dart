@@ -14,6 +14,12 @@ class AdminMatchOptionsButton extends ConsumerWidget {
 
   final MatchModel match;
 
+  /// Vrai s'il reste au moins une action possible sur ce match. Sinon le
+  /// crayon n'est pas affiché : les cartes ne doivent alors pas lui réserver
+  /// de place, sans quoi le score se décale vers la gauche.
+  static bool hasOptions(MatchModel match, {DateTime? now}) =>
+      _MatchAdminOptions.of(match, now ?? DateTime.now()).any;
+
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
     await Navigator.of(
       context,
@@ -138,33 +144,11 @@ class AdminMatchOptionsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final now = DateTime.now();
-    final phase = match.phase(now: now);
-
-    final editLocked =
-        isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
-    final canEditIdentity = !editLocked && !match.isCancelled;
-    final canCancel = !editLocked && !match.isCancelled;
-    final canDelete = canDeleteMatch(match, now: now);
-    final canEnterStats = !match.isInternal &&
-        !match.isArchived &&
-        phase == MatchDisplayPhase.awaitingValidation;
-    final canFinishInternal = match.isInternal &&
-        !match.isFinished &&
-        !match.isCancelled &&
-        !now.isBefore(match.kickoffAt) &&
-        (phase == MatchDisplayPhase.live ||
-            phase == MatchDisplayPhase.awaitingValidation);
+    final options = _MatchAdminOptions.of(match, DateTime.now());
 
     // Match validé depuis plus de 24 h : plus rien à modifier, annuler ou
     // supprimer. Le crayon ouvrirait un menu vide, on ne l'affiche pas.
-    if (!canEditIdentity &&
-        !canEnterStats &&
-        !canFinishInternal &&
-        !canCancel &&
-        !canDelete) {
-      return const SizedBox.shrink();
-    }
+    if (!options.any) return const SizedBox.shrink();
 
     return PopupMenuButton<String>(
       tooltip: 'Options du match',
@@ -191,7 +175,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         }
       },
       itemBuilder: (context) => [
-        if (canEditIdentity)
+        if (options.canEditIdentity)
           const PopupMenuItem(
             value: 'edit',
             child: ListTile(
@@ -200,7 +184,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (canEnterStats)
+        if (options.canEnterStats)
           const PopupMenuItem(
             value: 'stats',
             child: ListTile(
@@ -209,7 +193,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (canFinishInternal)
+        if (options.canFinishInternal)
           const PopupMenuItem(
             value: 'finish',
             child: ListTile(
@@ -218,7 +202,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (canCancel)
+        if (options.canCancel)
           const PopupMenuItem(
             value: 'cancel',
             child: ListTile(
@@ -227,7 +211,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (canDelete)
+        if (options.canDelete)
           const PopupMenuItem(
             value: 'delete',
             child: ListTile(
@@ -239,4 +223,48 @@ class AdminMatchOptionsButton extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Les actions encore possibles sur un match, selon son état et l'heure.
+class _MatchAdminOptions {
+  const _MatchAdminOptions({
+    required this.canEditIdentity,
+    required this.canEnterStats,
+    required this.canFinishInternal,
+    required this.canCancel,
+    required this.canDelete,
+  });
+
+  factory _MatchAdminOptions.of(MatchModel match, DateTime now) {
+    final phase = match.phase(now: now);
+    final editLocked =
+        isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
+    return _MatchAdminOptions(
+      canEditIdentity: !editLocked && !match.isCancelled,
+      canCancel: !editLocked && !match.isCancelled,
+      canDelete: canDeleteMatch(match, now: now),
+      canEnterStats: !match.isInternal &&
+          !match.isArchived &&
+          phase == MatchDisplayPhase.awaitingValidation,
+      canFinishInternal: match.isInternal &&
+          !match.isFinished &&
+          !match.isCancelled &&
+          !now.isBefore(match.kickoffAt) &&
+          (phase == MatchDisplayPhase.live ||
+              phase == MatchDisplayPhase.awaitingValidation),
+    );
+  }
+
+  final bool canEditIdentity;
+  final bool canEnterStats;
+  final bool canFinishInternal;
+  final bool canCancel;
+  final bool canDelete;
+
+  bool get any =>
+      canEditIdentity ||
+      canEnterStats ||
+      canFinishInternal ||
+      canCancel ||
+      canDelete;
 }

@@ -67,7 +67,9 @@ class MatchHistoryCard extends ConsumerWidget {
                       awayScore: awayScore,
                       finished: match.isFinished,
                       // Les scores conservent le code résultat du composant :
-                      // vert victoire, orange nul, rouge défaite.
+                      // vert victoire, orange nul, rouge défaite. Même taille
+                      // que sur les matchs de l'historique importé.
+                      scoreFontSize: 20,
                       nameStyle:
                           Theme.of(context).textTheme.titleSmall?.copyWith(
                                 fontSize: 16,

@@ -266,21 +266,22 @@ class _ModernMonthView extends ConsumerWidget {
         itemBuilder: (context, index) {
           final entry = entries[index];
           final match = entry.match;
+          final adminActions = match != null &&
+                  isAdmin &&
+                  AdminMatchOptionsButton.hasOptions(match)
+              ? AdminMatchOptionsButton(match: match)
+              : null;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
             child: match != null
                 ? match.isFinished
                     ? MatchHistoryCard(
                         match: match,
-                        adminActions: isAdmin
-                            ? AdminMatchOptionsButton(match: match)
-                            : null,
+                        adminActions: adminActions,
                       )
                     : MonthlyMatchCard(
                         match: match,
-                        adminActions: isAdmin
-                            ? AdminMatchOptionsButton(match: match)
-                            : null,
+                        adminActions: adminActions,
                       )
                 : ClubEventCard(event: entry.event!, isAdmin: isAdmin),
           );

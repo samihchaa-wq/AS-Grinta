@@ -82,11 +82,7 @@ class _BadgeChip extends StatelessWidget {
     const render = 96.0;
     // La hauteur réservée colle exactement à celle de l'emblème : aucune bande
     // vide au-dessus ou en dessous ne vient rogner sa taille dans la ligne.
-    final ratio = badgeEmblemHeightRatio(
-      hasValue: badge.valueLabel?.isNotEmpty == true,
-      hasPeriod: badge.descriptor.period != null,
-      hasStar: badge.hasStar,
-    );
+    final ratio = badgeEmblemHeightRatio(hasStar: badge.hasStar);
     return SizedBox(
       width: size,
       height: size * ratio,
