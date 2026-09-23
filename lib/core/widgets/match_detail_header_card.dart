@@ -120,14 +120,6 @@ class MatchDetailHeaderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Info',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w400),
-            ),
-            const SizedBox(height: 14),
             MatchFixture(
               homeName: homeName,
               awayName: awayName,
