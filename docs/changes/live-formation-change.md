@@ -10,4 +10,4 @@ Le coach peut modifier le dispositif depuis l'écran Live tant que la session es
 - La sauvegarde du `formation_code` et des positions est atomique côté Supabase.
 - Le verrou `lineup_revision` empêche deux coachs d'écraser silencieusement leurs modifications.
 - La migration canonique est `20260826190000_live_formation_change.sql`, après l'inventaire production synchronisé à `20260826181431`.
-- Le contrat a été validé sur staging : changement de dispositif, incrément de révision, refus d'une révision obsolète et zéro événement de remplacement.
+- Le contrat a été validé sur une base de test, supprimée depuis : changement de dispositif, incrément de révision, refus d'une révision obsolète et zéro événement de remplacement.
