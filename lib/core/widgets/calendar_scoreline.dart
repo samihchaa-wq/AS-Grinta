@@ -161,12 +161,17 @@ class CalendarTeamName extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base =
-        (Theme.of(context).textTheme.titleMedium ?? const TextStyle()).copyWith(
-      color: color,
-      fontWeight: FontWeight.w400,
-      height: 1.15,
-    );
+    // Même fusion que celle faite par le widget Text : la mesure ci-dessous
+    // doit correspondre exactement au rendu, sinon un nom « limite » serait
+    // tronqué au lieu de passer à la ligne.
+    final base = DefaultTextStyle.of(context).style.merge(
+          (Theme.of(context).textTheme.titleMedium ?? const TextStyle())
+              .copyWith(
+            color: color,
+            fontWeight: FontWeight.w400,
+            height: 1.15,
+          ),
+        );
     final scaler = MediaQuery.textScalerOf(context);
     final direction = Directionality.of(context);
 
