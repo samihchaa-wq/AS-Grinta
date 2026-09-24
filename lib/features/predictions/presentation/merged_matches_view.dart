@@ -382,7 +382,7 @@ List<Widget> _buildFeedSectionSlivers({
           return Padding(
             key: isFocusCard ? focusMatchKey : null,
             padding: EdgeInsets.only(
-              bottom: isLastCard ? 0 : AppSpacing.contentGap,
+              bottom: isLastCard ? 0 : CalendarCardSpacing.betweenCards,
             ),
             child: _buildEntryCard(entry, isAdmin, now),
           );
@@ -573,14 +573,15 @@ class _UpcomingMatchCard extends ConsumerWidget {
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.cardPadding,
-        12,
+        CalendarCardSpacing.vertical,
         AppSpacing.cardPadding,
-        13,
+        CalendarCardSpacing.vertical,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           MatchDateHeader(
+            gap: CalendarCardSpacing.line,
             kickoffAt: match.kickoffAt,
             foreground: AppTheme.textPrimary,
             secondary: AppTheme.textPrimary,
@@ -589,7 +590,7 @@ class _UpcomingMatchCard extends ConsumerWidget {
                 adminActions != null ? CalendarCardActionsOverlay.dateInset : 0,
             child: fixture,
           ),
-          const SizedBox(height: 7),
+          const SizedBox(height: CalendarCardSpacing.line),
           Text(
             match.isCancelled
                 ? 'Annulé · ${match.calendarTypeLabel}'
@@ -600,7 +601,7 @@ class _UpcomingMatchCard extends ConsumerWidget {
                 ),
           ),
           if (match.address case final address?) ...[
-            const SizedBox(height: AppSpacing.contentGap),
+            const SizedBox(height: CalendarCardSpacing.line),
             InkWell(
               onTap: () => showMatchAddressSheet(context, address),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),

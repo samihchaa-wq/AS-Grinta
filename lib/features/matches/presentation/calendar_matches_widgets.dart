@@ -272,7 +272,9 @@ class _ModernMonthView extends ConsumerWidget {
               ? AdminMatchOptionsButton(match: match)
               : null;
           return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
+            padding: const EdgeInsets.only(
+              bottom: CalendarCardSpacing.betweenCards,
+            ),
             child: match != null
                 ? match.isFinished
                     ? MatchHistoryCard(
@@ -388,7 +390,9 @@ class _HistoricalMonthView extends StatelessWidget {
             itemBuilder: (context, index) {
               final entry = entries[index];
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
+                padding: const EdgeInsets.only(
+                  bottom: CalendarCardSpacing.betweenCards,
+                ),
                 child: entry.match != null
                     ? HistoricalMatchCard(match: entry.match!)
                     : ClubEventCard(event: entry.event!),
@@ -452,8 +456,14 @@ class ClubEventCard extends ConsumerWidget {
       child: CalendarCardActionsOverlay(
         actions: editButton,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+          padding: const EdgeInsets.fromLTRB(
+            12,
+            CalendarCardSpacing.vertical,
+            12,
+            CalendarCardSpacing.vertical,
+          ),
           child: MatchDateHeader(
+            gap: CalendarCardSpacing.line,
             kickoffAt: event.startsAt,
             foreground: AppTheme.textPrimary,
             secondary: AppTheme.textPrimary,
@@ -465,7 +475,7 @@ class ClubEventCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CalendarCenteredTitle(event.title),
-                const SizedBox(height: 7),
+                const SizedBox(height: CalendarCardSpacing.line),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -490,7 +500,7 @@ class ClubEventCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: CalendarCardSpacing.line),
                 Text(
                   'Événement',
                   textAlign: TextAlign.start,
@@ -552,8 +562,14 @@ class MonthlyMatchCard extends StatelessWidget {
         child: CalendarCardActionsOverlay(
           actions: adminActions,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+            padding: const EdgeInsets.fromLTRB(
+              12,
+              CalendarCardSpacing.vertical,
+              12,
+              CalendarCardSpacing.vertical,
+            ),
             child: MatchDateHeader(
+              gap: CalendarCardSpacing.line,
               kickoffAt: match.kickoffAt,
               foreground: AppTheme.textPrimary,
               secondary: AppTheme.textPrimary,
@@ -576,7 +592,7 @@ class MonthlyMatchCard extends StatelessWidget {
                           ? AppTheme.textFaint
                           : AppTheme.textPrimary,
                     ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: CalendarCardSpacing.line),
                   Text(
                     '${match.statusLabel} · ${match.calendarTypeLabel}',
                     textAlign: TextAlign.start,
@@ -586,7 +602,7 @@ class MonthlyMatchCard extends StatelessWidget {
                         ),
                   ),
                   if (address != null && address.isNotEmpty) ...[
-                    const SizedBox(height: 7),
+                    const SizedBox(height: CalendarCardSpacing.line),
                     InkWell(
                       onTap: () => showMatchAddressSheet(context, address),
                       borderRadius: BorderRadius.circular(AppTheme.radiusSm),

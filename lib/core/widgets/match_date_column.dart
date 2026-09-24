@@ -69,6 +69,7 @@ class MatchDateHeader extends StatelessWidget {
     this.dividerColor,
     this.showTime = true,
     this.dateEndInset = 0,
+    this.gap = 7,
   });
 
   final DateTime kickoffAt;
@@ -90,6 +91,9 @@ class MatchDateHeader extends StatelessWidget {
   /// Marge à droite de la date, pour laisser la place à un bouton posé dans
   /// le coin de la carte.
   final double dateEndInset;
+
+  /// Espace entre la date et le contenu de la carte.
+  final double gap;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +118,7 @@ class MatchDateHeader extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 7),
+        SizedBox(height: gap),
         SizedBox(width: double.infinity, child: child),
       ],
     );

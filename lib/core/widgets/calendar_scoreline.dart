@@ -51,10 +51,11 @@ class CalendarScoreline extends StatelessWidget {
           '$homeScore – $awayScore',
           maxLines: 1,
           softWrap: false,
-          style: theme.textTheme.titleLarge?.copyWith(
+          // Même taille que les noms d'équipes, sur la même ligne.
+          style: theme.textTheme.titleMedium?.copyWith(
             color: MatchFixture.resultColor(grinta, opponent),
-            fontSize: 28,
-            height: 1,
+            fontSize: CalendarTeamName.regularSize,
+            height: 1.15,
             fontWeight: FontWeight.w400,
           ),
         ),
@@ -255,4 +256,16 @@ class CalendarCardActionsOverlay extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Espacements communs des cartes du calendrier (« Défilé » et « Par mois »).
+abstract final class CalendarCardSpacing {
+  /// Marge intérieure en haut et en bas de chaque carte.
+  static const double vertical = 20;
+
+  /// Espace entre deux lignes d'une même carte (date, affiche, type, lieu).
+  static const double line = 14;
+
+  /// Espace entre deux cartes.
+  static const double betweenCards = 18;
 }
