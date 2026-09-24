@@ -41,6 +41,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - calendrier : nouvelles couleurs (bleu marine championnat, bleu clair amical,
   violet match entre nous, or événement) ; chaque carte est découpée en trois
   zones, avec la date et l'adresse dans des bandeaux plus foncés.
+- calendrier : le championnat repasse en bleu (au lieu de bleu marine),
+  l'amical s'éclaircit pour rester distinct, et le score a la même épaisseur
+  visuelle que les noms d'équipes.
 
 ## 0.2.2+4 — 2026-07-27
 

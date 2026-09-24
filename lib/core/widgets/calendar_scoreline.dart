@@ -48,6 +48,7 @@ class CalendarScoreline extends StatelessWidget {
     if (_hasScores) {
       final grinta = grintaIsHome ? homeScore! : awayScore!;
       final opponent = grintaIsHome ? awayScore! : homeScore!;
+      final scoreColor = MatchFixture.resultColor(grinta, opponent);
       center = Semantics(
         label: '$homeName $homeScore, $awayName $awayScore',
         excludeSemantics: true,
@@ -57,10 +58,22 @@ class CalendarScoreline extends StatelessWidget {
           softWrap: false,
           // Même taille que les noms d'équipes, sur la même ligne.
           style: theme.textTheme.titleMedium?.copyWith(
-            color: MatchFixture.resultColor(grinta, opponent),
+            color: scoreColor,
             fontSize: CalendarTeamName.regularSize,
             height: 1.15,
             fontWeight: FontWeight.w400,
+            // Des chiffres colorés sur fond sombre paraissent plus fins que
+            // les noms en blanc : un léger contour de la même couleur leur
+            // redonne la même épaisseur visuelle, sans passer en gras.
+            shadows: [
+              for (final offset in const [
+                Offset(.35, 0),
+                Offset(-.35, 0),
+                Offset(0, .35),
+                Offset(0, -.35),
+              ])
+                Shadow(color: scoreColor, offset: offset),
+            ],
           ),
         ),
       );
