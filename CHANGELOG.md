@@ -24,6 +24,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - calendrier : le score a la même taille que les noms d'équipes, sur la même
   ligne ; les cartes sont plus aérées (plus d'espace entre les lignes d'une
   carte et entre deux cartes).
+- calendrier : les noms d'équipes gardent toujours leur taille normale et
+  passent à la ligne s'ils ne tiennent pas ; chaque équipe est à la même
+  distance du score.
 
 ## 0.2.2+4 — 2026-07-27
 

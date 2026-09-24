@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 ///
 /// Les deux équipes occupent chacune la même largeur : le score (ou « VS »
 /// avant le coup d'envoi) tombe donc pile au milieu de la carte, quelle que
-/// soit la longueur des noms. Un nom trop long passe sur plusieurs lignes, en
-/// police légèrement plus petite, au lieu d'être coupé.
+/// soit la longueur des noms. Chaque nom se colle au score avec le même écart
+/// des deux côtés ; un nom trop long passe à la ligne, sans changer de taille.
 class CalendarScoreline extends StatelessWidget {
   const CalendarScoreline({
     super.key,
@@ -33,6 +33,9 @@ class CalendarScoreline extends StatelessWidget {
   final Color? foreground;
 
   static const String crestAsset = 'assets/images/as_grinta_logo.webp';
+
+  /// Écart identique entre chaque équipe et le score.
+  static const double scoreGap = 12;
 
   bool get _hasScores => finished && homeScore != null && awayScore != null;
 
@@ -77,19 +80,19 @@ class CalendarScoreline extends StatelessWidget {
           child: _ScorelineTeam(
             name: homeName,
             isGrinta: grintaIsHome,
-            crestBeforeName: true,
+            isHome: true,
             color: nameColor,
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: scoreGap),
           child: center,
         ),
         Expanded(
           child: _ScorelineTeam(
             name: awayName,
             isGrinta: !grintaIsHome,
-            crestBeforeName: false,
+            isHome: false,
             color: nameColor,
           ),
         ),
@@ -102,16 +105,17 @@ class _ScorelineTeam extends StatelessWidget {
   const _ScorelineTeam({
     required this.name,
     required this.isGrinta,
-    required this.crestBeforeName,
+    required this.isHome,
     required this.color,
   });
 
   final String name;
   final bool isGrinta;
 
-  /// Écusson à gauche du nom pour l'équipe à domicile, à droite pour
-  /// l'équipe à l'extérieur : la ligne reste symétrique autour du score.
-  final bool crestBeforeName;
+  /// L'équipe à domicile se colle au score par la droite, l'équipe à
+  /// l'extérieur par la gauche : l'écart nom ↔ score est ainsi identique des
+  /// deux côtés. L'écusson se place côté extérieur de la carte.
+  final bool isHome;
   final Color color;
 
   static const double _crestSize = 32;
@@ -129,18 +133,23 @@ class _ScorelineTeam extends StatelessWidget {
       ),
     );
     final label = Flexible(
-      child: CalendarTeamName(name: name, color: color),
+      child: CalendarTeamName(
+        name: name,
+        color: color,
+        textAlign: isHome ? TextAlign.end : TextAlign.start,
+      ),
     );
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment:
+          isHome ? MainAxisAlignment.end : MainAxisAlignment.start,
       children: [
-        if (isGrinta && crestBeforeName) ...[
+        if (isGrinta && isHome) ...[
           crest,
           const SizedBox(width: _crestGap),
         ],
         label,
-        if (isGrinta && !crestBeforeName) ...[
+        if (isGrinta && !isHome) ...[
           const SizedBox(width: _crestGap),
           crest,
         ],
@@ -149,53 +158,39 @@ class _ScorelineTeam extends StatelessWidget {
   }
 }
 
-/// Nom d'équipe centré : sur une ligne à taille normale s'il tient, sinon
-/// réparti sur plusieurs lignes dans une police un peu plus petite.
+/// Nom d'équipe, toujours en taille normale : s'il ne tient pas sur une
+/// ligne, il passe simplement à la ligne.
 class CalendarTeamName extends StatelessWidget {
-  const CalendarTeamName({super.key, required this.name, required this.color});
+  const CalendarTeamName({
+    super.key,
+    required this.name,
+    required this.color,
+    this.textAlign = TextAlign.center,
+  });
 
   final String name;
   final Color color;
+  final TextAlign textAlign;
 
   static const double regularSize = 17;
-  static const double compactSize = 14.5;
 
   @override
   Widget build(BuildContext context) {
-    // Même fusion que celle faite par le widget Text : la mesure ci-dessous
-    // doit correspondre exactement au rendu, sinon un nom « limite » serait
-    // tronqué au lieu de passer à la ligne.
-    final base = DefaultTextStyle.of(context).style.merge(
-          (Theme.of(context).textTheme.titleMedium ?? const TextStyle())
-              .copyWith(
-            color: color,
-            fontWeight: FontWeight.w400,
-            height: 1.15,
-          ),
-        );
-    final scaler = MediaQuery.textScalerOf(context);
-    final direction = Directionality.of(context);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final regular = base.copyWith(fontSize: regularSize);
-        final painter = TextPainter(
-          text: TextSpan(text: name, style: regular),
-          maxLines: 1,
-          textDirection: direction,
-          textScaler: scaler,
-        )..layout(maxWidth: constraints.maxWidth);
-        final fits = !painter.didExceedMaxLines;
-        painter.dispose();
-
-        return Text(
-          name,
-          textAlign: TextAlign.center,
-          maxLines: fits ? 1 : 4,
-          overflow: TextOverflow.ellipsis,
-          style: fits ? regular : base.copyWith(fontSize: compactSize),
-        );
-      },
+    return Text(
+      name,
+      textAlign: textAlign,
+      maxLines: 4,
+      overflow: TextOverflow.ellipsis,
+      // La largeur du texte épouse sa ligne la plus longue : le nom reste
+      // collé au score même quand il passe sur plusieurs lignes.
+      textWidthBasis: TextWidthBasis.longestLine,
+      style: (Theme.of(context).textTheme.titleMedium ?? const TextStyle())
+          .copyWith(
+        color: color,
+        fontSize: regularSize,
+        fontWeight: FontWeight.w400,
+        height: 1.15,
+      ),
     );
   }
 }

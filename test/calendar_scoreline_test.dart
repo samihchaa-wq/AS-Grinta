@@ -74,24 +74,30 @@ void main() {
     );
   });
 
-  testWidgets('un nom trop long passe sur plusieurs lignes, en plus petit', (
+  testWidgets('un nom trop long passe à la ligne sans changer de taille', (
     tester,
   ) async {
     const longName = 'Racing Club Toulouse Métropole Saint-Agne';
     await pumpCard(tester, finished(opponent: longName));
 
     final text = tester.widget<Text>(find.text(longName));
-    expect(text.style?.fontSize, CalendarTeamName.compactSize);
+    expect(text.style?.fontSize, CalendarTeamName.regularSize);
     expect(text.maxLines, greaterThan(1));
+    expect(
+      tester.getSize(find.text(longName)).height,
+      greaterThan(tester.getSize(find.text('AS Grinta')).height),
+    );
   });
 
-  testWidgets('un nom court reste sur une ligne, en taille normale', (
-    tester,
-  ) async {
+  testWidgets('chaque équipe est à la même distance du score', (tester) async {
     await pumpCard(tester, finished(opponent: 'FCB'));
 
-    final text = tester.widget<Text>(find.text('FCB'));
-    expect(text.style?.fontSize, CalendarTeamName.regularSize);
-    expect(text.maxLines, 1);
+    final score = tester.getRect(find.text('3 – 4'));
+    final home = tester.getRect(find.text('AS Grinta'));
+    final away = tester.getRect(find.text('FCB'));
+    expect(
+      score.left - home.right,
+      moreOrLessEquals(away.left - score.right, epsilon: 0.5),
+    );
   });
 }
