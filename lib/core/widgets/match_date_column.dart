@@ -70,6 +70,7 @@ class MatchDateHeader extends StatelessWidget {
     this.showTime = true,
     this.dateEndInset = 0,
     this.gap = 7,
+    this.label,
   });
 
   final DateTime kickoffAt;
@@ -95,6 +96,10 @@ class MatchDateHeader extends StatelessWidget {
   /// Espace entre la date et le contenu de la carte.
   final double gap;
 
+  /// Complément affiché après l'heure, séparé par un point (ex. le type de
+  /// match : « Championnat · J20 »).
+  final String? label;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,8 +112,11 @@ class MatchDateHeader extends StatelessWidget {
         Padding(
           padding: EdgeInsetsDirectional.only(end: dateEndInset),
           child: Text(
-            AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
-            maxLines: 1,
+            [
+              AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
+              if (label case final extra? when extra.trim().isNotEmpty) extra,
+            ].join(' • '),
+            maxLines: label == null ? 1 : 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelMedium?.copyWith(
               color: dateColor,

@@ -74,6 +74,7 @@ class CalendarFeedEventCard extends ConsumerWidget {
             dividerColor: CalendarCardPalette.eventBorder,
             dateEndInset:
                 editButton != null ? CalendarCardActionsOverlay.dateInset : 0,
+            label: 'Événement',
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,12 +84,6 @@ class CalendarFeedEventCard extends ConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.place_outlined,
-                      size: 16,
-                      color: CalendarCardPalette.eventBorder,
-                    ),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         event.location,
@@ -103,14 +98,6 @@ class CalendarFeedEventCard extends ConsumerWidget {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: CalendarCardSpacing.line),
-                Text(
-                  'Événement',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: CalendarCardPalette.eventBorder,
-                        fontWeight: FontWeight.w400,
-                      ),
                 ),
               ],
             ),

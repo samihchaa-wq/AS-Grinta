@@ -470,6 +470,7 @@ class ClubEventCard extends ConsumerWidget {
             dividerColor: CalendarCardPalette.eventBorder,
             dateEndInset:
                 editButton != null ? CalendarCardActionsOverlay.dateInset : 0,
+            label: 'Événement',
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -479,12 +480,6 @@ class ClubEventCard extends ConsumerWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.place_outlined,
-                      size: 16,
-                      color: CalendarCardPalette.eventBorder,
-                    ),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         event.location,
@@ -499,15 +494,6 @@ class ClubEventCard extends ConsumerWidget {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: CalendarCardSpacing.line),
-                Text(
-                  'Événement',
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: CalendarCardPalette.eventBorder,
-                        fontWeight: FontWeight.w400,
-                      ),
                 ),
               ],
             ),
@@ -577,6 +563,7 @@ class MonthlyMatchCard extends StatelessWidget {
               dateEndInset: adminActions != null
                   ? CalendarCardActionsOverlay.dateInset
                   : 0,
+              label: match.isInternal ? null : match.calendarTypeLabel,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,7 +581,7 @@ class MonthlyMatchCard extends StatelessWidget {
                     ),
                   const SizedBox(height: CalendarCardSpacing.line),
                   Text(
-                    '${match.statusLabel} · ${match.calendarTypeLabel}',
+                    match.statusLabel,
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                           color: statusColor,
@@ -611,8 +598,6 @@ class MonthlyMatchCard extends StatelessWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.place_outlined, size: 16, color: border),
-                            const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 address,
