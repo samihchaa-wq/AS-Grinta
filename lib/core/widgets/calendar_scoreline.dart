@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 ///
 /// Les deux équipes occupent chacune la même largeur : le score (ou « VS »
 /// avant le coup d'envoi) tombe donc pile au milieu de la carte, quelle que
-/// soit la longueur des noms. Chaque nom se colle au score avec le même écart
-/// des deux côtés ; un nom trop long passe à la ligne, sans changer de taille.
+/// soit la longueur des noms. Chaque nom est centré dans sa moitié ; un nom
+/// trop long passe à la ligne en lignes équilibrées, sans changer de taille.
 class CalendarScoreline extends StatelessWidget {
   const CalendarScoreline({
     super.key,
@@ -112,10 +112,10 @@ class _ScorelineTeam extends StatelessWidget {
   final String name;
   final bool isGrinta;
 
-  /// L'équipe à domicile se colle au score par la droite, l'équipe à
-  /// l'extérieur par la gauche : l'écart nom ↔ score est ainsi identique des
-  /// deux côtés. Sur plusieurs lignes, le nom reste centré sur lui-même.
-  /// L'écusson se place côté extérieur de la carte.
+  /// Le nom est centré dans sa moitié de carte (comme les boutons
+  /// « Présent » / « Absent »). L'écusson se place côté extérieur ; un espace
+  /// de même largeur est réservé de l'autre côté pour que le nom, lui, reste
+  /// pile au centre de sa moitié.
   final bool isHome;
   final Color color;
 
@@ -133,27 +133,38 @@ class _ScorelineTeam extends StatelessWidget {
         filterQuality: FilterQuality.medium,
       ),
     );
-    final label = Flexible(
-      child: CalendarTeamName(
-        name: name,
-        color: color,
-      ),
-    );
+    final label = CalendarTeamName(name: name, color: color);
 
-    return Row(
-      mainAxisAlignment:
-          isHome ? MainAxisAlignment.end : MainAxisAlignment.start,
-      children: [
-        if (isGrinta && isHome) ...[
-          crest,
-          const SizedBox(width: _crestGap),
-        ],
-        label,
-        if (isGrinta && !isHome) ...[
-          const SizedBox(width: _crestGap),
-          crest,
-        ],
-      ],
+    if (!isGrinta) return Center(child: label);
+
+    const reserved = SizedBox(width: _crestSize + _crestGap);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Le nom est centré dans sa moitié, avec en miroir de l'écusson un
+        // espace de même largeur. Si cette réserve ferait passer le nom sur
+        // deux lignes, on centre plutôt le bloc écusson + nom : le nom reste
+        // sur une ligne, légèrement décalé.
+        final nameWidth =
+            CalendarTeamName.singleLineWidth(context, name, color);
+        final symmetric =
+            nameWidth + 2 * (_crestSize + _crestGap) <= constraints.maxWidth;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isHome) ...[
+              crest,
+              const SizedBox(width: _crestGap),
+            ] else if (symmetric)
+              reserved,
+            Flexible(child: label),
+            if (!isHome) ...[
+              const SizedBox(width: _crestGap),
+              crest,
+            ] else if (symmetric)
+              reserved,
+          ],
+        );
+      },
     );
   }
 }
@@ -192,6 +203,8 @@ class CalendarTeamName extends StatelessWidget {
     final words = trimmed.split(RegExp(r'\s+'));
     if (words.length < 2 || widthOf(trimmed) <= maxWidth) return [trimmed];
 
+    List<String>? fallback;
+    var fallbackWidth = double.infinity;
     for (var count = 2; count <= maxLines && count <= words.length; count++) {
       List<String>? best;
       var bestWidth = double.infinity;
@@ -199,10 +212,9 @@ class CalendarTeamName extends StatelessWidget {
       void search(int start, List<String> lines) {
         final remaining = count - lines.length;
         if (remaining == 1) {
-          final last = words.sublist(start).join(' ');
-          final candidate = [...lines, last];
+          final candidate = [...lines, words.sublist(start).join(' ')];
           final widest = candidate.map(widthOf).reduce((a, b) => a > b ? a : b);
-          if (widest <= maxWidth && widest < bestWidth) {
+          if (widest < bestWidth) {
             bestWidth = widest;
             best = candidate;
           }
@@ -217,41 +229,57 @@ class CalendarTeamName extends StatelessWidget {
       }
 
       search(0, const []);
-      if (best != null) return best!;
+      if (best != null && bestWidth <= maxWidth) return best!;
+      if (best != null && bestWidth < fallbackWidth) {
+        fallbackWidth = bestWidth;
+        fallback = best;
+      }
     }
-    // Un mot à lui seul plus large que la place : le retour à la ligne
-    // automatique prend le relais.
-    return [trimmed];
+    // Un mot à lui seul plus large que la place : on garde la coupure la plus
+    // équilibrée, et le retour à la ligne automatique termine le travail.
+    return fallback ?? [trimmed];
   }
+
+  static TextStyle _style(BuildContext context, Color color) =>
+      (Theme.of(context).textTheme.titleMedium ?? const TextStyle()).copyWith(
+        color: color,
+        fontSize: regularSize,
+        fontWeight: FontWeight.w400,
+        height: 1.15,
+      );
+
+  /// Largeur d'une ligne de texte, mesurée exactement comme le widget Text
+  /// l'affichera (même fusion de style, même agrandissement du texte).
+  static double _lineWidth(BuildContext context, String line, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: line,
+        style: DefaultTextStyle.of(context).style.merge(style),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return width;
+  }
+
+  /// Largeur du nom s'il était affiché sur une seule ligne.
+  static double singleLineWidth(
+    BuildContext context,
+    String name,
+    Color color,
+  ) =>
+      _lineWidth(context, name.trim(), _style(context, color));
 
   @override
   Widget build(BuildContext context) {
-    final style =
-        (Theme.of(context).textTheme.titleMedium ?? const TextStyle()).copyWith(
-      color: color,
-      fontSize: regularSize,
-      fontWeight: FontWeight.w400,
-      height: 1.15,
-    );
-    // Même fusion que celle faite par le widget Text : la mesure doit
-    // correspondre exactement au rendu.
-    final measured = DefaultTextStyle.of(context).style.merge(style);
-    final scaler = MediaQuery.textScalerOf(context);
-    final direction = Directionality.of(context);
+    final style = _style(context, color);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        double widthOf(String line) {
-          final painter = TextPainter(
-            text: TextSpan(text: line, style: measured),
-            textDirection: direction,
-            textScaler: scaler,
-            maxLines: 1,
-          )..layout();
-          final width = painter.width;
-          painter.dispose();
-          return width;
-        }
+        double widthOf(String line) => _lineWidth(context, line, style);
 
         final lines = balancedLines(name, widthOf, constraints.maxWidth);
         return Text(

@@ -36,6 +36,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - calendrier : un nom d'équipe trop long est réparti sur des lignes de
   longueur équilibrée (« TOAC Foot / Loisir 2 » au lieu d'un « 2 » seul en
   dessous).
+- calendrier : chaque nom d'équipe est centré dans sa moitié de carte (comme
+  les boutons Présent / Absent), l'écusson d'AS Grinta restant côté extérieur.
 
 ## 0.2.2+4 — 2026-07-27
 
