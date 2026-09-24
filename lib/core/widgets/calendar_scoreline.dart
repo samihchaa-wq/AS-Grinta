@@ -476,8 +476,12 @@ class CalendarAddressLine extends StatelessWidget {
       address,
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
+      // Même hauteur de ligne que la date du bandeau du haut : l'espace entre
+      // le bord de la carte et le texte est ainsi identique en haut et en bas.
       style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: AppTheme.textSecondary,
+            fontSize: 12,
+            height: 1.15,
             fontWeight: FontWeight.w400,
           ),
     );
