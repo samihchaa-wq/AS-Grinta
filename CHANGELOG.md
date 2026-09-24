@@ -38,6 +38,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   dessous).
 - calendrier : chaque nom d'équipe est centré dans sa moitié de carte (comme
   les boutons Présent / Absent), l'écusson d'AS Grinta restant côté extérieur.
+- calendrier : nouvelles couleurs (bleu marine championnat, bleu clair amical,
+  violet match entre nous, or événement) ; chaque carte est découpée en trois
+  zones, avec la date et l'adresse dans des bandeaux plus foncés.
 
 ## 0.2.2+4 — 2026-07-27
 

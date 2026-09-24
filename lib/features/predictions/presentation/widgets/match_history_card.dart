@@ -1,7 +1,5 @@
-import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
-import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,63 +32,27 @@ class MatchHistoryCard extends ConsumerWidget {
 
     final content = CalendarCardActionsOverlay(
       actions: actions,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          12,
-          CalendarCardSpacing.vertical,
-          12,
-          CalendarCardSpacing.vertical,
-        ),
-        child: MatchDateHeader(
-          gap: CalendarCardSpacing.line,
+      child: CalendarCardSections(
+        header: CalendarDateLine(
           kickoffAt: match.kickoffAt,
-          foreground: AppTheme.textPrimary,
-          secondary: AppTheme.textPrimary,
-          dividerColor: border,
-          dateEndInset:
-              actions != null ? CalendarCardActionsOverlay.dateInset : 0,
           label: match.isInternal ? null : match.calendarTypeLabel,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (match.isInternal)
-                const CalendarCenteredTitle('Match entre nous')
-              else
-                // Scores colorés selon le résultat d'AS Grinta : vert victoire,
-                // orange nul, rouge défaite.
-                CalendarScoreline(
-                  homeName: homeName,
-                  awayName: awayName,
-                  grintaIsHome: match.isHome,
-                  homeScore: homeScore,
-                  awayScore: awayScore,
-                  finished: match.isFinished,
-                ),
-              if (address != null && address.isNotEmpty) ...[
-                const SizedBox(height: CalendarCardSpacing.line),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        address,
-                        textAlign: TextAlign.start,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: AppTheme.textSecondary,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          ),
+          endInset: actions != null ? CalendarCardActionsOverlay.dateInset : 0,
         ),
+        body: match.isInternal
+            ? const CalendarCenteredTitle('Match entre nous')
+            // Scores colorés selon le résultat d'AS Grinta : vert victoire,
+            // orange nul, rouge défaite.
+            : CalendarScoreline(
+                homeName: homeName,
+                awayName: awayName,
+                grintaIsHome: match.isHome,
+                homeScore: homeScore,
+                awayScore: awayScore,
+                finished: match.isFinished,
+              ),
+        footer: address != null && address.isNotEmpty
+            ? CalendarAddressLine(address)
+            : null,
       ),
     );
 

@@ -7,7 +7,6 @@ import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
-import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
@@ -570,69 +569,44 @@ class _UpcomingMatchCard extends ConsumerWidget {
             foreground: AppTheme.textPrimary,
           );
 
-    final content = Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.cardPadding,
-        CalendarCardSpacing.vertical,
-        AppSpacing.cardPadding,
-        CalendarCardSpacing.vertical,
+    final address = match.address?.trim();
+    final content = CalendarCardSections(
+      header: CalendarDateLine(
+        kickoffAt: match.kickoffAt,
+        label: match.isInternal ? null : match.calendarTypeLabel,
+        endInset:
+            adminActions != null ? CalendarCardActionsOverlay.dateInset : 0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          MatchDateHeader(
-            gap: CalendarCardSpacing.line,
-            kickoffAt: match.kickoffAt,
-            foreground: AppTheme.textPrimary,
-            secondary: AppTheme.textPrimary,
-            dividerColor: cardBorder,
-            dateEndInset:
-                adminActions != null ? CalendarCardActionsOverlay.dateInset : 0,
-            label: match.isInternal ? null : match.calendarTypeLabel,
-            child: fixture,
-          ),
+          fixture,
           if (match.isCancelled) ...[
             const SizedBox(height: CalendarCardSpacing.line),
             Text(
               'Annulé',
+              textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: cardBorder,
                     fontWeight: FontWeight.w400,
                   ),
             ),
           ],
-          if (match.address case final address?) ...[
-            const SizedBox(height: CalendarCardSpacing.line),
-            InkWell(
-              onTap: () => showMatchAddressSheet(context, address),
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        address,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w400,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
           if (availabilityIsOpen)
             MatchAvailabilitySelector(
               matchId: match.id,
               embeddedOnDark: true,
-              topSpacing: 10,
+              topSpacing: CalendarCardSpacing.line,
             ),
         ],
       ),
+      footer: address != null && address.isNotEmpty
+          ? CalendarAddressLine(
+              address,
+              onTap: () => showMatchAddressSheet(context, address),
+            )
+          : null,
     );
 
     return Card(

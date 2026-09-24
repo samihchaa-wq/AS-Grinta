@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:flutter/material.dart';
 
@@ -366,4 +367,130 @@ abstract final class CalendarCardSpacing {
 
   /// Espace entre deux cartes.
   static const double betweenCards = 18;
+
+  /// Marge haute et basse des bandeaux foncés (date, adresse).
+  static const double band = 12;
+}
+
+/// Découpe d'une carte du calendrier en trois zones :
+///
+/// - en haut, un bandeau plus foncé avec la date, l'heure et le type ;
+/// - au milieu, sur la couleur de la carte, l'affiche (équipes et score) ;
+/// - en bas, un second bandeau plus foncé avec l'adresse, s'il y en a une.
+class CalendarCardSections extends StatelessWidget {
+  const CalendarCardSections({
+    super.key,
+    required this.header,
+    required this.body,
+    this.footer,
+  });
+
+  final Widget header;
+  final Widget body;
+  final Widget? footer;
+
+  /// Voile posé sur la couleur de la carte pour foncer les bandeaux.
+  static const Color bandShade = Color(0x47000000);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget band(Widget child) => ColoredBox(
+          color: bandShade,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: CalendarCardSpacing.band,
+            ),
+            child: child,
+          ),
+        );
+
+    final footer = this.footer;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        band(header),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: CalendarCardSpacing.vertical,
+          ),
+          child: body,
+        ),
+        if (footer != null) band(footer),
+      ],
+    );
+  }
+}
+
+/// Ligne « date • heure • type » du bandeau du haut.
+class CalendarDateLine extends StatelessWidget {
+  const CalendarDateLine({
+    super.key,
+    required this.kickoffAt,
+    this.showTime = true,
+    this.label,
+    this.endInset = 0,
+  });
+
+  final DateTime kickoffAt;
+  final bool showTime;
+  final String? label;
+
+  /// Place laissée à droite pour le bouton d'administration.
+  final double endInset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsetsDirectional.only(end: endInset),
+      child: Text(
+        [
+          AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
+          if (label case final extra? when extra.trim().isNotEmpty) extra,
+        ].join(' • '),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppTheme.textPrimary,
+              fontSize: 12,
+              height: 1.15,
+              fontWeight: FontWeight.w400,
+            ),
+      ),
+    );
+  }
+}
+
+/// Adresse du bandeau du bas, cliquable pour ouvrir le choix du GPS.
+class CalendarAddressLine extends StatelessWidget {
+  const CalendarAddressLine(this.address, {super.key, this.onTap});
+
+  final String address;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(
+      address,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      // Même hauteur de ligne que la date du bandeau du haut : l'espace entre
+      // le bord de la carte et le texte est ainsi identique en haut et en bas.
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: AppTheme.textSecondary,
+            fontSize: 12,
+            height: 1.15,
+            fontWeight: FontWeight.w400,
+          ),
+    );
+    final onTap = this.onTap;
+    if (onTap == null) return text;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+      child: text,
+    );
+  }
 }

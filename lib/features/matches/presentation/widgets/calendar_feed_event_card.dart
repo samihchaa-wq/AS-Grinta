@@ -1,8 +1,6 @@
-import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
-import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
@@ -59,49 +57,17 @@ class CalendarFeedEventCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       child: CalendarCardActionsOverlay(
         actions: editButton,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.cardPadding,
-            CalendarCardSpacing.vertical,
-            AppSpacing.cardPadding,
-            CalendarCardSpacing.vertical,
-          ),
-          child: MatchDateHeader(
-            gap: CalendarCardSpacing.line,
+        child: CalendarCardSections(
+          header: CalendarDateLine(
             kickoffAt: event.startsAt,
-            foreground: AppTheme.textPrimary,
-            secondary: AppTheme.textPrimary,
-            dividerColor: CalendarCardPalette.eventBorder,
-            dateEndInset:
-                editButton != null ? CalendarCardActionsOverlay.dateInset : 0,
             label: 'Événement',
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CalendarCenteredTitle(event.title),
-                const SizedBox(height: CalendarCardSpacing.line),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        event.location,
-                        textAlign: TextAlign.start,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: AppTheme.textSecondary,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            endInset:
+                editButton != null ? CalendarCardActionsOverlay.dateInset : 0,
           ),
+          body: CalendarCenteredTitle(event.title),
+          footer: event.location.trim().isEmpty
+              ? null
+              : CalendarAddressLine(event.location),
         ),
       ),
     );

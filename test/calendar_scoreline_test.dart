@@ -113,6 +113,46 @@ void main() {
     }
   });
 
+  testWidgets('même espace entre le bord et la date / l’adresse', (
+    tester,
+  ) async {
+    const address = 'INP - 223 Rue des Arts - 31670 - Labège';
+    await tester.binding.setSurfaceSize(const Size(375, 400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: MatchHistoryCard(
+              match: MatchModel(
+                id: 'match',
+                seasonId: 'season',
+                opponentId: 'opponent',
+                kickoffAt: DateTime.utc(2026, 6, 15, 18, 45),
+                isHome: true,
+                plannedDurationMinutes: 90,
+                status: 'termine',
+                grintaScore: 1,
+                opponentScore: 0,
+                opponentName: 'FCB',
+                matchType: 'amical',
+                address: address,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final sections = tester.getRect(find.byType(CalendarCardSections));
+    final date = tester.getRect(find.textContaining('• Amical'));
+    final place = tester.getRect(find.text(address));
+    expect(
+      date.top - sections.top,
+      moreOrLessEquals(sections.bottom - place.bottom, epsilon: 0.5),
+    );
+  });
+
   group('balancedLines', () {
     // Largeur fictive : un caractère = 1.
     double width(String line) => line.length.toDouble();
