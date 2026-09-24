@@ -62,11 +62,12 @@ class CalendarFeedEventCard extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.cardPadding,
-            12,
+            CalendarCardSpacing.vertical,
             AppSpacing.cardPadding,
-            13,
+            CalendarCardSpacing.vertical,
           ),
           child: MatchDateHeader(
+            gap: CalendarCardSpacing.line,
             kickoffAt: event.startsAt,
             foreground: AppTheme.textPrimary,
             secondary: AppTheme.textPrimary,
@@ -78,7 +79,7 @@ class CalendarFeedEventCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CalendarCenteredTitle(event.title),
-                const SizedBox(height: 8),
+                const SizedBox(height: CalendarCardSpacing.line),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -103,7 +104,7 @@ class CalendarFeedEventCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: CalendarCardSpacing.line),
                 Text(
                   'Événement',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(

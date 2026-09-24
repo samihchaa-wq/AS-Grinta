@@ -42,8 +42,14 @@ class HistoricalMatchCard extends StatelessWidget {
       child: InkWell(
         onTap: () => context.push('/matches/history/${match.id}', extra: match),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+          padding: const EdgeInsets.fromLTRB(
+            12,
+            CalendarCardSpacing.vertical,
+            12,
+            CalendarCardSpacing.vertical,
+          ),
           child: MatchDateHeader(
+            gap: CalendarCardSpacing.line,
             kickoffAt: match.date,
             foreground: AppTheme.textPrimary,
             secondary: AppTheme.textPrimary,
@@ -62,7 +68,7 @@ class HistoricalMatchCard extends StatelessWidget {
                   finished: true,
                 ),
                 if (match.calendarTypeLabel case final label?) ...[
-                  const SizedBox(height: 7),
+                  const SizedBox(height: CalendarCardSpacing.line),
                   Text(
                     label,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -72,7 +78,7 @@ class HistoricalMatchCard extends StatelessWidget {
                   ),
                 ],
                 if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
-                  const SizedBox(height: 7),
+                  const SizedBox(height: CalendarCardSpacing.line),
                   InkWell(
                     onTap: () => showMatchAddressSheet(context, cleanAddress),
                     borderRadius: BorderRadius.circular(8),

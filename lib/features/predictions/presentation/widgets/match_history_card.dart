@@ -35,8 +35,14 @@ class MatchHistoryCard extends ConsumerWidget {
     final content = CalendarCardActionsOverlay(
       actions: actions,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+        padding: const EdgeInsets.fromLTRB(
+          12,
+          CalendarCardSpacing.vertical,
+          12,
+          CalendarCardSpacing.vertical,
+        ),
         child: MatchDateHeader(
+          gap: CalendarCardSpacing.line,
           kickoffAt: match.kickoffAt,
           foreground: AppTheme.textPrimary,
           secondary: AppTheme.textPrimary,
@@ -61,7 +67,7 @@ class MatchHistoryCard extends ConsumerWidget {
                   finished: match.isFinished,
                 ),
               if (!match.isInternal) ...[
-                const SizedBox(height: 7),
+                const SizedBox(height: CalendarCardSpacing.line),
                 Text(
                   match.calendarTypeLabel,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -71,7 +77,7 @@ class MatchHistoryCard extends ConsumerWidget {
                 ),
               ],
               if (address != null && address.isNotEmpty) ...[
-                const SizedBox(height: 7),
+                const SizedBox(height: CalendarCardSpacing.line),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

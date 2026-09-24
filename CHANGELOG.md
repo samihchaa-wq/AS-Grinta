@@ -21,6 +21,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   milieu de la carte, écusson à côté d'AS Grinta ; un nom trop long passe sur
   plusieurs lignes en police un peu plus petite. « Match entre nous » et le
   titre des événements sont centrés.
+- calendrier : le score a la même taille que les noms d'équipes, sur la même
+  ligne ; les cartes sont plus aérées (plus d'espace entre les lignes d'une
+  carte et entre deux cartes).
 
 ## 0.2.2+4 — 2026-07-27
 
