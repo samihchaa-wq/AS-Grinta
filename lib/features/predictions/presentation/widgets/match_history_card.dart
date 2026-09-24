@@ -1,7 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
+import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
-import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,95 +32,69 @@ class MatchHistoryCard extends ConsumerWidget {
         ? CalendarCardPalette.cancelledBorder
         : CalendarCardPalette.matchBorder(match.matchType);
 
-    final content = Padding(
-      padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-      child: MatchDateHeader(
-        kickoffAt: match.kickoffAt,
-        foreground: AppTheme.textPrimary,
-        secondary: AppTheme.textPrimary,
-        dividerColor: border,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (match.isInternal)
-                    Text(
-                      'Match entre nous',
-                      textAlign: TextAlign.start,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontSize: 16,
-                            height: 1.1,
-                            fontWeight: FontWeight.w400,
-                            color: AppTheme.textPrimary,
-                          ),
-                    )
-                  else
-                    MatchFixture(
-                      homeName: homeName,
-                      awayName: awayName,
-                      grintaIsHome: match.isHome,
-                      homeScore: homeScore,
-                      awayScore: awayScore,
-                      finished: match.isFinished,
-                      // Les scores conservent le code résultat du composant :
-                      // vert victoire, orange nul, rouge défaite. Même taille
-                      // que sur les matchs de l'historique importé.
-                      scoreFontSize: 20,
-                      nameStyle:
-                          Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontSize: 16,
-                                height: 1.1,
-                                fontWeight: FontWeight.w400,
-                              ),
-                      textAlign: TextAlign.start,
-                    ),
-                  if (!match.isInternal) ...[
-                    const SizedBox(height: 7),
-                    Text(
-                      match.calendarTypeLabel,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: border,
-                            fontWeight: FontWeight.w400,
-                          ),
-                    ),
-                  ],
-                  if (address != null && address.isNotEmpty) ...[
-                    const SizedBox(height: 7),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.place_outlined, size: 16, color: border),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            address,
-                            textAlign: TextAlign.start,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
+    final content = CalendarCardActionsOverlay(
+      actions: actions,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+        child: MatchDateHeader(
+          kickoffAt: match.kickoffAt,
+          foreground: AppTheme.textPrimary,
+          secondary: AppTheme.textPrimary,
+          dividerColor: border,
+          dateEndInset:
+              actions != null ? CalendarCardActionsOverlay.dateInset : 0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (match.isInternal)
+                const CalendarCenteredTitle('Match entre nous')
+              else
+                // Scores colorés selon le résultat d'AS Grinta : vert victoire,
+                // orange nul, rouge défaite.
+                CalendarScoreline(
+                  homeName: homeName,
+                  awayName: awayName,
+                  grintaIsHome: match.isHome,
+                  homeScore: homeScore,
+                  awayScore: awayScore,
+                  finished: match.isFinished,
+                ),
+              if (!match.isInternal) ...[
+                const SizedBox(height: 7),
+                Text(
+                  match.calendarTypeLabel,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: border,
+                        fontWeight: FontWeight.w400,
+                      ),
+                ),
+              ],
+              if (address != null && address.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.place_outlined, size: 16, color: border),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        address,
+                        textAlign: TextAlign.start,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: AppTheme.textSecondary,
                                   fontWeight: FontWeight.w400,
                                 ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
-                ],
-              ),
-            ),
-            if (actions != null) ...[
-              const SizedBox(width: 2),
-              SizedBox(width: 38, child: actions),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

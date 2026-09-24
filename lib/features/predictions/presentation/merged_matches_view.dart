@@ -3,11 +3,11 @@ import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
+import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
-import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
@@ -554,59 +554,21 @@ class _UpcomingMatchCard extends ConsumerWidget {
         ? CalendarCardPalette.cancelledBorder
         : CalendarCardPalette.matchBorder(match.matchType);
 
-    final fixtureRow = Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: match.isInternal
-              ? Text(
-                  'Match entre nous',
-                  textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                        color: AppTheme.textPrimary,
-                      ),
-                )
-              : MatchFixture(
-                  homeName: homeName,
-                  awayName: awayName,
-                  grintaIsHome: match.isHome,
-                  nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        height: 1.1,
-                        fontWeight: FontWeight.w400,
-                      ),
-                  foreground: AppTheme.textPrimary,
-                  textAlign: TextAlign.start,
-                ),
-        ),
-        if (isAdmin && AdminMatchOptionsButton.hasOptions(match)) ...[
-          const SizedBox(width: AppSpacing.microGap),
-          SizedBox(
-            width: 48,
-            child: IconTheme(
-              data: IconThemeData(color: cardBorder),
-              child: AdminMatchOptionsButton(match: match),
-            ),
-          ),
-        ],
-        if (match.isCancelled)
-          Text(
-            'Annulé',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: CalendarCardPalette.cancelledBorder,
-                  fontWeight: FontWeight.w400,
-                ),
+    final adminActions = isAdmin && AdminMatchOptionsButton.hasOptions(match)
+        ? IconTheme(
+            data: IconThemeData(color: cardBorder),
+            child: AdminMatchOptionsButton(match: match),
           )
-        else
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: AppTheme.textFaint,
-          ),
-      ],
-    );
+        : null;
+
+    final fixture = match.isInternal
+        ? const CalendarCenteredTitle('Match entre nous')
+        : CalendarScoreline(
+            homeName: homeName,
+            awayName: awayName,
+            grintaIsHome: match.isHome,
+            foreground: AppTheme.textPrimary,
+          );
 
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -623,11 +585,15 @@ class _UpcomingMatchCard extends ConsumerWidget {
             foreground: AppTheme.textPrimary,
             secondary: AppTheme.textPrimary,
             dividerColor: cardBorder,
-            child: fixtureRow,
+            dateEndInset:
+                adminActions != null ? CalendarCardActionsOverlay.dateInset : 0,
+            child: fixture,
           ),
           const SizedBox(height: 7),
           Text(
-            match.calendarTypeLabel,
+            match.isCancelled
+                ? 'Annulé · ${match.calendarTypeLabel}'
+                : match.calendarTypeLabel,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: cardBorder,
                   fontWeight: FontWeight.w400,
@@ -676,9 +642,12 @@ class _UpcomingMatchCard extends ConsumerWidget {
         side: BorderSide(color: cardBorder, width: 1.2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: match.isCancelled
-          ? content
-          : InkWell(onTap: () => context.push(detailsRoute), child: content),
+      child: CalendarCardActionsOverlay(
+        actions: adminActions,
+        child: match.isCancelled
+            ? content
+            : InkWell(onTap: () => context.push(detailsRoute), child: content),
+      ),
     );
   }
 }

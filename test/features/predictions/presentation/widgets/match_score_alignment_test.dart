@@ -62,9 +62,18 @@ void main() {
       ),
     );
 
-    final seasonScore = tester.getRect(find.text('6'));
-    final historyScore = tester.getRect(find.text('3'));
-    expect(seasonScore.right, closeTo(historyScore.right, 0.5));
+    // Les deux scores tombent pile au milieu de la largeur de leur carte.
+    final seasonScore = tester.getRect(find.text('6 – 0'));
+    final historyScore = tester.getRect(find.text('3 – 4'));
+    final cards = find.byType(Card);
+    expect(
+      seasonScore.center.dx,
+      closeTo(tester.getRect(cards.at(0)).center.dx, 0.5),
+    );
+    expect(
+      historyScore.center.dx,
+      closeTo(tester.getRect(cards.at(1)).center.dx, 0.5),
+    );
     expect(seasonScore.height, closeTo(historyScore.height, 0.5));
   });
 

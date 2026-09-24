@@ -68,6 +68,7 @@ class MatchDateHeader extends StatelessWidget {
     this.secondary,
     this.dividerColor,
     this.showTime = true,
+    this.dateEndInset = 0,
   });
 
   final DateTime kickoffAt;
@@ -86,6 +87,10 @@ class MatchDateHeader extends StatelessWidget {
   /// Les archives importées n'ont historiquement qu'une date sans heure.
   final bool showTime;
 
+  /// Marge à droite de la date, pour laisser la place à un bouton posé dans
+  /// le coin de la carte.
+  final double dateEndInset;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -95,15 +100,18 @@ class MatchDateHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: dateColor,
-            fontSize: 12,
-            height: 1.15,
-            fontWeight: FontWeight.w400,
+        Padding(
+          padding: EdgeInsetsDirectional.only(end: dateEndInset),
+          child: Text(
+            AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: dateColor,
+              fontSize: 12,
+              height: 1.15,
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
         const SizedBox(height: 7),
