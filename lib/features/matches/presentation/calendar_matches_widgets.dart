@@ -430,6 +430,15 @@ class ClubEventCard extends ConsumerWidget {
       if (changed == true) ref.invalidate(clubEventsProvider);
     }
 
+    final editButton = isAdmin
+        ? IconButton(
+            tooltip: 'Modifier l’événement',
+            onPressed: edit,
+            color: CalendarCardPalette.eventBorder,
+            icon: const Icon(Icons.edit_rounded),
+          )
+        : null;
+
     return Card(
       color: CalendarCardPalette.eventSurface,
       shape: RoundedRectangleBorder(
@@ -440,82 +449,58 @@ class ClubEventCard extends ConsumerWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-        child: MatchDateHeader(
-          kickoffAt: event.startsAt,
-          foreground: AppTheme.textPrimary,
-          secondary: AppTheme.textPrimary,
-          dividerColor: CalendarCardPalette.eventBorder,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+      child: CalendarCardActionsOverlay(
+        actions: editButton,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+          child: MatchDateHeader(
+            kickoffAt: event.startsAt,
+            foreground: AppTheme.textPrimary,
+            secondary: AppTheme.textPrimary,
+            dividerColor: CalendarCardPalette.eventBorder,
+            dateEndInset:
+                editButton != null ? CalendarCardActionsOverlay.dateInset : 0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CalendarCenteredTitle(event.title),
+                const SizedBox(height: 7),
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      event.title,
-                      textAlign: TextAlign.start,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                            height: 1.1,
-                            fontWeight: FontWeight.w400,
-                          ),
+                    const Icon(
+                      Icons.place_outlined,
+                      size: 16,
+                      color: CalendarCardPalette.eventBorder,
                     ),
-                    const SizedBox(height: 7),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.place_outlined,
-                          size: 16,
-                          color: CalendarCardPalette.eventBorder,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            event.location,
-                            textAlign: TextAlign.start,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        event.location,
+                        textAlign: TextAlign.start,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: AppTheme.textSecondary,
                                   fontWeight: FontWeight.w400,
                                 ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Événement',
-                      textAlign: TextAlign.start,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: CalendarCardPalette.eventBorder,
-                            fontWeight: FontWeight.w400,
-                          ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              if (isAdmin) ...[
-                const SizedBox(width: 4),
-                SizedBox(
-                  width: 38,
-                  child: IconButton(
-                    tooltip: 'Modifier l’événement',
-                    onPressed: edit,
-                    color: CalendarCardPalette.eventBorder,
-                    icon: const Icon(Icons.edit_rounded),
-                  ),
+                const SizedBox(height: 5),
+                Text(
+                  'Événement',
+                  textAlign: TextAlign.start,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: CalendarCardPalette.eventBorder,
+                        fontWeight: FontWeight.w400,
+                      ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -564,105 +549,76 @@ class MonthlyMatchCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: _onTap(context, phase),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-          child: MatchDateHeader(
-            kickoffAt: match.kickoffAt,
-            foreground: AppTheme.textPrimary,
-            secondary: AppTheme.textPrimary,
-            dividerColor: border,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (match.isInternal)
-                        Text(
-                          'Match entre nous',
-                          textAlign: TextAlign.start,
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontSize: 17,
-                                    height: 1.1,
-                                    fontWeight: FontWeight.w400,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                        )
-                      else
-                        MatchFixture(
-                          homeName: homeName,
-                          awayName: awayName,
-                          grintaIsHome: match.isHome,
-                          finished: false,
-                          foreground: match.isCancelled
-                              ? AppTheme.textFaint
-                              : AppTheme.textPrimary,
-                          nameStyle: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(fontSize: 17, height: 1.1),
-                          textAlign: TextAlign.start,
+        child: CalendarCardActionsOverlay(
+          actions: adminActions,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+            child: MatchDateHeader(
+              kickoffAt: match.kickoffAt,
+              foreground: AppTheme.textPrimary,
+              secondary: AppTheme.textPrimary,
+              dividerColor: border,
+              dateEndInset: adminActions != null
+                  ? CalendarCardActionsOverlay.dateInset
+                  : 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (match.isInternal)
+                    const CalendarCenteredTitle('Match entre nous')
+                  else
+                    CalendarScoreline(
+                      homeName: homeName,
+                      awayName: awayName,
+                      grintaIsHome: match.isHome,
+                      foreground: match.isCancelled
+                          ? AppTheme.textFaint
+                          : AppTheme.textPrimary,
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${match.statusLabel} · ${match.calendarTypeLabel}',
+                    textAlign: TextAlign.start,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w400,
                         ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${match.statusLabel} · ${match.calendarTypeLabel}',
-                        textAlign: TextAlign.start,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                      ),
-                      if (address != null && address.isNotEmpty) ...[
-                        const SizedBox(height: 7),
-                        InkWell(
-                          onTap: () => showMatchAddressSheet(context, address),
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusSm,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.place_outlined,
-                                  size: 16,
-                                  color: border,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    address,
-                                    textAlign: TextAlign.start,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelMedium
-                                        ?.copyWith(
-                                          color: AppTheme.textSecondary,
-                                          fontWeight: FontWeight.w400,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
                   ),
-                ),
-                if (adminActions != null) ...[
-                  const SizedBox(width: 4),
-                  SizedBox(width: 38, child: adminActions),
+                  if (address != null && address.isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    InkWell(
+                      onTap: () => showMatchAddressSheet(context, address),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.place_outlined, size: 16, color: border),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                address,
+                                textAlign: TextAlign.start,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

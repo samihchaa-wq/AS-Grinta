@@ -1,8 +1,8 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
+import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
-import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -31,11 +31,6 @@ class HistoricalMatchCard extends StatelessWidget {
       match.matchType,
       unknownAsFinished: true,
     );
-    final nameStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontSize: 16,
-          height: 1.1,
-          fontWeight: FontWeight.w400,
-        );
 
     return Card(
       color: surface,
@@ -58,16 +53,13 @@ class HistoricalMatchCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                MatchFixture(
+                CalendarScoreline(
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: isHome,
                   homeScore: homeScore,
                   awayScore: awayScore,
                   finished: true,
-                  nameStyle: nameStyle,
-                  scoreFontSize: 20,
-                  textAlign: TextAlign.start,
                 ),
                 if (match.calendarTypeLabel case final label?) ...[
                   const SizedBox(height: 7),

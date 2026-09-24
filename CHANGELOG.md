@@ -16,6 +16,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   la page et le bouton « Valider le compte rendu » redevient atteignable ; il
   n'y a plus de zone de défilement imbriquée qui coupait la saisie des buteurs
   et des passeurs.
+- calendrier (« Défilé » et « Par mois ») : chaque rencontre s'affiche sur une
+  ligne « Équipe 1  score – score  Équipe 2 », score (ou « VS ») pile au
+  milieu de la carte, écusson à côté d'AS Grinta ; un nom trop long passe sur
+  plusieurs lignes en police un peu plus petite. « Match entre nous » et le
+  titre des événements sont centrés.
 
 ## 0.2.2+4 — 2026-07-27
 
