@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
@@ -153,11 +154,12 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                   child: Text('Aucun badge trouvé.'),
                 );
               }
-              return Column(
+              return EqualHeightColumn(
+                spacing: 8,
                 children: [
                   for (final b in filtered)
                     Card(
-                      margin: const EdgeInsets.only(bottom: 8),
+                      margin: EdgeInsets.zero,
                       clipBehavior: Clip.antiAlias,
                       child: InkWell(
                         onTap: () => showBadgeDetailSheet(
@@ -209,11 +211,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                     ),
                                     if (b.description.isNotEmpty) ...[
                                       const SizedBox(height: 4),
-                                      Text(
-                                        b.description,
-                                        maxLines: 5,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                      Text(b.description),
                                     ] else if (b.kind == 'custom') ...[
                                       const SizedBox(height: 4),
                                       const Text('Custom'),

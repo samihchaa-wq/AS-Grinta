@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_editor.dart';
@@ -196,11 +197,17 @@ class BadgeDetailSheet extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 12),
-                for (final tier in ladder)
-                  _TierRow(
-                    tier: tier,
-                    highlighted: tier.code == currentBadge.code,
-                  ),
+                EqualHeightColumn(
+                  spacing: 8,
+                  children: [
+                    for (final tier in ladder)
+                      _TierRow(
+                        tier: tier,
+                        highlighted: tier.code == currentBadge.code,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
               ],
               if (onToggleFeatured != null) ...[
                 const SizedBox(height: 20),
@@ -257,7 +264,6 @@ class _TierRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: highlighted
