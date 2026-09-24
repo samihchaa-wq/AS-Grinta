@@ -55,6 +55,7 @@ class HistoricalMatchCard extends StatelessWidget {
             secondary: AppTheme.textPrimary,
             dividerColor: border,
             showTime: match.hasTime,
+            label: match.calendarTypeLabel,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -67,16 +68,6 @@ class HistoricalMatchCard extends StatelessWidget {
                   awayScore: awayScore,
                   finished: true,
                 ),
-                if (match.calendarTypeLabel case final label?) ...[
-                  const SizedBox(height: CalendarCardSpacing.line),
-                  Text(
-                    label,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: border,
-                          fontWeight: FontWeight.w400,
-                        ),
-                  ),
-                ],
                 if (cleanAddress != null && cleanAddress.isNotEmpty) ...[
                   const SizedBox(height: CalendarCardSpacing.line),
                   InkWell(
@@ -87,12 +78,6 @@ class HistoricalMatchCard extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.place_outlined,
-                            size: 16,
-                            color: border,
-                          ),
-                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               cleanAddress,

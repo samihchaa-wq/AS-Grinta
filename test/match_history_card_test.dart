@@ -58,7 +58,7 @@ void main() {
       finishedMatch(matchType: 'championnat', address: address),
     );
 
-    expect(find.byIcon(Icons.place_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.place_outlined), findsNothing);
     expect(find.text(address), findsOneWidget);
   });
 }

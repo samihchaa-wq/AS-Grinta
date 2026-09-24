@@ -49,6 +49,7 @@ class MatchHistoryCard extends ConsumerWidget {
           dividerColor: border,
           dateEndInset:
               actions != null ? CalendarCardActionsOverlay.dateInset : 0,
+          label: match.isInternal ? null : match.calendarTypeLabel,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -66,23 +67,11 @@ class MatchHistoryCard extends ConsumerWidget {
                   awayScore: awayScore,
                   finished: match.isFinished,
                 ),
-              if (!match.isInternal) ...[
-                const SizedBox(height: CalendarCardSpacing.line),
-                Text(
-                  match.calendarTypeLabel,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: border,
-                        fontWeight: FontWeight.w400,
-                      ),
-                ),
-              ],
               if (address != null && address.isNotEmpty) ...[
                 const SizedBox(height: CalendarCardSpacing.line),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.place_outlined, size: 16, color: border),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         address,

@@ -588,18 +588,19 @@ class _UpcomingMatchCard extends ConsumerWidget {
             dividerColor: cardBorder,
             dateEndInset:
                 adminActions != null ? CalendarCardActionsOverlay.dateInset : 0,
+            label: match.isInternal ? null : match.calendarTypeLabel,
             child: fixture,
           ),
-          const SizedBox(height: CalendarCardSpacing.line),
-          Text(
-            match.isCancelled
-                ? 'Annulé · ${match.calendarTypeLabel}'
-                : match.calendarTypeLabel,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: cardBorder,
-                  fontWeight: FontWeight.w400,
-                ),
-          ),
+          if (match.isCancelled) ...[
+            const SizedBox(height: CalendarCardSpacing.line),
+            Text(
+              'Annulé',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: cardBorder,
+                    fontWeight: FontWeight.w400,
+                  ),
+            ),
+          ],
           if (match.address case final address?) ...[
             const SizedBox(height: CalendarCardSpacing.line),
             InkWell(
@@ -610,8 +611,6 @@ class _UpcomingMatchCard extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.place_outlined, size: 16, color: cardBorder),
-                    const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         address,

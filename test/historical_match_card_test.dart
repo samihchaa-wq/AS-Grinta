@@ -32,9 +32,11 @@ void main() {
         'Stade Michel Saraiba - 8 bis Rue Claudius Rougenet - 31500 - Toulouse';
     await tester.pumpWidget(app(historical(address: address)));
 
-    expect(find.text('Championnat · J7'), findsOneWidget);
+    // Le type de match suit l'heure, sur la ligne de la date.
+    expect(find.textContaining('• Championnat · J7'), findsOneWidget);
     expect(find.text(address), findsOneWidget);
-    expect(find.byIcon(Icons.place_outlined), findsOneWidget);
+    // L'adresse s'affiche sans icône devant.
+    expect(find.byIcon(Icons.place_outlined), findsNothing);
 
     await tester.tap(find.text(address));
     await tester.pumpAndSettle();
@@ -47,7 +49,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(app(historical()));
 
-    expect(find.text('Championnat · J7'), findsOneWidget);
-    expect(find.byIcon(Icons.place_outlined), findsNothing);
+    expect(find.textContaining('• Championnat · J7'), findsOneWidget);
+    expect(find.textContaining('Rue'), findsNothing);
   });
 }

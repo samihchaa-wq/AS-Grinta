@@ -30,6 +30,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - paramètres : les sous-titres « Déclarer une période d’absence »
   (Indisponibilité) et « Adversaires, stades et adresses » (Équipes & stades)
   sont retirés.
+- calendrier : un nom d'équipe sur plusieurs lignes est centré sur lui-même ;
+  le type (Amical, Championnat · J20, Événement…) suit l'heure sur la ligne de
+  la date ; l'icône devant l'adresse est retirée.
 
 ## 0.2.2+4 — 2026-07-27
 

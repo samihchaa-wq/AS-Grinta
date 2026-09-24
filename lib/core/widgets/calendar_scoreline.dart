@@ -114,7 +114,8 @@ class _ScorelineTeam extends StatelessWidget {
 
   /// L'équipe à domicile se colle au score par la droite, l'équipe à
   /// l'extérieur par la gauche : l'écart nom ↔ score est ainsi identique des
-  /// deux côtés. L'écusson se place côté extérieur de la carte.
+  /// deux côtés. Sur plusieurs lignes, le nom reste centré sur lui-même.
+  /// L'écusson se place côté extérieur de la carte.
   final bool isHome;
   final Color color;
 
@@ -136,7 +137,6 @@ class _ScorelineTeam extends StatelessWidget {
       child: CalendarTeamName(
         name: name,
         color: color,
-        textAlign: isHome ? TextAlign.end : TextAlign.start,
       ),
     );
 
