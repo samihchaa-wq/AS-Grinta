@@ -44,7 +44,6 @@ class MorePage extends ConsumerWidget {
               child: ListTile(
                 leading: const Icon(Icons.event_busy_outlined),
                 title: const Text('Indisponibilité'),
-                subtitle: const Text('Déclarer une période d’absence'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/unavailability'),
               ),
@@ -70,7 +69,6 @@ class MorePage extends ConsumerWidget {
                   'Équipes & stades',
                   style: TextStyle(fontWeight: FontWeight.w400),
                 ),
-                subtitle: const Text('Adversaires, stades et adresses'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
                   await Navigator.of(context).push(

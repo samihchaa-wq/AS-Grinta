@@ -27,6 +27,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - calendrier : les noms d'équipes gardent toujours leur taille normale et
   passent à la ligne s'ils ne tiennent pas ; chaque équipe est à la même
   distance du score.
+- paramètres : les sous-titres « Déclarer une période d’absence »
+  (Indisponibilité) et « Adversaires, stades et adresses » (Équipes & stades)
+  sont retirés.
 
 ## 0.2.2+4 — 2026-07-27
 
