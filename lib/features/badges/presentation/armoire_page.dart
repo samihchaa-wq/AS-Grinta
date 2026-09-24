@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -127,8 +128,14 @@ class ArmoirePage extends ConsumerWidget {
                   icon: Icons.trending_up_rounded,
                 ),
                 const SizedBox(height: 14),
-                ...armoire.inProgress.map((b) => _InProgressTile(badge: b)),
-                const SizedBox(height: 20),
+                EqualHeightColumn(
+                  spacing: 10,
+                  children: [
+                    for (final b in armoire.inProgress)
+                      _InProgressTile(badge: b),
+                  ],
+                ),
+                const SizedBox(height: 30),
               ],
               if (armoire.locked.isNotEmpty) ...[
                 _SectionTitle(
@@ -462,7 +469,6 @@ class _InProgressTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => showBadgeDetailSheet(context, badge.def),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppTheme.surface,
@@ -501,8 +507,6 @@ class _InProgressTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       badge.def.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppTheme.textFaint,
                           ),

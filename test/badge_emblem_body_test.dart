@@ -255,4 +255,72 @@ void main() {
     expect(paragraph.didExceedMaxLines, isFalse);
     expect(fontSize, lessThan(100 * 0.14));
   });
+
+  Future<Color> socleOf(WidgetTester tester, Color base) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BadgeEmblemBody(
+            size: 100,
+            base: base,
+            descriptor: const BadgeDescriptor('SOULIER D’OR', 'SAISON'),
+            child: const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+    return tester
+        .widgetList<Container>(
+          find.descendant(
+            of: find.byType(BadgeEmblemBody),
+            matching: find.byType(Container),
+          ),
+        )
+        .where((container) => container.color != null)
+        .elementAt(1)
+        .color!;
+  }
+
+  double contrastWithWhite(Color color) =>
+      1.05 / (color.computeLuminance() + 0.05);
+
+  testWidgets(
+      'le socle des titres de fin de saison est foncé pour que le texte blanc '
+      'se lise', (tester) async {
+    const diamond = Color(0xFFB9F2FF);
+    final socle = await socleOf(tester, diamond);
+
+    expect(contrastWithWhite(socle), greaterThanOrEqualTo(3.5));
+    // Toujours la même famille de bleu, simplement plus sombre.
+    expect(
+      HSLColor.fromColor(socle).hue,
+      closeTo(HSLColor.fromColor(diamond).hue, 2),
+    );
+  });
+
+  testWidgets('les socles déjà lisibles gardent exactement leur teinte',
+      (tester) async {
+    // Les couleurs d'emblème utilisées en production, hors bleu diamant.
+    const colors = [
+      Color(0xFF1C1C24),
+      Color(0xFF1E3A8A),
+      Color(0xFF4FA9E8),
+      Color(0xFF7A858D),
+      Color(0xFF7C3AED),
+      Color(0xFF9E1B1B),
+      Color(0xFFC0C0C0),
+      Color(0xFFCD7F32),
+      Color(0xFFD4AF37),
+      Color(0xFFE23B36),
+      Color(0xFFF1706E),
+      Color(0xFFF97316),
+      Color(0xFF3A4568),
+    ];
+    for (final base in colors) {
+      final hsl = HSLColor.fromColor(base);
+      final expected =
+          hsl.withLightness((hsl.lightness - 0.24).clamp(0.0, 1.0)).toColor();
+      expect(await socleOf(tester, base), expected, reason: '$base');
+    }
+  });
 }

@@ -37,6 +37,26 @@ Color _shiftBadgeTone(Color color, double lightnessDelta) {
   return hsl.withLightness(lightness).toColor();
 }
 
+/// Contraste minimal entre le texte blanc du socle et le socle lui-même.
+const _minSocleContrast = 3.5;
+
+double _contrastWithWhite(Color color) =>
+    1.05 / (color.computeLuminance() + 0.05);
+
+/// La teinte du socle : la couleur de l'emblème, nettement assombrie.
+///
+/// Une couleur très claire, comme le bleu diamant des titres de fin de
+/// saison, laisserait un socle trop pâle pour son texte blanc : il est alors
+/// foncé par petits pas, dans la même teinte, jusqu'à être lisible. Les
+/// autres couleurs ne bougent pas.
+Color _socleTone(Color base) {
+  var tone = _shiftBadgeTone(base, -0.24);
+  while (_contrastWithWhite(tone) < _minSocleContrast) {
+    tone = _shiftBadgeTone(tone, -0.02);
+  }
+  return tone;
+}
+
 /// Le corps de l'emblème : un seul rectangle, découpé en zones jointives.
 ///
 /// L'illustration et le socle texte restent dans la même famille de couleur,
@@ -64,7 +84,7 @@ class BadgeEmblemBody extends StatelessWidget {
     final hasValue = value?.isNotEmpty == true;
     final period = descriptor.period;
     final illustrationTone = _shiftBadgeTone(base, 0.02);
-    final bandsTone = _shiftBadgeTone(base, -0.24);
+    final bandsTone = _socleTone(base);
     // Le critère prend tout ce que le nombre et la temporalité laissent du
     // socle : une ligne sur un badge complet, bien plus sur un badge sans
     // nombre.
