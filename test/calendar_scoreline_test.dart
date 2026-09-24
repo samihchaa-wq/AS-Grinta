@@ -80,11 +80,14 @@ void main() {
     const longName = 'Racing Club Toulouse Métropole Saint-Agne';
     await pumpCard(tester, finished(opponent: longName));
 
-    final text = tester.widget<Text>(find.text(longName));
+    final teamName = find.byWidgetPredicate(
+      (widget) => widget is Text && widget.semanticsLabel == longName,
+    );
+    final text = tester.widget<Text>(teamName);
     expect(text.style?.fontSize, CalendarTeamName.regularSize);
     expect(text.maxLines, greaterThan(1));
     expect(
-      tester.getSize(find.text(longName)).height,
+      tester.getSize(teamName).height,
       greaterThan(tester.getSize(find.text('AS Grinta')).height),
     );
   });
@@ -99,5 +102,44 @@ void main() {
       score.left - home.right,
       moreOrLessEquals(away.left - score.right, epsilon: 0.5),
     );
+  });
+
+  group('balancedLines', () {
+    // Largeur fictive : un caractère = 1.
+    double width(String line) => line.length.toDouble();
+
+    test('un nom qui tient reste sur une ligne', () {
+      expect(CalendarTeamName.balancedLines('AS Grinta', width, 20), [
+        'AS Grinta',
+      ]);
+    });
+
+    test('un mot court final ne reste pas seul', () {
+      expect(
+        CalendarTeamName.balancedLines('TOAC Foot Loisir 2', width, 16),
+        ['TOAC Foot', 'Loisir 2'],
+      );
+      expect(
+        CalendarTeamName.balancedLines('Rouffiac Tolosan FC', width, 16),
+        ['Rouffiac', 'Tolosan FC'],
+      );
+    });
+
+    test('le plus petit nombre de lignes, le plus équilibré possible', () {
+      expect(
+        CalendarTeamName.balancedLines(
+          'Amicale Olympique Cornebarrieu',
+          width,
+          13,
+        ),
+        ['Amicale', 'Olympique', 'Cornebarrieu'],
+      );
+    });
+
+    test('un mot trop long à lui seul est laissé au retour automatique', () {
+      expect(CalendarTeamName.balancedLines('Supercalifragilistic', width, 8), [
+        'Supercalifragilistic',
+      ]);
+    });
   });
 }

@@ -33,6 +33,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - calendrier : un nom d'équipe sur plusieurs lignes est centré sur lui-même ;
   le type (Amical, Championnat · J20, Événement…) suit l'heure sur la ligne de
   la date ; l'icône devant l'adresse est retirée.
+- calendrier : un nom d'équipe trop long est réparti sur des lignes de
+  longueur équilibrée (« TOAC Foot / Loisir 2 » au lieu d'un « 2 » seul en
+  dessous).
 
 ## 0.2.2+4 — 2026-07-27
 

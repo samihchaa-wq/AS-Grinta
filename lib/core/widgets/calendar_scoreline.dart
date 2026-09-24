@@ -159,7 +159,7 @@ class _ScorelineTeam extends StatelessWidget {
 }
 
 /// Nom d'équipe, toujours en taille normale : s'il ne tient pas sur une
-/// ligne, il passe simplement à la ligne.
+/// ligne, il est réparti sur des lignes de longueur équilibrée.
 class CalendarTeamName extends StatelessWidget {
   const CalendarTeamName({
     super.key,
@@ -174,23 +174,98 @@ class CalendarTeamName extends StatelessWidget {
 
   static const double regularSize = 17;
 
+  static const int maxLines = 4;
+
+  /// Découpe [name] en lignes de longueur la plus égale possible.
+  ///
+  /// Si le nom tient sur une ligne, il reste entier. Sinon on cherche le plus
+  /// petit nombre de lignes qui tiennent dans [maxWidth], puis, parmi toutes
+  /// les coupures entre les mots, celle dont la ligne la plus longue est la
+  /// plus courte. On évite ainsi un « 2 » ou un « FC » seul en dessous :
+  /// « TOAC Foot / Loisir 2 » plutôt que « TOAC Foot Loisir / 2 ».
+  static List<String> balancedLines(
+    String name,
+    double Function(String line) widthOf,
+    double maxWidth,
+  ) {
+    final trimmed = name.trim();
+    final words = trimmed.split(RegExp(r'\s+'));
+    if (words.length < 2 || widthOf(trimmed) <= maxWidth) return [trimmed];
+
+    for (var count = 2; count <= maxLines && count <= words.length; count++) {
+      List<String>? best;
+      var bestWidth = double.infinity;
+
+      void search(int start, List<String> lines) {
+        final remaining = count - lines.length;
+        if (remaining == 1) {
+          final last = words.sublist(start).join(' ');
+          final candidate = [...lines, last];
+          final widest = candidate.map(widthOf).reduce((a, b) => a > b ? a : b);
+          if (widest <= maxWidth && widest < bestWidth) {
+            bestWidth = widest;
+            best = candidate;
+          }
+          return;
+        }
+        // Laisse au moins un mot pour chacune des lignes restantes.
+        for (var end = start + 1;
+            end <= words.length - (remaining - 1);
+            end++) {
+          search(end, [...lines, words.sublist(start, end).join(' ')]);
+        }
+      }
+
+      search(0, const []);
+      if (best != null) return best!;
+    }
+    // Un mot à lui seul plus large que la place : le retour à la ligne
+    // automatique prend le relais.
+    return [trimmed];
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Text(
-      name,
-      textAlign: textAlign,
-      maxLines: 4,
-      overflow: TextOverflow.ellipsis,
-      // La largeur du texte épouse sa ligne la plus longue : le nom reste
-      // collé au score même quand il passe sur plusieurs lignes.
-      textWidthBasis: TextWidthBasis.longestLine,
-      style: (Theme.of(context).textTheme.titleMedium ?? const TextStyle())
-          .copyWith(
-        color: color,
-        fontSize: regularSize,
-        fontWeight: FontWeight.w400,
-        height: 1.15,
-      ),
+    final style =
+        (Theme.of(context).textTheme.titleMedium ?? const TextStyle()).copyWith(
+      color: color,
+      fontSize: regularSize,
+      fontWeight: FontWeight.w400,
+      height: 1.15,
+    );
+    // Même fusion que celle faite par le widget Text : la mesure doit
+    // correspondre exactement au rendu.
+    final measured = DefaultTextStyle.of(context).style.merge(style);
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double widthOf(String line) {
+          final painter = TextPainter(
+            text: TextSpan(text: line, style: measured),
+            textDirection: direction,
+            textScaler: scaler,
+            maxLines: 1,
+          )..layout();
+          final width = painter.width;
+          painter.dispose();
+          return width;
+        }
+
+        final lines = balancedLines(name, widthOf, constraints.maxWidth);
+        return Text(
+          lines.join('\n'),
+          semanticsLabel: name,
+          textAlign: textAlign,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
+          // La largeur du texte épouse sa ligne la plus longue : le nom reste
+          // collé au score même quand il passe sur plusieurs lignes.
+          textWidthBasis: TextWidthBasis.longestLine,
+          style: style,
+        );
+      },
     );
   }
 }
