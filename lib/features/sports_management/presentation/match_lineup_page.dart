@@ -182,8 +182,13 @@ class _MatchInfoOnlyPage extends ConsumerWidget {
       appBar: GrintaAppBar(title: const Text('Fiche du match')),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(matchInfoProvider(matchId));
-          await ref.read(matchInfoProvider(matchId).future);
+          ref
+            ..invalidate(upcomingMatchFixtureProvider(matchId))
+            ..invalidate(matchInfoProvider(matchId));
+          await Future.wait([
+            ref.read(upcomingMatchFixtureProvider(matchId).future),
+            ref.read(matchInfoProvider(matchId).future),
+          ]);
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -193,7 +198,10 @@ class _MatchInfoOnlyPage extends ConsumerWidget {
             AppSpacing.screenGutter,
             40,
           ),
-          children: [MatchInfoTab(matchId: matchId)],
+          children: [
+            UpcomingMatchFixtureHeader(matchId: matchId),
+            MatchInfoTab(matchId: matchId),
+          ],
         ),
       ),
     );

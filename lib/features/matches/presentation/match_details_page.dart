@@ -1,10 +1,8 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/collapsible_section_card.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
-import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -149,9 +147,13 @@ class MatchDetailsPage extends ConsumerWidget {
                   awayScore: details.location == 'domicile'
                       ? details.scoreOpponent ?? 0
                       : details.scoreGrinta ?? 0,
-                  dateLabel: AppFormats.date(details.kickoffAt),
-                  kickoffTimeLabel: AppFormats.time(details.kickoffAt),
-                  matchTypeLabel: details.matchTypeLabel,
+                  finished: true,
+                  kickoffAt: details.kickoffAt,
+                  matchType: details.matchType,
+                  typeLabel: calendarMatchTypeLabel(
+                    details.matchType,
+                    details.championshipRound,
+                  ),
                   address: details.address,
                   motmActionLabel: motmActionLabel,
                   onMotmTap: motmActionLabel == null
@@ -324,25 +326,17 @@ class _UpcomingHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final home = details.location == 'domicile';
-    final homeName = home ? 'AS Grinta' : details.opponentName;
-    final awayName = home ? details.opponentName : 'AS Grinta';
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            MatchFixture(
-              homeName: homeName,
-              awayName: awayName,
-              grintaIsHome: home,
-              nameStyle: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(AppFormats.dateTime(details.kickoffAt)),
-          ],
-        ),
+    return MatchDetailHeaderCard(
+      homeName: home ? 'AS Grinta' : details.opponentName,
+      awayName: home ? details.opponentName : 'AS Grinta',
+      grintaIsHome: home,
+      kickoffAt: details.kickoffAt,
+      matchType: details.matchType,
+      typeLabel: calendarMatchTypeLabel(
+        details.matchType,
+        details.championshipRound,
       ),
+      address: details.address,
     );
   }
 }

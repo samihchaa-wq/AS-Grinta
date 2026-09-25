@@ -1,6 +1,5 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
-import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
@@ -11,8 +10,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
-/// Onglet « Info » d'une fiche de match : heure, adresse cliquable et les
-/// dernières rencontres contre l'adversaire.
+/// Onglet « Info » d'une fiche de match : rendez-vous, maillot, météo et les
+/// dernières rencontres contre l'adversaire. Date, heure, type et adresse sont
+/// portés par la carte du match au-dessus des onglets.
 class MatchInfoTab extends ConsumerWidget {
   const MatchInfoTab({super.key, required this.matchId});
 
@@ -37,83 +37,16 @@ class MatchInfoTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (info.kickoffAt != null) ...[
+                if (info.effectiveMeetingAt != null)
                   _InfoRow(
                     child: Text(
-                      AppFormats.dateTime(info.kickoffAt!),
+                      'Rendez-vous  ${AppFormats.time(info.effectiveMeetingAt!)}',
                       style: const TextStyle(
                         fontSize: 15.5,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.contentGap),
-                  _InfoRow(
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Rendez-vous  ',
-                            style: TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                          TextSpan(
-                            text: AppFormats.time(info.effectiveMeetingAt!),
-                            style: const TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.contentGap),
-                ],
-                if (info.address != null)
-                  InkWell(
-                    onTap: () => showMatchAddressSheet(context, info.address!),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: _InfoRow(
-                        child: Text(
-                          info.address!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 15.5,
-                            color: Color(0xFF9B6CFF),
-                            fontWeight: FontWeight.w400,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Color(0xFF9B6CFF),
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  _InfoRow(
-                    child: Text(
-                      'Adresse non renseignée.',
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: AppSpacing.contentGap),
-                _InfoRow(
-                  child: Text(
-                    info.matchTypeLabel,
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
                 if (info.jerseyNote != null) ...[
                   const SizedBox(height: AppSpacing.contentGap),
                   Builder(
