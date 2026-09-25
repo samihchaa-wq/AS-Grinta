@@ -85,36 +85,36 @@ class _CalendarToolbar extends StatelessWidget {
               )
             : const SizedBox.shrink();
 
-        final seasonSelector = selectedSeasonName == null || seasons.isEmpty
+        // Les saisons arrivent triées de la plus récente à la plus ancienne :
+        // la flèche gauche recule donc vers l'index suivant.
+        final seasonNames = [
+          for (final season in seasons) season['name'].toString(),
+        ];
+        final selectedName = selectedSeasonName;
+        final seasonIndex =
+            selectedName == null ? -1 : seasonNames.indexOf(selectedName);
+        final seasonSelector = selectedName == null || seasonIndex < 0
             ? null
-            : DropdownButtonFormField<String>(
-                initialValue: selectedSeasonName,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Saison',
-                  prefixIcon: Icon(Icons.history_rounded),
-                ),
-                items: seasons
-                    .map(
-                      (season) => DropdownMenuItem<String>(
-                        value: season['name'].toString(),
-                        child: Text(
-                          season['name'].toString() == currentSeasonName
-                              ? '${season['name']} — actuelle'
-                              : season['name'].toString(),
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: onSeasonChanged,
+            : _StepNavigator(
+                label: selectedName == currentSeasonName
+                    ? '$selectedName — actuelle'
+                    : selectedName,
+                previousTooltip: 'Saison précédente',
+                nextTooltip: 'Saison suivante',
+                onPrevious: seasonIndex < seasonNames.length - 1
+                    ? () => onSeasonChanged(seasonNames[seasonIndex + 1])
+                    : null,
+                onNext: seasonIndex > 0
+                    ? () => onSeasonChanged(seasonNames[seasonIndex - 1])
+                    : null,
               );
 
-        final monthNavigator = _MonthNavigator(
-          month: monthCursor,
-          canGoPrevious: canGoPrevious,
-          canGoNext: canGoNext,
-          onPrevious: onPreviousMonth,
-          onNext: onNextMonth,
+        final monthNavigator = _StepNavigator(
+          label: _monthLabel(monthCursor),
+          previousTooltip: 'Mois précédent',
+          nextTooltip: 'Mois suivant',
+          onPrevious: canGoPrevious ? onPreviousMonth : null,
+          onNext: canGoNext ? onNextMonth : null,
         );
 
         return Padding(
@@ -161,20 +161,22 @@ class _CalendarToolbar extends StatelessWidget {
   }
 }
 
-class _MonthNavigator extends StatelessWidget {
-  const _MonthNavigator({
-    required this.month,
-    required this.canGoPrevious,
-    required this.canGoNext,
+/// Sélecteur « ‹ libellé › » partagé par le choix de la saison et du mois.
+/// Une flèche passée à `null` est affichée désactivée.
+class _StepNavigator extends StatelessWidget {
+  const _StepNavigator({
+    required this.label,
+    required this.previousTooltip,
+    required this.nextTooltip,
     required this.onPrevious,
     required this.onNext,
   });
 
-  final DateTime month;
-  final bool canGoPrevious;
-  final bool canGoNext;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
+  final String label;
+  final String previousTooltip;
+  final String nextTooltip;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {
@@ -187,13 +189,13 @@ class _MonthNavigator extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Mois précédent',
-            onPressed: canGoPrevious ? onPrevious : null,
+            tooltip: previousTooltip,
+            onPressed: onPrevious,
             icon: const Icon(Icons.chevron_left_rounded),
           ),
           Expanded(
             child: Text(
-              _monthLabel(month),
+              label,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -201,8 +203,8 @@ class _MonthNavigator extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Mois suivant',
-            onPressed: canGoNext ? onNext : null,
+            tooltip: nextTooltip,
+            onPressed: onNext,
             icon: const Icon(Icons.chevron_right_rounded),
           ),
         ],

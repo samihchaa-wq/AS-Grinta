@@ -44,6 +44,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - calendrier : le championnat repasse en bleu (au lieu de bleu marine),
   l'amical s'éclaircit pour rester distinct, et le score a la même épaisseur
   visuelle que les noms d'équipes.
+- calendrier « Par mois » : la saison se choisit avec des flèches gauche/droite,
+  comme le mois, au lieu d'un menu déroulant ; nom centré, sans icône ni
+  intitulé « Saison ».
+- calendrier : les matchs amicaux passent au bleu #153D66.
 
 ## 0.2.2+4 — 2026-07-27
 
