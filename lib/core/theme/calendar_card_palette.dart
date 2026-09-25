@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Couleurs des cartes du calendrier (« Défilé » et « Par mois ») :
-/// bleu = championnat, bleu clair = amical, violet = match entre
+/// bleu = championnat, bleu-vert (sarcelle) = amical, violet = match entre
 /// nous, or = événement.
 ///
 /// Les fonds restent sombres pour préserver le thème de l'app, mais les
@@ -21,10 +21,10 @@ abstract final class CalendarCardPalette {
   static const Color upcomingSurface = championshipSurface;
   static const Color upcomingBorder = championshipBorder;
 
-  /// Amical : bleu un peu plus clair que le championnat, assez sombre pour
-  /// que les scores vert / orange / rouge restent lisibles.
-  static const Color friendlySurface = Color(0xFF153D66);
-  static const Color friendlyBorder = Color(0xFF8FD3FF);
+  /// Amical : bleu-vert (sarcelle), nettement distinct du bleu championnat,
+  /// assez sombre pour que les scores vert / orange / rouge restent lisibles.
+  static const Color friendlySurface = Color(0xFF0A4148);
+  static const Color friendlyBorder = Color(0xFF2EC4B6);
 
   static const Color internalSurface = Color(0xFF2B1748);
   static const Color internalBorder = Color(0xFF8B5CF6);
