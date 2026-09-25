@@ -6,6 +6,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/photo_crop_preview.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/auth/presentation/sign_out_confirmation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -299,7 +300,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const Divider(height: 1),
               SizedBox(height: compact ? 6 : 8),
               OutlinedButton.icon(
-                onPressed: busy ? null : () => _signOut(context),
+                onPressed: busy ? null : () => confirmAndSignOut(context, ref),
                 icon: const Icon(Icons.logout_rounded),
                 label: const Text('Se déconnecter'),
                 style: OutlinedButton.styleFrom(
@@ -465,30 +466,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     confirmationController.dispose();
     if (result == null || !mounted) return;
     await ref.read(authControllerProvider.notifier).updatePassword(result);
-  }
-
-  Future<void> _signOut(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Se déconnecter ?'),
-        content: const Text(
-          'Tu devras te reconnecter pour accéder à l’application.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Se déconnecter'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    await ref.read(authControllerProvider.notifier).signOut();
   }
 }
 
