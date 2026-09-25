@@ -147,7 +147,7 @@ void main() {
 
     expect(
       tester.getSemantics(find.text('Karim Benali')),
-      containsSemantics(
+      isSemantics(
         label: 'Karim Benali\n@karim.b · Admin',
         hint: 'Ouvrir le profil',
         isButton: true,
@@ -156,7 +156,7 @@ void main() {
     );
     expect(
       tester.getSemantics(find.text('MON COMPTE')),
-      containsSemantics(label: 'Mon compte', isHeader: true),
+      isSemantics(label: 'Mon compte', isHeader: true),
     );
     semantics.dispose();
   });
