@@ -48,6 +48,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   comme le mois, au lieu d'un menu déroulant ; nom centré, sans icône ni
   intitulé « Saison ».
 - calendrier : les matchs amicaux passent au bleu #153D66.
+- paramètres : une carte du compte (photo, nom, identifiant, rôle) remplace
+  la ligne « Profil » et ouvre le profil ; les réglages sont regroupés en
+  « Mon compte » et « Club · admin » (admins seulement), une seule carte par
+  groupe ; « Se déconnecter » est aussi proposé en bas des paramètres, avec
+  la même confirmation que dans le profil.
 
 ## 0.2.2+4 — 2026-07-27
 
