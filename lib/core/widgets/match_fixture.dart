@@ -33,7 +33,7 @@ class MatchFixture extends StatelessWidget {
   final TextAlign textAlign;
 
   static const Color _won = Color(0xFF3BD16F);
-  static const Color _lost = Color(0xFFE5555A);
+  static const Color _lost = Color(0xFFFF3B4A);
   static const Color _draw = Color(0xFFE9963C);
 
   static Color resultColor(int grintaScore, int opponentScore) {
