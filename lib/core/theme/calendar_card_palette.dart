@@ -21,9 +21,9 @@ abstract final class CalendarCardPalette {
   static const Color upcomingSurface = championshipSurface;
   static const Color upcomingBorder = championshipBorder;
 
-  /// Amical : bleu plus clair que le championnat, assez sombre pour que les
-  /// scores vert / orange / rouge restent lisibles.
-  static const Color friendlySurface = Color(0xFF1B5591);
+  /// Amical : bleu un peu plus clair que le championnat, assez sombre pour
+  /// que les scores vert / orange / rouge restent lisibles.
+  static const Color friendlySurface = Color(0xFF153D66);
   static const Color friendlyBorder = Color(0xFF8FD3FF);
 
   static const Color internalSurface = Color(0xFF2B1748);
