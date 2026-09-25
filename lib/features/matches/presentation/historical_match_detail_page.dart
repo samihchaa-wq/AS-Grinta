@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
@@ -124,9 +123,12 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
       grintaIsHome: match.isHome,
       homeScore: match.isHome ? match.grintaScore : match.opponentScore,
       awayScore: match.isHome ? match.opponentScore : match.grintaScore,
-      dateLabel: AppFormats.date(match.date),
-      kickoffTimeLabel: match.hasTime ? AppFormats.time(match.date) : null,
-      matchTypeLabel: match.matchTypeLabel,
+      finished: true,
+      kickoffAt: match.date,
+      showTime: match.hasTime,
+      matchType: match.matchType,
+      unknownTypeAsFinished: true,
+      typeLabel: match.calendarTypeLabel,
       address: match.address,
     );
   }

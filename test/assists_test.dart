@@ -90,13 +90,13 @@ void main() {
   });
 
   testWidgets(
-      'l’en-tête de la fiche garde date et adresse, sans lignes '
+      'l’en-tête de la fiche reprend la carte du calendrier, sans lignes '
       'HDM, buteurs ni passeurs', (tester) async {
     const address =
         'Complexe sportif - Chemin des Garrosses - 31180 - Rouffiac-Tolosan';
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
             child: MatchDetailHeaderCard(
@@ -105,9 +105,10 @@ void main() {
               grintaIsHome: false,
               homeScore: 2,
               awayScore: 8,
-              dateLabel: '21/05/26',
-              kickoffTimeLabel: '21h00',
-              matchTypeLabel: 'Championnat · J23',
+              finished: true,
+              kickoffAt: DateTime(2026, 5, 21, 21),
+              matchType: 'championnat',
+              typeLabel: calendarMatchTypeLabel('championnat', 23),
               address: address,
             ),
           ),
@@ -115,15 +116,37 @@ void main() {
       ),
     );
 
-    expect(
-      find.text('21/05/26 · 21h00 · Championnat · J23'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('21 Mai 2026'), findsOneWidget);
+    expect(find.textContaining('Championnat · J23'), findsOneWidget);
+    expect(find.text('2 – 8'), findsOneWidget);
     expect(find.text(address), findsOneWidget);
     expect(find.textContaining('HDM'), findsNothing);
     expect(find.textContaining('Buteurs'), findsNothing);
     expect(find.textContaining('Passeurs'), findsNothing);
-    expect(find.byType(Divider), findsNothing);
+  });
+
+  testWidgets('avant le match, l’en-tête affiche VS à la place du score', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MatchDetailHeaderCard(
+              homeName: 'Toulouse Métropole',
+              awayName: 'AS Grinta',
+              grintaIsHome: false,
+              kickoffAt: DateTime(2026, 9, 28, 21),
+              matchType: 'amical',
+              typeLabel: calendarMatchTypeLabel('amical', null),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('VS'), findsOneWidget);
+    expect(find.textContaining('Amical'), findsOneWidget);
   });
 
   testWidgets('le lien vers le vote HDM en cours reste dans l’en-tête', (
@@ -140,7 +163,8 @@ void main() {
               grintaIsHome: true,
               homeScore: 1,
               awayScore: 0,
-              dateLabel: '27/08/26',
+              finished: true,
+              kickoffAt: DateTime(2026, 8, 27, 21),
               motmActionLabel: 'Voter pour l’Homme du match',
               onMotmTap: () => tapped = true,
             ),
