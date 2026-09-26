@@ -145,18 +145,25 @@ class _MpgCompletedCard extends StatelessWidget {
     );
     final hasVacantSlots = field.any((entry) => entry.isVacant);
     return Card(
+      // Marges latérales réduites : l'espace gagné agrandit le terrain.
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (hasVacantSlots) ...[
-              Text(
-                'Les emplacements grisés — sont des postes dont la feuille '
-                'de match n’a pas gardé le nom du joueur.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'Les emplacements grisés — sont des postes dont la feuille '
+                  'de match n’a pas gardé le nom du joueur.',
+                  style: Theme.of(
+                    context,
+                  )
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.textSecondary),
+                ),
               ),
               const SizedBox(height: 12),
             ],
@@ -188,8 +195,8 @@ class _PitchWithBench extends StatelessWidget {
 
   static const _pitchWidth = 340.0;
   static const _pitchHeight = _pitchWidth / 0.68;
-  static const _benchWidth = 68.0;
-  static const _gap = 8.0;
+  static const _benchWidth = 62.0;
+  static const _gap = 4.0;
 
   @override
   Widget build(BuildContext context) {
