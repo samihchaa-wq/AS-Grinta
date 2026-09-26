@@ -159,7 +159,10 @@ class _MpgCompletedCard extends StatelessWidget {
                   'de match n’a pas gardé le nom du joueur.',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+                  )
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.textSecondary),
                 ),
               ),
               const SizedBox(height: 12),
