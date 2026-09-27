@@ -438,11 +438,13 @@ begin
   end if;
   if v_status = 'a_venir'
      and v_kickoff_at is not null
-     and now() >= case
-       when v_kickoff_at = timestamptz '2026-09-28 19:00:00+00'
-         then timestamptz '2026-09-28 17:00:00+00'
-       else v_kickoff_at - interval '15 minutes'
-     end then
+     and now() >= (
+       case
+         when v_kickoff_at = timestamptz '2026-09-28 19:00:00+00'
+           then timestamptz '2026-09-28 17:00:00+00'
+         else v_kickoff_at - interval '15 minutes'
+       end
+     ) then
     raise exception 'L’effectif est figé depuis l’ouverture du Live.' using errcode = '22023';
   end if;
 
