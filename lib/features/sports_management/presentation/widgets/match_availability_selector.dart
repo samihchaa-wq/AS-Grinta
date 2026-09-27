@@ -141,19 +141,18 @@ class _MatchAvailabilitySelectorState
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Modifier ta disponibilité ?'),
-          content: Text(
-            'Tu es actuellement « $currentLabel ». '
-            'Confirmer le passage à « $targetLabel » ?',
+          title: Text(
+            'Voulez-vous vraiment passer de « $currentLabel » '
+            'à « $targetLabel » ?',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Annuler'),
+              child: const Text('Non'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Confirmer'),
+              child: const Text('Oui'),
             ),
           ],
         ),
