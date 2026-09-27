@@ -1,30 +1,31 @@
 ---
-name: Independent Players & Claim Flow
-description: Architecture of the players table and profile-claiming mechanism
+name: Player accounts & roster linking
+description: How an account is created, validated and linked to a roster player (the old claim-token flow is gone)
 ---
 
-# Independent Players
+# Player accounts & roster linking
 
-## Table: `players` (migration 202607090014)
-- Columns: id, first_name, last_name, is_goalkeeper, is_active, linked_profile_id, claim_token (uuid), claim_expires_at, claimed_at, archived_at
-- Backfilled from `profiles` at migration time
+The old claim flow no longer exists: no `players.claim_token`, no
+`claim_player_profile` RPC, no `/claim` page. The `claim-account` Edge
+Function only answers `410 Gone` until it is removed.
 
-## Admin UI: `/players` (PlayersPage)
-- Lists all players from `players` table
-- Create, generate/revoke claim token, archive/restore
-- Claim token is a UUID v4 generated in Dart (`Random.secure()`, RFC 4122 v4)
-- Token validity: 7 days
+## Roles
+- Only two profile roles: `pronostiqueur` and `admin` (`profiles_role_check`).
+- The former `moderateur` role is gone; `is_admin()` / `is_match_staff()`
+  accept an active `admin` only.
 
-## Claim flow: `/claim?token=...`
-- User enters/pastes claim token on `ClaimPlayerPage`
-- Calls RPC `claim_player_profile(claim uuid)` — NOT a direct table update
-- **Why RPC:** The RPC uses `FOR UPDATE` row lock preventing race conditions; also validates auth.uid() server-side
-- ProfileId is passed to claimProfile() but ignored — RPC uses auth.uid() directly
+## Account creation
+- Public sign-up page (`AuthRegisterPage`) calls the `register-account` Edge
+  Function. The account is created with status `pending` and has no business
+  access until validated.
 
-## Error handling
-- If `players` table missing: _ErrorView shows "table players n'existe pas — appliquez les migrations"
-- PostgrestException message is surfaced directly to the user (already in French from the RPC)
-
-## Navigation
-- Admin page has shortcuts to /players and /coach
-- /players is RBAC-restricted to admin + moderateur
+## Validation and linking (admin only)
+- Administration > Utilisateurs: `staff_validate_profile(profile, season_player?)`
+  sets the profile `active` and can link it to a roster player at once.
+- `/players` (`PlayersRegistryPage`, admin only) lists the season roster
+  (`season_players`) and links or unlinks an account with
+  `staff_set_season_player_profile` — an RPC, never a direct table update: it
+  locks the row, refuses non-active profiles and merges player identities
+  (`private.merge_player_identities`).
+- Historical players are linked with `staff_set_historical_profile`.
+- Linking is optional: a roster player may have no account.

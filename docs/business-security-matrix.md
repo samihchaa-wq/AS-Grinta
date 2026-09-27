@@ -10,10 +10,19 @@ Cette matrice décrit les invariants de sécurité actuels. **PostgreSQL, Storag
 | Compte en attente | JWT valide, profil non actif | Aucun accès métier utile tant que le profil n’est pas actif |
 | `pronostiqueur` actif | Joueur connecté | Lectures collectives autorisées et écritures limitées par les politiques/RPC |
 | `admin` actif | Staff | Accès aux opérations de gestion après contrôles serveur |
-| `moderateur` actif | Staff | Satisfait actuellement les mêmes helpers serveur `is_admin()` / `is_match_staff()` que `admin` |
 | `service_role` | Services serveur uniquement | Maintenance, notifications et opérations internes explicitement accordées |
 
 Le nom d’une route ou d’une RPC (`admin_*`, `staff_*`, etc.) n’accorde aucun droit par lui-même : chaque opération sensible doit être protégée côté base ou Edge Function.
+
+Un profil n’a que deux rôles possibles, `pronostiqueur` et `admin` (contrainte `profiles_role_check`). L’ancien rôle `moderateur` n’existe plus : `is_admin()` et `is_match_staff()` n’acceptent qu’un profil `admin` actif.
+
+## Création d’un compte et rattachement à un joueur
+
+1. La personne s’inscrit par le lien public partagé au club. L’Edge Function `register-account` crée le compte en statut `pending` : il n’a aucun accès métier.
+2. Un `admin` actif valide le compte avec `staff_validate_profile`, qui le passe en `active` et peut le rattacher en même temps à un joueur de l’effectif de la saison.
+3. Le rattachement se fait ou se corrige ensuite depuis l’écran Effectif avec `staff_set_season_player_profile` (et `staff_set_historical_profile` pour l’historique). Ces fonctions refusent tout appelant qui n’est pas `admin` actif ; `staff_set_season_player_profile` refuse aussi un profil qui n’est pas actif.
+
+Il n’existe plus de jeton de rattachement saisi par le joueur : l’ancienne procédure (`claim-account`, `claim_player_profile`, table `players` avec `claim_token`) a été retirée.
 
 ## Tables et vues PostgreSQL
 

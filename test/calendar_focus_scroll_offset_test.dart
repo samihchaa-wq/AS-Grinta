@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -193,23 +191,6 @@ void main() {
     },
   );
 
-  test(
-      'le calendrier pose la clé de focus sur la carte, pas sur '
-      "l'en-tête épinglé", () async {
-    final source = await File(
-      'lib/features/predictions/presentation/merged_matches_view.dart',
-    ).readAsString();
-
-    expect(source, contains('key: isFocusCard ? focusMatchKey : null'));
-    expect(source, isNot(contains('headerIsFocus')));
-  });
-
-  test('le calendrier groupe chaque phase dans son propre bloc', () async {
-    final source = await File(
-      'lib/features/predictions/presentation/merged_matches_view.dart',
-    ).readAsString();
-
-    expect(source, contains('SliverMainAxisGroup(slivers: group)'));
-    expect(source, contains('if (section.showPhaseTitle) closeGroup();'));
-  });
+  // Sur le vrai calendrier, la clé de focus posée sur la carte et le groupement
+  // des phases sont vérifiés par leur effet dans merged_matches_view_test.dart.
 }

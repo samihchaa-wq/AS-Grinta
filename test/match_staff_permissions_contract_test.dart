@@ -3,26 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('match management honors admin rights', () async {
-    final form = await File(
-      'lib/features/matches/presentation/match_form_page.dart',
-    ).readAsString();
-    final controller = await File(
-      'lib/features/matches/presentation/matches_controller.dart',
-    ).readAsString();
-
-    expect(form, contains('final canManage = role?.isAdmin ?? false;'));
-    expect(
-      controller,
-      contains('bool get _isAdmin => _role?.isAdmin ?? false;'),
-    );
-  });
-
-  // La finalisation de match n'apparaît volontairement pas ci-dessus : l'écran
-  // réellement utilisé (module sportif) s'appuie sur le contrôle de rôle des
-  // RPC Supabase, pas sur une vérification côté client. L'assertion retirée ici
-  // visait un ancien écran devenu inaccessible, et passait au vert sans plus
-  // rien garantir.
+  // Les droits de gestion des matchs sont vérifiés par leur comportement dans
+  // match_form_page_test.dart et matches_controller_permissions_test.dart.
+  // Reste ici une règle d'écriture du code, valable pour tout lib/.
 
   test('runtime code never compares directly against AuthRole.admin', () async {
     final directAdminComparison = RegExp(
