@@ -21,7 +21,7 @@ La documentation explique le contrat attendu mais ne remplace jamais une vérifi
 
 ## État fonctionnel actuel à préserver
 
-- Rôles actifs : `pronostiqueur`, `admin` et `moderateur`.
+- Rôles actifs : `pronostiqueur` et `admin`. L’ancien rôle `moderateur` n’existe plus.
 - Le module `sports_management` est en production.
 - Le module **Live** est actuel et utilisé : sessions, chronomètre, événements, remplacements et validation du récapitulatif font partie du produit.
 - Un match entre dans « Prochain match » à **J-6 à 12 h**, heure Europe/Paris.
