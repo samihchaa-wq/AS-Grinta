@@ -100,16 +100,32 @@ select is(
   (
     select count(*)
     from unnest(array[
-      'public.admin_sync_match_sport_workflow(uuid)',
       'public.set_my_match_availability(uuid,text,text)',
-      'public.admin_override_match_availability(uuid,uuid,text,text,text)',
       'public.get_my_match_availability(uuid)'
     ]::text[]) as expected(signature)
     join pg_proc p on p.oid = to_regprocedure(expected.signature)
     where p.prosecdef
   ),
   0::bigint,
-  'les RPC publiques restent SECURITY INVOKER'
+  'les RPC publiques du joueur restent SECURITY INVOKER'
+);
+
+-- Les deux actions d'administration portent le verrou du Live, comme en
+-- production : elles sont SECURITY DEFINER pour poser ce verrou avant de
+-- déléguer aux helpers privés.
+select is(
+  (
+    select count(*)
+    from unnest(array[
+      'public.admin_sync_match_sport_workflow(uuid)',
+      'public.admin_override_match_availability(uuid,uuid,text,text,text)'
+    ]::text[]) as expected(signature)
+    join pg_proc p on p.oid = to_regprocedure(expected.signature)
+    where p.prosecdef
+      and coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']
+  ),
+  2::bigint,
+  'les RPC d’administration des disponibilités sont SECURITY DEFINER à search_path vide'
 );
 
 select is(

@@ -27,7 +27,6 @@ select is(
     from unnest(array[
       'public.admin_get_guest_players(boolean)',
       'public.admin_get_match_guests(uuid)',
-      'public.admin_add_or_reuse_match_guest(uuid,uuid,text,text,boolean,text)',
       'public.admin_remove_match_guest(uuid,uuid,text)',
       'public.admin_set_guest_archived(uuid,boolean,text)'
     ]::text[]) expected(signature)
@@ -35,7 +34,21 @@ select is(
     where procedure.prosecdef
   ),
   0::bigint,
-  'les RPC publiques invités restent SECURITY INVOKER'
+  'les autres RPC publiques invités restent SECURITY INVOKER'
+);
+
+-- L'ajout d'un invité porte le verrou du Live, comme en production : la RPC
+-- est SECURITY DEFINER pour poser ce verrou avant de déléguer au helper privé.
+select ok(
+  (
+    select procedure.prosecdef
+      and coalesce(procedure.proconfig, '{}'::text[]) @> array['search_path=""']
+    from pg_proc procedure
+    where procedure.oid = to_regprocedure(
+      'public.admin_add_or_reuse_match_guest(uuid,uuid,text,text,boolean,text)'
+    )
+  ),
+  'l’ajout d’un invité est SECURITY DEFINER à search_path vide, comme en production'
 );
 
 select ok(
