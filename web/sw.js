@@ -135,22 +135,61 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// Les notifications portent une adresse relative de l'application :
+// `matches/<id>/vote`, `matches/<id>/lineup?section=effectif`,
+// `admin/administration`… L'application ne lit ses routes qu'après `#`. Une
+// adresse en forme chemin ouvrait donc le calendrier : elle est convertie en
+// `<scope>#/...`. Une adresse déjà sous forme `#/...` est gardée, et tout ce
+// qui sortirait de l'application ramène à son accueil.
+function notificationTargetUrl(rawUrl, scopeUrl) {
+  const scope = new URL(scopeUrl);
+  const home = scope.href;
+  const value = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+  if (!value || value === '.' || value === './') return home;
+
+  let target;
+  try {
+    // Une route écrite `/matches/...` appartient à l'application, pas à la
+    // racine du domaine.
+    const relative = value.startsWith('/') && !value.startsWith('//') &&
+        !value.startsWith(scope.pathname)
+      ? value.slice(1)
+      : value;
+    target = new URL(relative, scope);
+  } catch (_) {
+    return home;
+  }
+
+  if (target.origin !== scope.origin) return home;
+  if (!target.pathname.startsWith(scope.pathname)) return home;
+  if (target.hash.startsWith('#/')) return `${home}${target.hash}`;
+
+  const route = target.pathname.slice(scope.pathname.length).replace(/^\/+/, '');
+  if (!route || route === 'index.html') return home;
+  return `${home}#/${route}${target.search}`;
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL(
-    (event.notification.data && event.notification.data.url) || '.',
+  const target = notificationTargetUrl(
+    event.notification.data && event.notification.data.url,
     self.registration.scope,
-  ).href;
+  );
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(
       (clients) => {
-        for (const client of clients) {
-          if ('focus' in client) {
-            client.navigate(target);
-            return client.focus();
-          }
-        }
-        return self.clients.openWindow(target);
+        // Une fenêtre de l'application déjà ouverte est mise au premier plan
+        // et amenée sur la page de la notification ; sinon, une fenêtre
+        // s'ouvre directement sur cette page.
+        const appWindow = clients.find(
+          (client) => client.url.startsWith(self.registration.scope) && 'focus' in client,
+        );
+        if (!appWindow) return self.clients.openWindow(target);
+
+        const navigation = 'navigate' in appWindow
+          ? appWindow.navigate(target).catch(() => self.clients.openWindow(target))
+          : self.clients.openWindow(target);
+        return Promise.all([appWindow.focus(), navigation]);
       },
     ),
   );

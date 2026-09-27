@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/app/router/auth_redirect.dart';
 import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/app/shell/app_shell.dart';
@@ -81,7 +83,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       authState: ref.read(authControllerProvider),
       uri: state.uri,
       matchedLocation: state.matchedLocation,
-      sportsManagementEnabled: ref.read(sportsManagementEnabledProvider),
+      sportsManagementEnabled: ref.read(sportsManagementRoutingStateProvider),
     ),
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/matches'),
@@ -283,5 +285,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 });
 
 class _RouterRefreshNotifier extends ChangeNotifier {
-  void refresh() => notifyListeners();
+  bool _scheduled = false;
+  bool _disposed = false;
+
+  /// Riverpod prévient les écouteurs d'un changement avant d'invalider les
+  /// providers qui en dépendent. Relancer les redirections tout de suite
+  /// faisait lire au routeur, à l'instant où la connexion aboutit, les
+  /// réglages du club d'avant la session (« gestion sportive coupée ») : la
+  /// page Effectif ouverte ou rafraîchie partait vers les pronos. Une
+  /// microtâche laisse ces providers se mettre à jour d'abord.
+  void refresh() {
+    if (_scheduled) return;
+    _scheduled = true;
+    scheduleMicrotask(() {
+      _scheduled = false;
+      if (!_disposed) notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 }

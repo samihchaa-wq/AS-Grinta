@@ -1,0 +1,151 @@
+name: Supabase function drift guard
+
+on:
+  # Le garde-fou des migrations compare seulement la liste des versions. Ce
+  # contrôle compare le contenu des fonctions : il a été ajouté après la
+  # découverte, le 27 septembre 2026, de huit fonctions modifiées en
+  # production hors migration. Il ne fait que lire la production.
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-function-drift-guard
+  cancel-in-progress: false
+
+jobs:
+  compare-function-definitions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require Supabase verification secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "::error::Function drift guard cannot run without SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."
+            exit 1
+          fi
+
+      - name: Self-test the comparison
+        shell: bash
+        run: python3 tool/compare_function_definitions.py --self-test
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.111.0
+
+      - name: Read production migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          supabase migration list > "$RUNNER_TEMP/migration-list.txt"
+          awk -F'|' '
+            {
+              remote=$2
+              gsub(/[^0-9]/, "", remote)
+              if (length(remote) == 14 && remote ~ /^[0-9]+$/) print remote
+            }
+          ' "$RUNNER_TEMP/migration-list.txt" | sort -u > "$RUNNER_TEMP/remote-versions.txt"
+          test -s "$RUNNER_TEMP/remote-versions.txt"
+
+      # La production est comparée à ce que ses propres migrations devraient
+      # avoir produit. Une migration fusionnée mais pas encore déployée n'est
+      # donc pas une dérive : elle est retirée de la copie de travail (jamais
+      # du dépôt) et simplement listée.
+      - name: Keep only migrations applied in production
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/pending-migrations.txt"
+          for file in supabase/migrations/*.sql; do
+            version=$(basename "$file" | cut -d_ -f1)
+            if ! grep -qx "$version" "$RUNNER_TEMP/remote-versions.txt"; then
+              basename "$file" >> "$RUNNER_TEMP/pending-migrations.txt"
+              rm "$file"
+            fi
+          done
+
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | cut -d_ -f1 | sort -u > "$RUNNER_TEMP/local-versions.txt"
+          comm -23 "$RUNNER_TEMP/remote-versions.txt" "$RUNNER_TEMP/local-versions.txt" \
+            > "$RUNNER_TEMP/remote-only.txt"
+
+          {
+            echo "## Migrations prises en compte"
+            echo "- Appliquées en production et présentes dans le dépôt : $(wc -l < "$RUNNER_TEMP/local-versions.txt" | tr -d ' ')"
+            echo "- Fusionnées mais pas encore déployées (ignorées) : $(wc -l < "$RUNNER_TEMP/pending-migrations.txt" | tr -d ' ')"
+            sed 's/^/  - `/; s/$/`/' "$RUNNER_TEMP/pending-migrations.txt"
+            echo "- Présentes seulement en production : $(wc -l < "$RUNNER_TEMP/remote-only.txt" | tr -d ' ')"
+            sed 's/^/  - `/; s/$/`/' "$RUNNER_TEMP/remote-only.txt"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ -s "$RUNNER_TEMP/remote-only.txt" ]; then
+            echo "::warning::Production contains migrations that GitHub does not contain; see the Supabase migration guard."
+          fi
+
+      - name: Rebuild the database from the repository
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector 2>&1 \
+            | tee "$RUNNER_TEMP/supabase-start.log"
+
+      - name: Snapshot functions of the rebuilt database
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -Atf supabase/diagnostics/function_definitions_snapshot.sql \
+            > "$RUNNER_TEMP/code-functions.json"
+          test -s "$RUNNER_TEMP/code-functions.json"
+
+      # Lecture seule : l'API de gestion exécute la requête avec le rôle
+      # `supabase_read_only_user`. Le jeton n'apparaît que dans l'en-tête.
+      - name: Snapshot functions of production (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/production-query.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          query = Path('supabase/diagnostics/function_definitions_snapshot.sql').read_text()
+          Path(sys.argv[1]).write_text(json.dumps({'query': query}))
+          PY
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data-binary "@$RUNNER_TEMP/production-query.json" \
+            --output "$RUNNER_TEMP/production-functions.json" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query/read-only"
+          test -s "$RUNNER_TEMP/production-functions.json"
+
+      - name: Compare function definitions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tool/compare_function_definitions.py \
+            --code "$RUNNER_TEMP/code-functions.json" \
+            --production "$RUNNER_TEMP/production-functions.json" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop isolated Supabase stack
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup || true

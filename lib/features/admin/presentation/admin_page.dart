@@ -17,7 +17,8 @@ part 'admin_profile_actions.dart';
 part 'admin_profile_dialogs.dart';
 
 /// Lien public d'auto-inscription à partager dans la conversation du club.
-const _registerLink = 'https://samihchaa-wq.github.io/AS-Grinta/auth/register';
+const _registerLink =
+    'https://samihchaa-wq.github.io/AS-Grinta/#/auth/register';
 
 enum _AdminSection { users, roster, season }
 
