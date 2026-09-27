@@ -8,6 +8,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,8 @@ class ArmoirePage extends ConsumerWidget {
           .setFeatured(code, nowFeatured);
       ref.invalidate(myFeaturedCodesProvider);
       ref.invalidate(featuredBadgesProvider);
+      // Badges affichés à côté des prénoms (classements, statistiques).
+      ref.invalidate(statisticsBadgeEmblemsProvider);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(

@@ -457,6 +457,17 @@ final notificationsPausedProvider = FutureProvider.autoDispose<bool>((
   return flag['enabled'] == true;
 });
 
+/// Coupe (`true`) ou rétablit (`false`) les notifications de tout le club.
+/// Réservé aux administrateurs, vérifié par le serveur.
+final setNotificationsPausedProvider =
+    Provider<Future<void> Function(bool enable)>((ref) {
+  return (enable) async {
+    await ref
+        .read(supabaseClientProvider)
+        .rpc('admin_set_notifications_paused', params: {'p_enabled': enable});
+  };
+});
+
 class _AdminKillSwitchCard extends ConsumerStatefulWidget {
   const _AdminKillSwitchCard();
 
@@ -469,14 +480,16 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
   bool _updating = false;
 
   Future<void> _toggle(bool enable) async {
+    // Couper les notifications agit pour tout le club : un appui accidentel
+    // ne doit pas suffire. La réactivation, elle, reste immédiate.
+    if (enable && !await _confirmPause()) return;
+    if (!mounted) return;
     setState(() => _updating = true);
     var message = enable
         ? 'Toutes les notifications sont désactivées.'
         : 'Les notifications sont réactivées.';
     try {
-      await ref
-          .read(supabaseClientProvider)
-          .rpc('admin_set_notifications_paused', params: {'p_enabled': enable});
+      await ref.read(setNotificationsPausedProvider)(enable);
       ref.invalidate(notificationsPausedProvider);
     } catch (_) {
       message = 'Impossible de modifier ce réglage.';
@@ -485,6 +498,30 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
     setState(() => _updating = false);
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<bool> _confirmPause() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Désactiver toutes les notifications ?'),
+        content: const Text(
+          'Plus aucune notification ne partira, pour aucun membre du club, '
+          'jusqu’à la réactivation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Tout désactiver'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
   }
 
   @override

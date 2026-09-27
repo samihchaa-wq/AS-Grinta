@@ -1,5 +1,68 @@
 import 'package:as_grinta/core/logging/error_category.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Erreur dont le message est déjà rédigé pour l'utilisateur, en français :
+/// il est affiché tel quel.
+class UserFacingError extends StateError {
+  UserFacingError(super.message);
+}
+
+/// Convertit l'échec d'une fonction serveur (statut hors 2xx) en message
+/// affichable.
+///
+/// `functions_client` lève [FunctionsHttpException] avant que l'application
+/// puisse lire la réponse : l'explication précise du serveur (« Trop de
+/// tentatives… », règle du mot de passe…) était alors remplacée par un
+/// message générique. Le champ `error` du corps JSON est repris quand il est
+/// en français ; sinon, [fallback].
+UserFacingError functionHttpError(
+  FunctionsHttpException error, {
+  required String fallback,
+}) {
+  final details = error.details;
+  final message = details is Map ? details['error']?.toString().trim() : null;
+  if (message != null && message.isNotEmpty && looksFrench(message)) {
+    return UserFacingError(message);
+  }
+  return UserFacingError(fallback);
+}
+
+const _frenchWords = {
+  'au',
+  'aux',
+  'ce',
+  'de',
+  'des',
+  'du',
+  'est',
+  'et',
+  'la',
+  'le',
+  'les',
+  'moins',
+  'ne',
+  'ou',
+  'pas',
+  'plus',
+  'pour',
+  'ta',
+  'tes',
+  'ton',
+  'un',
+  'une',
+};
+
+/// Vrai si [text] est rédigé en français : une lettre accentuée ou une
+/// apostrophe typographique, ou un mot courant du français. Les messages
+/// techniques du serveur (« Valid user id is required ») sont en anglais.
+@visibleForTesting
+bool looksFrench(String text) {
+  if (RegExp('[àâäçéèêëîïôöùûüÿœæÀÂÄÇÉÈÊËÎÏÔÖÙÛÜŸŒÆ’«»]').hasMatch(text)) {
+    return true;
+  }
+  return text.toLowerCase().split(RegExp('[^a-z]+')).any(_frenchWords.contains);
+}
 
 /// Traduit une erreur technique (PostgREST, Postgres, Auth…) en un message
 /// clair et rassurant pour l'utilisateur. On ne montre jamais de trace brute
@@ -8,6 +71,7 @@ String humanizeError(Object? error) {
   if (error == null) {
     return 'Une erreur est survenue. Réessaie dans un instant.';
   }
+  if (error is UserFacingError) return error.message;
   // Une coupure réseau doit se dire avant tout le reste. Reconnue trop tard,
   // elle ressortait en « Vérifie ton identifiant et ton mot de passe » pendant
   // une connexion, ou en message générique partout ailleurs.

@@ -6,6 +6,7 @@ import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:as_grinta/core/storage/profile_photo_urls.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -144,14 +145,22 @@ class AuthRepository {
     final passwordError = PasswordPolicy.validate(password);
     if (passwordError != null) throw ArgumentError(passwordError);
 
-    final response = await _client.functions.invoke(
-      'register-account',
-      body: {
-        'firstName': firstName.trim(),
-        'lastName': lastName.trim(),
-        'password': password,
-      },
-    );
+    final FunctionResponse response;
+    try {
+      response = await _client.functions.invoke(
+        'register-account',
+        body: {
+          'firstName': firstName.trim(),
+          'lastName': lastName.trim(),
+          'password': password,
+        },
+      );
+    } on FunctionsHttpException catch (error) {
+      throw functionHttpError(
+        error,
+        fallback: 'La création du compte a échoué.',
+      );
+    }
     final data = response.data;
     final username = data is Map ? data['username'] as String? : null;
     if (response.status != 200 || username == null || username.isEmpty) {

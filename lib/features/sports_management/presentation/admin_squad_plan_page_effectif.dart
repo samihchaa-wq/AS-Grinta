@@ -724,12 +724,23 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               ),
             ];
             if (constraints.maxWidth >= 900) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Deux colonnes par ligne : quatre côte à côte coupaient les
+              // prénoms à deux ou trois lettres (« Th… » pour Thomas comme
+              // pour Théo) et le titre « Sans réponse » lui-même.
+              return Column(
                 children: [
-                  for (var index = 0; index < columns.length; index += 1) ...[
-                    Expanded(child: columns[index]),
-                    if (index < columns.length - 1) const SizedBox(width: 10),
+                  for (var row = 0; row < columns.length; row += 2) ...[
+                    if (row > 0) const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: columns[row]),
+                        if (row + 1 < columns.length) ...[
+                          const SizedBox(width: 10),
+                          Expanded(child: columns[row + 1]),
+                        ],
+                      ],
+                    ),
                   ],
                 ],
               );

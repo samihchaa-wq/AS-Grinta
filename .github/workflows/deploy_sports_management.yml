@@ -22,6 +22,11 @@ on:
         required: true
         default: false
         type: boolean
+      deploy_register_account:
+        description: 'Deploy the register-account Edge Function'
+        required: true
+        default: false
+        type: boolean
 
 # Le déploiement lui-même ne demande qu'à lire le dépôt. Les deux droits
 # supplémentaires ne servent qu'à l'étape finale : pousser une branche de
@@ -143,6 +148,19 @@ jobs:
         run: |
           set -euo pipefail
           supabase functions deploy calendar-feed \
+            --project-ref "$SUPABASE_PROJECT_ID" \
+            --no-verify-jwt \
+            --use-api
+
+      # Inscription publique : aucun jeton de session n'existe encore. La
+      # fonction limite elle-même le débit et valide la demande. Ce réglage
+      # reprend celui déjà déclaré dans supabase/config.toml.
+      - name: Deploy register-account
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_register_account
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy register-account \
             --project-ref "$SUPABASE_PROJECT_ID" \
             --no-verify-jwt \
             --use-api
