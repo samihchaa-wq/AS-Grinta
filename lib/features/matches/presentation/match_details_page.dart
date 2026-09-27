@@ -11,8 +11,10 @@ import 'package:as_grinta/features/sports_management/data/match_sport_report_rep
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
+import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
@@ -341,14 +343,27 @@ class _UpcomingHeader extends StatelessWidget {
   }
 }
 
-class _UpcomingModules extends StatelessWidget {
+class _UpcomingModules extends ConsumerWidget {
   const _UpcomingModules({required this.matchId, required this.isAdmin});
 
   final String matchId;
   final bool isAdmin;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Côté joueur, une carte ne s'affiche qu'une fois son contenu publié :
+    // avant, elle menait à une page vide. L'administrateur, lui, garde ses
+    // deux cartes pour préparer l'effectif et la composition.
+    var showEffectif = true;
+    var showComposition = true;
+    if (!isAdmin) {
+      final board = ref.watch(matchAvailabilityBoardProvider(matchId));
+      final published = playerMatchModulesPublished(board.valueOrNull);
+      showEffectif = published.effectif;
+      showComposition = published.composition;
+    }
+    if (!showEffectif && !showComposition) return const SizedBox.shrink();
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 520;
@@ -376,9 +391,19 @@ class _UpcomingModules extends StatelessWidget {
                 : '/matches/$matchId/lineup?section=composition',
           ),
         );
-        if (compact) {
+        final modules = [
+          if (showEffectif) effectif,
+          if (showComposition) composition,
+        ];
+        if (compact || modules.length == 1) {
           return Column(
-            children: [effectif, const SizedBox(height: 12), composition],
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < modules.length; index += 1) ...[
+                if (index > 0) const SizedBox(height: 12),
+                modules[index],
+              ],
+            ],
           );
         }
         return Row(
@@ -392,6 +417,20 @@ class _UpcomingModules extends StatelessWidget {
       },
     );
   }
+}
+
+/// Ce qu'un joueur peut déjà consulter pour un match à venir : l'effectif
+/// une fois les convocations publiées, la composition une fois publiée.
+/// Tant que le tableau n'est pas chargé, rien n'est montré.
+@visibleForTesting
+({bool effectif, bool composition}) playerMatchModulesPublished(
+  MatchAvailabilityBoard? board,
+) {
+  if (board == null) return (effectif: false, composition: false);
+  return (
+    effectif: board.convocationState == 'published',
+    composition: board.compositionPublished,
+  );
 }
 
 class _MatchModule extends StatelessWidget {

@@ -704,6 +704,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               ),
               _EffectifAvatarColumn(
                 title: 'Sans réponse',
+                countCoachApart: false,
                 color: _effectifNoResponseColor,
                 icon: Icons.schedule_outlined,
                 players: _unansweredPlayers,

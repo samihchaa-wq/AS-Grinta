@@ -124,7 +124,7 @@ class _OptionalNotificationsCard extends ConsumerWidget {
             children: [
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Ouverture pronostique'),
+                title: const Text('Ouverture des pronos'),
                 value: preferences.predictionNotifications,
                 onChanged: (value) => _update(
                   context,
@@ -306,7 +306,7 @@ class _NotificationActionsRow extends ConsumerWidget {
               child: OutlinedButton(
                 onPressed: () => context.push('/admin/notification'),
                 child: const Text(
-                  'Envoyer un notif.',
+                  'Envoyer une notif.',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

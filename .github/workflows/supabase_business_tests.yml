@@ -54,13 +54,14 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Test push delivery and request security
+      - name: Test push delivery, request security, password policy and weather geocoding
         shell: bash
         run: |
           deno test \
             supabase/functions/send-push/delivery_policy_test.ts \
             supabase/functions/send-push/request_security_test.ts \
-            supabase/functions/register-account/password_policy_test.ts
+            supabase/functions/register-account/password_policy_test.ts \
+            supabase/functions/send-push/weather_refresh_test.ts
 
       - name: Start isolated Supabase database from canonical history
         shell: bash

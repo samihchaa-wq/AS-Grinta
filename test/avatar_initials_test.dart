@@ -3,35 +3,26 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Initiales affichées à la place d’une photo', () {
-    test('combine le prénom et le nom quand le nom est connu', () {
-      expect(avatarInitials('Julien', lastName: 'Dupont'), 'JD');
-      expect(avatarInitials('Alyoun', lastName: 'martin'), 'AM');
-    });
-
-    test('distingue deux joueurs au même prénom', () {
-      expect(
-        avatarInitials('Julien', lastName: 'Chaa'),
-        isNot(avatarInitials('Julien', lastName: 'Durand')),
-      );
-    });
-
-    test('lit le nom dans le libellé quand il n’est pas fourni à part', () {
+    test('un surnom en plusieurs mots donne ses propres initiales', () {
+      // « LB » mélangeait le surnom « Le Mur » et le nom de famille.
+      expect(avatarInitials('Le Mur'), 'LM');
       expect(avatarInitials('Samuel Poulain'), 'SP');
     });
 
-    test('retombe sur les deux premières lettres sans nom de famille', () {
-      expect(avatarInitials('Pipo'), 'PI');
-      expect(avatarInitials('Aki', lastName: ''), 'AK');
+    test('un nom affiché d’un seul mot donne ses deux premières lettres', () {
+      expect(avatarInitials('Zizou'), 'ZI');
+      expect(avatarInitials('Thomas'), 'TH');
       expect(avatarInitials('A'), 'A');
     });
 
     test('gère les accents et les espaces superflus', () {
-      expect(avatarInitials('  élodie  ', lastName: '  Étienne '), 'ÉÉ');
+      expect(avatarInitials('  élodie  '), 'ÉL');
+      expect(avatarInitials('  Élodie   Étienne '), 'ÉÉ');
     });
 
     test('affiche « ? » quand il n’y a aucun nom', () {
       expect(avatarInitials(''), '?');
-      expect(avatarInitials('   ', lastName: '  '), '?');
+      expect(avatarInitials('   '), '?');
     });
   });
 }
