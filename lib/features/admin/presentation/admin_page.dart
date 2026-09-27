@@ -65,7 +65,8 @@ class _AdminPageState extends ConsumerState<AdminPage> {
       error: (error, _) => ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text('Impossible de charger l’administration : $error'),
+          Text(
+              'Impossible de charger l’administration. ${humanizeError(error)}'),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () => ref.invalidate(adminDashboardProvider),

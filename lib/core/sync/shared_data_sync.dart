@@ -7,6 +7,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_inbox_repository.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
@@ -261,6 +262,7 @@ class SharedDataRefreshCoordinator {
       ..invalidate(myArmoireProvider)
       ..invalidate(myFeaturedCodesProvider)
       ..invalidate(featuredBadgesProvider)
+      ..invalidate(statisticsBadgeEmblemsProvider)
       ..invalidate(hasUnseenBadgeProvider);
   }
 }

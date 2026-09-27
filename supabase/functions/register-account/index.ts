@@ -2,11 +2,10 @@
 // Le compte reste en attente de validation par l'administrateur.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.95.0";
+import { validatePassword } from "./password_policy.ts";
 
 const USERNAME_DOMAIN = "pronos.as-grinta.local";
 const MAX_BODY_BYTES = 4_096;
-const MIN_PASSWORD_LENGTH = 12;
-const MAX_PASSWORD_LENGTH = 72;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,25 +74,6 @@ function normalizeName(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-}
-
-function validatePassword(password: string): string | null {
-  if (
-    password.length < MIN_PASSWORD_LENGTH ||
-    password.length > MAX_PASSWORD_LENGTH
-  ) {
-    return `Le mot de passe doit contenir entre ${MIN_PASSWORD_LENGTH} et ${MAX_PASSWORD_LENGTH} caractères.`;
-  }
-  if (!/[a-zà-ÿ]/.test(password)) {
-    return "Ajoute au moins une lettre minuscule.";
-  }
-  if (!/[A-ZÀ-Ÿ]/.test(password)) {
-    return "Ajoute au moins une lettre majuscule.";
-  }
-  if (!/[0-9]/.test(password)) {
-    return "Ajoute au moins un chiffre.";
-  }
-  return null;
 }
 
 function requestOrigin(req: Request): string {

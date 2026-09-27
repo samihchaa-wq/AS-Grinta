@@ -640,7 +640,7 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
                       child: GrintaProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.verified_rounded),
-              label: const Text('VALIDER LE COMPTE RENDU'),
+              label: const Text('Valider le compte rendu'),
             ),
           ),
         ),

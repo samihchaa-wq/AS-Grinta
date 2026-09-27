@@ -508,9 +508,13 @@ Future<void> _showPlayerDialog(
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Coach'),
+                // Depuis le 15 septembre 2026, le coach est un membre comme
+                // les autres : il répond et apparaît dans l'effectif. Il reste
+                // seulement hors composition, liste d'attente et statistiques
+                // joueurs.
                 subtitle: const Text(
-                  'Hors effectif, compo et convoqués. Peut se déclarer '
-                  'présent/absent, parier et voter comme les autres.',
+                  'Se déclare présent/absent, parie et vote comme les autres. '
+                  'Reste hors composition et liste d’attente.',
                 ),
                 value: isCoach,
                 onChanged: saving

@@ -142,6 +142,54 @@ void main() {
     expect(nameSlotWidth('Emma'), greaterThanOrEqualTo(_minNameSlot));
   });
 
+  testWidgets('sur ordinateur, les prénoms des sans réponse restent lisibles', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 1100));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(withCoach: true),
+      initialStep: 'effectif',
+    );
+
+    // Quatre colonnes côte à côte ne laissaient que deux ou trois lettres
+    // aux prénoms de la colonne « Sans réponse », et coupaient son titre.
+    final nameSlot = tester
+        .getSize(
+          find
+              .ancestor(of: find.text('Emma'), matching: find.byType(Expanded))
+              .first,
+        )
+        .width;
+    expect(nameSlot, greaterThanOrEqualTo(120));
+
+    final title = find.textContaining('Sans réponse (');
+    final titleText = tester.widget<Text>(title);
+    final painter = TextPainter(
+      text: TextSpan(text: titleText.data, style: titleText.style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(tester.element(title)),
+    )..layout();
+    expect(tester.getSize(title).width, greaterThanOrEqualTo(painter.width));
+  });
+
+  testWidgets('« Sans réponse » compte l’entraîneur comme les autres', (
+    tester,
+  ) async {
+    await _setPhoneViewport(tester);
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(withCoach: true, coachUnanswered: true),
+      initialStep: 'effectif',
+    );
+
+    // La vue joueur affichait déjà « Sans réponse (2) » ; l'administrateur
+    // voyait « 1 + coach ».
+    expect(find.text('Sans réponse (2)'), findsOneWidget);
+    expect(find.textContaining('+ coach'), findsNothing);
+  });
+
   testWidgets('captures the compact composition controls', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
@@ -612,6 +660,7 @@ MatchConvocations _convocations({
   bool published = true,
   bool withWaitlisted = false,
   bool withCoach = false,
+  bool coachUnanswered = false,
 }) {
   final players = [
     _player(
@@ -657,7 +706,10 @@ MatchConvocations _convocations({
         id: 'coach',
         seasonPlayerId: 'sp-coach',
         name: 'Philippe',
-        status: ConvocationStatus.convoked,
+        availabilityStatus: coachUnanswered ? 'no_response' : 'available',
+        status: coachUnanswered
+            ? ConvocationStatus.notApplicable
+            : ConvocationStatus.convoked,
         isCoach: true,
       ),
   ];

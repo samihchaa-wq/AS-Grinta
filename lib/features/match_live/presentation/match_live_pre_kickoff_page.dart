@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
@@ -116,12 +117,20 @@ class _MatchLivePreKickoffPageState
     try {
       return _buildLoaded(context, lineup);
     } catch (error, stackTrace) {
+      // Le détail technique va dans les journaux, avec une référence que le
+      // support peut retrouver ; l'entraîneur ne voit qu'un message simple.
+      final reference = AppLogger.error(
+        'match_live.pre_kickoff.render',
+        error,
+        stackTrace,
+      );
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: SelectableText(
-            'Diagnostic Tableau Blanc (préparation) :\n$error\n\n$stackTrace',
-            textAlign: TextAlign.left,
+          child: Text(
+            'Le Tableau Blanc n’a pas pu être préparé. '
+            '${humanizeError(error)}\nRéférence : $reference',
+            textAlign: TextAlign.center,
           ),
         ),
       );

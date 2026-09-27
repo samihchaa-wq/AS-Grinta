@@ -54,27 +54,23 @@ String? lastNameInitialOf(String fullName) {
   return lastName.isEmpty ? null : lastName[0].toUpperCase();
 }
 
-/// Initiales affichées à la place d'une photo de profil : première lettre du
-/// nom affiché (prénom ou surnom) + première lettre du nom de famille.
+/// Initiales affichées à la place d'une photo de profil, calculées sur le
+/// seul nom affiché (surnom, ou prénom) : les deux premiers mots quand il y
+/// en a plusieurs, sinon ses deux premières lettres ; « ? » s'il est vide.
 ///
-/// Deux joueurs prénommés « Julien » ne partagent donc plus la même pastille
-/// « JU ». Sans nom de famille connu (invité saisi au vol, profil incomplet),
-/// on retombe sur les deux premières lettres du nom affiché, puis sur « ? »
-/// quand il n'y a rien à afficher.
-String avatarInitials(String name, {String? lastName}) {
+/// Le nom de famille n'y entre plus : il donnait « LB » pour « Le Mur » en
+/// mélangeant surnom et nom, et les mêmes initiales changeaient selon qu'un
+/// écran connaissait ou non ce nom de famille.
+String avatarInitials(String name) {
   final words = name
       .trim()
       .split(RegExp(r'\s+'))
       .where((word) => word.isNotEmpty)
       .toList(growable: false);
-  final first = words.isEmpty ? '' : words.first;
-  final explicitLast = lastName?.trim() ?? '';
-  final last = explicitLast.isNotEmpty
-      ? explicitLast
-      : (words.length > 1 ? words[1] : '');
-  if (first.isEmpty) return last.isEmpty ? '?' : last[0].toUpperCase();
-  if (last.isNotEmpty) return '${first[0]}${last[0]}'.toUpperCase();
-  return (first.length >= 2 ? first.substring(0, 2) : first).toUpperCase();
+  if (words.isEmpty) return '?';
+  if (words.length > 1) return '${words[0][0]}${words[1][0]}'.toUpperCase();
+  final word = words.first;
+  return (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
 }
 
 /// Appellation d'un joueur ou d'un membre dans les statistiques : son vrai
@@ -91,4 +87,46 @@ String statisticsName(
   if (name.isEmpty) return initial.isEmpty ? '' : initial[0].toUpperCase();
   if (!isHomonym || initial.isEmpty) return name;
   return '$name ${initial[0].toUpperCase()}.';
+}
+
+const _accentFolding = {
+  'à': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'á': 'a',
+  'ã': 'a',
+  'å': 'a',
+  'ç': 'c',
+  'é': 'e',
+  'è': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'î': 'i',
+  'ï': 'i',
+  'í': 'i',
+  'ì': 'i',
+  'ñ': 'n',
+  'ô': 'o',
+  'ö': 'o',
+  'ó': 'o',
+  'ò': 'o',
+  'õ': 'o',
+  'ù': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ú': 'u',
+  'ÿ': 'y',
+  'ý': 'y',
+  'œ': 'oe',
+  'æ': 'ae',
+};
+
+/// Clé de tri alphabétique d'un nom : sans casse ni accents, pour que
+/// « Élodie » se range avec les E et « zizou » avec « Zoé ».
+String personNameSortKey(String name) {
+  final buffer = StringBuffer();
+  for (final char in name.trim().toLowerCase().split('')) {
+    buffer.write(_accentFolding[char] ?? char);
+  }
+  return buffer.toString();
 }

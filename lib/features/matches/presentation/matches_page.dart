@@ -407,21 +407,34 @@ class _MatchCard extends StatelessWidget {
     return AppTheme.reward;
   }
 
-  String _scoreLine() {
-    final opponent = match.opponentName ?? 'Adversaire';
-    if (!match.isFinished) {
-      return match.isHome ? 'AS Grinta – $opponent' : '$opponent – AS Grinta';
-    }
-    final grinta = match.grintaScore ?? 0;
-    final adverse = match.opponentScore ?? 0;
-    return match.isHome
-        ? 'AS Grinta $grinta - $adverse $opponent'
-        : '$opponent $adverse - $grinta AS Grinta';
-  }
+  String _scoreLine() => adminMatchTitle(match);
 
   String _formatKickoff(DateTime value) {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.day)}/${two(value.month)}/${value.year} • '
         '${two(value.hour)}h${two(value.minute)}';
   }
+}
+
+/// Titre d'un match dans la liste d'administration.
+///
+/// Un nom d'équipe et son score forment un bloc insécable : la ligne ne peut
+/// se couper qu'autour du tiret central. Sans cela, on lisait par exemple
+/// « AS Pantin 2 - 2 AS » puis « Grinta » à la ligne.
+@visibleForTesting
+String adminMatchTitle(MatchModel match) {
+  String block(String value) =>
+      value.trim().replaceAll(RegExp(r'\s+'), '\u00A0');
+  final opponent = block(match.opponentName ?? 'Adversaire');
+  final grinta = block('AS Grinta');
+  if (!match.isFinished) {
+    return match.isHome ? '$grinta – $opponent' : '$opponent – $grinta';
+  }
+  final grintaScore = match.grintaScore ?? 0;
+  final opponentScore = match.opponentScore ?? 0;
+  final home = block('$grinta $grintaScore');
+  final away = block('$opponentScore $opponent');
+  final homeAway = block('$opponent $opponentScore');
+  final awayGrinta = block('$grintaScore $grinta');
+  return match.isHome ? '$home - $away' : '$homeAway - $awayGrinta';
 }

@@ -183,15 +183,16 @@ class MatchesController extends StateNotifier<MatchesState> {
     return null;
   }
 
-  Future<String?> createOpponent(String name) async {
+  /// Crée un adversaire. Renvoie son identifiant, ou le message d'erreur à
+  /// afficher : un échec ne doit pas remplacer tout le calendrier par la carte
+  /// « Matchs indisponibles », comme le faisait l'écriture dans `state.error`.
+  Future<({String? id, String? error})> createOpponent(String name) async {
     if (!_canManageMatches) {
-      state = state.copyWith(error: 'Droits insuffisants.');
-      return null;
+      return (id: null, error: 'Droits insuffisants.');
     }
     final trimmed = name.trim();
     if (trimmed.length < 2) {
-      state = state.copyWith(error: 'Nom d’adversaire invalide.');
-      return null;
+      return (id: null, error: 'Nom d’adversaire invalide.');
     }
     try {
       final id = await _repository.createOpponent(trimmed);
@@ -200,10 +201,9 @@ class MatchesController extends StateNotifier<MatchesState> {
         allSeasons: state.includesAllSeasons,
         forceRefresh: true,
       );
-      return id;
+      return (id: id, error: null);
     } catch (error) {
-      state = state.copyWith(error: humanizeError(error));
-      return null;
+      return (id: null, error: humanizeError(error));
     }
   }
 
@@ -463,10 +463,11 @@ class MatchesController extends StateNotifier<MatchesState> {
     }
   }
 
-  Future<void> cancelMatch(String id) async {
+  /// Renvoie le message d'erreur à afficher, ou `null` si l'annulation a
+  /// réussi, comme [deleteMatch].
+  Future<String?> cancelMatch(String id) async {
     if (!_canManageMatches) {
-      state = state.copyWith(error: 'Seul le staff peut annuler un match.');
-      return;
+      return 'Seul le staff peut annuler un match.';
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -476,18 +477,21 @@ class MatchesController extends StateNotifier<MatchesState> {
         allSeasons: state.includesAllSeasons,
         forceRefresh: true,
       );
+      return null;
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: humanizeError(error));
+      state = state.copyWith(isLoading: false);
+      return humanizeError(error);
     }
   }
 
   /// Clôture un match entre nous une fois joué : il n'a ni pronostics, ni
   /// feuille de match à valider, donc pas d'autre façon de sortir de
   /// « à venir » que cette bascule directe en archivé.
-  Future<void> finishInternalMatch(String id) async {
+  ///
+  /// Renvoie le message d'erreur à afficher, ou `null` en cas de réussite.
+  Future<String?> finishInternalMatch(String id) async {
     if (!_canManageMatches) {
-      state = state.copyWith(error: 'Seul le staff peut terminer un match.');
-      return;
+      return 'Seul le staff peut terminer un match.';
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
@@ -497,8 +501,10 @@ class MatchesController extends StateNotifier<MatchesState> {
         allSeasons: state.includesAllSeasons,
         forceRefresh: true,
       );
+      return null;
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: humanizeError(error));
+      state = state.copyWith(isLoading: false);
+      return humanizeError(error);
     }
   }
 }
