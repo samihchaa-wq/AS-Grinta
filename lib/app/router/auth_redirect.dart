@@ -1,11 +1,15 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 
+/// [sportsManagementEnabled] vaut `null` tant que les réglages du club
+/// chargent : une page sportive attend alors sur l'écran de chargement, avec
+/// sa destination, au lieu d'être traitée comme si la gestion sportive était
+/// coupée.
 String? resolveAuthRedirect({
   required AuthState authState,
   required Uri uri,
   required String matchedLocation,
-  bool sportsManagementEnabled = false,
+  bool? sportsManagementEnabled = false,
 }) {
   final location = matchedLocation;
 
@@ -42,6 +46,13 @@ String? resolveAuthRedirect({
     final pending = _pendingDestination(uri.queryParameters['redirect']);
     if (pending != null) {
       if (_isRecoveryDestination(pending)) return pending;
+      // Une page sportive ne se décide qu'une fois les réglages connus : le
+      // rafraîchissement du routeur à leur arrivée reprend la destination.
+      if (authState.isAuthenticated &&
+          sportsManagementEnabled == null &&
+          _isSportsManagementRoute(Uri.parse(pending))) {
+        return null;
+      }
       if (!authState.isAuthenticated && _isSignedOutAuthDestination(pending)) {
         return pending;
       }
@@ -72,7 +83,20 @@ String? resolveAuthRedirect({
 
   if (authState.isAuthenticated && isAuthRoute && !isRecoveryRoute) {
     final redirect = _safeLocalRedirect(uri.queryParameters['redirect']);
-    return redirect ?? '/matches';
+    if (redirect == null) return '/matches';
+
+    // go_router n'applique cette fonction qu'une fois par navigation : la
+    // destination rendue ici doit déjà tenir compte des réglages du club.
+    final destination = Uri.parse(redirect);
+    if (_isSportsManagementRoute(destination)) {
+      if (sportsManagementEnabled == null) {
+        return _loadingRedirect(destination, destination.path);
+      }
+      if (!sportsManagementEnabled) {
+        return _sportsManagementDisabledFallback(destination);
+      }
+    }
+    return redirect;
   }
 
   if (location == '/' || location == '/home' || location == '/accueil') {
@@ -85,15 +109,12 @@ String? resolveAuthRedirect({
     return '/matches';
   }
 
-  if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
-    final segments =
-        uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
-    if (segments.length == 3 &&
-        segments[0] == 'matches' &&
-        segments[2] == 'lineup') {
-      return '/matches/${segments[1]}/prediction';
-    }
-    return '/matches';
+  if (_isSportsManagementRoute(uri) && sportsManagementEnabled == null) {
+    return _loadingRedirect(uri, location);
+  }
+
+  if (_isSportsManagementRoute(uri) && sportsManagementEnabled == false) {
+    return _sportsManagementDisabledFallback(uri);
   }
 
   final role = authState.profile?.role;
@@ -165,6 +186,19 @@ bool _isRecoveryDestination(String value) {
 bool _isSignedOutAuthDestination(String value) {
   final uri = Uri.tryParse(value);
   return uri != null && uri.path == '/auth/register';
+}
+
+/// Repli d'une page sportive quand la gestion sportive est coupée : la fiche
+/// Effectif d'un match renvoie vers ses pronos, le reste vers le calendrier.
+String _sportsManagementDisabledFallback(Uri uri) {
+  final segments =
+      uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+  if (segments.length == 3 &&
+      segments[0] == 'matches' &&
+      segments[2] == 'lineup') {
+    return '/matches/${segments[1]}/prediction';
+  }
+  return '/matches';
 }
 
 bool _isSportsManagementRoute(Uri uri) {
