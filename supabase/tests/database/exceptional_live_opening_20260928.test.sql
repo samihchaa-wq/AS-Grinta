@@ -56,12 +56,18 @@ select ok(
 
 select ok(
   position(
-    'private.match_prediction_closes_at(v_kickoff_at)' in
+    '2026-09-28 17:00:00+00' in
+    pg_get_functiondef(
+      'public.admin_remove_match_guest(uuid,uuid,text)'::regprocedure
+    )
+  ) > 0
+  and position(
+    '15 minutes' in
     pg_get_functiondef(
       'public.admin_remove_match_guest(uuid,uuid,text)'::regprocedure
     )
   ) > 0,
-  'retirer un invité utilise la frontière commune'
+  'retirer un invité applique la même exception sans élargir les droits du helper privé'
 );
 
 select * from finish();
