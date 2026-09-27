@@ -47,10 +47,17 @@ jobs:
             exit 1
           fi
 
+      # La base jetable doit avoir un schéma `auth` au moins aussi récent que
+      # celui de la production, sinon la restauration échoue sur une table de
+      # connexion inconnue (échecs des 20, 21 et 27 septembre 2026 sur
+      # `auth.mfa_recovery_code_sets`, absente avec la CLI 2.111.0). La CLI
+      # 2.118.0 démarre le même schéma `auth` que la production à cette date.
+      # Voir « Version de la CLI pour une restauration » dans
+      # docs/production-operations.md.
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
         with:
-          version: 2.111.0
+          version: 2.118.0
 
       - name: Download latest encrypted backup
         id: backup

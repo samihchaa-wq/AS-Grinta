@@ -60,6 +60,17 @@ Le secret GitHub `BACKUP_ENCRYPTION_PASSPHRASE` est recommandé pour disposer d�
 
 La draft release de backup ne doit jamais être publiée. Une sauvegarde n’est considérée comme valide qu’après contrôle d’un run vert et, périodiquement, un test de restauration sur un environnement isolé. Ne jamais tester une restauration destructive sur la production.
 
+### Version de la CLI pour une restauration
+
+Une restauration se fait dans une base Supabase neuve démarrée par la CLI. Le schéma `auth` de cette base vient de la version de la CLI : il doit être **au moins aussi récent que celui de la production**, sinon la restauration des données échoue sur une table de connexion inconnue.
+
+- Utiliser la **CLI Supabase 2.118.0** (ou plus récente), comme `.github/workflows/backup_restore_drill.yml`.
+- Ne pas utiliser la CLI 2.111.0 : son schéma `auth` ne contient pas `auth.mfa_recovery_code_sets`, et le test de restauration échouait pour cette raison depuis le 20 septembre 2026.
+- Au 27 septembre 2026, la CLI 2.118.0 démarre exactement le même schéma `auth` que la production (82 étapes, dernière version `20260831180000`).
+- Avant une restauration réelle, comparer `select max(version), count(*) from auth.schema_migrations` entre la production et la base neuve. Si la production est plus récente, prendre une version plus récente de la CLI.
+
+Le test automatique `Production backup restore drill` restaure chaque dimanche la dernière sauvegarde dans une base jetable. Il peut aussi être lancé à la main depuis l’onglet Actions ; un changement de version de la CLI n’est validé qu’après un run vert.
+
 ## Contrôle des migrations
 
 `.github/workflows/migration_inventory.yml` doit échouer si :
@@ -69,6 +80,17 @@ La draft release de backup ne doit jamais être publiée. Une sauvegarde n’est
 - `supabase/production_migrations.lock` ne correspond pas exactement à l’historique distant.
 
 Le contrôle distant s’exécute sur les PR internes qui touchent les migrations ou le lock, sur les modifications correspondantes de `main`, quotidiennement et à la demande. Le lock ne doit être mis à jour qu’après une comparaison distante réussie.
+
+### Contenu des fonctions
+
+La liste des migrations ne dit pas si une fonction a été modifiée directement sur la base. `.github/workflows/function_definition_drift.yml` le vérifie chaque jour (et à la demande), en lecture seule :
+
+1. il reconstruit une base à partir des migrations du dépôt **déjà appliquées en production** ; une migration fusionnée mais pas encore déployée est ignorée et simplement listée ;
+2. il relève les fonctions des schémas `public` et `private` de cette base et de la production avec la même requête, `supabase/diagnostics/function_definitions_snapshot.sql` ; côté production, la requête passe par l’API de gestion Supabase en lecture seule ;
+3. `tool/compare_function_definitions.py` compare, fonction par fonction, le corps (commentaires, espaces et casse des mots-clés ignorés), `SECURITY DEFINER`, la configuration (`search_path`), les droits d’exécution et l’en-tête (langage, arguments, type de retour, volatilité, propriétaire) ;
+4. il échoue à la moindre différence réelle, et le résumé du run liste les fonctions concernées. Le corps d’une fonction de production n’est jamais affiché.
+
+Une différence signifie qu’une modification a été faite en production hors migration, ou qu’une migration n’a pas eu l’effet attendu. La corriger par une nouvelle migration qui recopie l’état voulu, jamais en modifiant une migration existante.
 
 ## Contrôles avant un déploiement Supabase
 
