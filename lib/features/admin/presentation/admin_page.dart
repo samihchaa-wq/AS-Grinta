@@ -17,7 +17,8 @@ part 'admin_profile_actions.dart';
 part 'admin_profile_dialogs.dart';
 
 /// Lien public d'auto-inscription à partager dans la conversation du club.
-const _registerLink = 'https://samihchaa-wq.github.io/AS-Grinta/auth/register';
+const _registerLink =
+    'https://samihchaa-wq.github.io/AS-Grinta/#/auth/register';
 
 enum _AdminSection { users, roster, season }
 
@@ -64,7 +65,8 @@ class _AdminPageState extends ConsumerState<AdminPage> {
       error: (error, _) => ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text('Impossible de charger l’administration : $error'),
+          Text(
+              'Impossible de charger l’administration. ${humanizeError(error)}'),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () => ref.invalidate(adminDashboardProvider),

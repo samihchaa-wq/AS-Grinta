@@ -879,10 +879,18 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           false;
       if (!createAnyway || !mounted) return;
     }
-    final id = await ref
+    final messenger = ScaffoldMessenger.of(context);
+    final created = await ref
         .read(matchesControllerProvider.notifier)
         .createOpponent(trimmedName);
-    if (!mounted || id == null) return;
+    if (!mounted) return;
+    final error = created.error;
+    if (error != null) {
+      messenger.showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    final id = created.id;
+    if (id == null) return;
     setState(() {
       _opponentId = id;
       _refreshAddressForSelection();

@@ -20,14 +20,14 @@ void main() {
     test('refuse un mot de passe sans majuscule', () {
       expect(
         PasswordPolicy.validate('phrasecomplete2026'),
-        contains('majuscule'),
+        'Ajoute au moins une majuscule de A à Z.',
       );
     });
 
     test('refuse un mot de passe sans minuscule', () {
       expect(
         PasswordPolicy.validate('PHRASECOMPLETE2026'),
-        contains('minuscule'),
+        'Ajoute au moins une minuscule de a à z.',
       );
     });
 
@@ -36,6 +36,31 @@ void main() {
         PasswordPolicy.validate('GrandePhraseSolide'),
         contains('chiffre'),
       );
+    });
+
+    test('une minuscule accentuée ne compte pas comme une majuscule', () {
+      expect(
+        PasswordPolicy.validate('aaaaaaaaaaé1'),
+        'Ajoute au moins une majuscule de A à Z.',
+      );
+    });
+
+    test('une majuscule accentuée ne compte pas comme une majuscule', () {
+      expect(
+        PasswordPolicy.validate('Écoledufoot2026'),
+        'Ajoute au moins une majuscule de A à Z.',
+      );
+    });
+
+    test('une minuscule accentuée ne compte pas comme une minuscule', () {
+      expect(
+        PasswordPolicy.validate('ÉCOLEDUFOOTé2026'),
+        'Ajoute au moins une minuscule de a à z.',
+      );
+    });
+
+    test('les lettres accentuées restent autorisées', () {
+      expect(PasswordPolicy.validate('ÉlèveDuFoot2026'), isNull);
     });
   });
 }

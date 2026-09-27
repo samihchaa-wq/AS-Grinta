@@ -1,4 +1,6 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -142,10 +144,15 @@ class AdminRepository {
   /// et ferait échouer toute l'opération alors que le lien a déjà été généré
   /// côté serveur.
   Future<String> resetAccountPassword(String userId) async {
-    final resetResponse = await _client.functions.invoke(
-      'manage-user',
-      body: {'action': 'reset-password', 'userId': userId},
-    );
+    final FunctionResponse resetResponse;
+    try {
+      resetResponse = await _client.functions.invoke(
+        'manage-user',
+        body: {'action': 'reset-password', 'userId': userId},
+      );
+    } on FunctionsHttpException catch (error) {
+      throw functionHttpError(error, fallback: 'La réinitialisation a échoué.');
+    }
     final resetData = resetResponse.data;
     if (resetResponse.status < 200 ||
         resetResponse.status >= 300 ||
@@ -166,10 +173,18 @@ class AdminRepository {
   }
 
   Future<void> deleteAccount(String userId) async {
-    final response = await _client.functions.invoke(
-      'manage-user',
-      body: {'action': 'delete', 'userId': userId},
-    );
+    final FunctionResponse response;
+    try {
+      response = await _client.functions.invoke(
+        'manage-user',
+        body: {'action': 'delete', 'userId': userId},
+      );
+    } on FunctionsHttpException catch (error) {
+      throw functionHttpError(
+        error,
+        fallback: 'La suppression du compte a échoué.',
+      );
+    }
     final data = response.data;
     if (response.status < 200 ||
         response.status >= 300 ||
@@ -315,6 +330,12 @@ final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepository(ref.watch(supabaseClientProvider));
 });
 
-final adminDashboardProvider = FutureProvider<AdminDashboardData>((ref) {
-  return ref.watch(adminRepositoryProvider).fetchDashboard();
+final adminDashboardProvider = FutureProvider<AdminDashboardData>((ref) async {
+  try {
+    return await ref.watch(adminRepositoryProvider).fetchDashboard();
+  } catch (error, stackTrace) {
+    // L'écran n'affiche qu'un message simple : le détail reste ici.
+    AppLogger.error('admin.dashboard.load', error, stackTrace);
+    rethrow;
+  }
 });
