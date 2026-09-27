@@ -34,6 +34,20 @@ select is(
   'les huit RPC sont plpgsql, SECURITY DEFINER, à search_path vide et fermées au rôle anonyme'
 );
 
+select ok(
+  has_function_privilege(
+    'service_role',
+    'private.assert_match_admin_edit_open(uuid)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'private.assert_match_admin_edit_open(uuid)',
+    'EXECUTE'
+  ),
+  'le contrôle du verrou garde les droits de la production : service_role oui, anonyme non'
+);
+
 insert into auth.users(id, email, raw_user_meta_data) values
 ('7a000000-0000-0000-0000-000000000001','live-lock-admin@example.invalid','{"first_name":"Verrou","last_name":"Admin"}'::jsonb),
 ('7a000000-0000-0000-0000-000000000002','live-lock-player@example.invalid','{"first_name":"Verrou","last_name":"Joueur"}'::jsonb);
