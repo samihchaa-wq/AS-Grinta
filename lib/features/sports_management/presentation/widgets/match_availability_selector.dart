@@ -102,8 +102,10 @@ class _MatchAvailabilitySelectorState
             availability: value,
             saving: _saving,
             embeddedOnDark: widget.embeddedOnDark,
-            onAvailable: () => _save(value, MatchAvailabilityStatus.available),
-            onAbsent: () => _save(value, MatchAvailabilityStatus.absent),
+            onAvailable: () =>
+                _selectStatus(value, MatchAvailabilityStatus.available),
+            onAbsent: () =>
+                _selectStatus(value, MatchAvailabilityStatus.absent),
             showManageShortcut: widget.showManageShortcut,
             onOpenEffectif: () => context.push(
               '/matches/${widget.matchId}/lineup?section=effectif',
@@ -123,6 +125,42 @@ class _MatchAvailabilitySelectorState
     } catch (_) {
       return false;
     }
+  }
+
+  Future<void> _selectStatus(
+    MatchAvailability availability,
+    MatchAvailabilityStatus status,
+  ) async {
+    if (_saving || availability.status == status) return;
+
+    final isFirstChoice =
+        availability.status == MatchAvailabilityStatus.noResponse;
+    if (!isFirstChoice) {
+      final currentLabel = _statusLabel(availability.status);
+      final targetLabel = _statusLabel(status);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(
+            'Voulez-vous vraiment passer de « $currentLabel » '
+            'à « $targetLabel » ?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Non'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Oui'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
+
+    await _save(availability, status);
   }
 
   Future<void> _save(

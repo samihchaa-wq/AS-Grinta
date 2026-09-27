@@ -100,6 +100,45 @@ void main() {
     });
   });
 
+  group('exception Live du 28 septembre 2026', () {
+    final kickoff = DateTime.utc(2026, 9, 28, 19); // 21:00 Paris
+    final opensAt = DateTime.utc(2026, 9, 28, 17); // 19:00 Paris
+
+    test('Live, pronos et verrou basculent ensemble à 19 h Paris', () {
+      expect(matchLiveOpensAt(kickoff), opensAt);
+      expect(matchPredictionClosesAt(kickoff), opensAt);
+      expect(
+        isMatchLiveTooEarly(
+          kickoff,
+          now: opensAt.subtract(const Duration(milliseconds: 1)),
+        ),
+        isTrue,
+      );
+      expect(isMatchLiveTooEarly(kickoff, now: opensAt), isFalse);
+      expect(
+        isMatchPredictionClosed(
+          kickoff,
+          now: opensAt.subtract(const Duration(milliseconds: 1)),
+        ),
+        isFalse,
+      );
+      expect(isMatchPredictionClosed(kickoff, now: opensAt), isTrue);
+      expect(isMatchAdminEditLocked(kickoff, now: opensAt), isTrue);
+    });
+
+    test('la règle T-15 reste inchangée pour tout autre coup d’envoi', () {
+      final otherKickoff = DateTime.utc(2026, 9, 29, 19);
+      expect(
+        matchLiveOpensAt(otherKickoff),
+        DateTime.utc(2026, 9, 29, 18, 45),
+      );
+      expect(
+        matchPredictionClosesAt(otherKickoff),
+        DateTime.utc(2026, 9, 29, 18, 45),
+      );
+    });
+  });
+
   group('phase d’affichage du match', () {
     final kickoff = DateTime.utc(2026, 8, 7, 18, 30);
 

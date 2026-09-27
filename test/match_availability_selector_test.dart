@@ -51,6 +51,41 @@ void main() {
     expect(repository.lastComment, isNull);
     expect(find.text('Absent enregistré.'), findsOneWidget);
   });
+
+  testWidgets('asks for confirmation before changing an existing choice', (
+    tester,
+  ) async {
+    final repository = _FakeAvailabilityRepository();
+    await tester.pumpWidget(_harness(repository));
+    await tester.pumpAndSettle();
+
+    // Premier choix : aucune confirmation.
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Présent'));
+    await tester.pumpAndSettle();
+    expect(repository.lastStatus, MatchAvailabilityStatus.available);
+    expect(
+        find.text('Voulez-vous vraiment passer de « Présent » à « Absent » ?'),
+        findsNothing);
+
+    // Changement Présent -> Absent : confirmation obligatoire.
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
+    await tester.pumpAndSettle();
+    expect(
+        find.text('Voulez-vous vraiment passer de « Présent » à « Absent » ?'),
+        findsOneWidget);
+    expect(repository.lastStatus, MatchAvailabilityStatus.available);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Non'));
+    await tester.pumpAndSettle();
+    expect(repository.lastStatus, MatchAvailabilityStatus.available);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Oui'));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastStatus, MatchAvailabilityStatus.absent);
+  });
 }
 
 Widget _harness(MatchAvailabilityRepository repository, {bool enabled = true}) {
