@@ -27,7 +27,7 @@ void main() {
       find.descendant(of: factsTab, matching: find.byType(Icon)),
       findsNothing,
     );
-    expect(find.text('VALIDER LE COMPTE RENDU'), findsOneWidget);
+    expect(find.text('Valider le compte rendu'), findsOneWidget);
     // Une seule action globale : pas de validation par module.
     expect(find.textContaining('Valider l’effectif'), findsNothing);
     expect(find.text('Statistiques'), findsNothing);
@@ -132,7 +132,7 @@ void main() {
       findsOneWidget,
     );
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'VALIDER LE COMPTE RENDU'),
+      find.widgetWithText(FilledButton, 'Valider le compte rendu'),
     );
     expect(button.onPressed, isNull);
   });
@@ -143,7 +143,7 @@ void main() {
     final repository = _repository(_report(scoreAsGrinta: 1));
     await _pump(tester, repository);
 
-    await tester.tap(find.text('VALIDER LE COMPTE RENDU'));
+    await tester.tap(find.text('Valider le compte rendu'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Valider'));
     await tester.pumpAndSettle();
@@ -162,7 +162,7 @@ void main() {
     final repository = _repository(_report(isCorrection: true));
     await _pump(tester, repository);
 
-    await tester.tap(find.text('VALIDER LE COMPTE RENDU'));
+    await tester.tap(find.text('Valider le compte rendu'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Corriger'));
     await tester.pumpAndSettle();
@@ -189,7 +189,7 @@ void main() {
       // sous-défilement.
       expect(find.text('Non attribué'), findsNWidgets(6));
 
-      final validate = find.text('VALIDER LE COMPTE RENDU');
+      final validate = find.text('Valider le compte rendu');
       await tester.scrollUntilVisible(
         validate,
         200,

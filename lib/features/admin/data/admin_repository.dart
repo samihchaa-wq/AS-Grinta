@@ -115,7 +115,14 @@ class AdminRepository {
         role: rawRole == 'moderateur' ? 'admin' : rawRole,
         status: (row['status'] ?? 'active').toString(),
       );
-    }).toList();
+    }).toList()
+      // La liste affiche le nom affiché (surnom compris) : elle est donc
+      // rangée selon lui. Triée par prénom, « Zizou » tombait entre Karim et
+      // Maxime.
+      ..sort(
+        (a, b) => personNameSortKey(a.displayName)
+            .compareTo(personNameSortKey(b.displayName)),
+      );
 
     return AdminDashboardData(
       profiles: profiles,

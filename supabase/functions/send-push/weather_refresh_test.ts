@@ -149,3 +149,91 @@ Deno.test("continue le géocodage après l'échec d'une requête", async () => {
   assertEquals(location.latitude, 43.52935);
   assertEquals(location.longitude, 1.52999);
 });
+
+function geocodingResponse(results: unknown[]): Response {
+  return new Response(JSON.stringify({ results }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+Deno.test("cherche la commune en France avant le reste du monde", async () => {
+  const requested: URL[] = [];
+
+  const location = await geocodeWeatherAddress("Rue du Stade, 31670 Labège", {
+    maxAttempts: 1,
+    fetcher: (input) => {
+      const url = new URL(String(input));
+      requested.push(url);
+      return Promise.resolve(
+        geocodingResponse(
+          url.searchParams.get("countryCode") === "FR"
+            ? [{ latitude: 43.52935, longitude: 1.52999 }]
+            : [{ latitude: 10, longitude: 10 }],
+        ),
+      );
+    },
+    sleep: () => Promise.resolve(),
+  });
+
+  assertEquals(requested.length, 1);
+  assertEquals(requested[0].searchParams.get("name"), "Labège");
+  assertEquals(requested[0].searchParams.get("countryCode"), "FR");
+  assertEquals(location.latitude, 43.52935);
+});
+
+Deno.test("cherche sans filtre de pays si rien n'est trouvé en France", async () => {
+  const requested: URL[] = [];
+
+  const location = await geocodeWeatherAddress("Rue du Stade, 1000 Bruxelles", {
+    maxAttempts: 1,
+    fetcher: (input) => {
+      const url = new URL(String(input));
+      requested.push(url);
+      return Promise.resolve(
+        geocodingResponse(
+          url.searchParams.has("countryCode")
+            ? []
+            : [{ latitude: 50.85045, longitude: 4.34878 }],
+        ),
+      );
+    },
+    sleep: () => Promise.resolve(),
+  });
+
+  const inFrance = requested.filter((url) =>
+    url.searchParams.get("countryCode") === "FR"
+  );
+  const worldwide = requested.filter((url) =>
+    !url.searchParams.has("countryCode")
+  );
+  // Toutes les recherches en France passent avant la première sans filtre.
+  assertEquals(
+    inFrance.length,
+    geocodingQueries("Rue du Stade, 1000 Bruxelles").length,
+  );
+  assertEquals(requested.indexOf(worldwide[0]), inFrance.length);
+  assertEquals(worldwide.length, 1);
+  assertEquals(location.latitude, 50.85045);
+});
+
+Deno.test("ne relance pas la recherche mondiale quand Open-Meteo est en panne", async () => {
+  let calls = 0;
+  let failed = false;
+
+  try {
+    await geocodeWeatherAddress("Rue du Stade, 31670 Labège", {
+      maxAttempts: 1,
+      fetcher: () => {
+        calls += 1;
+        return Promise.reject(new Error("réseau indisponible"));
+      },
+      sleep: () => Promise.resolve(),
+    });
+  } catch {
+    failed = true;
+  }
+
+  assertEquals(failed, true);
+  assertEquals(calls, geocodingQueries("Rue du Stade, 31670 Labège").length);
+});

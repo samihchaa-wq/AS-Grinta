@@ -73,10 +73,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
         children: [
           if (error != null && error.isNotEmpty) ...[
             GrintaStatusBanner(
-              title: error == 'Ce compte n’est pas actif.'
-                  ? 'Accès refusé'
-                  : 'Connexion impossible',
-              message: error,
+              title: signInErrorTitle(error),
+              message: signInErrorDetail(error),
               tone: GrintaStatusTone.error,
               compact: true,
             ),
@@ -147,4 +145,23 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
       ),
     );
   }
+}
+
+/// Titre du bandeau d'erreur de connexion.
+@visibleForTesting
+String signInErrorTitle(String error) => error == 'Ce compte n’est pas actif.'
+    ? 'Accès refusé'
+    : 'Connexion impossible';
+
+/// Texte du bandeau, sans répéter son titre : « Connexion impossible » en
+/// titre suivi de « Connexion impossible. Vérifie ton identifiant… » disait
+/// deux fois la même chose.
+@visibleForTesting
+String signInErrorDetail(String error) {
+  final title = signInErrorTitle(error);
+  final repeated = '$title. ';
+  if (error.startsWith(repeated) && error.length > repeated.length) {
+    return error.substring(repeated.length);
+  }
+  return error;
 }
