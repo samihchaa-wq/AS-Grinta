@@ -211,3 +211,23 @@ final sportsManagementEnabledProvider = Provider<bool>((ref) {
           .enabled ??
       false;
 });
+
+/// État de la gestion sportive pour le routeur : `null` tant que les réglages
+/// du club ne sont pas connus.
+///
+/// Pendant ce chargement, [sportsManagementEnabledProvider] vaut `false`, comme
+/// si la gestion sportive était coupée : le routeur renvoyait alors la page
+/// Effectif d'un match vers ses pronos, et la destination était perdue. Un
+/// rechargement qui part d'une valeur réellement lue garde cette valeur ; la
+/// valeur de remplacement posée avant la connexion, elle, ne compte pas.
+final sportsManagementRoutingStateProvider = Provider<bool?>((ref) {
+  final flags = ref.watch(featureFlagsControllerProvider);
+  final snapshot = flags.valueOrNull;
+  if (flags.isLoading) {
+    if (snapshot != null && snapshot.sourceAvailable) {
+      return snapshot.sportsManagement.enabled;
+    }
+    return null;
+  }
+  return snapshot?.sportsManagement.enabled ?? false;
+});

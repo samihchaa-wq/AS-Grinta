@@ -188,32 +188,44 @@ export async function geocodeWeatherAddress(
   options: WeatherFetchOptions = {},
 ): Promise<{ latitude: number; longitude: number }> {
   let lastError: unknown;
+  const queries = geocodingQueries(address);
 
-  for (const query of geocodingQueries(address)) {
-    const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
-    url.searchParams.set("name", query);
-    url.searchParams.set("count", "5");
-    url.searchParams.set("language", "fr");
-    url.searchParams.set("format", "json");
+  // Les matchs du club se jouent en France : une commune homonyme à
+  // l'étranger ne doit pas l'emporter. La recherche mondiale ne sert que si
+  // Open-Meteo a répondu sans rien trouver en France, pas s'il est en panne.
+  let answeredWithoutResult = false;
+  for (const countryCode of ["FR", null]) {
+    if (countryCode == null && !answeredWithoutResult) break;
 
-    try {
-      const data = await fetchWeatherJson<GeocodingResponse>(
-        url.toString(),
-        options,
-      );
-      const result = data.results?.find((item) =>
-        finiteNumber(item.latitude) != null && finiteNumber(item.longitude) != null
-      );
-      if (result) {
-        return {
-          latitude: Number(result.latitude),
-          longitude: Number(result.longitude),
-        };
+    for (const query of queries) {
+      const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
+      url.searchParams.set("name", query);
+      url.searchParams.set("count", "5");
+      url.searchParams.set("language", "fr");
+      url.searchParams.set("format", "json");
+      if (countryCode != null) url.searchParams.set("countryCode", countryCode);
+
+      try {
+        const data = await fetchWeatherJson<GeocodingResponse>(
+          url.toString(),
+          options,
+        );
+        const result = data.results?.find((item) =>
+          finiteNumber(item.latitude) != null &&
+          finiteNumber(item.longitude) != null
+        );
+        if (result) {
+          return {
+            latitude: Number(result.latitude),
+            longitude: Number(result.longitude),
+          };
+        }
+        answeredWithoutResult = true;
+      } catch (error) {
+        // A street-level or transient geocoding failure must not prevent a city
+        // fallback from succeeding on the next query.
+        lastError = error;
       }
-    } catch (error) {
-      // A street-level or transient geocoding failure must not prevent a city
-      // fallback from succeeding on the next query.
-      lastError = error;
     }
   }
 

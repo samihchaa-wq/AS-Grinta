@@ -528,10 +528,9 @@ class PlayerAvatar extends StatefulWidget {
   final String? photoUrl;
   final String name;
 
-  /// Nom de famille — complet, ou réduit à son initiale quand c'est tout ce
-  /// que le serveur envoie. Sans photo, la pastille affiche alors
-  /// « Prénom + Nom » plutôt que les deux premières lettres du prénom, ce qui
-  /// distingue deux joueurs au même prénom.
+  /// Nom de famille, ou son initiale. Il n'entre plus dans les initiales,
+  /// calculées sur le seul nom affiché pour être les mêmes sur tous les
+  /// écrans (voir [avatarInitials]).
   final String? lastName;
   final bool isGoalkeeper;
   final double size;
@@ -635,7 +634,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 
   Widget _initials(double visualSize) {
-    final initials = avatarInitials(widget.name, lastName: widget.lastName);
+    final initials = avatarInitials(widget.name);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(

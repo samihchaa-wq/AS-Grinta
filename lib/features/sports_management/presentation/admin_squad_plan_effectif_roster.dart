@@ -19,6 +19,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
     this.onShowInfo,
     this.onRelanceAll,
     this.onRelance,
+    this.countCoachApart = true,
   });
 
   final String title;
@@ -34,6 +35,11 @@ class _EffectifAvatarColumn extends StatelessWidget {
   final ValueChanged<ConvocationPlayer>? onShowInfo;
   final VoidCallback? onRelanceAll;
   final ValueChanged<ConvocationPlayer>? onRelance;
+
+  /// « 12 + coach » n'a de sens que là où les places comptent (convoqués).
+  /// Ailleurs, l'entraîneur est compté comme un membre ordinaire, comme dans
+  /// la vue joueur : « Sans réponse (18) » et non « 17 + coach ».
+  final bool countCoachApart;
 
   bool _canAccept(ConvocationPlayer player) =>
       acceptsDrops &&
@@ -89,7 +95,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
                       const SizedBox(width: 7),
                       Expanded(
                         child: Text(
-                          '$title (${effectifCountLabel(players)})',
+                          '$title (${countCoachApart ? effectifCountLabel(players) : players.length})',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style:

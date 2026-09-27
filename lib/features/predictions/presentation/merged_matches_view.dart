@@ -323,12 +323,15 @@ List<Widget> _buildFeedSlivers({
     group = <Widget>[];
   }
 
-  for (final section in sections) {
+  for (var index = 0; index < sections.length; index += 1) {
+    final section = sections[index];
+    final next = index + 1 < sections.length ? sections[index + 1] : null;
     if (section.showPhaseTitle) closeGroup();
     group.addAll(
       _buildFeedSectionSlivers(
         section: section,
-        isLastSection: section == sections.last,
+        isFirstSection: index == 0,
+        endsGroup: next == null || next.showPhaseTitle,
         focusKey: focusKey,
         focusMatchKey: focusMatchKey,
         isAdmin: isAdmin,
@@ -343,7 +346,8 @@ List<Widget> _buildFeedSlivers({
 
 List<Widget> _buildFeedSectionSlivers({
   required _FeedSection section,
-  required bool isLastSection,
+  required bool isFirstSection,
+  required bool endsGroup,
   required String? focusKey,
   required GlobalKey focusMatchKey,
   required bool isAdmin,
@@ -352,6 +356,15 @@ List<Widget> _buildFeedSectionSlivers({
   final title = section.showPhaseTitle ? section.title : null;
 
   return [
+    // L'espace qui sépare deux phases appartient à la phase suivante. Laissé
+    // sous la dernière carte « Terminés », il gardait l'en-tête « Terminés »
+    // épinglé au-dessus de « À venir » alors qu'il n'y avait plus rien
+    // dessous : un bloc garde son en-tête tant qu'une partie de lui, même
+    // vide, reste à l'écran.
+    if (title != null && !isFirstSection)
+      const SliverToBoxAdapter(
+        child: SizedBox(height: CalendarCardSpacing.betweenCards),
+      ),
     // La clé de focus ne doit jamais être posée sur cet en-tête épinglé :
     // `Scrollable.ensureVisible` ne sait pas viser un en-tête collé et part
     // alors jusqu'en bas de la liste, ce qui laisse la carte visée coupée sous
@@ -375,8 +388,7 @@ List<Widget> _buildFeedSectionSlivers({
         delegate: SliverChildBuilderDelegate((context, index) {
           final entry = section.entries[index];
           final isFocusCard = focusKey != null && _entryKey(entry) == focusKey;
-          final isLastCard =
-              isLastSection && index == section.entries.length - 1;
+          final isLastCard = endsGroup && index == section.entries.length - 1;
 
           return Padding(
             key: isFocusCard ? focusMatchKey : null,

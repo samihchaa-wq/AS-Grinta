@@ -53,8 +53,14 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         ) ??
         false;
     if (!confirmed || !context.mounted) return;
-    await ref.read(matchesControllerProvider.notifier).cancelMatch(match.id);
+    final messenger = ScaffoldMessenger.of(context);
+    final failure = await ref
+        .read(matchesControllerProvider.notifier)
+        .cancelMatch(match.id);
     ref.invalidate(matchDetailsProvider(match.id));
+    if (failure != null) {
+      messenger.showSnackBar(SnackBar(content: Text(failure)));
+    }
   }
 
   Future<void> _finish(BuildContext context, WidgetRef ref) async {
@@ -81,10 +87,14 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         ) ??
         false;
     if (!confirmed || !context.mounted) return;
-    await ref
+    final messenger = ScaffoldMessenger.of(context);
+    final failure = await ref
         .read(matchesControllerProvider.notifier)
         .finishInternalMatch(match.id);
     ref.invalidate(matchDetailsProvider(match.id));
+    if (failure != null) {
+      messenger.showSnackBar(SnackBar(content: Text(failure)));
+    }
   }
 
   /// Le contenu du message change selon l'état du match : pendant le Live et
