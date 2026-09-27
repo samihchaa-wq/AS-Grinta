@@ -7,7 +7,7 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const nameWithBadgesGap = 3.0;
+const nameWithBadgesGap = 10.0;
 const statisticsBadgeSize = 36.0;
 const nameWithBadgesMinimumSize = statisticsBadgeSize;
 
