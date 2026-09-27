@@ -7,6 +7,7 @@ on:
       - '.github/workflows/auth_security_guard.yml'
       - 'lib/core/security/password_policy.dart'
       - 'supabase/functions/register-account/index.ts'
+      - 'supabase/functions/register-account/password_policy.ts'
       - 'config/production.json'
   push:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - '.github/workflows/auth_security_guard.yml'
       - 'lib/core/security/password_policy.dart'
       - 'supabase/functions/register-account/index.ts'
+      - 'supabase/functions/register-account/password_policy.ts'
       - 'config/production.json'
   schedule:
     - cron: '17 6 * * 0'
@@ -39,8 +41,9 @@ jobs:
           set -euo pipefail
           grep -Fq 'static const int minLength = 12;' lib/core/security/password_policy.dart
           grep -Fq 'static const int maxLength = 72;' lib/core/security/password_policy.dart
-          grep -Fq 'const MIN_PASSWORD_LENGTH = 12;' supabase/functions/register-account/index.ts
-          grep -Fq 'const MAX_PASSWORD_LENGTH = 72;' supabase/functions/register-account/index.ts
+          grep -Fq 'export const MIN_PASSWORD_LENGTH = 12;' supabase/functions/register-account/password_policy.ts
+          grep -Fq 'export const MAX_PASSWORD_LENGTH = 72;' supabase/functions/register-account/password_policy.ts
+          grep -Fq 'import { validatePassword } from "./password_policy.ts";' supabase/functions/register-account/index.ts
           test "$(jq -r '.USERNAME_DOMAIN' config/production.json)" = 'pronos.as-grinta.local'
 
       - name: Verify production Auth password policy

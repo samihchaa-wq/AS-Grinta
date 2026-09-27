@@ -119,6 +119,54 @@ void main() {
   );
 
   testWidgets(
+    'un échec de remise à zéro affiche un message simple, pas l’erreur brute',
+    (tester) async {
+      final repository = _FakeInternalMatchCompositionRepository()
+        ..resetFailure = const PostgrestException(
+          message: 'permission denied for table match_internal_compositions',
+          code: '42501',
+        );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            internalMatchCompositionRepositoryProvider.overrideWithValue(
+              repository,
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.dark,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: InternalTeamCompositionView(
+                  matchId: _matchId,
+                  editable: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final resetButton = find.widgetWithText(OutlinedButton, 'Réinitialiser');
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Réinitialiser'));
+      await tester.pumpAndSettle();
+
+      expect(repository.resetCalls, 1);
+      expect(
+        find.text('Tu n’as pas les droits pour cette action.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('PostgrestException'), findsNothing);
+      expect(find.textContaining('Erreur :'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'un joueur voit seulement le terrain et jamais le papier',
     (tester) async {
       final repository = _FakeInternalMatchCompositionRepository();
@@ -170,6 +218,7 @@ class _FakeInternalMatchCompositionRepository
 
   var saveCalls = 0;
   var resetCalls = 0;
+  Object? resetFailure;
   var savedEntries = <InternalCompositionEntry>[];
   String? savedTeam1Name;
   String? savedTeam2Name;
@@ -215,6 +264,8 @@ class _FakeInternalMatchCompositionRepository
   @override
   Future<InternalMatchComposition> resetVisual(String matchId) async {
     resetCalls += 1;
+    final failure = resetFailure;
+    if (failure != null) throw failure;
     savedEntries = [
       for (final entry in current.entries)
         entry.copyWith(clearTeam: true, clearSlot: true),

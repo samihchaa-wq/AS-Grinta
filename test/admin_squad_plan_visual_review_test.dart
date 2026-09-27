@@ -142,6 +142,38 @@ void main() {
     expect(nameSlotWidth('Emma'), greaterThanOrEqualTo(_minNameSlot));
   });
 
+  testWidgets('sur ordinateur, les prénoms des sans réponse restent lisibles', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 1100));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(withCoach: true),
+      initialStep: 'effectif',
+    );
+
+    // Quatre colonnes côte à côte ne laissaient que deux ou trois lettres
+    // aux prénoms de la colonne « Sans réponse », et coupaient son titre.
+    final nameSlot = tester
+        .getSize(
+          find
+              .ancestor(of: find.text('Emma'), matching: find.byType(Expanded))
+              .first,
+        )
+        .width;
+    expect(nameSlot, greaterThanOrEqualTo(120));
+
+    final title = find.textContaining('Sans réponse (');
+    final titleText = tester.widget<Text>(title);
+    final painter = TextPainter(
+      text: TextSpan(text: titleText.data, style: titleText.style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(tester.element(title)),
+    )..layout();
+    expect(tester.getSize(title).width, greaterThanOrEqualTo(painter.width));
+  });
+
   testWidgets('captures the compact composition controls', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(

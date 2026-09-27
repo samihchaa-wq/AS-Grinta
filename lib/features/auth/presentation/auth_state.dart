@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
@@ -76,7 +77,9 @@ class AuthState {
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._repository) : super(const AuthState()) {
+  AuthController(this._repository, {Future<void> Function()? unsubscribeDevice})
+      : _unsubscribeDevice = unsubscribeDevice,
+        super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((event) {
       // Supabase.initialize a déjà restauré la session avant que l'application
       // soit montée et le constructeur lance son propre refresh juste après.
@@ -123,6 +126,11 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   final AuthRepository _repository;
+
+  /// Désinscrit cet appareil des notifications push. Appelée avant la
+  /// déconnexion, tant que la session permet encore de supprimer
+  /// l'abonnement enregistré.
+  final Future<void> Function()? _unsubscribeDevice;
   StreamSubscription<supabase.AuthState>? _authSubscription;
   Timer? _loadingFallback;
   Future<void>? _refreshInFlight;
@@ -286,9 +294,23 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// Sans cette désinscription, un téléphone prêté ou partagé continuait de
+  /// recevoir les notifications du compte précédent. Elle se fait au mieux :
+  /// un échec ou une lenteur ne doit jamais empêcher la déconnexion.
+  Future<void> _unsubscribeDeviceBestEffort() async {
+    final unsubscribe = _unsubscribeDevice;
+    if (unsubscribe == null) return;
+    try {
+      await unsubscribe().timeout(const Duration(seconds: 5));
+    } catch (error, stackTrace) {
+      AppLogger.error('auth.sign_out.push_unsubscribe', error, stackTrace);
+    }
+  }
+
   Future<void> signOut() async {
     _signedOutErrorToPreserve = null;
     state = state.copyWith(isLoading: true, clearError: true);
+    await _unsubscribeDeviceBestEffort();
     try {
       await _repository.signOut();
       state = const AuthState(isLoading: false);
@@ -386,7 +408,11 @@ class AuthController extends StateNotifier<AuthState> {
 final authControllerProvider =
     StateNotifierProvider<AuthController, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthController(repository);
+  return AuthController(
+    repository,
+    unsubscribeDevice: () =>
+        ref.read(pushSubscriptionsRepositoryProvider).disable(),
+  );
 });
 
 final isRealAdminProvider = Provider<bool>((ref) {

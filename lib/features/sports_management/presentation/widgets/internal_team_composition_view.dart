@@ -1,4 +1,6 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
@@ -321,8 +323,10 @@ class _InternalTeamCompositionViewState
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
       _showMessage('Composition enregistrée.');
-    } catch (error) {
-      if (mounted) _showMessage('Erreur : $error');
+    } catch (error, stackTrace) {
+      AppLogger.error(
+          'sports.internal_composition.save_paper', error, stackTrace);
+      if (mounted) _showMessage(humanizeError(error));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -386,8 +390,9 @@ class _InternalTeamCompositionViewState
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
       _showMessage('Composition enregistrée.');
-    } catch (error) {
-      if (mounted) _showMessage('Erreur : $error');
+    } catch (error, stackTrace) {
+      AppLogger.error('sports.internal_composition.save', error, stackTrace);
+      if (mounted) _showMessage(humanizeError(error));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -438,8 +443,9 @@ class _InternalTeamCompositionViewState
       });
       ref.invalidate(internalMatchCompositionProvider(widget.matchId));
       _showMessage('Compositions remises à zéro.');
-    } catch (error) {
-      if (mounted) _showMessage('Erreur : $error');
+    } catch (error, stackTrace) {
+      AppLogger.error('sports.internal_composition.reset', error, stackTrace);
+      if (mounted) _showMessage(humanizeError(error));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
