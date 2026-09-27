@@ -37,10 +37,13 @@ jobs:
           supabase start 2>&1 | tee full-schema-replay.log
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          # Compté à chaque exécution : un nombre écrit en dur devient faux
+          # dès la migration suivante.
+          migration_count=$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d ' ')
           {
             echo "## Full schema replay diagnostic"
             if [ "$code" -eq 0 ]; then
-              echo "✅ Les 427 versions historiques et la référence canonique recréent l'application depuis une base vide."
+              echo "✅ Les ${migration_count} migrations de supabase/migrations recréent l'application depuis une base vide."
             else
               echo "❌ La reconstruction complète depuis une base vide échoue."
             fi

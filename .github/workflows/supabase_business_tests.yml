@@ -98,12 +98,19 @@ jobs:
             exit 1
           fi
 
+      # Échoue sur toute erreur réelle des fonctions de public et private.
+      # Seuls les faux positifs des tables pg_temp créées à l'exécution sont
+      # ignorés, un par un, dans supabase/tests/lint/check_db_lint.py.
       - name: Lint database functions
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           DB_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-          supabase db lint --db-url "$DB_URL" --level error 2>&1 | tee supabase-db-lint.log
+          supabase db lint --db-url "$DB_URL" --schema public,private \
+            --level error --output-format json \
+            > supabase-db-lint.json 2> supabase-db-lint.log
+          python3 supabase/tests/lint/check_db_lint.py supabase-db-lint.json \
+            2>&1 | tee -a supabase-db-lint.log
 
       - name: Upload database diagnostics
         if: always()
@@ -115,6 +122,7 @@ jobs:
             supabase-test-helpers.log
             supabase-tests.log
             supabase-db-lint.log
+            supabase-db-lint.json
           if-no-files-found: warn
 
       - name: Stop isolated Supabase stack
