@@ -63,21 +63,21 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Présent'));
     await tester.pumpAndSettle();
     expect(repository.lastStatus, MatchAvailabilityStatus.available);
-    expect(find.text('Modifier ta disponibilité ?'), findsNothing);
+    expect(find.text('Voulez-vous vraiment passer de « Présent » à « Absent » ?'), findsNothing);
 
     // Changement Présent -> Absent : confirmation obligatoire.
     await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
     await tester.pumpAndSettle();
-    expect(find.text('Modifier ta disponibilité ?'), findsOneWidget);
+    expect(find.text('Voulez-vous vraiment passer de « Présent » à « Absent » ?'), findsOneWidget);
     expect(repository.lastStatus, MatchAvailabilityStatus.available);
 
-    await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+    await tester.tap(find.widgetWithText(TextButton, 'Non'));
     await tester.pumpAndSettle();
     expect(repository.lastStatus, MatchAvailabilityStatus.available);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Confirmer'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Oui'));
     await tester.pumpAndSettle();
 
     expect(repository.lastStatus, MatchAvailabilityStatus.absent);
