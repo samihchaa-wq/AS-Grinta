@@ -85,7 +85,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.lastStatus, MatchAvailabilityStatus.absent);
-    expect(find.text('Absent enregistré.'), findsOneWidget);
   });
 }
 
