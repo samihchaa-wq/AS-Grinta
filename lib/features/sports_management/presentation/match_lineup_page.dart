@@ -334,41 +334,11 @@ class PublishedLineupPreview extends ConsumerWidget {
                     ),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
-              Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: expanded ? 500 : 360),
-                  child: CompositionPitch(
-                    entries: composition.entriesFor(MatchCompositionZone.field),
-                  ),
-                ),
+              CompositionPitchWithBench(
+                field: composition.entriesFor(MatchCompositionZone.field),
+                bench: composition.entriesFor(MatchCompositionZone.bench),
+                maxWidth: expanded ? 520 : 420,
               ),
-              const SizedBox(height: AppSpacing.sectionGap),
-              Text(
-                'Remplaçants (${composition.benchCount})',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: foreground,
-                      fontWeight: FontWeight.w400,
-                    ),
-              ),
-              const SizedBox(height: AppSpacing.contentGap),
-              if (composition.benchCount == 0)
-                Text(
-                  'Aucun remplaçant.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: secondary),
-                )
-              else
-                Wrap(
-                  spacing: AppSpacing.contentGap,
-                  runSpacing: AppSpacing.contentGap,
-                  children: [
-                    for (final entry in composition.entriesFor(
-                      MatchCompositionZone.bench,
-                    ))
-                      CompositionPlayerTile(entry: entry),
-                  ],
-                ),
               if (showLists && beforeKickoff) ...[
                 const SizedBox(height: AppSpacing.sectionGap),
                 ExpansionTile(
