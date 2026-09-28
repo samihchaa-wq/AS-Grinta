@@ -339,6 +339,7 @@ class _UpcomingHeader extends StatelessWidget {
         details.championshipRound,
       ),
       address: details.address,
+      compact: true,
     );
   }
 }
