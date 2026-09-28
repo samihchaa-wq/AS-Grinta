@@ -100,11 +100,11 @@ void main() {
     });
   });
 
-  group('exception Live du 28 septembre 2026', () {
+  group('règle T-15 du 28 septembre 2026', () {
     final kickoff = DateTime.utc(2026, 9, 28, 19); // 21:00 Paris
-    final opensAt = DateTime.utc(2026, 9, 28, 17); // 19:00 Paris
+    final opensAt = DateTime.utc(2026, 9, 28, 18, 45); // 20:45 Paris
 
-    test('Live, pronos et verrou basculent ensemble à 19 h Paris', () {
+    test('Live, pronos et verrou restent à T-15', () {
       expect(matchLiveOpensAt(kickoff), opensAt);
       expect(matchPredictionClosesAt(kickoff), opensAt);
       expect(
@@ -124,18 +124,6 @@ void main() {
       );
       expect(isMatchPredictionClosed(kickoff, now: opensAt), isTrue);
       expect(isMatchAdminEditLocked(kickoff, now: opensAt), isTrue);
-    });
-
-    test('la règle T-15 reste inchangée pour tout autre coup d’envoi', () {
-      final otherKickoff = DateTime.utc(2026, 9, 29, 19);
-      expect(
-        matchLiveOpensAt(otherKickoff),
-        DateTime.utc(2026, 9, 29, 18, 45),
-      );
-      expect(
-        matchPredictionClosesAt(otherKickoff),
-        DateTime.utc(2026, 9, 29, 18, 45),
-      );
     });
   });
 
