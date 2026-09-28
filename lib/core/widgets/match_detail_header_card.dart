@@ -90,6 +90,8 @@ class MatchDetailHeaderCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: CalendarCardSections(
+        bandVerticalPadding: 6,
+        bodyVerticalPadding: 10,
         header: CalendarDateLine(
           kickoffAt: kickoffAt,
           showTime: showTime,
@@ -112,12 +114,12 @@ class MatchDetailHeaderCard extends StatelessWidget {
                 finished: hasScores,
               ),
             if (showMotmAction) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               InkWell(
                 onTap: onMotmTap,
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
