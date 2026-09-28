@@ -334,6 +334,14 @@ class PublishedLineupPreview extends ConsumerWidget {
                     ),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
+              Text(
+                'Remplaçants (${composition.benchCount})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: foreground,
+                      fontWeight: FontWeight.w400,
+                    ),
+              ),
+              const SizedBox(height: AppSpacing.contentGap),
               CompositionPitchWithBench(
                 field: composition.entriesFor(MatchCompositionZone.field),
                 bench: composition.entriesFor(MatchCompositionZone.bench),
