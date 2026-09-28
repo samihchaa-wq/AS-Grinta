@@ -9,6 +9,8 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
+import 'package:as_grinta/features/match_live/data/match_live_notification_repository.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_notification_bell.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
@@ -571,6 +573,33 @@ class _UpcomingMatchCard extends ConsumerWidget {
             child: AdminMatchOptionsButton(match: match),
           )
         : null;
+    final canHaveGoalAlerts = !match.isInternal &&
+        !match.isCancelled &&
+        !match.isFinished &&
+        !match.isLiveSessionFinished;
+    final goalAlertStatus = canHaveGoalAlerts
+        ? ref.watch(matchLiveNotificationStatusProvider(match.id)).valueOrNull
+        : null;
+    final showGoalBell = goalAlertStatus?.eligible == true;
+    final actionWidgets = <Widget>[
+      if (showGoalBell)
+        SizedBox.square(
+          dimension: CalendarCardActionsOverlay.actionExtent,
+          child: MatchLiveNotificationBell(
+            matchId: match.id,
+            subscribed: goalAlertStatus!.subscribed,
+          ),
+        ),
+      if (adminActions != null)
+        SizedBox.square(
+          dimension: CalendarCardActionsOverlay.actionExtent,
+          child: adminActions,
+        ),
+    ];
+    final actionCount = actionWidgets.length;
+    final cardActions = actionWidgets.isEmpty
+        ? null
+        : Row(mainAxisSize: MainAxisSize.min, children: actionWidgets);
 
     final fixture = match.isInternal
         ? const CalendarCenteredTitle('Match entre nous')
@@ -586,8 +615,7 @@ class _UpcomingMatchCard extends ConsumerWidget {
       header: CalendarDateLine(
         kickoffAt: match.kickoffAt,
         label: match.isInternal ? null : match.calendarTypeLabel,
-        endInset:
-            adminActions != null ? CalendarCardActionsOverlay.dateInset : 0,
+        endInset: CalendarCardActionsOverlay.dateInsetFor(actionCount),
       ),
       body: Column(
         mainAxisSize: MainAxisSize.min,
@@ -629,7 +657,8 @@ class _UpcomingMatchCard extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: CalendarCardActionsOverlay(
-        actions: adminActions,
+        actions: cardActions,
+        actionsWidth: actionCount * CalendarCardActionsOverlay.actionExtent,
         child: match.isCancelled
             ? content
             : InkWell(onTap: () => context.push(detailsRoute), child: content),
