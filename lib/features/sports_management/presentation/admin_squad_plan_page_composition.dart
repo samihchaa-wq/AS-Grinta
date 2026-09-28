@@ -530,7 +530,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
   }
 
   Widget _buildPublishedCompositionPreview(
-    MatchComposition composition,
     List<MatchCompositionEntry> field,
     List<MatchCompositionEntry> bench,
   ) {
@@ -616,7 +615,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     if (composition.isPublished &&
         !_postMatch &&
         !_editingPublishedComposition) {
-      return _buildPublishedCompositionPreview(composition, field, bench);
+      return _buildPublishedCompositionPreview(field, bench);
     }
 
     return Column(
