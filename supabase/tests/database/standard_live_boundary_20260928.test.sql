@@ -4,14 +4,14 @@ select plan(7);
 
 select is(
   private.match_prediction_closes_at(timestamptz '2026-09-28 19:00:00+00'),
-  timestamptz '2026-09-28 17:00:00+00',
-  'le match du 28/09 à 21h Paris bascule Live/pronos/verrou à 19h Paris'
+  timestamptz '2026-09-28 18:45:00+00',
+  'le match du 28/09 à 21h Paris revient à la frontière standard T-15'
 );
 
 select is(
   private.match_prediction_closes_at(timestamptz '2026-09-29 19:00:00+00'),
   timestamptz '2026-09-29 18:45:00+00',
-  'toute autre rencontre conserve T-15'
+  'les autres rencontres restent à T-15'
 );
 
 select ok(
@@ -56,18 +56,18 @@ select ok(
 
 select ok(
   position(
-    '2026-09-28 17:00:00+00' in
+    '15 minutes' in
     pg_get_functiondef(
       'public.admin_remove_match_guest(uuid,uuid,text)'::regprocedure
     )
   ) > 0
   and position(
-    '15 minutes' in
+    '2026-09-28 17:00:00+00' in
     pg_get_functiondef(
       'public.admin_remove_match_guest(uuid,uuid,text)'::regprocedure
     )
-  ) > 0,
-  'retirer un invité applique la même exception sans élargir les droits du helper privé'
+  ) = 0,
+  'retirer un invité revient lui aussi à T-15 sans exception'
 );
 
 select * from finish();

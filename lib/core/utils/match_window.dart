@@ -42,19 +42,11 @@ DateTime matchFeaturesOpenAt(DateTime kickoffAt) {
 }
 
 /// Instant commun d'ouverture du Live et de fermeture des pronostics.
-///
-/// Exception ponctuelle : le match du 28/09/2026 à 21 h (heure de Paris)
-/// ouvre son Live à 19 h, soit 17:00 UTC. Toute autre rencontre reste à T-15.
-DateTime matchLiveOpensAt(DateTime kickoffAt) {
-  final kickoff = kickoffAt.toUtc();
-  if (kickoff == DateTime.utc(2026, 9, 28, 19)) {
-    return DateTime.utc(2026, 9, 28, 17);
-  }
-  return kickoff.subtract(kMatchLiveOpensBeforeKickoff);
-}
+DateTime matchLiveOpensAt(DateTime kickoffAt) =>
+    kickoffAt.toUtc().subtract(kMatchLiveOpensBeforeKickoff);
 
 DateTime matchPredictionClosesAt(DateTime kickoffAt) =>
-    matchLiveOpensAt(kickoffAt);
+    kickoffAt.toUtc().subtract(kMatchPredictionClosesBeforeKickoff);
 
 /// Heure de repli vers « À valider » si aucun Live n'a explicitement été
 /// terminé. La durée sportive ne contient pas la pause, d'où la marge de 15 min.
