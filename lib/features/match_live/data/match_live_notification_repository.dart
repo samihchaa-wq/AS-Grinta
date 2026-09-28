@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -74,6 +76,23 @@ final matchLiveNotificationRepositoryProvider =
 });
 
 final matchLiveNotificationStatusProvider = FutureProvider.autoDispose
-    .family<MatchLiveNotificationStatus, String>((ref, matchId) {
-  return ref.watch(matchLiveNotificationRepositoryProvider).fetchStatus(matchId);
+    .family<MatchLiveNotificationStatus, String>((ref, matchId) async {
+  final status =
+      await ref.watch(matchLiveNotificationRepositoryProvider).fetchStatus(matchId);
+
+  // Si l'écran reste ouvert avant J-6 12 h, la cloche doit apparaître toute
+  // seule au moment exact de l'ouverture sans imposer un pull-to-refresh.
+  final opensAt = status.opensAt;
+  if (!status.eligible && opensAt != null) {
+    final delay = opensAt.difference(DateTime.now());
+    if (delay > Duration.zero) {
+      final timer = Timer(
+        delay + const Duration(seconds: 1),
+        () => ref.invalidate(matchLiveNotificationStatusProvider(matchId)),
+      );
+      ref.onDispose(timer.cancel);
+    }
+  }
+
+  return status;
 });
