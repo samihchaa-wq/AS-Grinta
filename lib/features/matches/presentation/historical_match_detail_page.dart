@@ -130,6 +130,7 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
       unknownTypeAsFinished: true,
       typeLabel: match.calendarTypeLabel,
       address: match.address,
+      compact: true,
     );
   }
 }
