@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 MatchCompositionEntry _entry({
@@ -99,16 +100,20 @@ void main() {
       await tester.pumpWidget(_harness(3));
       await tester.pump();
       final pitchWithThree = find.byType(CompositionPitch);
-      final scaleWithThree =
-          tester.getTransform(pitchWithThree).getMaxScaleOnAxis();
+      final scaleWithThree = tester
+          .renderObject<RenderBox>(pitchWithThree)
+          .getTransformTo(null)
+          .getMaxScaleOnAxis();
       expect(scaleWithThree, greaterThan(.80));
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(_harness(15));
       await tester.pump();
       final pitchWithFifteen = find.byType(CompositionPitch);
-      final scaleWithFifteen =
-          tester.getTransform(pitchWithFifteen).getMaxScaleOnAxis();
+      final scaleWithFifteen = tester
+          .renderObject<RenderBox>(pitchWithFifteen)
+          .getTransformTo(null)
+          .getMaxScaleOnAxis();
 
       expect(scaleWithFifteen, lessThan(scaleWithThree));
       expect(scaleWithFifteen, greaterThan(.60));
