@@ -161,6 +161,7 @@ class MatchDetailsPage extends ConsumerWidget {
                   onMotmTap: motmActionLabel == null
                       ? null
                       : () => context.push('/matches/$matchId/vote'),
+                  compact: true,
                 ),
                 _CompletedCompositionCard(
                   details: details,
