@@ -70,6 +70,15 @@ create table private.match_live_notification_event_targets (
 alter table private.match_live_notification_events enable row level security;
 alter table private.match_live_notification_event_targets enable row level security;
 
+create index match_live_notification_subscriptions_profile_id_idx
+  on public.match_live_notification_subscriptions(profile_id);
+
+create index match_live_notification_events_match_id_idx
+  on private.match_live_notification_events(match_id);
+
+create index match_live_notification_event_targets_profile_id_idx
+  on private.match_live_notification_event_targets(profile_id);
+
 create or replace function private.match_live_notifications_eligible(
   p_match_id uuid,
   p_at timestamptz default now()
