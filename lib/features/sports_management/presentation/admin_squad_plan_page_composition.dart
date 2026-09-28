@@ -517,6 +517,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       _updateState(() {
         _composition = result;
         _compositionDirty = false;
+        _editingPublishedComposition = false;
         if (_postMatch) _compositionExisted = true;
       });
       ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
@@ -528,6 +529,80 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     }
   }
 
+  Widget _buildPublishedCompositionPreview(
+    MatchComposition composition,
+    List<MatchCompositionEntry> field,
+    List<MatchCompositionEntry> bench,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_locked) ...[
+          Card(
+            color: Theme.of(context).colorScheme.secondaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.lock_clock_rounded,
+                        color:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'La composition se modifie maintenant depuis le '
+                          'Live. Le dispositif, le terrain et le banc y '
+                          'restent corrigeables jusqu’au coup d’envoi.',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        _updateState(() => _step = _AdminStep.live),
+                    icon: const Icon(Icons.sports_soccer_rounded),
+                    label: const Text('Ouvrir le Live'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+            child: CompositionPitchWithBench(
+              field: field,
+              bench: bench,
+              maxWidth: 520,
+            ),
+          ),
+        ),
+        if (!_compositionLocked) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () =>
+                _updateState(() => _editingPublishedComposition = true),
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Modifier la composition'),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildComposition() {
     final composition = _composition!;
     final field = composition.entriesFor(MatchCompositionZone.field);
@@ -537,6 +612,13 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             _desiredEffectifStatuses[entry.participantId] !=
             ConvocationStatus.convoked,
       );
+
+    if (composition.isPublished &&
+        !_postMatch &&
+        !_editingPublishedComposition) {
+      return _buildPublishedCompositionPreview(composition, field, bench);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
