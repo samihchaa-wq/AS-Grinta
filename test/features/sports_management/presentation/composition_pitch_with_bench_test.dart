@@ -93,23 +93,24 @@ void main() {
     expect(compositionBenchColumnCount(15), 3);
   });
 
-  testWidgets('15 remplaçants restent visibles sans déplacer le terrain', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_harness(6));
-    await tester.pump();
-    final widthWithSix = tester.getSize(find.byType(CompositionPitch)).width;
-    expect(tester.takeException(), isNull);
+  testWidgets(
+    '3 puis 15 remplaçants restent visibles sans débordement',
+    (tester) async {
+      await tester.pumpWidget(_harness(3));
+      await tester.pump();
+      expect(find.byType(CompositionPitch), findsOneWidget);
+      for (var index = 1; index <= 3; index++) {
+        expect(find.text('R$index'), findsWidgets);
+      }
+      expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(_harness(15));
-    await tester.pump();
-    final widthWithFifteen =
-        tester.getSize(find.byType(CompositionPitch)).width;
-
-    expect(widthWithFifteen, closeTo(widthWithSix, .01));
-    for (var index = 1; index <= 15; index++) {
-      expect(find.text('R$index'), findsWidgets);
-    }
-    expect(tester.takeException(), isNull);
-  });
+      await tester.pumpWidget(_harness(15));
+      await tester.pump();
+      expect(find.byType(CompositionPitch), findsOneWidget);
+      for (var index = 1; index <= 15; index++) {
+        expect(find.text('R$index'), findsWidgets);
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

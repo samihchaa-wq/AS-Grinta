@@ -176,12 +176,17 @@ int compositionBenchColumnCount(int count) {
   return 3;
 }
 
-/// Terrain compact avec le banc à gauche.
+/// Terrain publié avec banc à gauche.
 ///
-/// La largeur réservée au banc dépend uniquement de la largeur disponible,
-/// jamais du nombre de remplaçants. Passer de 7 à 6 joueurs ne déplace donc
-/// pas le terrain. Jusqu'à 15 joueurs (et au-delà), le banc se réorganise en
-/// une, deux ou trois colonnes sans réduire toute la composition.
+/// Le rendu part d'un gabarit de référence identique à celui historiquement
+/// utilisé sur les matchs terminés (terrain 340 px + vignettes 60 px), puis
+/// réduit l'ensemble d'un seul bloc si l'écran est plus étroit. Les joueurs
+/// du terrain rétrécissent donc avec le terrain au lieu de conserver une taille
+/// fixe qui finit par les faire se chevaucher.
+///
+/// Le banc reste compact : une colonne jusqu'à 6 remplaçants, deux jusqu'à 12,
+/// trois au-delà. Avec peu de remplaçants, aucune grande zone vide n'est
+/// réservée à gauche ; avec 15 joueurs, le groupe entier se réduit proprement.
 class CompositionPitchWithBench extends StatelessWidget {
   const CompositionPitchWithBench({
     super.key,
@@ -194,10 +199,15 @@ class CompositionPitchWithBench extends StatelessWidget {
   final List<MatchCompositionEntry> bench;
   final double maxWidth;
 
-  static const double _gap = 6;
-  static const double _benchWidthFraction = .31;
-  static const double _minBenchWidth = 96;
-  static const double _maxBenchWidth = 132;
+  static const double _pitchWidth = 340;
+  static const double _pitchHeight = _pitchWidth / .68;
+  static const double _benchCellWidth = 62;
+  static const double _benchColumnGap = 4;
+  static const double _benchRowGap = 10;
+  static const double _pitchGap = 4;
+
+  double _benchWidth(int columns) =>
+      columns * _benchCellWidth + (columns - 1) * _benchColumnGap;
 
   @override
   Widget build(BuildContext context) {
@@ -210,189 +220,105 @@ class CompositionPitchWithBench extends StatelessWidget {
       );
     }
 
+    final columns = compositionBenchColumnCount(bench.length);
+    final benchWidth = _benchWidth(columns);
+    final referenceWidth = benchWidth + _pitchGap + _pitchWidth;
+
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableWidth =
-                constraints.maxWidth.isFinite ? constraints.maxWidth : maxWidth;
-            final benchWidth = (availableWidth * _benchWidthFraction)
-                .clamp(_minBenchWidth, _maxBenchWidth)
-                .toDouble();
-            final pitchWidth = availableWidth - benchWidth - _gap;
-            final pitchHeight = pitchWidth / .68;
-
-            return SizedBox(
-              height: pitchHeight,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: benchWidth,
-                    height: pitchHeight,
-                    child: _CompositionBenchGrid(entries: bench),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: referenceWidth,
+            height: _pitchHeight,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: benchWidth,
+                  height: _pitchHeight,
+                  child: _CompositionBench(
+                    entries: bench,
+                    columns: columns,
                   ),
-                  const SizedBox(width: _gap),
-                  SizedBox(
-                    width: pitchWidth,
-                    child: CompositionPitch(entries: field),
-                  ),
-                ],
-              ),
-            );
-          },
+                ),
+                const SizedBox(width: _pitchGap),
+                SizedBox(
+                  width: _pitchWidth,
+                  child: CompositionPitch(entries: field),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _CompositionBenchGrid extends StatelessWidget {
-  const _CompositionBenchGrid({required this.entries});
+class _CompositionBench extends StatelessWidget {
+  const _CompositionBench({
+    required this.entries,
+    required this.columns,
+  });
 
   final List<MatchCompositionEntry> entries;
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
-    final columns = compositionBenchColumnCount(entries.length);
-    if (columns == 0) return const SizedBox.shrink();
     final rows = (entries.length + columns - 1) ~/ columns;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cellHeight = constraints.maxHeight / rows;
-
-        return Column(
-          children: [
-            for (var row = 0; row < rows; row++)
-              SizedBox(
-                height: cellHeight,
-                child: Row(
+    return Align(
+      alignment: Alignment.topCenter,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          width: columns * CompositionPitchWithBench._benchCellWidth +
+              (columns - 1) * CompositionPitchWithBench._benchColumnGap,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var row = 0; row < rows; row++) ...[
+                if (row > 0)
+                  const SizedBox(
+                    height: CompositionPitchWithBench._benchRowGap,
+                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (var column = 0; column < columns; column++)
-                      Expanded(
+                    for (var column = 0; column < columns; column++) ...[
+                      if (column > 0)
+                        const SizedBox(
+                          width: CompositionPitchWithBench._benchColumnGap,
+                        ),
+                      SizedBox(
+                        width: CompositionPitchWithBench._benchCellWidth,
                         child: Builder(
                           builder: (context) {
                             final index = row * columns + column;
                             if (index >= entries.length) {
-                              return const SizedBox.shrink();
+                              return const SizedBox(
+                                width:
+                                    CompositionPitchWithBench._benchCellWidth,
+                                height: 84,
+                              );
                             }
-                            return _CompositionBenchPlayerTile(
+                            return CompositionPlayerTile(
                               entry: entries[index],
                             );
                           },
                         ),
                       ),
+                    ],
                   ],
                 ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _CompositionBenchPlayerTile extends StatelessWidget {
-  const _CompositionBenchPlayerTile({required this.entry});
-
-  final MatchCompositionEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Remplaçant ${entry.displayName}',
-      child: ExcludeSemantics(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            var avatarSize = constraints.maxWidth * .72;
-            final maxFromHeight = constraints.maxHeight * .54;
-            if (avatarSize > maxFromHeight) avatarSize = maxFromHeight;
-            avatarSize = avatarSize.clamp(24.0, 44.0).toDouble();
-            final fontSize =
-                (constraints.maxWidth * .22).clamp(8.0, 10.0).toDouble();
-
-            return Center(
-              child: SizedBox(
-                width: constraints.maxWidth,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: avatarSize + 8,
-                      height: avatarSize + 8,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.center,
-                        children: [
-                          PlayerAvatar(
-                            photoUrl: entry.photoUrl,
-                            name: entry.displayName,
-                            lastName: entry.lastInitial,
-                            isGoalkeeper: entry.isGoalkeeper,
-                            size: avatarSize,
-                          ),
-                          if (entry.isMotm)
-                            const Positioned(
-                              top: -4,
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: Text(
-                                  '👑',
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ),
-                            ),
-                          if (entry.goals > 0)
-                            Positioned(
-                              left: 0,
-                              bottom: 0,
-                              child: GoalBadge(goals: entry.goals),
-                            ),
-                          if (entry.assists > 0)
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: AssistBadge(assists: entry.assists),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 1),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: const Color(0xD1071527),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 1,
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              entry.displayName.trim(),
-                              maxLines: 1,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: fontSize,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+              ],
+            ],
+          ),
         ),
       ),
     );
