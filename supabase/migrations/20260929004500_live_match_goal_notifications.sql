@@ -18,6 +18,14 @@ revoke all on table public.match_live_notification_subscriptions
 grant select on table public.match_live_notification_subscriptions
   to authenticated;
 
+create policy active_authenticated_profile_only
+on public.match_live_notification_subscriptions
+as restrictive
+for all
+to authenticated
+using ((select private.is_active_profile()))
+with check ((select private.is_active_profile()));
+
 create policy match_live_notification_subscriptions_owner_select
 on public.match_live_notification_subscriptions
 for select
