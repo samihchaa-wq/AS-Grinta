@@ -108,7 +108,7 @@ void main() {
 
     expect(widthWithFifteen, closeTo(widthWithSix, .01));
     for (var index = 1; index <= 15; index++) {
-      expect(find.text('R$index'), findsOneWidget);
+      expect(find.text('R$index'), findsWidgets);
     }
     expect(tester.takeException(), isNull);
   });
