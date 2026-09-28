@@ -28,6 +28,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   /// suivante qui les portera.
   int _effectifRevision = 0;
   bool _compositionDirty = false;
+  bool _editingPublishedComposition = false;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -236,6 +237,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         );
         _limitController.text = '${convocations.squadSizeLimit}';
         _compositionDirty = false;
+        _editingPublishedComposition = false;
       });
     } catch (error) {
       if (mounted) setState(() => _error = humanizeError(error));

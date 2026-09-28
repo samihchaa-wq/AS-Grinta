@@ -10,6 +10,8 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -450,6 +452,65 @@ void main() {
     expect(repository.publishCalls, 1);
   });
 
+  testWidgets(
+    'une composition publiée du prochain match passe en aperçu compact',
+    (tester) async {
+      await _setPhoneViewport(tester);
+      final initial = MatchComposition.initial(
+        convocations: _convocations(),
+        goalkeeperSeasonPlayerIds: const {'sp1'},
+      );
+      final published = initial.copyWith(
+        version: 2,
+        entries: [
+          for (var index = 0; index < initial.entries.length; index++)
+            if (index == 0)
+              initial.entries[index].moveTo(
+                MatchCompositionZone.field,
+                x: .5,
+                y: .9,
+              )
+            else
+              initial.entries[index].moveTo(
+                MatchCompositionZone.bench,
+                sortOrder: index - 1,
+              ),
+        ],
+      );
+      final repository = _FakeMatchCompositionRepository(saved: published);
+
+      await _pumpWorkspace(
+        tester,
+        convocations: _convocations(),
+        initialStep: 'composition',
+        compositionRepository: repository,
+      );
+
+      expect(find.byType(CompositionPitchWithBench), findsOneWidget);
+      expect(find.byType(FormationPitchEditor), findsNothing);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Modifier la composition'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(OutlinedButton, 'Simuler une composition'),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, 'Modifier la composition'),
+      );
+      await _pumpFrames(tester, count: 5);
+
+      expect(find.byType(CompositionPitchWithBench), findsNothing);
+      expect(find.byType(FormationPitchEditor), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Simuler une composition'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('retoucher une composition déjà publiée ne demande rien', (
     tester,
   ) async {
@@ -465,6 +526,14 @@ void main() {
       initialStep: 'composition',
       compositionRepository: repository,
     );
+
+    final modify = find.widgetWithText(
+      OutlinedButton,
+      'Modifier la composition',
+    );
+    await tester.ensureVisible(modify);
+    await tester.tap(modify);
+    await _pumpFrames(tester, count: 5);
 
     final simulate = find.widgetWithText(
       OutlinedButton,
