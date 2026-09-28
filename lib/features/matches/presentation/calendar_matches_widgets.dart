@@ -475,7 +475,7 @@ class ClubEventCard extends ConsumerWidget {
 }
 
 /// Carte d'un match à venir dans la vue « Par mois » du calendrier.
-class MonthlyMatchCard extends StatelessWidget {
+class MonthlyMatchCard extends ConsumerWidget {
   const MonthlyMatchCard({
     super.key,
     required this.match,
@@ -486,7 +486,7 @@ class MonthlyMatchCard extends StatelessWidget {
   final Widget? adminActions;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final phase = match.phase();
     final address = match.address?.trim();
     final opponent = match.opponentName ?? 'Adversaire';
@@ -506,6 +506,34 @@ class MonthlyMatchCard extends StatelessWidget {
       _ => border,
     };
 
+    final canHaveGoalAlerts = !match.isInternal &&
+        !match.isCancelled &&
+        !match.isFinished &&
+        !match.isLiveSessionFinished;
+    final goalAlertStatus = canHaveGoalAlerts
+        ? ref.watch(matchLiveNotificationStatusProvider(match.id)).valueOrNull
+        : null;
+    final showGoalBell = goalAlertStatus?.eligible == true;
+    final actionWidgets = <Widget>[
+      if (showGoalBell)
+        SizedBox.square(
+          dimension: CalendarCardActionsOverlay.actionExtent,
+          child: MatchLiveNotificationBell(
+            matchId: match.id,
+            subscribed: goalAlertStatus!.subscribed,
+          ),
+        ),
+      if (adminActions != null)
+        SizedBox.square(
+          dimension: CalendarCardActionsOverlay.actionExtent,
+          child: adminActions,
+        ),
+    ];
+    final actionCount = actionWidgets.length;
+    final cardActions = actionWidgets.isEmpty
+        ? null
+        : Row(mainAxisSize: MainAxisSize.min, children: actionWidgets);
+
     return Card(
       color: surface,
       shape: RoundedRectangleBorder(
@@ -516,14 +544,13 @@ class MonthlyMatchCard extends StatelessWidget {
       child: InkWell(
         onTap: _onTap(context, phase),
         child: CalendarCardActionsOverlay(
-          actions: adminActions,
+          actions: cardActions,
+          actionsWidth: actionCount * CalendarCardActionsOverlay.actionExtent,
           child: CalendarCardSections(
             header: CalendarDateLine(
               kickoffAt: match.kickoffAt,
               label: match.isInternal ? null : match.calendarTypeLabel,
-              endInset: adminActions != null
-                  ? CalendarCardActionsOverlay.dateInset
-                  : 0,
+              endInset: CalendarCardActionsOverlay.dateInsetFor(actionCount),
             ),
             body: Column(
               mainAxisSize: MainAxisSize.min,

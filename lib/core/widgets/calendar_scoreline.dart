@@ -345,13 +345,23 @@ class CalendarCardActionsOverlay extends StatelessWidget {
     super.key,
     required this.child,
     this.actions,
+    this.actionsWidth = actionExtent,
   });
 
   final Widget child;
   final Widget? actions;
+  final double actionsWidth;
 
-  /// Espace à laisser libre à droite de la date quand un bouton est affiché.
+  /// Largeur réservée à une action (cloche, crayon…).
+  static const double actionExtent = 40;
+
+  /// Espace à laisser libre à droite de la date pour une action.
   static const double dateInset = 34;
+
+  static double dateInsetFor(int actionCount) {
+    if (actionCount <= 0) return 0;
+    return dateInset + (actionCount - 1) * actionExtent;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -363,7 +373,11 @@ class CalendarCardActionsOverlay extends StatelessWidget {
         Positioned(
           top: 2,
           right: 2,
-          child: SizedBox.square(dimension: 40, child: actions),
+          child: SizedBox(
+            width: actionsWidth,
+            height: actionExtent,
+            child: actions,
+          ),
         ),
       ],
     );
