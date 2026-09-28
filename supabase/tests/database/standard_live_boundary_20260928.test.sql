@@ -56,7 +56,7 @@ select ok(
 
 select ok(
   position(
-    'v_kickoff_at - ''00:15:00''::interval' in
+    '15 minutes' in
     pg_get_functiondef(
       'public.admin_remove_match_guest(uuid,uuid,text)'::regprocedure
     )
