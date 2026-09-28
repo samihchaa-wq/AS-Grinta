@@ -93,23 +93,27 @@ void main() {
     expect(compositionBenchColumnCount(15), 3);
   });
 
-  testWidgets('15 remplaçants restent visibles sans déplacer le terrain', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_harness(6));
-    await tester.pump();
-    final widthWithSix = tester.getSize(find.byType(CompositionPitch)).width;
-    expect(tester.takeException(), isNull);
+  testWidgets(
+    'peu de remplaçants gardent un grand terrain, 15 restent lisibles',
+    (tester) async {
+      await tester.pumpWidget(_harness(3));
+      await tester.pump();
+      final widthWithThree =
+          tester.getSize(find.byType(CompositionPitch)).width;
+      expect(widthWithThree, greaterThan(295));
+      expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(_harness(15));
-    await tester.pump();
-    final widthWithFifteen =
-        tester.getSize(find.byType(CompositionPitch)).width;
+      await tester.pumpWidget(_harness(15));
+      await tester.pump();
+      final widthWithFifteen =
+          tester.getSize(find.byType(CompositionPitch)).width;
 
-    expect(widthWithFifteen, closeTo(widthWithSix, .01));
-    for (var index = 1; index <= 15; index++) {
-      expect(find.text('R$index'), findsWidgets);
-    }
-    expect(tester.takeException(), isNull);
-  });
+      expect(widthWithFifteen, lessThan(widthWithThree));
+      expect(widthWithFifteen, greaterThan(220));
+      for (var index = 1; index <= 15; index++) {
+        expect(find.text('R$index'), findsWidgets);
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
