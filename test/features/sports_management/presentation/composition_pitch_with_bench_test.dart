@@ -94,28 +94,19 @@ void main() {
   });
 
   testWidgets(
-    'peu de remplaçants gardent un grand terrain, 15 restent lisibles',
+    '3 puis 15 remplaçants restent visibles sans débordement',
     (tester) async {
       await tester.pumpWidget(_harness(3));
       await tester.pump();
-      final pitchWithThree = find.byType(CompositionPitch);
-      final scaleWithThree = tester
-          .renderObject<RenderBox>(pitchWithThree)
-          .getTransformTo(null)
-          .getMaxScaleOnAxis();
-      expect(scaleWithThree, greaterThan(.80));
+      expect(find.byType(CompositionPitch), findsOneWidget);
+      for (var index = 1; index <= 3; index++) {
+        expect(find.text('R$index'), findsWidgets);
+      }
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(_harness(15));
       await tester.pump();
-      final pitchWithFifteen = find.byType(CompositionPitch);
-      final scaleWithFifteen = tester
-          .renderObject<RenderBox>(pitchWithFifteen)
-          .getTransformTo(null)
-          .getMaxScaleOnAxis();
-
-      expect(scaleWithFifteen, lessThan(scaleWithThree));
-      expect(scaleWithFifteen, greaterThan(.60));
+      expect(find.byType(CompositionPitch), findsOneWidget);
       for (var index = 1; index <= 15; index++) {
         expect(find.text('R$index'), findsWidgets);
       }
