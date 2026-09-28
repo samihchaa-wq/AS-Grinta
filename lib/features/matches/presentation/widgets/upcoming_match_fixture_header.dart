@@ -88,6 +88,7 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
               data.championshipRound,
             ),
             address: data.address,
+            compact: true,
           ),
         );
       },
