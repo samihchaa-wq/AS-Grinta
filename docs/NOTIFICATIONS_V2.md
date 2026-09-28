@@ -39,8 +39,9 @@ notifications déjà passées.
 
 Les réglages utilisateur actuels couvrent notamment :
 
-- **Pronostics** : rappel à J-5 à 12 h Europe/Paris si aucun pronostic n’est
-  rempli ; aucun rappel n’est envoyé après T-15.
+- **Pronostics** : rappel le jour du match à 16 h Europe/Paris si aucun
+  pronostic n’est rempli ; jamais avant, et plus après 16 h 10 (rattrapage
+  d’une exécution manquée) ni après T-15.
 - **Homme du match** : le même réglage couvre l’ouverture du vote et son
   résultat.
 - **Convocations** : notification lorsqu’un joueur passe de la liste d’attente

@@ -603,6 +603,7 @@ class _LiveJournal extends StatelessWidget {
   Widget build(BuildContext context) {
     final ordered = events.reversed.toList();
     final latest = ordered.isEmpty ? null : ordered.first;
+    final salvos = substitutionSalvosByEvent(events);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -660,38 +661,79 @@ class _LiveJournal extends StatelessWidget {
             )
           else if (!expanded) ...[
             const Divider(height: 1),
-            _JournalEventRow(
-              event: latest,
-              canEdit: false,
-              canEditScorer: canEdit,
-              onEditScorer: onEditScorer,
-              onEditAssist: onEditAssist,
-              onDelete: onDelete,
-            ),
-          ] else ...[
-            const Divider(height: 1),
-            for (var index = 0; index < ordered.length; index++) ...[
+            _framed(
+              salvos[latest],
               _JournalEventRow(
-                event: ordered[index],
-                canEdit: canEdit,
+                event: latest,
+                salvo: salvos[latest],
+                canEdit: false,
                 canEditScorer: canEdit,
                 onEditScorer: onEditScorer,
                 onEditAssist: onEditAssist,
                 onDelete: onDelete,
               ),
-              if (index != ordered.length - 1)
-                const Divider(height: 1, indent: 48),
-            ],
+            ),
+          ] else ...[
+            const Divider(height: 1),
+            ..._expandedRows(ordered, salvos),
           ],
         ],
       ),
     );
+  }
+
+  Widget _framed(SubstitutionSalvo? salvo, Widget child) => salvo == null
+      ? child
+      : SubstitutionSalvoFrame(
+          salvo: salvo,
+          margin: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+          child: child,
+        );
+
+  /// Liste dépliée : les remplacements consécutifs d'une même salve partagent
+  /// un encadré coloré, les autres lignes restent séparées par un trait.
+  List<Widget> _expandedRows(
+    List<MatchLiveEvent> ordered,
+    Map<MatchLiveEvent, SubstitutionSalvo> salvos,
+  ) {
+    Widget row(MatchLiveEvent event) => _JournalEventRow(
+          event: event,
+          salvo: salvos[event],
+          canEdit: canEdit,
+          canEditScorer: canEdit,
+          onEditScorer: onEditScorer,
+          onEditAssist: onEditAssist,
+          onDelete: onDelete,
+        );
+
+    final widgets = <Widget>[];
+    var index = 0;
+    while (index < ordered.length) {
+      if (widgets.isNotEmpty) {
+        widgets.add(const Divider(height: 1, indent: 48));
+      }
+      final salvo = salvos[ordered[index]];
+      if (salvo == null) {
+        widgets.add(row(ordered[index]));
+        index += 1;
+        continue;
+      }
+      final group = <Widget>[];
+      while (
+          index < ordered.length && identical(salvos[ordered[index]], salvo)) {
+        group.add(row(ordered[index]));
+        index += 1;
+      }
+      widgets.add(_framed(salvo, Column(children: group)));
+    }
+    return widgets;
   }
 }
 
 class _JournalEventRow extends StatelessWidget {
   const _JournalEventRow({
     required this.event,
+    this.salvo,
     required this.canEdit,
     required this.canEditScorer,
     required this.onEditScorer,
@@ -700,6 +742,9 @@ class _JournalEventRow extends StatelessWidget {
   });
 
   final MatchLiveEvent event;
+
+  /// Salve du remplacement : son repère remplace l'icône. `null` sur un but.
+  final SubstitutionSalvo? salvo;
   final bool canEdit;
   final bool canEditScorer;
   final ValueChanged<MatchLiveEvent> onEditScorer;
@@ -751,7 +796,10 @@ class _JournalEventRow extends StatelessWidget {
               ),
             ),
           ),
-          Icon(icon, size: 20, color: color),
+          if (salvo == null)
+            Icon(icon, size: 20, color: color)
+          else
+            SizedBox(width: 28, child: SubstitutionSalvoBadge(salvo: salvo!)),
           const SizedBox(width: AppSpacing.contentGap),
           Expanded(
             child: InkWell(

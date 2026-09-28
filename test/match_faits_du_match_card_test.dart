@@ -178,6 +178,39 @@ void main() {
     expect(find.text('Karim'), findsOneWidget);
   });
 
+  testWidgets('chaque salve de remplacements porte son repère mi-temps.salve',
+      (tester) async {
+    Map<String, Object?> sub(String id, int minute, int half) => {
+          'id': id,
+          'event_type': 'substitution',
+          'minute': minute,
+          'half': half,
+          'player_in_name': 'In$id',
+          'player_out_name': 'Out$id',
+        };
+    await pumpCard(
+      tester,
+      timeline: MatchLiveTimeline.tryFromRpc({
+        'match_id': 'match-1',
+        'events': [
+          sub('a', 5, 1),
+          sub('b', 5, 1),
+          sub('c', 32, 1),
+          sub('d', 50, 2),
+          sub('e', 50, 2),
+        ],
+      }),
+    );
+    await tester.pumpAndSettle();
+    await openCard(tester);
+
+    expect(find.text('1.1'), findsNWidgets(2));
+    expect(find.text('1.2'), findsOneWidget);
+    // La numérotation des salves repart à la reprise.
+    expect(find.text('2.1'), findsNWidgets(2));
+    expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
+  });
+
   testWidgets('sans aucun fait, le bloc disparaît', (tester) async {
     await pumpCard(tester);
     await tester.pumpAndSettle();

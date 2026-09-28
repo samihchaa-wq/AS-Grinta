@@ -56,8 +56,22 @@ select is(
   private.match_prediction_notification_at(
     '2026-08-15 18:00:00+00'::timestamptz
   ),
-  '2026-08-10 10:00:00+00'::timestamptz,
-  'le rappel prono est planifié à J-5 midi Europe/Paris'
+  '2026-08-15 14:00:00+00'::timestamptz,
+  'le rappel prono est planifié le jour du match à 16 h Europe/Paris'
+);
+
+select is(
+  private.match_prediction_notification_at(
+    '2026-12-12 19:45:00+00'::timestamptz
+  ),
+  '2026-12-12 15:00:00+00'::timestamptz,
+  'le rappel prono reste à 16 h Europe/Paris en heure d’hiver'
+);
+
+select like(
+  pg_get_functiondef('public.push_prediction_j5_notifications()'::regprocedure),
+  '%private.match_prediction_notification_at(m.kickoff_at)%+ interval ''10 minutes''%',
+  'le rappel prono n’est plus envoyé après 16 h 10'
 );
 
 select is(
