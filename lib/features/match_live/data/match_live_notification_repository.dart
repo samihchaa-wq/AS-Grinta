@@ -77,8 +77,9 @@ final matchLiveNotificationRepositoryProvider =
 
 final matchLiveNotificationStatusProvider = FutureProvider.autoDispose
     .family<MatchLiveNotificationStatus, String>((ref, matchId) async {
-  final status =
-      await ref.watch(matchLiveNotificationRepositoryProvider).fetchStatus(matchId);
+  final status = await ref
+      .watch(matchLiveNotificationRepositoryProvider)
+      .fetchStatus(matchId);
 
   // Si l'écran reste ouvert avant J-6 12 h, la cloche doit apparaître toute
   // seule au moment exact de l'ouverture sans imposer un pull-to-refresh.
@@ -88,7 +89,7 @@ final matchLiveNotificationStatusProvider = FutureProvider.autoDispose
     if (delay > Duration.zero) {
       final timer = Timer(
         delay + const Duration(seconds: 1),
-        () => ref.invalidate(matchLiveNotificationStatusProvider(matchId)),
+        () => ref.invalidateSelf(),
       );
       ref.onDispose(timer.cancel);
     }
