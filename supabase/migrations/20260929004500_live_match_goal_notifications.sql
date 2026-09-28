@@ -67,6 +67,9 @@ create table private.match_live_notification_event_targets (
   primary key (notification_id, profile_id)
 );
 
+alter table private.match_live_notification_events enable row level security;
+alter table private.match_live_notification_event_targets enable row level security;
+
 create or replace function private.match_live_notifications_eligible(
   p_match_id uuid,
   p_at timestamptz default now()
