@@ -98,15 +98,17 @@ void main() {
     (tester) async {
       await tester.pumpWidget(_harness(3));
       await tester.pump();
-      final widthWithThree =
-          tester.getSize(find.byType(CompositionPitch)).width;
+      final pitchWithThree = find.byType(CompositionPitch);
+      final widthWithThree = tester.getTopRight(pitchWithThree).dx -
+          tester.getTopLeft(pitchWithThree).dx;
       expect(widthWithThree, greaterThan(295));
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(_harness(15));
       await tester.pump();
-      final widthWithFifteen =
-          tester.getSize(find.byType(CompositionPitch)).width;
+      final pitchWithFifteen = find.byType(CompositionPitch);
+      final widthWithFifteen = tester.getTopRight(pitchWithFifteen).dx -
+          tester.getTopLeft(pitchWithFifteen).dx;
 
       expect(widthWithFifteen, lessThan(widthWithThree));
       expect(widthWithFifteen, greaterThan(220));
