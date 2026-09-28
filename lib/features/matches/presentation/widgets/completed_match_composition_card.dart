@@ -167,74 +167,12 @@ class _MpgCompletedCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
-            if (bench.isEmpty)
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: CompositionPitch(entries: field),
-                ),
-              )
-            else
-              _PitchWithBench(field: field, bench: bench),
+            CompositionPitchWithBench(
+              field: field,
+              bench: bench,
+              maxWidth: 520,
+            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Remplaçants en colonne à gauche d'un terrain réduit. L'ensemble est
-/// dessiné à une taille de référence puis réduit d'un bloc à la largeur
-/// disponible : photos du banc et du terrain gardent ainsi la même taille,
-/// et les positions sur le terrain ne se chevauchent pas davantage.
-class _PitchWithBench extends StatelessWidget {
-  const _PitchWithBench({required this.field, required this.bench});
-
-  final List<MatchCompositionEntry> field;
-  final List<MatchCompositionEntry> bench;
-
-  static const _pitchWidth = 340.0;
-  static const _pitchHeight = _pitchWidth / 0.68;
-  static const _benchWidth = 62.0;
-  static const _gap = 4.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: SizedBox(
-          width: _benchWidth + _gap + _pitchWidth,
-          height: _pitchHeight,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: _benchWidth,
-                height: _pitchHeight,
-                // Banc très fourni : la colonne rétrécit pour tenir à la
-                // hauteur du terrain au lieu de déborder.
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.topCenter,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var i = 0; i < bench.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 10),
-                        CompositionPlayerTile(entry: bench[i]),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: _gap),
-              SizedBox(
-                width: _pitchWidth,
-                child: CompositionPitch(entries: field),
-              ),
-            ],
-          ),
         ),
       ),
     );

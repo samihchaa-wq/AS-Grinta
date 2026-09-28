@@ -165,6 +165,240 @@ class _CompositionPitchState extends State<CompositionPitch> {
   }
 }
 
+/// Nombre de colonnes du banc compact.
+///
+/// Le terrain garde exactement la même largeur quel que soit le nombre de
+/// remplaçants : seule l'organisation interne de la zone de gauche change.
+int compositionBenchColumnCount(int count) {
+  if (count <= 0) return 0;
+  if (count <= 6) return 1;
+  if (count <= 12) return 2;
+  return 3;
+}
+
+/// Terrain compact avec le banc à gauche.
+///
+/// La largeur réservée au banc dépend uniquement de la largeur disponible,
+/// jamais du nombre de remplaçants. Passer de 7 à 6 joueurs ne déplace donc
+/// pas le terrain. Jusqu'à 15 joueurs (et au-delà), le banc se réorganise en
+/// une, deux ou trois colonnes sans réduire toute la composition.
+class CompositionPitchWithBench extends StatelessWidget {
+  const CompositionPitchWithBench({
+    super.key,
+    required this.field,
+    required this.bench,
+    this.maxWidth = 520,
+  });
+
+  final List<MatchCompositionEntry> field;
+  final List<MatchCompositionEntry> bench;
+  final double maxWidth;
+
+  static const double _gap = 6;
+  static const double _benchWidthFraction = .31;
+  static const double _minBenchWidth = 96;
+  static const double _maxBenchWidth = 132;
+
+  @override
+  Widget build(BuildContext context) {
+    if (bench.isEmpty) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: CompositionPitch(entries: field),
+        ),
+      );
+    }
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableWidth =
+                constraints.maxWidth.isFinite ? constraints.maxWidth : maxWidth;
+            final benchWidth = (availableWidth * _benchWidthFraction)
+                .clamp(_minBenchWidth, _maxBenchWidth)
+                .toDouble();
+            final pitchWidth = availableWidth - benchWidth - _gap;
+            final pitchHeight = pitchWidth / .68;
+
+            return SizedBox(
+              height: pitchHeight,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: benchWidth,
+                    height: pitchHeight,
+                    child: _CompositionBenchGrid(entries: bench),
+                  ),
+                  const SizedBox(width: _gap),
+                  SizedBox(
+                    width: pitchWidth,
+                    child: CompositionPitch(entries: field),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CompositionBenchGrid extends StatelessWidget {
+  const _CompositionBenchGrid({required this.entries});
+
+  final List<MatchCompositionEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final columns = compositionBenchColumnCount(entries.length);
+    if (columns == 0) return const SizedBox.shrink();
+    final rows = (entries.length + columns - 1) ~/ columns;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellHeight = constraints.maxHeight / rows;
+
+        return Column(
+          children: [
+            for (var row = 0; row < rows; row++)
+              SizedBox(
+                height: cellHeight,
+                child: Row(
+                  children: [
+                    for (var column = 0; column < columns; column++)
+                      Expanded(
+                        child: Builder(
+                          builder: (context) {
+                            final index = row * columns + column;
+                            if (index >= entries.length) {
+                              return const SizedBox.shrink();
+                            }
+                            return _CompositionBenchPlayerTile(
+                              entry: entries[index],
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CompositionBenchPlayerTile extends StatelessWidget {
+  const _CompositionBenchPlayerTile({required this.entry});
+
+  final MatchCompositionEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Remplaçant ${entry.displayName}',
+      child: ExcludeSemantics(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            var avatarSize = constraints.maxWidth * .72;
+            final maxFromHeight = constraints.maxHeight * .54;
+            if (avatarSize > maxFromHeight) avatarSize = maxFromHeight;
+            avatarSize = avatarSize.clamp(24.0, 44.0).toDouble();
+            final fontSize =
+                (constraints.maxWidth * .22).clamp(8.0, 10.0).toDouble();
+
+            return Center(
+              child: SizedBox(
+                width: constraints.maxWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: avatarSize + 8,
+                      height: avatarSize + 8,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          PlayerAvatar(
+                            photoUrl: entry.photoUrl,
+                            name: entry.displayName,
+                            lastName: entry.lastInitial,
+                            isGoalkeeper: entry.isGoalkeeper,
+                            size: avatarSize,
+                          ),
+                          if (entry.isMotm)
+                            const Positioned(
+                              top: -4,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Text(
+                                  '👑',
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            ),
+                          if (entry.goals > 0)
+                            Positioned(
+                              left: 0,
+                              bottom: 0,
+                              child: GoalBadge(goals: entry.goals),
+                            ),
+                          if (entry.assists > 0)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: AssistBadge(assists: entry.assists),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 1),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: const Color(0xD1071527),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 2,
+                            vertical: 1,
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              entry.displayName.trim(),
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: fontSize,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class CompositionPlayerChip extends StatelessWidget {
   const CompositionPlayerChip({
     super.key,
