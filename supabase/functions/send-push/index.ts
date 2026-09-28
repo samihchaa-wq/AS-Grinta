@@ -36,6 +36,7 @@ type PushRequestBody = {
   match_id?: string;
   profile_ids?: string[];
   notification_event_id?: number;
+  live_notification_id?: string;
   display_name?: string;
   title?: string;
   message?: string;
@@ -164,6 +165,170 @@ Deno.serve(async (req: Request) => {
   // le temps d'une phase de tests, sans toucher aux préférences des joueurs.
   if (config.notifications_paused === true) {
     return Response.json({ paused: true, attempted: 0, sent: 0, failed: 0 });
+  }
+
+  // Buts et fin de match : la base revendique atomiquement un événement Live
+  // avant l'envoi. Deux requêtes concurrentes ou un retry du cron ne peuvent
+  // donc jamais produire deux notifications pour le même événement.
+  if (body.kind === "live_match") {
+    const notificationId = typeof body.live_notification_id === "string"
+      ? body.live_notification_id.trim()
+      : "";
+    if (!notificationId) {
+      return new Response("live_notification_id requis", { status: 400 });
+    }
+
+    const { data: dispatch, error: dispatchError } = await supabase.rpc(
+      "internal_claim_match_live_notification",
+      { p_notification_id: notificationId },
+    );
+    if (dispatchError || !dispatch) {
+      console.error("send-push live dispatch claim failure", dispatchError);
+      return new Response("préparation live impossible", { status: 500 });
+    }
+    if (dispatch.claimed !== true) {
+      return Response.json({
+        claimed: false,
+        attempted: 0,
+        sent: 0,
+        failed: 0,
+        pruned: 0,
+      });
+    }
+
+    const subscriptions: SubscriptionRow[] = dispatch.subscriptions ?? [];
+    const matchId = typeof dispatch.match_id === "string"
+      ? dispatch.match_id
+      : "";
+    const logKind = typeof dispatch.kind === "string"
+      ? dispatch.kind
+      : "live_goal_us";
+
+    const markDelivery = async (
+      attempted: number,
+      sent: number,
+      failed: number,
+    ) => {
+      const { error } = await supabase.rpc(
+        "internal_mark_match_live_notification_delivery",
+        {
+          p_notification_id: notificationId,
+          p_attempted: attempted,
+          p_sent: sent,
+          p_failed: failed,
+        },
+      );
+      if (error) {
+        console.error("send-push live event mark failure", error);
+      }
+    };
+
+    if (subscriptions.length === 0) {
+      await markDelivery(0, 0, 0);
+      return Response.json({
+        claimed: true,
+        attempted: 0,
+        sent: 0,
+        failed: 0,
+        pruned: 0,
+      });
+    }
+
+    webpush.setVapidDetails(
+      "https://samihchaa-wq.github.io/AS-Grinta",
+      config.vapid_public,
+      config.vapid_private,
+    );
+
+    const payload = JSON.stringify(dispatch.payload);
+    const dead: string[] = [];
+    const deliveries: DeliveryLogRow[] = [];
+    let sent = 0;
+
+    await Promise.all(
+      subscriptions.map(async (sub) => {
+        const outcome = await executePushDelivery(() =>
+          webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
+            payload,
+            { TTL: PUSH_DELIVERY_TTL_SECONDS, urgency: "high" },
+          )
+        );
+
+        if (outcome.success) {
+          sent += 1;
+          deliveries.push({
+            match_id: matchId,
+            kind: logKind,
+            profile_id: sub.profile_id ?? null,
+            endpoint_host: endpointHost(sub.endpoint),
+            success: true,
+            status_code: outcome.statusCode ?? 201,
+            error_message: null,
+            attempts: outcome.attempts,
+          });
+          return;
+        }
+
+        if (outcome.failureClass === "expired") {
+          dead.push(sub.endpoint);
+        }
+
+        const message = errorMessage(outcome.error);
+        deliveries.push({
+          match_id: matchId,
+          kind: logKind,
+          profile_id: sub.profile_id ?? null,
+          endpoint_host: endpointHost(sub.endpoint),
+          success: false,
+          status_code: outcome.statusCode,
+          error_message: message,
+          attempts: outcome.attempts,
+        });
+        console.error("send-push live delivery failure", {
+          profileId: sub.profile_id ?? null,
+          endpointHost: endpointHost(sub.endpoint),
+          statusCode: outcome.statusCode,
+          failureClass: outcome.failureClass,
+          attempts: outcome.attempts,
+          message,
+        });
+      }),
+    );
+
+    if (deliveries.length > 0) {
+      const { error } = await supabase.from("push_delivery_log").insert(deliveries);
+      if (error) console.error("send-push live log failure", error);
+    }
+
+    let pruned = 0;
+    if (dead.length > 0) {
+      const { data, error } = await supabase.rpc("internal_push_prune", {
+        p_endpoints: dead,
+      });
+      if (error) {
+        console.error("send-push live prune failure", error);
+      } else {
+        pruned = data ?? 0;
+      }
+    }
+
+    await markDelivery(
+      subscriptions.length,
+      sent,
+      subscriptions.length - sent,
+    );
+
+    return Response.json({
+      claimed: true,
+      attempted: subscriptions.length,
+      sent,
+      failed: subscriptions.length - sent,
+      pruned,
+    });
   }
 
   // Alerte admin : un nouveau compte attend une validation. Envoyée à tous
