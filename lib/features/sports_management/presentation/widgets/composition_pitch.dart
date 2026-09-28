@@ -307,7 +307,7 @@ class _CompositionBenchPlayerTile extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             var avatarSize = constraints.maxWidth * .72;
-            final maxFromHeight = constraints.maxHeight * .62;
+            final maxFromHeight = constraints.maxHeight * .54;
             if (avatarSize > maxFromHeight) avatarSize = maxFromHeight;
             avatarSize = avatarSize.clamp(24.0, 44.0).toDouble();
             final fontSize =
