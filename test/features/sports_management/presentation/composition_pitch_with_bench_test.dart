@@ -99,19 +99,19 @@ void main() {
       await tester.pumpWidget(_harness(3));
       await tester.pump();
       final pitchWithThree = find.byType(CompositionPitch);
-      final widthWithThree = tester.getTopRight(pitchWithThree).dx -
-          tester.getTopLeft(pitchWithThree).dx;
-      expect(widthWithThree, greaterThan(295));
+      final scaleWithThree =
+          tester.getTransform(pitchWithThree).getMaxScaleOnAxis();
+      expect(scaleWithThree, greaterThan(.80));
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(_harness(15));
       await tester.pump();
       final pitchWithFifteen = find.byType(CompositionPitch);
-      final widthWithFifteen = tester.getTopRight(pitchWithFifteen).dx -
-          tester.getTopLeft(pitchWithFifteen).dx;
+      final scaleWithFifteen =
+          tester.getTransform(pitchWithFifteen).getMaxScaleOnAxis();
 
-      expect(widthWithFifteen, lessThan(widthWithThree));
-      expect(widthWithFifteen, greaterThan(220));
+      expect(scaleWithFifteen, lessThan(scaleWithThree));
+      expect(scaleWithFifteen, greaterThan(.60));
       for (var index = 1; index <= 15; index++) {
         expect(find.text('R$index'), findsWidgets);
       }
