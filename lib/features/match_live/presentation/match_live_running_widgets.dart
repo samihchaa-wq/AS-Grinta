@@ -935,8 +935,8 @@ class _JournalEventRow extends StatelessWidget {
                                       textAlign: isOpponentGoal
                                           ? TextAlign.right
                                           : TextAlign.left,
-                                      style: theme.textTheme.labelMedium
-                                          ?.copyWith(
+                                      style:
+                                          theme.textTheme.labelMedium?.copyWith(
                                         fontWeight: FontWeight.w400,
                                       ),
                                     ),
