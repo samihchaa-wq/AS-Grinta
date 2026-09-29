@@ -1,11 +1,12 @@
 import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
+import 'package:as_grinta/features/match_live/domain/substitution_salvos.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 
 /// Vignette d'un joueur sur le banc, avec le compteur 🔄 (nombre de fois sur
-/// le banc). Reprend la même mécanique de glisser-déposer que la composition
+/// le banc, suivi de la série de sa dernière sortie : « 2.1 »). Reprend la même mécanique de glisser-déposer que la composition
 /// pré-match (LongPressDraggable + DragAutoScroller).
 class LiveBenchTile extends StatelessWidget {
   const LiveBenchTile({
@@ -14,6 +15,7 @@ class LiveBenchTile extends StatelessWidget {
     required this.draggable,
     required this.metrics,
     this.timesBenched = 0,
+    this.lastExit,
     this.onTap,
   });
 
@@ -25,6 +27,10 @@ class LiveBenchTile extends StatelessWidget {
   final FormationMarkerMetrics metrics;
 
   final int timesBenched;
+
+  /// Repère de la dernière sortie du joueur. `null` s'il n'est jamais sorti
+  /// du terrain (remplaçant au coup d'envoi) : seul le compteur s'affiche.
+  final SubstitutionExitMark? lastExit;
   final VoidCallback? onTap;
 
   @override
@@ -48,7 +54,10 @@ class LiveBenchTile extends StatelessWidget {
                 Positioned(
                   right: -2,
                   bottom: -2,
-                  child: SubstituteHistoryBadge(count: timesBenched),
+                  child: SubstituteHistoryBadge(
+                    count: timesBenched,
+                    label: lastExit?.label,
+                  ),
                 ),
             ],
           ),

@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/match_live/domain/substitution_salvos.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_running_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
@@ -44,6 +45,34 @@ void main() {
     );
 
     _expectNotTruncated(tester, _longName);
+  });
+
+  testWidgets('sur le banc, la pastille indique « passage.série »', (
+    tester,
+  ) async {
+    final metrics = benchAndPitchMetrics(365);
+    Future<void> pump({SubstitutionExitMark? lastExit}) => tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: LiveBenchTile(
+                  entry: _entry('Samih', null, null),
+                  draggable: false,
+                  metrics: metrics,
+                  timesBenched: 2,
+                  lastExit: lastExit,
+                ),
+              ),
+            ),
+          ),
+        );
+
+    await pump(lastExit: const SubstitutionExitMark(rest: 2, rank: 1));
+    expect(find.text('2.1'), findsOneWidget);
+
+    // Jamais sorti du terrain : seul le compteur s'affiche.
+    await pump();
+    expect(find.text('2'), findsOneWidget);
   });
 
   testWidgets('un prénom long n’est pas tronqué sur le banc', (tester) async {

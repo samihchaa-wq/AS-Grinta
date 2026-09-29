@@ -647,9 +647,12 @@ class AssistBadge extends StatelessWidget {
 }
 
 class SubstituteHistoryBadge extends StatelessWidget {
-  const SubstituteHistoryBadge({super.key, required this.count});
+  const SubstituteHistoryBadge({super.key, required this.count, this.label});
 
   final int count;
+
+  /// Texte affiché à la place du compteur, par exemple « 2.1 » en direct.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -662,7 +665,7 @@ class SubstituteHistoryBadge extends StatelessWidget {
         border: Border.all(color: Colors.white70, width: .8),
       ),
       child: Text(
-        '$count',
+        label ?? '$count',
         style: const TextStyle(
           color: Colors.white,
           fontSize: 9,

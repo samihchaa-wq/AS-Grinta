@@ -397,6 +397,7 @@ class _BenchColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final lastExits = lastExitMarksByParticipant(bundle.events);
     return SizedBox(
       width: metrics.width + _benchColumnMargin,
       child: Card(
@@ -456,6 +457,7 @@ class _BenchColumn extends StatelessWidget {
                             timesBenched: bundle.timesBenched(
                               entry.participantId,
                             ),
+                            lastExit: lastExits[entry.participantId],
                           ),
                         );
                       },
@@ -698,9 +700,11 @@ class _LiveJournal extends StatelessWidget {
     Map<MatchLiveEvent, SubstitutionSalvo> salvos,
     Map<MatchLiveEvent, SubstitutionExitMark> marks,
   ) {
-    Widget row(MatchLiveEvent event) => _JournalEventRow(
+    Widget row(MatchLiveEvent event, {bool showMark = true}) =>
+        _JournalEventRow(
           event: event,
           mark: marks[event],
+          showMark: showMark,
           canEdit: canEdit,
           canEditScorer: canEdit,
           onEditScorer: onEditScorer,
@@ -720,10 +724,15 @@ class _LiveJournal extends StatelessWidget {
         index += 1;
         continue;
       }
+      // Un repère identique à la ligne précédente de la série n'est pas
+      // répété : les joueurs sortis ensemble partagent le même numéro.
       final group = <Widget>[];
+      String? previousLabel;
       while (
           index < ordered.length && identical(salvos[ordered[index]], salvo)) {
-        group.add(row(ordered[index]));
+        final label = marks[ordered[index]]?.label;
+        group.add(row(ordered[index], showMark: label != previousLabel));
+        previousLabel = label;
         index += 1;
       }
       widgets.add(_framed(salvo, Column(children: group)));
@@ -736,6 +745,7 @@ class _JournalEventRow extends StatelessWidget {
   const _JournalEventRow({
     required this.event,
     this.mark,
+    this.showMark = true,
     required this.canEdit,
     required this.canEditScorer,
     required this.onEditScorer,
@@ -747,6 +757,9 @@ class _JournalEventRow extends StatelessWidget {
 
   /// Repère du joueur qui sort : il remplace l'icône. `null` sur un but.
   final SubstitutionExitMark? mark;
+
+  /// `false` quand la ligne précédente de la série porte déjà ce repère.
+  final bool showMark;
   final bool canEdit;
   final bool canEditScorer;
   final ValueChanged<MatchLiveEvent> onEditScorer;
@@ -852,7 +865,9 @@ class _JournalEventRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 32,
-              child: SubstitutionExitBadge(mark: mark!),
+              child: showMark && mark != null
+                  ? SubstitutionExitBadge(mark: mark!)
+                  : null,
             ),
             const SizedBox(width: 4),
             Expanded(
