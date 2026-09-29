@@ -246,41 +246,43 @@ class _GoalFactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAsGrinta = row.goalIsAsGrinta ?? true;
-    final content = Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(row.icon, size: 20),
-        const SizedBox(width: 10),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment:
-              isAsGrinta ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-          children: [
-            Text(
-              row.text,
-              textAlign: isAsGrinta ? TextAlign.left : TextAlign.right,
-            ),
-            if (row.scoreLabel != null)
-              Text(
-                row.scoreLabel!,
-                textAlign: isAsGrinta ? TextAlign.left : TextAlign.right,
-              ),
-          ],
-        ),
-      ],
-    );
-
     return Padding(
       padding: EdgeInsets.fromLTRB(isAsGrinta ? 48 : 12, 8, 8, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Align(
-              alignment:
-                  isAsGrinta ? Alignment.centerLeft : Alignment.centerRight,
-              child: content,
+            child: Row(
+              mainAxisAlignment:
+                  isAsGrinta ? MainAxisAlignment.start : MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(row.icon, size: 20),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: isAsGrinta
+                        ? CrossAxisAlignment.start
+                        : CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        row.text,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign:
+                            isAsGrinta ? TextAlign.left : TextAlign.right,
+                      ),
+                      if (row.scoreLabel != null)
+                        Text(
+                          row.scoreLabel!,
+                          textAlign:
+                              isAsGrinta ? TextAlign.left : TextAlign.right,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
