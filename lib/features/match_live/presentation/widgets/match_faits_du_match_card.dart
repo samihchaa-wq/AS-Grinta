@@ -17,6 +17,7 @@ class _FactRow {
     required this.icon,
     required this.order,
     this.scoreLabel,
+    this.goalIsAsGrinta,
     this.substitution,
     this.salvo,
     this.sortMinute,
@@ -28,6 +29,9 @@ class _FactRow {
 
   /// Score cumulé après ce but. `null` sur un remplacement.
   final String? scoreLabel;
+
+  /// Côté du but, pour l'alignement visuel de la chronologie.
+  final bool? goalIsAsGrinta;
   final MatchLiveEvent? substitution;
 
   /// Salve à laquelle appartient le remplacement. `null` sur un but.
@@ -100,6 +104,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
           order: order++,
           icon: Icons.sports_soccer_rounded,
           scoreLabel: '$scoreAsGrinta-$scoreAdverse',
+          goalIsAsGrinta: goal.isAsGrinta,
           text: _goalText(goal),
         ),
       );
@@ -182,27 +187,112 @@ class _FactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final substitution = row.substitution;
-    final salvo = row.salvo;
-    return ListTile(
-      dense: true,
-      leading: SizedBox(
-        width: 32,
-        child: Center(
-          child: salvo == null
-              ? Icon(row.icon, size: 20)
-              : SubstitutionSalvoBadge(salvo: salvo),
-        ),
-      ),
-      title: substitution == null
-          ? Text(row.text)
-          : LiveSubstitutionLine(
+    if (substitution != null) {
+      return _SubstitutionFactLine(row: row, substitution: substitution);
+    }
+    return _GoalFactLine(row: row);
+  }
+}
+
+class _SubstitutionFactLine extends StatelessWidget {
+  const _SubstitutionFactLine({
+    required this.row,
+    required this.substitution,
+  });
+
+  final _FactRow row;
+  final MatchLiveEvent substitution;
+
+  @override
+  Widget build(BuildContext context) {
+    final salvo = row.salvo!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(5, 7, 7, 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 34,
+            child: Center(child: SubstitutionSalvoBadge(salvo: salvo)),
+          ),
+          const SizedBox(width: 3),
+          Expanded(
+            child: LiveSubstitutionLine(
               playerInName: substitution.playerInName ?? '?',
               playerOutName: substitution.playerOutName ?? '?',
+              alignment: WrapAlignment.end,
             ),
-      subtitle: row.scoreLabel == null ? null : Text(row.scoreLabel!),
-      trailing: Text(
-        row.minuteLabel,
-        style: const TextStyle(fontWeight: FontWeight.w400),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 34,
+            child: Text(
+              row.minuteLabel,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalFactLine extends StatelessWidget {
+  const _GoalFactLine({required this.row});
+
+  final _FactRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAsGrinta = row.goalIsAsGrinta ?? true;
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(row.icon, size: 20),
+        const SizedBox(width: 10),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              isAsGrinta ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+          children: [
+            Text(
+              row.text,
+              textAlign: isAsGrinta ? TextAlign.left : TextAlign.right,
+            ),
+            if (row.scoreLabel != null)
+              Text(
+                row.scoreLabel!,
+                textAlign: isAsGrinta ? TextAlign.left : TextAlign.right,
+              ),
+          ],
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(isAsGrinta ? 48 : 12, 8, 8, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Align(
+              alignment:
+                  isAsGrinta ? Alignment.centerLeft : Alignment.centerRight,
+              child: content,
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 34,
+            child: Text(
+              row.minuteLabel,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.w400),
+            ),
+          ),
+        ],
       ),
     );
   }
