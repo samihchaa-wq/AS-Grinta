@@ -787,7 +787,7 @@ class _JournalEventRow extends StatelessWidget {
             ),
             if (canEdit) ...[
               const SizedBox(width: 2),
-              _actionMenu(context),
+              _actionMenu(),
             ],
           ],
         ),
@@ -899,14 +899,14 @@ class _JournalEventRow extends StatelessWidget {
           ),
           if (canEdit) ...[
             const SizedBox(width: 2),
-            _actionMenu(context),
+            _actionMenu(),
           ],
         ],
       ),
     );
   }
 
-  Widget _actionMenu(BuildContext context) {
+  Widget _actionMenu() {
     return PopupMenuButton<_JournalAction>(
       tooltip: 'Corriger',
       onSelected: (action) {
