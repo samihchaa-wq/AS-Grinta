@@ -189,12 +189,12 @@ void main() {
         matching: find.byType(ListTile),
       ),
     );
-    expect(tile.contentPadding, const EdgeInsets.fromLTRB(6, 0, 6, 0));
-    expect(tile.horizontalTitleGap, 4);
-    expect(tile.minLeadingWidth, 28);
+    expect(tile.contentPadding, const EdgeInsets.fromLTRB(0, 0, 6, 0));
+    expect(tile.horizontalTitleGap, 0);
+    expect(tile.minLeadingWidth, 0);
   });
 
-  testWidgets('chaque salve de remplacements porte son repère mi-temps.salve',
+  testWidgets('chaque salve n’affiche son repère qu’une fois, centré sur le groupe',
       (tester) async {
     Map<String, Object?> sub(String id, int minute, int half) => {
           'id': id,
@@ -220,15 +220,22 @@ void main() {
     await tester.pumpAndSettle();
     await openCard(tester);
 
-    expect(find.text('1.1'), findsNWidgets(2));
+    expect(find.text('1.1'), findsOneWidget);
     expect(find.text('1.2'), findsOneWidget);
     // La numérotation des salves repart à la reprise.
-    expect(find.text('2.1'), findsNWidgets(2));
+    expect(find.text('2.1'), findsOneWidget);
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
 
-    for (final badge in tester.widgetList<Text>(find.text('1.1'))) {
-      expect(badge.style?.color, Colors.white);
-    }
+    final firstSalvoCenter = tester.getCenter(find.text('1.1')).dy;
+    final firstRowCenter = tester.getCenter(find.text('Ina')).dy;
+    final secondRowCenter = tester.getCenter(find.text('Inb')).dy;
+    expect(
+      firstSalvoCenter,
+      closeTo((firstRowCenter + secondRowCenter) / 2, 1),
+    );
+
+    final badge = tester.widget<Text>(find.text('1.1'));
+    expect(badge.style?.color, Colors.white);
   });
 
   testWidgets('sans aucun fait, le bloc disparaît', (tester) async {
