@@ -156,7 +156,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
         index += 1;
       }
       widgets.add(
-        SubstitutionSalvoFrame(
+        SubstitutionSalvoGroup(
           salvo: salvo,
           child: Column(
             children: [for (final row in group) _FactLine(row: row)],
@@ -190,15 +190,9 @@ class _FactLine extends StatelessWidget {
     if (substitution != null) {
       return ListTile(
         dense: true,
-        contentPadding: const EdgeInsets.fromLTRB(6, 0, 6, 0),
-        horizontalTitleGap: 4,
-        minLeadingWidth: 28,
-        leading: SizedBox(
-          width: 28,
-          child: Center(
-            child: SubstitutionSalvoBadge(salvo: row.salvo!),
-          ),
-        ),
+        contentPadding: const EdgeInsets.fromLTRB(0, 0, 6, 0),
+        horizontalTitleGap: 0,
+        minLeadingWidth: 0,
         title: LiveSubstitutionLine(
           playerInName: substitution.playerInName ?? '?',
           playerOutName: substitution.playerOutName ?? '?',
