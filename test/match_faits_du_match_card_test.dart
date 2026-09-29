@@ -194,7 +194,7 @@ void main() {
     expect(tile.minLeadingWidth, 32);
   });
 
-  testWidgets('chaque sortie porte le repère du joueur qui sort', (
+  testWidgets('une série porte un seul repère « passage.série »', (
     tester,
   ) async {
     Map<String, Object?> sub(
@@ -222,8 +222,9 @@ void main() {
     await tester.pumpAndSettle();
     await openCard(tester);
 
+    // Titu1 et Titu2 sortent ensemble : un seul « 1.1 » pour la série.
     expect(find.text('1.1'), findsOneWidget);
-    expect(find.text('1.2'), findsOneWidget);
+    expect(find.text('1.2'), findsNothing);
     expect(find.text('2.1'), findsOneWidget);
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
 

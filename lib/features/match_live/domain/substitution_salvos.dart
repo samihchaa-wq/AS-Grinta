@@ -21,12 +21,13 @@ class SubstitutionSalvo {
   final int colorIndex;
 }
 
-/// Repère d'une sortie du terrain : « repos.rang ».
+/// Repère d'une sortie du terrain : « passage.série ».
 ///
-/// [rest] compte les repos du joueur qui sort, celui-ci compris. Commencer sur
-/// le banc compte comme un premier repos : la première sortie d'un remplaçant
-/// est donc déjà un 2.x. [rank] est l'ordre de cette sortie parmi toutes les
-/// sorties du même tour (tous les 2.x, par exemple).
+/// [rest] compte les passages sur le banc du joueur qui sort, celui-ci
+/// compris. Commencer sur le banc compte comme un premier passage : la
+/// première sortie d'un remplaçant est donc déjà un 2.x. [rank] est le numéro
+/// de la série parmi celles qui envoient des joueurs à ce même passage : les
+/// joueurs sortis ensemble partagent le même repère.
 class SubstitutionExitMark {
   const SubstitutionExitMark({required this.rest, required this.rank});
 
@@ -59,12 +60,16 @@ List<MatchLiveEvent> _chronologicalSubstitutions(
 /// Associe chaque remplacement au repère du joueur qui sort.
 ///
 /// Un joueur qui entre sans être jamais sorti était sur le banc : il a déjà
-/// eu un repos. Un joueur ajouté en cours de match est traité de la même façon.
+/// eu un passage. Un joueur ajouté en cours de match est traité de la même
+/// façon. Une série regroupe les changements de la même mi-temps et de la même
+/// minute, comme une salve.
 Map<MatchLiveEvent, SubstitutionExitMark> substitutionExitMarksByEvent(
   Iterable<MatchLiveEvent> events,
 ) {
   final rests = <String, int>{};
-  final ranksByRest = <int, int>{};
+  // Pour chaque passage : nombre de séries déjà vues, et la dernière.
+  final seriesByRest = <int, int>{};
+  final lastSeriesByRest = <int, (int, int)>{};
   final result = Map<MatchLiveEvent, SubstitutionExitMark>.identity();
   for (final event in _chronologicalSubstitutions(events)) {
     final outKey = event.playerOutParticipantId ??
@@ -72,9 +77,12 @@ Map<MatchLiveEvent, SubstitutionExitMark> substitutionExitMarksByEvent(
         'event:${event.id}';
     final rest = (rests[outKey] ?? 0) + 1;
     rests[outKey] = rest;
-    final rank = (ranksByRest[rest] ?? 0) + 1;
-    ranksByRest[rest] = rank;
-    result[event] = SubstitutionExitMark(rest: rest, rank: rank);
+    final series = (event.half, event.minute);
+    if (lastSeriesByRest[rest] != series) {
+      lastSeriesByRest[rest] = series;
+      seriesByRest[rest] = (seriesByRest[rest] ?? 0) + 1;
+    }
+    result[event] = SubstitutionExitMark(rest: rest, rank: seriesByRest[rest]!);
 
     final inKey = event.playerInParticipantId ?? event.playerInName;
     if (inKey != null) rests.putIfAbsent(inKey, () => 1);
@@ -112,4 +120,16 @@ Map<MatchLiveEvent, SubstitutionSalvo> substitutionSalvosByEvent(
     result[event] = current;
   }
   return result;
+}
+
+/// Repère de la dernière sortie de chaque joueur, par identifiant.
+Map<String, SubstitutionExitMark> lastExitMarksByParticipant(
+  Iterable<MatchLiveEvent> events,
+) {
+  final marks = substitutionExitMarksByEvent(events);
+  return {
+    for (final event in _chronologicalSubstitutions(events))
+      if (event.playerOutParticipantId != null)
+        event.playerOutParticipantId!: marks[event]!,
+  };
 }

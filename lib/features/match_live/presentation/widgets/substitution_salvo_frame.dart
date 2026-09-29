@@ -22,7 +22,7 @@ Color substitutionSalvoColor(SubstitutionSalvo salvo) =>
     substitutionSalvoPalette[
         salvo.colorIndex % substitutionSalvoPalette.length];
 
-/// Repère « repos.rang » du joueur qui sort, à la place de l'icône de
+/// Repère « passage.série » du joueur qui sort, à la place de l'icône de
 /// remplacement.
 class SubstitutionExitBadge extends StatelessWidget {
   const SubstitutionExitBadge({super.key, required this.mark});
@@ -32,7 +32,7 @@ class SubstitutionExitBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Sortie numéro ${mark.rest}, rang ${mark.rank}',
+      label: 'Passage ${mark.rest} sur le banc, série ${mark.rank}',
       child: ExcludeSemantics(
         child: Text(
           mark.label,

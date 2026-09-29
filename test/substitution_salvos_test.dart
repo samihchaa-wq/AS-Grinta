@@ -68,18 +68,24 @@ void main() {
     }
     final marks = substitutionExitMarksByEvent(events);
 
+    // Les joueurs sortis ensemble partagent le numéro de leur série.
     expect(
       [for (final e in events) marks[e]!.label],
       [
-        '1.1', '1.2', '1.3', //
-        '1.4', '1.5', '1.6', //
-        '1.7', '1.8', '1.9', //
-        '1.10', '1.11', '2.1', // R1 : entré au départ du banc
-        '2.2', '2.3', '2.4', //
-        '2.5', '2.6', '2.7', //
+        '1.1', '1.1', '1.1', //
+        '1.2', '1.2', '1.2', //
+        '1.3', '1.3', '1.3', //
+        '1.4', '1.4', '2.1', // R1 : entré au départ du banc
+        '2.2', '2.2', '2.2', //
+        '2.3', '2.3', '2.3', //
       ],
     );
     expect(events[11].playerOutParticipantId, 'R1');
+
+    final lastExits = lastExitMarksByParticipant(events);
+    expect(lastExits['T1']!.label, '2.2');
+    expect(lastExits['T10']!.label, '1.4');
+    expect(lastExits.containsKey('T5'), isTrue);
   });
 
   test('un joueur sorti hors de son tour garde son propre compteur', () {
