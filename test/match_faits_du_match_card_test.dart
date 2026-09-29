@@ -209,6 +209,39 @@ void main() {
     // La numérotation des salves repart à la reprise.
     expect(find.text('2.1'), findsNWidgets(2));
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
+
+    final firstBadge = tester.widget<Text>(find.text('1.1').first);
+    expect(firstBadge.style?.color, Colors.white);
+  });
+
+  testWidgets('les buts AS Grinta restent à gauche du but adverse', (
+    tester,
+  ) async {
+    await pumpCard(
+      tester,
+      goals: [
+        goal({
+          'id': 'g1',
+          'minute': 8,
+          'team_side': 'as_grinta',
+          'scorer_name': 'Pipo',
+          'scorer_participant_id': 'p1',
+          'assist_kind': 'none',
+        }),
+        goal({
+          'id': 'g2',
+          'minute': 12,
+          'team_side': 'opponent',
+          'assist_kind': 'none',
+        }, 1),
+      ],
+    );
+    await tester.pumpAndSettle();
+    await openCard(tester);
+
+    final grintaX = tester.getCenter(find.text('Pipo')).dx;
+    final opponentX = tester.getCenter(find.text('But adverse')).dx;
+    expect(opponentX, greaterThan(grintaX));
   });
 
   testWidgets('sans aucun fait, le bloc disparaît', (tester) async {
