@@ -818,8 +818,7 @@ class _JournalEventRow extends StatelessWidget {
     final isAsGrinta = event.type == MatchLiveEventType.goalUs;
     final hasScore =
         event.scoreAsGrintaAfter != null && event.scoreAdverseAfter != null;
-    final canChooseScorer =
-        canEditScorer && isAsGrinta && event.needsScorer;
+    final canChooseScorer = canEditScorer && isAsGrinta && event.needsScorer;
 
     final details = ConstrainedBox(
       constraints: BoxConstraints(
