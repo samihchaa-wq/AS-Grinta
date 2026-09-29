@@ -37,7 +37,7 @@ class SubstitutionSalvoBadge extends StatelessWidget {
           salvo.label,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: substitutionSalvoColor(salvo),
+                color: Colors.white,
                 fontWeight: FontWeight.w400,
               ),
         ),
