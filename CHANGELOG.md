@@ -6,6 +6,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- notifications sur Android : la petite icône de la barre d'état montre la
+  silhouette du blason au lieu d'un carré blanc ou noir ;
 - retrait du pari « Buteurs » (pronostic de saison) : saisie, verrouillage des
   paris, gel de l'effectif, classement Buteurs, bonus d'ordre, titres
   « meilleur prono joueurs » et « meilleur pronostiqueur global », et leurs

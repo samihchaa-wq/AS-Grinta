@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 
 void main() {
   group('contrat PWA', () {
@@ -64,6 +65,21 @@ void main() {
       expect(worker, contains("'app_shell.js'"));
       expect(worker, contains("'flutter_bootstrap.js'"));
       expect(worker, contains("request.mode === 'navigate'"));
+    });
+
+    test('le badge des notifications est une silhouette sur fond transparent',
+        () {
+      // Android n'utilise que la transparence du badge : le logo sur fond
+      // plein s'affichait comme un carré blanc ou noir.
+      expect(worker, contains("badge: 'icons/notification-badge-96.png'"));
+      expect(worker, contains("'icons/notification-badge-96.png',"));
+
+      final badge = img.decodePng(
+        File('web/icons/notification-badge-96.png').readAsBytesSync(),
+      )!;
+      expect(badge.numChannels, 4);
+      expect(badge.getPixel(0, 0).a, 0);
+      expect(badge.getPixel(badge.width ~/ 2, badge.height ~/ 2).a, 255);
     });
 
     test(
