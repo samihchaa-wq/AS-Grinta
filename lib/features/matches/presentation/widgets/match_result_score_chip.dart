@@ -30,7 +30,7 @@ class MatchResultScoreChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _color;
     final chip = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .10),
         borderRadius: BorderRadius.circular(12),

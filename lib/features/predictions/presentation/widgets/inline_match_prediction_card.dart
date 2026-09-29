@@ -332,6 +332,30 @@ class _HeadToHead extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final matches = data.headToHead.take(5).toList();
+    final chips = <Widget>[];
+    for (final match in matches) {
+      final route = matchEncounterRoute(
+        encounterId: match.id,
+        isHistorical: match.isHistorical,
+      );
+      final dateLabel = AppFormats.date(match.date);
+      if (chips.isNotEmpty) {
+        chips.add(const SizedBox(width: 5));
+      }
+      chips.add(
+        Expanded(
+          child: MatchResultScoreChip(
+            scoreGrinta: match.scoreGrinta ?? 0,
+            scoreOpponent: match.scoreOpponent ?? 0,
+            subtitle: dateLabel,
+            semanticLabel:
+                route == null ? null : 'Ouvrir le match du $dateLabel',
+            onTap: route == null ? null : () => context.push(route),
+          ),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -346,25 +370,7 @@ class _HeadToHead extends StatelessWidget {
             style: TextStyle(color: AppTheme.textSecondary),
           )
         else
-          Wrap(
-            spacing: AppSpacing.contentGap,
-            runSpacing: AppSpacing.contentGap,
-            children: matches.map((match) {
-              final route = matchEncounterRoute(
-                encounterId: match.id,
-                isHistorical: match.isHistorical,
-              );
-              final dateLabel = AppFormats.date(match.date);
-              return MatchResultScoreChip(
-                scoreGrinta: match.scoreGrinta ?? 0,
-                scoreOpponent: match.scoreOpponent ?? 0,
-                subtitle: dateLabel,
-                semanticLabel:
-                    route == null ? null : 'Ouvrir le match du $dateLabel',
-                onTap: route == null ? null : () => context.push(route),
-              );
-            }).toList(),
-          ),
+          Row(children: chips),
       ],
     );
   }
