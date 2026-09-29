@@ -17,6 +17,7 @@ class _FactRow {
     required this.icon,
     required this.order,
     this.scoreLabel,
+    this.isAsGrintaGoal,
     this.substitution,
     this.salvo,
     this.sortMinute,
@@ -28,6 +29,9 @@ class _FactRow {
 
   /// Score cumulé après ce but. `null` sur un remplacement.
   final String? scoreLabel;
+
+  /// Côté du but. `null` sur un remplacement.
+  final bool? isAsGrintaGoal;
   final MatchLiveEvent? substitution;
 
   /// Salve à laquelle appartient le remplacement. `null` sur un but.
@@ -100,6 +104,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
           order: order++,
           icon: Icons.sports_soccer_rounded,
           scoreLabel: '$scoreAsGrinta-$scoreAdverse',
+          isAsGrintaGoal: goal.isAsGrinta,
           text: _goalText(goal),
         ),
       );
@@ -182,28 +187,99 @@ class _FactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final substitution = row.substitution;
-    final salvo = row.salvo;
-    return ListTile(
-      dense: true,
-      leading: SizedBox(
-        width: 32,
-        child: Center(
-          child: salvo == null
-              ? Icon(row.icon, size: 20)
-              : SubstitutionSalvoBadge(salvo: salvo),
+    if (substitution != null) {
+      return ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.fromLTRB(6, 0, 6, 0),
+        horizontalTitleGap: 4,
+        minLeadingWidth: 28,
+        leading: SizedBox(
+          width: 28,
+          child: Center(
+            child: SubstitutionSalvoBadge(salvo: row.salvo!),
+          ),
         ),
-      ),
-      title: substitution == null
-          ? Text(row.text)
-          : LiveSubstitutionLine(
-              playerInName: substitution.playerInName ?? '?',
-              playerOutName: substitution.playerOutName ?? '?',
-            ),
-      subtitle: row.scoreLabel == null ? null : Text(row.scoreLabel!),
-      trailing: Text(
-        row.minuteLabel,
-        style: const TextStyle(fontWeight: FontWeight.w400),
-      ),
+        title: LiveSubstitutionLine(
+          playerInName: substitution.playerInName ?? '?',
+          playerOutName: substitution.playerOutName ?? '?',
+        ),
+        trailing: Text(
+          row.minuteLabel,
+          style: const TextStyle(fontWeight: FontWeight.w400),
+        ),
+      );
+    }
+
+    final isOpponentGoal = row.isAsGrintaGoal == false;
+    final goalIndent =
+        (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0).toDouble();
+    final theme = Theme.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: isOpponentGoal
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: isOpponentGoal ? 0 : goalIndent,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(row.icon, size: 20),
+                        const SizedBox(width: 8),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: constraints.maxWidth * .58,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: isOpponentGoal
+                                ? CrossAxisAlignment.end
+                                : CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                row.text,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: isOpponentGoal
+                                    ? TextAlign.right
+                                    : TextAlign.left,
+                              ),
+                              if (row.scoreLabel != null)
+                                Text(
+                                  row.scoreLabel!,
+                                  textAlign: isOpponentGoal
+                                      ? TextAlign.right
+                                      : TextAlign.left,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                row.minuteLabel,
+                style: const TextStyle(fontWeight: FontWeight.w400),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

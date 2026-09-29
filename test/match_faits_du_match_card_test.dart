@@ -118,6 +118,12 @@ void main() {
     expect(find.text('But adverse'), findsOneWidget);
     expect(find.text('1-0'), findsOneWidget);
     expect(find.text('1-1'), findsOneWidget);
+
+    // Le but adverse est visuellement poussé plus à droite que le but Grinta.
+    expect(
+      tester.getCenter(find.text('But adverse')).dx,
+      greaterThan(tester.getCenter(find.text('Samih')).dx),
+    );
   });
 
   testWidgets('une minute inconnue s’affiche sans inventer d’horaire', (
@@ -176,6 +182,16 @@ void main() {
     expect(find.text('Samih'), findsOneWidget);
     expect(find.text('Nabil'), findsOneWidget);
     expect(find.text('Karim'), findsOneWidget);
+
+    final tile = tester.widget<ListTile>(
+      find.ancestor(
+        of: find.text('Nabil'),
+        matching: find.byType(ListTile),
+      ),
+    );
+    expect(tile.contentPadding, const EdgeInsets.fromLTRB(6, 0, 6, 0));
+    expect(tile.horizontalTitleGap, 4);
+    expect(tile.minLeadingWidth, 28);
   });
 
   testWidgets('chaque salve de remplacements porte son repère mi-temps.salve',
@@ -209,6 +225,10 @@ void main() {
     // La numérotation des salves repart à la reprise.
     expect(find.text('2.1'), findsNWidgets(2));
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
+
+    for (final badge in tester.widgetList<Text>(find.text('1.1'))) {
+      expect(badge.style?.color, Colors.white);
+    }
   });
 
   testWidgets('sans aucun fait, le bloc disparaît', (tester) async {
