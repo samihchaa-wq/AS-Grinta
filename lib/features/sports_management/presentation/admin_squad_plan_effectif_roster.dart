@@ -187,14 +187,6 @@ class _EffectifAvatarGrid extends StatelessWidget {
   final ValueChanged<ConvocationPlayer>? onShowInfo;
   final ValueChanged<ConvocationPlayer>? onRelance;
 
-  Color _playerColor(ConvocationPlayer player) =>
-      switch (player.availabilityStatus) {
-        'available' => _effectifConvokedColor,
-        'absent' => _effectifAbsentColor,
-        'no_response' => _effectifNoResponseColor,
-        _ => color,
-      };
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -212,7 +204,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
                       ? _playerCell(
                           context,
                           players[row + column],
-                          _playerColor(players[row + column]),
+                          color,
                         )
                       : const SizedBox.shrink(),
                 ),
