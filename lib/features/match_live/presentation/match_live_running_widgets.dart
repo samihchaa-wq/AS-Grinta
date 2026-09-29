@@ -754,6 +754,46 @@ class _JournalEventRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    if (event.type == MatchLiveEventType.substitution && salvo != null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(6, 8, 8, 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 38,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SubstitutionSalvoBadge(salvo: salvo!),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: DefaultTextStyle.merge(
+                style: theme.textTheme.bodyMedium,
+                child: LiveSubstitutionLine(
+                  playerInName: event.playerInName ?? '?',
+                  playerOutName: event.playerOutName ?? '?',
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              "${event.minute}'",
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            if (canEdit) ...[
+              const SizedBox(width: 2),
+              _actionMenu(context),
+            ],
+          ],
+        ),
+      );
+    }
+
     final (icon, color, label) = switch (event.type) {
       MatchLiveEventType.goalUs => (
           Icons.sports_soccer_rounded,
@@ -775,124 +815,153 @@ class _JournalEventRow extends StatelessWidget {
               '${event.playerOutName ?? '?'} sort',
         ),
     };
+    final isAsGrinta = event.type == MatchLiveEventType.goalUs;
     final hasScore =
         event.scoreAsGrintaAfter != null && event.scoreAdverseAfter != null;
-    final canChooseScorer = canEditScorer &&
-        event.type == MatchLiveEventType.goalUs &&
-        event.needsScorer;
+    final canChooseScorer =
+        canEditScorer && isAsGrinta && event.needsScorer;
+
+    final details = ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width * .50,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: canChooseScorer ? () => onEditScorer(event) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment:
+                isAsGrinta ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+            children: [
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: isAsGrinta ? TextAlign.left : TextAlign.right,
+                style: canChooseScorer
+                    ? theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w400,
+                        decoration: TextDecoration.underline,
+                      )
+                    : theme.textTheme.bodyMedium,
+              ),
+              if (hasScore)
+                Text(
+                  '${event.scoreAsGrintaAfter} - ${event.scoreAdverseAfter}',
+                  textAlign: isAsGrinta ? TextAlign.left : TextAlign.right,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final goal = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 10),
+        details,
+      ],
+    );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 9, 8, 9),
+      padding: const EdgeInsets.fromLTRB(8, 9, 8, 9),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 36,
-            child: Text(
-              "${event.minute}'",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-          if (salvo == null)
-            Icon(icon, size: 20, color: color)
-          else
-            SizedBox(width: 28, child: SubstitutionSalvoBadge(salvo: salvo!)),
-          const SizedBox(width: AppSpacing.contentGap),
           Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: canChooseScorer ? () => onEditScorer(event) : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: canChooseScorer
-                      ? theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w400,
-                          decoration: TextDecoration.underline,
-                        )
-                      : theme.textTheme.bodyMedium,
-                ),
-              ),
+            child: isAsGrinta
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 34),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: goal,
+                    ),
+                  )
+                : Align(
+                    alignment: Alignment.centerRight,
+                    child: goal,
+                  ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            "${event.minute}'",
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w400,
             ),
           ),
-          if (hasScore) ...[
-            const SizedBox(width: AppSpacing.contentGap),
-            Text(
-              '${event.scoreAsGrintaAfter} - ${event.scoreAdverseAfter}',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
           if (canEdit) ...[
             const SizedBox(width: 2),
-            PopupMenuButton<_JournalAction>(
-              tooltip: 'Corriger',
-              onSelected: (action) {
-                switch (action) {
-                  case _JournalAction.scorer:
-                    onEditScorer(event);
-                  case _JournalAction.assist:
-                    onEditAssist(event);
-                  case _JournalAction.delete:
-                    onDelete(event);
-                }
-              },
-              itemBuilder: (context) => [
-                if (event.type == MatchLiveEventType.goalUs)
-                  PopupMenuItem(
-                    value: _JournalAction.scorer,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person_search_rounded),
-                        const SizedBox(width: AppSpacing.contentGap),
-                        Text(
-                          event.needsScorer
-                              ? 'Choisir le buteur'
-                              : 'Corriger le buteur',
-                        ),
-                      ],
-                    ),
-                  ),
-                if (event.type == MatchLiveEventType.goalUs &&
-                    event.scorerParticipantId != null)
-                  PopupMenuItem(
-                    value: _JournalAction.assist,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.emoji_events_outlined),
-                        const SizedBox(width: AppSpacing.contentGap),
-                        Text(
-                          event.assistName == null
-                              ? 'Ajouter la passe décisive'
-                              : 'Corriger la passe décisive',
-                        ),
-                      ],
-                    ),
-                  ),
-                const PopupMenuItem(
-                  value: _JournalAction.delete,
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline_rounded),
-                      SizedBox(width: AppSpacing.contentGap),
-                      Text('Retirer'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            _actionMenu(context),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _actionMenu(BuildContext context) {
+    return PopupMenuButton<_JournalAction>(
+      tooltip: 'Corriger',
+      onSelected: (action) {
+        switch (action) {
+          case _JournalAction.scorer:
+            onEditScorer(event);
+          case _JournalAction.assist:
+            onEditAssist(event);
+          case _JournalAction.delete:
+            onDelete(event);
+        }
+      },
+      itemBuilder: (context) => [
+        if (event.type == MatchLiveEventType.goalUs)
+          PopupMenuItem(
+            value: _JournalAction.scorer,
+            child: Row(
+              children: [
+                const Icon(Icons.person_search_rounded),
+                const SizedBox(width: AppSpacing.contentGap),
+                Text(
+                  event.needsScorer
+                      ? 'Choisir le buteur'
+                      : 'Corriger le buteur',
+                ),
+              ],
+            ),
+          ),
+        if (event.type == MatchLiveEventType.goalUs &&
+            event.scorerParticipantId != null)
+          PopupMenuItem(
+            value: _JournalAction.assist,
+            child: Row(
+              children: [
+                const Icon(Icons.emoji_events_outlined),
+                const SizedBox(width: AppSpacing.contentGap),
+                Text(
+                  event.assistName == null
+                      ? 'Ajouter la passe décisive'
+                      : 'Corriger la passe décisive',
+                ),
+              ],
+            ),
+          ),
+        const PopupMenuItem(
+          value: _JournalAction.delete,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded),
+              SizedBox(width: AppSpacing.contentGap),
+              Text('Retirer'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
