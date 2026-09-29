@@ -189,30 +189,33 @@ void main() {
         matching: find.byType(ListTile),
       ),
     );
-    expect(tile.contentPadding, const EdgeInsets.fromLTRB(0, 0, 6, 0));
-    expect(tile.horizontalTitleGap, 0);
-    expect(tile.minLeadingWidth, 0);
+    expect(tile.contentPadding, const EdgeInsets.fromLTRB(6, 0, 6, 0));
+    expect(tile.horizontalTitleGap, 4);
+    expect(tile.minLeadingWidth, 32);
   });
 
-  testWidgets('une salve affiche un seul repère centré', (tester) async {
-    Map<String, Object?> sub(String id, int minute, int half) => {
+  testWidgets('chaque sortie porte le repère du joueur qui sort', (
+    tester,
+  ) async {
+    Map<String, Object?> sub(
+            String id, int minute, String inName, String outName) =>
+        {
           'id': id,
           'event_type': 'substitution',
           'minute': minute,
-          'half': half,
-          'player_in_name': 'In$id',
-          'player_out_name': 'Out$id',
+          'half': 1,
+          'player_in_name': inName,
+          'player_out_name': outName,
         };
     await pumpCard(
       tester,
       timeline: MatchLiveTimeline.tryFromRpc({
         'match_id': 'match-1',
         'events': [
-          sub('a', 5, 1),
-          sub('b', 5, 1),
-          sub('c', 32, 1),
-          sub('d', 50, 2),
-          sub('e', 50, 2),
+          sub('a', 5, 'Banc1', 'Titu1'),
+          sub('b', 5, 'Banc2', 'Titu2'),
+          // Banc1 a commencé sur le banc : sa première sortie est un 2.x.
+          sub('c', 20, 'Titu1', 'Banc1'),
         ],
       }),
     );
@@ -221,17 +224,8 @@ void main() {
 
     expect(find.text('1.1'), findsOneWidget);
     expect(find.text('1.2'), findsOneWidget);
-    // La numérotation des salves repart à la reprise.
     expect(find.text('2.1'), findsOneWidget);
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
-
-    final firstSalvoCenter = tester.getCenter(find.text('1.1')).dy;
-    final firstRowCenter = tester.getCenter(find.text('Ina')).dy;
-    final secondRowCenter = tester.getCenter(find.text('Inb')).dy;
-    expect(
-      firstSalvoCenter,
-      closeTo((firstRowCenter + secondRowCenter) / 2, 1),
-    );
 
     final badge = tester.widget<Text>(find.text('1.1'));
     expect(badge.style?.color, Colors.white);

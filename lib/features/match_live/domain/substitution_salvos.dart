@@ -19,17 +19,26 @@ class SubstitutionSalvo {
 
   /// Rang de la salve sur tout le match, pour lui donner sa couleur.
   final int colorIndex;
-
-  /// Libellé affiché à gauche des remplacements : « mi-temps.salve ».
-  String get label => '$half.$number';
 }
 
-/// Associe chaque remplacement à sa salve. La table compare les événements
-/// par identité : deux événements sans identifiant ne se confondent pas.
+/// Repère d'une sortie du terrain : « repos.rang ».
 ///
-/// Les événements sont lus dans l'ordre chronologique : mi-temps, puis minute,
-/// puis ordre d'arrivée.
-Map<MatchLiveEvent, SubstitutionSalvo> substitutionSalvosByEvent(
+/// [rest] compte les repos du joueur qui sort, celui-ci compris. Commencer sur
+/// le banc compte comme un premier repos : la première sortie d'un remplaçant
+/// est donc déjà un 2.x. [rank] est l'ordre de cette sortie parmi toutes les
+/// sorties du même tour (tous les 2.x, par exemple).
+class SubstitutionExitMark {
+  const SubstitutionExitMark({required this.rest, required this.rank});
+
+  final int rest;
+  final int rank;
+
+  String get label => '$rest.$rank';
+}
+
+/// Remplacements dans l'ordre chronologique : mi-temps, puis minute, puis
+/// ordre d'arrivée.
+List<MatchLiveEvent> _chronologicalSubstitutions(
   Iterable<MatchLiveEvent> events,
 ) {
   final substitutions = events
@@ -44,12 +53,47 @@ Map<MatchLiveEvent, SubstitutionSalvo> substitutionSalvosByEvent(
       if (byMinute != 0) return byMinute;
       return a.$1.compareTo(b.$1);
     });
+  return [for (final (_, event) in indexed) event];
+}
 
+/// Associe chaque remplacement au repère du joueur qui sort.
+///
+/// Un joueur qui entre sans être jamais sorti était sur le banc : il a déjà
+/// eu un repos. Un joueur ajouté en cours de match est traité de la même façon.
+Map<MatchLiveEvent, SubstitutionExitMark> substitutionExitMarksByEvent(
+  Iterable<MatchLiveEvent> events,
+) {
+  final rests = <String, int>{};
+  final ranksByRest = <int, int>{};
+  final result = Map<MatchLiveEvent, SubstitutionExitMark>.identity();
+  for (final event in _chronologicalSubstitutions(events)) {
+    final outKey = event.playerOutParticipantId ??
+        event.playerOutName ??
+        'event:${event.id}';
+    final rest = (rests[outKey] ?? 0) + 1;
+    rests[outKey] = rest;
+    final rank = (ranksByRest[rest] ?? 0) + 1;
+    ranksByRest[rest] = rank;
+    result[event] = SubstitutionExitMark(rest: rest, rank: rank);
+
+    final inKey = event.playerInParticipantId ?? event.playerInName;
+    if (inKey != null) rests.putIfAbsent(inKey, () => 1);
+  }
+  return result;
+}
+
+/// Associe chaque remplacement à sa salve. La table compare les événements
+/// par identité : deux événements sans identifiant ne se confondent pas.
+///
+/// Les événements sont lus dans l'ordre chronologique.
+Map<MatchLiveEvent, SubstitutionSalvo> substitutionSalvosByEvent(
+  Iterable<MatchLiveEvent> events,
+) {
   final result = Map<MatchLiveEvent, SubstitutionSalvo>.identity();
   SubstitutionSalvo? current;
   int? currentMinute;
   var colorIndex = -1;
-  for (final (_, event) in indexed) {
+  for (final event in _chronologicalSubstitutions(events)) {
     final sameSalvo = current != null &&
         current.half == event.half &&
         currentMinute == event.minute;

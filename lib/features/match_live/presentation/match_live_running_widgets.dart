@@ -604,6 +604,7 @@ class _LiveJournal extends StatelessWidget {
     final ordered = events.reversed.toList();
     final latest = ordered.isEmpty ? null : ordered.first;
     final salvos = substitutionSalvosByEvent(events);
+    final marks = substitutionExitMarksByEvent(events);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -665,6 +666,7 @@ class _LiveJournal extends StatelessWidget {
               salvos[latest],
               _JournalEventRow(
                 event: latest,
+                mark: marks[latest],
                 canEdit: false,
                 canEditScorer: canEdit,
                 onEditScorer: onEditScorer,
@@ -674,7 +676,7 @@ class _LiveJournal extends StatelessWidget {
             ),
           ] else ...[
             const Divider(height: 1),
-            ..._expandedRows(ordered, salvos),
+            ..._expandedRows(ordered, salvos, marks),
           ],
         ],
       ),
@@ -683,7 +685,7 @@ class _LiveJournal extends StatelessWidget {
 
   Widget _framed(SubstitutionSalvo? salvo, Widget child) => salvo == null
       ? child
-      : SubstitutionSalvoGroup(
+      : SubstitutionSalvoFrame(
           salvo: salvo,
           margin: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           child: child,
@@ -694,9 +696,11 @@ class _LiveJournal extends StatelessWidget {
   List<Widget> _expandedRows(
     List<MatchLiveEvent> ordered,
     Map<MatchLiveEvent, SubstitutionSalvo> salvos,
+    Map<MatchLiveEvent, SubstitutionExitMark> marks,
   ) {
     Widget row(MatchLiveEvent event) => _JournalEventRow(
           event: event,
+          mark: marks[event],
           canEdit: canEdit,
           canEditScorer: canEdit,
           onEditScorer: onEditScorer,
@@ -731,6 +735,7 @@ class _LiveJournal extends StatelessWidget {
 class _JournalEventRow extends StatelessWidget {
   const _JournalEventRow({
     required this.event,
+    this.mark,
     required this.canEdit,
     required this.canEditScorer,
     required this.onEditScorer,
@@ -739,6 +744,9 @@ class _JournalEventRow extends StatelessWidget {
   });
 
   final MatchLiveEvent event;
+
+  /// Repère du joueur qui sort : il remplace l'icône. `null` sur un but.
+  final SubstitutionExitMark? mark;
   final bool canEdit;
   final bool canEditScorer;
   final ValueChanged<MatchLiveEvent> onEditScorer;
@@ -838,10 +846,15 @@ class _JournalEventRow extends StatelessWidget {
 
     if (isSubstitution) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(0, 5, 6, 5),
+        padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            SizedBox(
+              width: 32,
+              child: SubstitutionExitBadge(mark: mark!),
+            ),
+            const SizedBox(width: 4),
             Expanded(
               child: LiveSubstitutionLine(
                 playerInName: event.playerInName ?? '?',
