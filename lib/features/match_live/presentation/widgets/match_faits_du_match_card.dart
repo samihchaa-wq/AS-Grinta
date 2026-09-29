@@ -20,6 +20,7 @@ class _FactRow {
     this.isAsGrintaGoal,
     this.substitution,
     this.salvo,
+    this.mark,
     this.sortMinute,
   });
 
@@ -36,6 +37,9 @@ class _FactRow {
 
   /// Salve à laquelle appartient le remplacement. `null` sur un but.
   final SubstitutionSalvo? salvo;
+
+  /// Repère du joueur qui sort. `null` sur un but.
+  final SubstitutionExitMark? mark;
 
   /// Minute servant au tri. `null` quand elle est inconnue : la ligne garde
   /// alors la place que le compte rendu lui a donnée.
@@ -111,6 +115,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
     }
 
     final salvos = substitutionSalvosByEvent(substitutions);
+    final marks = substitutionExitMarksByEvent(substitutions);
     for (final event in substitutions) {
       rows.add(
         _FactRow(
@@ -121,6 +126,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
           text: '',
           substitution: event,
           salvo: salvos[event],
+          mark: marks[event],
         ),
       );
     }
@@ -156,7 +162,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
         index += 1;
       }
       widgets.add(
-        SubstitutionSalvoGroup(
+        SubstitutionSalvoFrame(
           salvo: salvo,
           child: Column(
             children: [for (final row in group) _FactLine(row: row)],
@@ -190,9 +196,13 @@ class _FactLine extends StatelessWidget {
     if (substitution != null) {
       return ListTile(
         dense: true,
-        contentPadding: const EdgeInsets.fromLTRB(0, 0, 6, 0),
-        horizontalTitleGap: 0,
-        minLeadingWidth: 0,
+        contentPadding: const EdgeInsets.fromLTRB(6, 0, 6, 0),
+        horizontalTitleGap: 4,
+        minLeadingWidth: 32,
+        leading: SizedBox(
+          width: 32,
+          child: Center(child: SubstitutionExitBadge(mark: row.mark!)),
+        ),
         title: LiveSubstitutionLine(
           playerInName: substitution.playerInName ?? '?',
           playerOutName: substitution.playerOutName ?? '?',

@@ -22,19 +22,20 @@ Color substitutionSalvoColor(SubstitutionSalvo salvo) =>
     substitutionSalvoPalette[
         salvo.colorIndex % substitutionSalvoPalette.length];
 
-/// Repère « mi-temps.salve » affiché à la place de l'icône de remplacement.
-class SubstitutionSalvoBadge extends StatelessWidget {
-  const SubstitutionSalvoBadge({super.key, required this.salvo});
+/// Repère « repos.rang » du joueur qui sort, à la place de l'icône de
+/// remplacement.
+class SubstitutionExitBadge extends StatelessWidget {
+  const SubstitutionExitBadge({super.key, required this.mark});
 
-  final SubstitutionSalvo salvo;
+  final SubstitutionExitMark mark;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Mi-temps ${salvo.half}, salve ${salvo.number}',
+      label: 'Sortie numéro ${mark.rest}, rang ${mark.rank}',
       child: ExcludeSemantics(
         child: Text(
-          salvo.label,
+          mark.label,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: Colors.white,
@@ -70,45 +71,6 @@ class SubstitutionSalvoFrame extends StatelessWidget {
         border: Border.all(color: color, width: 1.5),
       ),
       child: child,
-    );
-  }
-}
-
-/// Groupe une salve entière derrière un seul repère, centré verticalement.
-class SubstitutionSalvoGroup extends StatelessWidget {
-  const SubstitutionSalvoGroup({
-    super.key,
-    required this.salvo,
-    required this.child,
-    this.margin = const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-    this.leadingExtent = 38,
-  });
-
-  final SubstitutionSalvo salvo;
-  final Widget child;
-  final EdgeInsetsGeometry margin;
-  final double leadingExtent;
-
-  @override
-  Widget build(BuildContext context) {
-    return SubstitutionSalvoFrame(
-      salvo: salvo,
-      margin: margin,
-      child: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(left: leadingExtent),
-            child: child,
-          ),
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: leadingExtent,
-            child: Center(child: SubstitutionSalvoBadge(salvo: salvo)),
-          ),
-        ],
-      ),
     );
   }
 }
