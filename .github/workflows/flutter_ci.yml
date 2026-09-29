@@ -338,7 +338,6 @@ jobs:
             dependency-graph.stderr.log
             dependency-summary.txt
             format.log
-            lib/features/match_live/presentation/match_live_running_widgets.dart
             analyze.log
             test.log
             coverage/lcov.info
