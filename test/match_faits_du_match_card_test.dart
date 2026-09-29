@@ -118,6 +118,13 @@ void main() {
     expect(find.text('But adverse'), findsOneWidget);
     expect(find.text('1-0'), findsOneWidget);
     expect(find.text('1-1'), findsOneWidget);
+
+    // Nos buts restent dans la zone gauche-centre, ceux de l'adversaire
+    // basculent nettement à droite.
+    expect(
+      tester.getTopLeft(find.text('But adverse')).dx,
+      greaterThan(tester.getTopLeft(find.text('Samih')).dx),
+    );
   });
 
   testWidgets('une minute inconnue s’affiche sans inventer d’horaire', (
@@ -206,6 +213,9 @@ void main() {
 
     expect(find.text('1.1'), findsNWidgets(2));
     expect(find.text('1.2'), findsOneWidget);
+    // Les repères restent lisibles indépendamment de la couleur de la salve.
+    final firstBadge = tester.widget<Text>(find.text('1.1').first);
+    expect(firstBadge.style?.color, Colors.white);
     // La numérotation des salves repart à la reprise.
     expect(find.text('2.1'), findsNWidgets(2));
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
