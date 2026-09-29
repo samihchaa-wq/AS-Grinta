@@ -156,16 +156,9 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
         index += 1;
         continue;
       }
-      // Un repère identique à la ligne précédente de la série n'est pas
-      // répété : les joueurs sortis ensemble partagent le même numéro.
       final group = <Widget>[];
-      String? previousLabel;
       while (index < rows.length && identical(rows[index].salvo, salvo)) {
-        final label = rows[index].mark?.label;
-        group.add(
-          _FactLine(row: rows[index], showMark: label != previousLabel),
-        );
-        previousLabel = label;
+        group.add(_FactLine(row: rows[index]));
         index += 1;
       }
       widgets.add(
@@ -191,12 +184,9 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
 }
 
 class _FactLine extends StatelessWidget {
-  const _FactLine({required this.row, this.showMark = true});
+  const _FactLine({required this.row});
 
   final _FactRow row;
-
-  /// `false` quand la ligne précédente de la série porte déjà ce repère.
-  final bool showMark;
 
   @override
   Widget build(BuildContext context) {
@@ -209,9 +199,9 @@ class _FactLine extends StatelessWidget {
         minLeadingWidth: 32,
         leading: SizedBox(
           width: 32,
-          child: showMark && row.mark != null
-              ? Center(child: SubstitutionExitBadge(mark: row.mark!))
-              : null,
+          child: row.mark == null
+              ? null
+              : Center(child: SubstitutionExitBadge(mark: row.mark!)),
         ),
         title: LiveSubstitutionLine(
           playerInName: substitution.playerInName ?? '?',
