@@ -73,3 +73,42 @@ class SubstitutionSalvoFrame extends StatelessWidget {
     );
   }
 }
+
+/// Groupe une salve entière derrière un seul repère, centré verticalement.
+class SubstitutionSalvoGroup extends StatelessWidget {
+  const SubstitutionSalvoGroup({
+    super.key,
+    required this.salvo,
+    required this.child,
+    this.margin = const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+    this.leadingExtent = 38,
+  });
+
+  final SubstitutionSalvo salvo;
+  final Widget child;
+  final EdgeInsetsGeometry margin;
+  final double leadingExtent;
+
+  @override
+  Widget build(BuildContext context) {
+    return SubstitutionSalvoFrame(
+      salvo: salvo,
+      margin: margin,
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.only(left: leadingExtent),
+            child: child,
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: leadingExtent,
+            child: Center(child: SubstitutionSalvoBadge(salvo: salvo)),
+          ),
+        ],
+      ),
+    );
+  }
+}

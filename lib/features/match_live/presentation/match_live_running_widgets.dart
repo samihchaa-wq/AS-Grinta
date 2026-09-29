@@ -665,7 +665,6 @@ class _LiveJournal extends StatelessWidget {
               salvos[latest],
               _JournalEventRow(
                 event: latest,
-                salvo: salvos[latest],
                 canEdit: false,
                 canEditScorer: canEdit,
                 onEditScorer: onEditScorer,
@@ -684,7 +683,7 @@ class _LiveJournal extends StatelessWidget {
 
   Widget _framed(SubstitutionSalvo? salvo, Widget child) => salvo == null
       ? child
-      : SubstitutionSalvoFrame(
+      : SubstitutionSalvoGroup(
           salvo: salvo,
           margin: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           child: child,
@@ -698,7 +697,6 @@ class _LiveJournal extends StatelessWidget {
   ) {
     Widget row(MatchLiveEvent event) => _JournalEventRow(
           event: event,
-          salvo: salvos[event],
           canEdit: canEdit,
           canEditScorer: canEdit,
           onEditScorer: onEditScorer,
@@ -733,7 +731,6 @@ class _LiveJournal extends StatelessWidget {
 class _JournalEventRow extends StatelessWidget {
   const _JournalEventRow({
     required this.event,
-    this.salvo,
     required this.canEdit,
     required this.canEditScorer,
     required this.onEditScorer,
@@ -742,9 +739,6 @@ class _JournalEventRow extends StatelessWidget {
   });
 
   final MatchLiveEvent event;
-
-  /// Salve du remplacement : son repère remplace l'icône. `null` sur un but.
-  final SubstitutionSalvo? salvo;
   final bool canEdit;
   final bool canEditScorer;
   final ValueChanged<MatchLiveEvent> onEditScorer;
@@ -844,15 +838,10 @@ class _JournalEventRow extends StatelessWidget {
 
     if (isSubstitution) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
+        padding: const EdgeInsets.fromLTRB(0, 5, 6, 5),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(
-              width: 28,
-              child: SubstitutionSalvoBadge(salvo: salvo!),
-            ),
-            const SizedBox(width: 4),
             Expanded(
               child: LiveSubstitutionLine(
                 playerInName: event.playerInName ?? '?',
