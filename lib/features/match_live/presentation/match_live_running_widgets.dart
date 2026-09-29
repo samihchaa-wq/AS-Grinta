@@ -810,8 +810,7 @@ class _JournalEventRow extends StatelessWidget {
         : 'But adverse';
     final hasScore =
         event.scoreAsGrintaAfter != null && event.scoreAdverseAfter != null;
-    final canChooseScorer =
-        canEditScorer && isAsGrinta && event.needsScorer;
+    final canChooseScorer = canEditScorer && isAsGrinta && event.needsScorer;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(isAsGrinta ? 48 : 12, 8, 7, 8),
