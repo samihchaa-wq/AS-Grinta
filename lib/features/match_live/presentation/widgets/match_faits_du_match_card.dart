@@ -212,7 +212,7 @@ class _FactLine extends StatelessWidget {
 
     final isOpponentGoal = row.isAsGrintaGoal == false;
     final goalIndent =
-        (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0);
+        (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0).toDouble();
     final theme = Theme.of(context);
 
     return LayoutBuilder(
