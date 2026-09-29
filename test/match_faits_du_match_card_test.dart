@@ -194,7 +194,7 @@ void main() {
     expect(tile.minLeadingWidth, 32);
   });
 
-  testWidgets('une série porte un seul repère « passage.série »', (
+  testWidgets('les joueurs d’une série portent le même repère', (
     tester,
   ) async {
     Map<String, Object?> sub(
@@ -222,13 +222,13 @@ void main() {
     await tester.pumpAndSettle();
     await openCard(tester);
 
-    // Titu1 et Titu2 sortent ensemble : un seul « 1.1 » pour la série.
-    expect(find.text('1.1'), findsOneWidget);
+    // Titu1 et Titu2 sortent ensemble : chacun porte « 1.1 ».
+    expect(find.text('1.1'), findsNWidgets(2));
     expect(find.text('1.2'), findsNothing);
     expect(find.text('2.1'), findsOneWidget);
     expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
 
-    final badge = tester.widget<Text>(find.text('1.1'));
+    final badge = tester.widget<Text>(find.text('1.1').first);
     expect(badge.style?.color, Colors.white);
   });
 
