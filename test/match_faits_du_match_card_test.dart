@@ -194,9 +194,7 @@ void main() {
     expect(tile.minLeadingWidth, 0);
   });
 
-  testWidgets(
-    'chaque salve n’affiche son repère qu’une fois, centré sur le groupe',
-    (tester) async {
+  testWidgets('une salve affiche un seul repère centré', (tester) async {
     Map<String, Object?> sub(String id, int minute, int half) => {
           'id': id,
           'event_type': 'substitution',
@@ -237,8 +235,7 @@ void main() {
 
     final badge = tester.widget<Text>(find.text('1.1'));
     expect(badge.style?.color, Colors.white);
-    },
-  );
+  });
 
   testWidgets('sans aucun fait, le bloc disparaît', (tester) async {
     await pumpCard(tester);
