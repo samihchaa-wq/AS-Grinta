@@ -1,7 +1,9 @@
 import 'package:as_grinta/core/widgets/collapsible_section_card.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
+import 'package:as_grinta/features/match_live/domain/substitution_salvos.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/substitution_salvo_frame.dart';
 import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_goal_action.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,7 @@ class _FactRow {
     required this.order,
     this.scoreLabel,
     this.substitution,
+    this.salvo,
     this.sortMinute,
   });
 
@@ -26,6 +29,9 @@ class _FactRow {
   /// Score cumulé après ce but. `null` sur un remplacement.
   final String? scoreLabel;
   final MatchLiveEvent? substitution;
+
+  /// Salve à laquelle appartient le remplacement. `null` sur un but.
+  final SubstitutionSalvo? salvo;
 
   /// Minute servant au tri. `null` quand elle est inconnue : la ligne garde
   /// alors la place que le compte rendu lui a donnée.
@@ -64,7 +70,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
       icon: Icons.timeline_rounded,
       title: 'Faits du match',
       children: [
-        for (final row in rows) _FactLine(row: row),
+        ..._groupBySalvo(rows),
         const SizedBox(height: 8),
       ],
     );
@@ -99,6 +105,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
       );
     }
 
+    final salvos = substitutionSalvosByEvent(substitutions);
     for (final event in substitutions) {
       rows.add(
         _FactRow(
@@ -108,6 +115,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
           icon: Icons.swap_horiz_rounded,
           text: '',
           substitution: event,
+          salvo: salvos[event],
         ),
       );
     }
@@ -123,6 +131,35 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
       return a.order.compareTo(b.order);
     });
     return rows;
+  }
+
+  /// Les remplacements consécutifs d'une même salve partagent un encadré de
+  /// la couleur de cette salve.
+  List<Widget> _groupBySalvo(List<_FactRow> rows) {
+    final widgets = <Widget>[];
+    var index = 0;
+    while (index < rows.length) {
+      final salvo = rows[index].salvo;
+      if (salvo == null) {
+        widgets.add(_FactLine(row: rows[index]));
+        index += 1;
+        continue;
+      }
+      final group = <_FactRow>[];
+      while (index < rows.length && identical(rows[index].salvo, salvo)) {
+        group.add(rows[index]);
+        index += 1;
+      }
+      widgets.add(
+        SubstitutionSalvoFrame(
+          salvo: salvo,
+          child: Column(
+            children: [for (final row in group) _FactLine(row: row)],
+          ),
+        ),
+      );
+    }
+    return widgets;
   }
 
   String _goalText(MatchGoalAction goal) {
@@ -145,9 +182,17 @@ class _FactLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final substitution = row.substitution;
+    final salvo = row.salvo;
     return ListTile(
       dense: true,
-      leading: Icon(row.icon, size: 20),
+      leading: SizedBox(
+        width: 32,
+        child: Center(
+          child: salvo == null
+              ? Icon(row.icon, size: 20)
+              : SubstitutionSalvoBadge(salvo: salvo),
+        ),
+      ),
       title: substitution == null
           ? Text(row.text)
           : LiveSubstitutionLine(
