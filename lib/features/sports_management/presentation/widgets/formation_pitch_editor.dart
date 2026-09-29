@@ -197,6 +197,7 @@ class FormationPitchEditor extends StatefulWidget {
     required this.onRemoveFromField,
     this.editable = true,
     this.finishedBenchCounts = const {},
+    this.benchLabels = const {},
     this.markerMetrics,
   });
 
@@ -210,6 +211,10 @@ class FormationPitchEditor extends StatefulWidget {
   /// Nombre de fois où chaque joueur (par participantId) a déjà été noté
   /// remplaçant dans un match terminé.
   final Map<String, int> finishedBenchCounts;
+
+  /// Texte affiché à la place du compteur, par participantId (« 2.1 » en
+  /// direct). Un joueur absent garde son simple compteur.
+  final Map<String, String> benchLabels;
 
   /// Taille imposée des marqueurs. Renseignée quand un autre bloc (le banc du
   /// Tableau Blanc) doit afficher exactement les mêmes vignettes ; sinon elle
@@ -545,6 +550,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
 
           final finishedBenchCount =
               finishedBenchCounts[entry.participantId] ?? 0;
+          final benchLabel = widget.benchLabels[entry.participantId];
           final marker = Material(
             color: Colors.transparent,
             child: InkWell(
@@ -591,6 +597,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                             top: -2,
                             child: SubstituteHistoryBadge(
                               count: finishedBenchCount,
+                              label: benchLabel,
                             ),
                           ),
                       ],

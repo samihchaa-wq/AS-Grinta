@@ -47,6 +47,35 @@ void main() {
     _expectNotTruncated(tester, _longName);
   });
 
+  testWidgets('sur le terrain, la pastille indique « passage.série »', (
+    tester,
+  ) async {
+    final metrics = FormationMarkerMetrics.forPitch(296);
+    final entry = _entry('Samih', 0.5, 0.9);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 296,
+              child: FormationPitchEditor(
+                slots: formationForCode('4-2-1-3').slots,
+                entries: [entry],
+                markerMetrics: metrics,
+                finishedBenchCounts: {entry.participantId: 1},
+                benchLabels: {entry.participantId: '1.1'},
+                onDroppedOnSlot: (_, __) {},
+                onRemoveFromField: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('1.1'), findsOneWidget);
+  });
+
   testWidgets('sur le banc, la pastille indique « passage.série »', (
     tester,
   ) async {
