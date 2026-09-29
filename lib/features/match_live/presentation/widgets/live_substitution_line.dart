@@ -9,6 +9,7 @@ class LiveSubstitutionLine extends StatelessWidget {
     required this.playerInName,
     required this.playerOutName,
     this.trailingText,
+    this.alignment = WrapAlignment.start,
   });
 
   final String playerInName;
@@ -16,6 +17,7 @@ class LiveSubstitutionLine extends StatelessWidget {
 
   /// Complément affiché à la suite, typiquement la minute (« 45' »).
   final String? trailingText;
+  final WrapAlignment alignment;
 
   static const _inColor = Color(0xFF27AE60);
   static const _outColor = Color(0xFFE74C3C);
@@ -41,6 +43,7 @@ class LiveSubstitutionLine extends StatelessWidget {
       ),
       child: ExcludeSemantics(
         child: Wrap(
+          alignment: alignment,
           spacing: 10,
           runSpacing: 2,
           crossAxisAlignment: WrapCrossAlignment.center,
