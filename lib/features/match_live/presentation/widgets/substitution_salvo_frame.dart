@@ -52,7 +52,7 @@ class SubstitutionSalvoFrame extends StatelessWidget {
     super.key,
     required this.salvo,
     required this.child,
-    this.margin = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    this.margin = const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
   });
 
   final SubstitutionSalvo salvo;
