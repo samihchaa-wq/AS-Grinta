@@ -686,7 +686,7 @@ class _LiveJournal extends StatelessWidget {
       ? child
       : SubstitutionSalvoFrame(
           salvo: salvo,
-          margin: const EdgeInsets.fromLTRB(6, 4, 6, 4),
+          margin: const EdgeInsets.fromLTRB(4, 4, 4, 4),
           child: child,
         );
 
@@ -783,7 +783,7 @@ class _JournalEventRow extends StatelessWidget {
     final isSubstitution = event.type == MatchLiveEventType.substitution;
     final isOpponentGoal = event.type == MatchLiveEventType.goalThem;
     final goalIndent =
-        (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0);
+        (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0).toDouble();
 
     Widget actions() => PopupMenuButton<_JournalAction>(
           tooltip: 'Corriger',
