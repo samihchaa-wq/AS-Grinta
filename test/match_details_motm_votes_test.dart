@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -207,6 +208,72 @@ void main() {
     expect(fetches, 1);
     // Prono reste ouvert après l'aller-retour.
     expect(find.text('Joueur 0'), findsOneWidget);
+  });
+
+  testWidgets('Prono frames each row with the colour of its multiplier',
+      (tester) async {
+    // Score réel : Grinta 2 – 1 Adversaire.
+    MatchPredictionResult prono(String name, int g, int o, double points) =>
+        MatchPredictionResult(
+          profileId: name,
+          name: name,
+          scoreGrinta: g,
+          scoreOpponent: o,
+          points: points,
+          usedX2: false,
+        );
+    final base = _details();
+    await _pump(
+      tester,
+      _vote('closed', [_candidate('a', 'Alice', 3, winner: true)]),
+      details: MatchDetailsData(
+        matchId: base.matchId,
+        opponentId: base.opponentId,
+        opponentName: base.opponentName,
+        isInternal: base.isInternal,
+        kickoffAt: base.kickoffAt,
+        status: base.status,
+        resultValidatedAt: base.resultValidatedAt,
+        location: base.location,
+        address: base.address,
+        matchType: base.matchType,
+        championshipRound: base.championshipRound,
+        scoreGrinta: base.scoreGrinta,
+        scoreOpponent: base.scoreOpponent,
+        oddsWin: null,
+        oddsDraw: null,
+        oddsLoss: null,
+        predictionParticipantCount: 6,
+        headToHead: const [],
+        playerStats: const [],
+        startingLineup: const [],
+        predictions: [
+          prono('Exact', 2, 1, 200),
+          prono('Ecart', 3, 2, 150),
+          prono('UneEquipe', 2, 0, 150),
+          prono('Vainqueur', 4, 0, 100),
+          prono('Rate', 0, 1, 0),
+        ],
+      ),
+    );
+    await tester.tap(find.text('Prono'));
+    await tester.pumpAndSettle();
+
+    Color? frame(String name) {
+      final row = tester.widget<Container>(
+        find
+            .ancestor(of: find.text(name), matching: find.byType(Container))
+            .first,
+      );
+      final border = (row.decoration as BoxDecoration?)?.border as Border?;
+      return border?.top.color;
+    }
+
+    expect(frame('Exact'), const Color(0xFF9B6CFF));
+    expect(frame('Ecart'), AppTheme.reward);
+    expect(frame('UneEquipe'), AppTheme.reward);
+    expect(frame('Vainqueur'), const Color(0xFF39E784));
+    expect(frame('Rate'), isNull);
   });
 
   testWidgets('Votes HDM stays hidden while the vote is open', (tester) async {

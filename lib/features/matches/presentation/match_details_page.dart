@@ -695,6 +695,8 @@ class _PredictionsTable extends StatelessWidget {
 
   int _result(int home, int away) => home == away ? 0 : (home > away ? 1 : -1);
 
+  /// Couleur de l'encadré selon le multiplicateur du barème
+  /// (voir PredictionScoring) : violet ×2, or ×1,5, vert ×1, rien à 0.
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
     final exact = prediction.scoreGrinta == actualGrinta &&
@@ -704,6 +706,11 @@ class _PredictionsTable extends StatelessWidget {
         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
             _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
+    final sameGap = prediction.scoreGrinta - prediction.scoreOpponent ==
+        actualGrinta - actualOpponent;
+    final oneTeamExact = prediction.scoreGrinta == actualGrinta ||
+        prediction.scoreOpponent == actualOpponent;
+    if (sameGap || oneTeamExact) return AppTheme.reward;
     return const Color(0xFF39E784);
   }
 
