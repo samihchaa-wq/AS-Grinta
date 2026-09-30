@@ -182,7 +182,7 @@ select lives_ok(
       '5c681291-ec75-47ed-8bee-1b538b69cefe',
       '{"mimetype":"image/webp"}'::jsonb
     )$$,
-  'un administrateur actif gère les images de badge'
+  'un gestionnaire de badges autorisé gère les images de badge'
 );
 
 reset role;
