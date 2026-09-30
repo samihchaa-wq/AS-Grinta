@@ -14,6 +14,7 @@ const APP_SHELL = [
   'favicon.png',
   'icons/Icon-192.png',
   'icons/Icon-512.png',
+  'icons/notification-badge-96.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -128,7 +129,9 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title || 'AS La Grinta', {
       body: data.body || '',
       icon: 'icons/Icon-192.png',
-      badge: 'icons/Icon-192.png',
+      // Android dessine le badge de la barre d'état avec sa seule
+      // transparence : un logo sur fond plein y devient un carré uni.
+      badge: 'icons/notification-badge-96.png',
       tag: data.tag || undefined,
       data: { url: data.url || '.' },
     }),

@@ -3,6 +3,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
+import 'package:as_grinta/features/badges/domain/badge_admin_access.dart';
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,6 +59,7 @@ void main() {
         ),
         myFeaturedCodesProvider.overrideWith((ref) async => <String>{}),
         isAdminViewProvider.overrideWithValue(false),
+        canManageBadgesProvider.overrideWithValue(false),
       ],
     );
     container.listen(statisticsBadgeEmblemsProvider, (_, __) {});

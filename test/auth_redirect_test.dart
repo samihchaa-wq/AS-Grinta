@@ -280,7 +280,6 @@ void main() {
       for (final route in <String>[
         '/admin',
         '/admin/administration',
-        '/admin/badges',
         '/admin/matches',
         '/players',
         '/matches/abc/finalize',
@@ -297,7 +296,25 @@ void main() {
       }
     });
 
-    test('allows every privileged route for administrators', () {
+    test('blocks badge administration for regular users', () {
+      const state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        hasSession: true,
+        profile: _userProfile,
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/admin/badges'),
+          matchedLocation: '/admin/badges',
+        ),
+        '/matches',
+      );
+    });
+
+    test('allows the other privileged routes for administrators', () {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
@@ -308,7 +325,6 @@ void main() {
       for (final route in <String>[
         '/admin',
         '/admin/administration',
-        '/admin/badges',
         '/admin/matches',
         '/players',
         '/matches/abc/finalize',
@@ -323,6 +339,42 @@ void main() {
           reason: route,
         );
       }
+    });
+
+    test('blocks badge administration for other administrators', () {
+      const state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        hasSession: true,
+        profile: _adminProfile,
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/admin/badges'),
+          matchedLocation: '/admin/badges',
+        ),
+        '/armoire',
+      );
+    });
+
+    test('allows badge administration for an authorized administrator', () {
+      const state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        hasSession: true,
+        profile: _badgeAdminProfile,
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/admin/badges'),
+          matchedLocation: '/admin/badges',
+        ),
+        isNull,
+      );
     });
 
     test('normalizes root and former home aliases to Matchs', () {
@@ -361,6 +413,16 @@ const _adminProfile = AuthProfile(
   id: 'admin',
   firstName: 'Admin',
   lastName: 'One',
+  role: AuthRole.admin,
+  isGoalkeeper: false,
+  isActive: true,
+  mustChangePassword: false,
+);
+
+const _badgeAdminProfile = AuthProfile(
+  id: '89f24276-dac0-4046-87a3-6c28e48fef3a',
+  firstName: 'Badge',
+  lastName: 'Admin',
   role: AuthRole.admin,
   isGoalkeeper: false,
   isActive: true,

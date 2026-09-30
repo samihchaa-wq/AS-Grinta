@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -24,16 +25,19 @@ class BadgeAdminPage extends ConsumerStatefulWidget {
 class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _searchController = TextEditingController();
+  final _commonSearchController = TextEditingController();
+  final _mysterySearchController = TextEditingController();
   Uint8List? _badgeImageBytes;
   bool _creating = false;
-  String _query = '';
+  String _commonQuery = '';
+  String _mysteryQuery = '';
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _searchController.dispose();
+    _commonSearchController.dispose();
+    _mysterySearchController.dispose();
     super.dispose();
   }
 
@@ -48,11 +52,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     );
     if (edited == null || !mounted) return;
     setState(() => _badgeImageBytes = edited);
-  }
-
-  void _resetNewBadgeImage() {
-    if (_creating) return;
-    setState(() => _badgeImageBytes = null);
   }
 
   Future<void> _createBadge() async {
@@ -97,149 +96,232 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     }
   }
 
+  Widget _buildBadgeList(
+    BuildContext context,
+    AsyncValue<List<BadgeDef>> badgesAsync, {
+    required bool mystery,
+    required TextEditingController searchController,
+    required String query,
+    required ValueChanged<String> onSearchChanged,
+  }) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
+      children: [
+        Text(
+          mystery
+              ? 'Uniquement les badges mystères.'
+              : 'Tous les badges communs visibles dans l’application.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: searchController,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search),
+            hintText: 'Rechercher un badge…',
+          ),
+          onChanged: onSearchChanged,
+        ),
+        const SizedBox(height: 12),
+        badgesAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: GrintaProgressIndicator()),
+          ),
+          error: (e, _) => Text(humanizeError(e)),
+          data: (badges) {
+            final sectionBadges = badges.where((badge) {
+              final isMystery =
+                  badge.secret || badge.code.startsWith('custom_');
+              return mystery == isMystery;
+            });
+            final filtered = query.isEmpty
+                ? sectionBadges.toList()
+                : sectionBadges
+                    .where(
+                      (badge) => badge.name.toLowerCase().contains(query),
+                    )
+                    .toList();
+
+            if (filtered.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('Aucun badge trouvé.'),
+              );
+            }
+
+            return EqualHeightColumn(
+              spacing: 8,
+              children: [
+                for (final badge in filtered) _buildBadgeCard(context, badge),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBadgeCard(BuildContext context, BadgeDef badge) {
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => showBadgeDetailSheet(
+          context,
+          badge,
+          onAward: () {
+            Navigator.of(context).pop();
+            showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => _AwardSheet(badge: badge),
+            );
+          },
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              BadgeEmblem(
+                emoji: badge.emoji,
+                imageUrl: badge.imageUrl,
+                color: badge.color,
+                baremeLabel: baremeLabelFor(
+                  badge.metric,
+                  badge.threshold,
+                ),
+                descriptor: badgeDescriptorFor(
+                  code: badge.code,
+                  metric: badge.metric,
+                  category: badge.category,
+                  name: badge.name,
+                ),
+                showStar: badge.hasStar,
+                size: 81,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      badge.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    if (badge.description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(badge.description),
+                    ] else if (badge.kind == 'custom') ...[
+                      const SizedBox(height: 4),
+                      const Text('Custom'),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BadgeImageEditorButton(
+                    badge: badge,
+                    compact: true,
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _tabLabel(String label) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(label, textAlign: TextAlign.center),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final badgesAsync = ref.watch(badgeCatalogProvider);
 
-    return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Badges'), admin: true),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-        children: [
-          _CreateBadgeCard(
-            nameController: _nameController,
-            descController: _descController,
-            imageBytes: _badgeImageBytes,
-            creating: _creating,
-            onEditImage: _editNewBadgeImage,
-            onResetImage: _resetNewBadgeImage,
-            onCreate: _createBadge,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Tous les badges',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Touche un badge pour voir son barème complet, modifier son image '
-            'et le décerner.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _searchController,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Rechercher un badge…',
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: GrintaAppBar(title: const Text('Badges'), admin: true),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorColor: AppTheme.accent,
+                  labelColor: AppTheme.accent,
+                  unselectedLabelColor: AppTheme.textSecondary,
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    Tab(child: _tabLabel('Mystères')),
+                    Tab(child: _tabLabel('Communs')),
+                    Tab(child: _tabLabel('Créer')),
+                  ],
+                ),
+              ),
             ),
-            onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
-          ),
-          const SizedBox(height: 12),
-          badgesAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: GrintaProgressIndicator()),
-            ),
-            error: (e, _) => Text(humanizeError(e)),
-            data: (badges) {
-              final filtered = _query.isEmpty
-                  ? badges
-                  : badges
-                      .where((b) => b.name.toLowerCase().contains(_query))
-                      .toList();
-              if (filtered.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Aucun badge trouvé.'),
-                );
-              }
-              return EqualHeightColumn(
-                spacing: 8,
+            Expanded(
+              child: TabBarView(
                 children: [
-                  for (final b in filtered)
-                    Card(
-                      margin: EdgeInsets.zero,
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => showBadgeDetailSheet(
-                          context,
-                          b,
-                          onAward: () {
-                            Navigator.of(context).pop();
-                            showModalBottomSheet<void>(
-                              context: context,
-                              isScrollControlled: true,
-                              showDragHandle: true,
-                              builder: (_) => _AwardSheet(badge: b),
-                            );
-                          },
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              BadgeEmblem(
-                                emoji: b.emoji,
-                                imageUrl: b.imageUrl,
-                                color: b.color,
-                                baremeLabel: baremeLabelFor(
-                                  b.metric,
-                                  b.threshold,
-                                ),
-                                descriptor: badgeDescriptorFor(
-                                  code: b.code,
-                                  metric: b.metric,
-                                  category: b.category,
-                                  name: b.name,
-                                ),
-                                showStar: b.hasStar,
-                                size: 81,
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      b.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                    ),
-                                    if (b.description.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(b.description),
-                                    ] else if (b.kind == 'custom') ...[
-                                      const SizedBox(height: 4),
-                                      const Text('Custom'),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  BadgeImageEditorButton(
-                                    badge: b,
-                                    compact: true,
-                                  ),
-                                  const Icon(Icons.chevron_right),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                  _buildBadgeList(
+                    context,
+                    badgesAsync,
+                    mystery: true,
+                    searchController: _mysterySearchController,
+                    query: _mysteryQuery,
+                    onSearchChanged: (value) => setState(
+                      () => _mysteryQuery = value.trim().toLowerCase(),
                     ),
+                  ),
+                  _buildBadgeList(
+                    context,
+                    badgesAsync,
+                    mystery: false,
+                    searchController: _commonSearchController,
+                    query: _commonQuery,
+                    onSearchChanged: (value) => setState(
+                      () => _commonQuery = value.trim().toLowerCase(),
+                    ),
+                  ),
+                  ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                    children: [
+                      _CreateBadgeCard(
+                        nameController: _nameController,
+                        descController: _descController,
+                        imageBytes: _badgeImageBytes,
+                        creating: _creating,
+                        onEditImage: _editNewBadgeImage,
+                        onCreate: _createBadge,
+                      ),
+                    ],
+                  ),
                 ],
-              );
-            },
-          ),
-        ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -252,7 +334,6 @@ class _CreateBadgeCard extends StatelessWidget {
     required this.imageBytes,
     required this.creating,
     required this.onEditImage,
-    required this.onResetImage,
     required this.onCreate,
   });
 
@@ -261,7 +342,6 @@ class _CreateBadgeCard extends StatelessWidget {
   final Uint8List? imageBytes;
   final bool creating;
   final VoidCallback onEditImage;
-  final VoidCallback onResetImage;
   final VoidCallback onCreate;
 
   @override
@@ -275,18 +355,7 @@ class _CreateBadgeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Créer un badge',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Le badge est créé directement comme badge mystère, avec le '
-              'fond orange standard, son illustration, son nom et sa description.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 18),
-            Text(
-              '1. Illustration',
+              'Illustration',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
@@ -316,49 +385,10 @@ class _CreateBadgeCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hasImage
-                              ? 'Illustration prête'
-                              : 'Ajoute l’image du badge',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          hasImage
-                              ? 'L’aperçu ci-contre est celui qui sera enregistré.'
-                              : 'Choisis un PNG ou JPEG, puis déplace et zoome '
-                                  'l’image exactement comme pour les badges existants.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 10),
-                        FilledButton.tonalIcon(
-                          onPressed: creating ? null : onEditImage,
-                          icon: Icon(
-                            hasImage
-                                ? Icons.crop_rounded
-                                : Icons.photo_library_rounded,
-                          ),
-                          label: Text(
-                            hasImage
-                                ? 'Modifier le recadrage'
-                                : 'Choisir et recadrer',
-                          ),
-                        ),
-                        if (hasImage) ...[
-                          const SizedBox(height: 4),
-                          TextButton.icon(
-                            onPressed: creating ? null : onResetImage,
-                            icon: const Icon(
-                              Icons.restart_alt_rounded,
-                              size: 18,
-                            ),
-                            label: const Text('Choisir une autre image'),
-                          ),
-                        ],
-                      ],
+                    child: FilledButton.tonalIcon(
+                      onPressed: creating ? null : onEditImage,
+                      icon: const Icon(Icons.photo_library_rounded),
+                      label: const Text('Choisir et recadrer'),
                     ),
                   ),
                 ],
@@ -366,7 +396,7 @@ class _CreateBadgeCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              '2. Informations',
+              'Information',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
@@ -376,7 +406,6 @@ class _CreateBadgeCard extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Nom du badge',
-                hintText: 'Ex. Champion du BBQ',
               ),
             ),
             const SizedBox(height: 12),
@@ -385,14 +414,8 @@ class _CreateBadgeCard extends StatelessWidget {
               enabled: !creating,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                labelText: 'Description (facultatif)',
+                labelText: 'Description',
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Plus besoin d’emoji : l’illustration choisie devient le visuel '
-              'du badge et son nom apparaît automatiquement sur le socle.',
-              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 18),
             SizedBox(

@@ -89,6 +89,8 @@ Future<void> _openAwardSheet(
   );
   await tester.pumpAndSettle();
 
+  await tester.tap(find.text('Mystères'));
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Clutch'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Décerner ce badge'));

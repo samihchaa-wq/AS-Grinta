@@ -16,6 +16,22 @@ void main() {
       ),
       _AuthScenario('user', _authenticated(_profile(AuthRole.pronostiqueur))),
       _AuthScenario('admin', _authenticated(_profile(AuthRole.admin))),
+      const _AuthScenario(
+        'badge_admin',
+        AuthState(
+          isLoading: false,
+          isAuthenticated: true,
+          profile: AuthProfile(
+            id: '89f24276-dac0-4046-87a3-6c28e48fef3a',
+            firstName: 'Badge',
+            lastName: 'Admin',
+            role: AuthRole.admin,
+            isGoalkeeper: false,
+            isActive: true,
+            mustChangePassword: false,
+          ),
+        ),
+      ),
       _AuthScenario(
         'user_password_change',
         _authenticated(
@@ -228,6 +244,13 @@ String? _expectedRedirect({
   if (finalization && !admin) return '/matches';
   if ((adminRoot || matchAdmin || matchedLocation == '/players') && !admin) {
     return '/matches';
+  }
+  if (matchedLocation == '/admin/badges' &&
+      !const {
+        '89f24276-dac0-4046-87a3-6c28e48fef3a',
+        '5c681291-ec75-47ed-8bee-1b538b69cefe',
+      }.contains(authState.profile?.id)) {
+    return '/armoire';
   }
   return null;
 }

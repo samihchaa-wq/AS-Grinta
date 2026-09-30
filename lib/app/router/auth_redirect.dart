@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/badges/domain/badge_admin_access.dart';
 
 /// [sportsManagementEnabled] vaut `null` tant que les réglages du club
 /// chargent : une page sportive attend alors sur l'écran de chargement, avec
@@ -124,6 +125,7 @@ String? resolveAuthRedirect({
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
+  final isBadgeAdminRoute = location == '/admin/badges';
   final isMatchAdminRoute = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(segments.last);
@@ -132,6 +134,9 @@ String? resolveAuthRedirect({
   if (isFinalizationRoute && !isAdmin) return '/matches';
   if ((isAdminRoute || isMatchAdminRoute || isPlayersRoute) && !isAdmin) {
     return '/matches';
+  }
+  if (isBadgeAdminRoute && !canManageBadges(authState.profile)) {
+    return '/armoire';
   }
   return null;
 }
