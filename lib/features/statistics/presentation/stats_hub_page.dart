@@ -407,6 +407,7 @@ StickyTableRow _playersRow(
             profileId: player.profileId,
             name: player.playerName,
             badgeSize: _playerBadgeSize,
+            alignBadgesEnd: true,
           ),
         ),
       ],

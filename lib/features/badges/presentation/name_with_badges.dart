@@ -20,12 +20,17 @@ class NameWithBadges extends ConsumerWidget {
     required this.name,
     this.style,
     this.badgeSize,
+    this.alignBadgesEnd = false,
   });
 
   final String? profileId;
   final String name;
   final TextStyle? style;
   final double? badgeSize;
+
+  /// Pousse les badges contre le bord droit de l'espace disponible, pour
+  /// qu'ils soient alignés en colonne d'une ligne à l'autre.
+  final bool alignBadgesEnd;
 
   TextStyle _resolvedStyle(BuildContext context) {
     final base = grintaTableCellTextStyle(
@@ -59,9 +64,9 @@ class NameWithBadges extends ConsumerWidget {
         : requested;
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: alignBadgesEnd ? MainAxisSize.max : MainAxisSize.min,
       children: [
-        Flexible(child: nameText),
+        alignBadgesEnd ? Expanded(child: nameText) : Flexible(child: nameText),
         for (final badge in badges.take(1)) ...[
           const SizedBox(width: nameWithBadgesGap),
           _BadgeChip(badge: badge, size: emblemSize),

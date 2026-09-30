@@ -39,6 +39,7 @@ void main() {
     required String name,
     bool showBadges = true,
     double? badgeSize,
+    bool alignBadgesEnd = false,
   }) {
     return ProviderScope(
       overrides: [
@@ -58,6 +59,7 @@ void main() {
                         profileId: 'p1',
                         name: name,
                         badgeSize: badgeSize,
+                        alignBadgesEnd: alignBadgesEnd,
                       ),
                     ),
                   ],
@@ -284,6 +286,24 @@ void main() {
         0.5,
       ),
     );
+  });
+
+  testWidgets('les badges alignés à droite forment une colonne',
+      (tester) async {
+    Future<double> badgeRight(String name) async {
+      await tester.pumpWidget(
+        harness(width: 150, name: name, alignBadgesEnd: true),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      return tester.getRect(find.byType(BadgeEmblem).first).right;
+    }
+
+    // Quelle que soit la longueur du prénom, le badge se cale au même bord.
+    final short = await badgeRight('Flo');
+    final long = await badgeRight('François');
+    expect(short, closeTo(long, 0.5));
+    expect(find.text('François'), findsOneWidget);
   });
 
   testWidgets('hors Statistiques, seul le nom est rendu', (tester) async {
