@@ -6,6 +6,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- archives : les 15 matchs joués avec Samih qui n'avaient qu'une liste de
+  présents affichent désormais une composition reconstituée (formation des
+  matchs voisins, joueurs à leur poste habituel, postes vides quand l'effectif
+  était incomplet) ;
 - notifications sur Android : la petite icône de la barre d'état montre la
   silhouette du blason au lieu d'un carré blanc ou noir ;
 - retrait du pari « Buteurs » (pronostic de saison) : saisie, verrouillage des
