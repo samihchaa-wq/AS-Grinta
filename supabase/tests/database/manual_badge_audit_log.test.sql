@@ -40,24 +40,24 @@ select is(
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
-  ('91000000-0000-0000-0000-000000000001', 'badge-audit-admin@example.invalid', '{"first_name":"Admin","last_name":"Audit"}'::jsonb),
+  ('89f24276-dac0-4046-87a3-6c28e48fef3a', 'badge-audit-admin@example.invalid', '{"first_name":"Admin","last_name":"Audit"}'::jsonb),
   ('91000000-0000-0000-0000-000000000002', 'badge-audit-player@example.invalid', '{"first_name":"Player","last_name":"Audit"}'::jsonb);
 
 update public.profiles
 set role = case
-      when id = '91000000-0000-0000-0000-000000000001' then 'admin'
+      when id = '89f24276-dac0-4046-87a3-6c28e48fef3a' then 'admin'
       else 'pronostiqueur'
     end,
     status = 'active',
     updated_at = now()
 where id in (
-  '91000000-0000-0000-0000-000000000001',
+  '89f24276-dac0-4046-87a3-6c28e48fef3a',
   '91000000-0000-0000-0000-000000000002'
 );
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"91000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  '{"sub":"89f24276-dac0-4046-87a3-6c28e48fef3a","role":"authenticated","aud":"authenticated"}',
   true
 );
 set local role authenticated;
@@ -99,7 +99,7 @@ select is(
     where event_type = 'award'
       and profile_id = '91000000-0000-0000-0000-000000000002'
       and badge_code = 'audit_manual_test'
-      and actor_profile_id = '91000000-0000-0000-0000-000000000001'
+      and actor_profile_id = '89f24276-dac0-4046-87a3-6c28e48fef3a'
       and source = 'manual'
       and metadata ->> 'reason' = 'manual_award'
       and state_before is null
@@ -112,7 +112,7 @@ select is(
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"91000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  '{"sub":"89f24276-dac0-4046-87a3-6c28e48fef3a","role":"authenticated","aud":"authenticated"}',
   true
 );
 set local role authenticated;
@@ -132,7 +132,7 @@ select is(
     where event_type = 'revoke'
       and profile_id = '91000000-0000-0000-0000-000000000002'
       and badge_code = 'audit_manual_test'
-      and actor_profile_id = '91000000-0000-0000-0000-000000000001'
+      and actor_profile_id = '89f24276-dac0-4046-87a3-6c28e48fef3a'
       and source = 'manual'
       and metadata ->> 'reason' = 'manual_revoke'
       and state_before ->> 'source' = 'manual'
@@ -145,7 +145,7 @@ select is(
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"91000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  '{"sub":"89f24276-dac0-4046-87a3-6c28e48fef3a","role":"authenticated","aud":"authenticated"}',
   true
 );
 set local role authenticated;
@@ -180,7 +180,7 @@ select is(
     where pb.profile_id = '91000000-0000-0000-0000-000000000002'
       and b.code = 'audit_manual_test'
       and pb.source = 'manual'
-      and pb.awarded_by = '91000000-0000-0000-0000-000000000001'
+      and pb.awarded_by = '89f24276-dac0-4046-87a3-6c28e48fef3a'
   ),
   1::bigint,
   'la réattribution restaure exactement un état courant'
