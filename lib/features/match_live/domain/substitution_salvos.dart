@@ -2,8 +2,11 @@ import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 
 /// Une salve de remplacements : les changements validés ensemble par le coach.
 ///
-/// Le coach valide ses changements d'un seul geste, ils partagent donc la même
-/// mi-temps et la même minute. C'est ce couple qui identifie une salve.
+/// Le coach valide ses changements d'un seul geste : le serveur les écrit
+/// ensemble, avec la même heure d'enregistrement. C'est elle qui identifie une
+/// salve, si bien que deux validations faites dans la même minute (chrono figé
+/// à la mi-temps, par exemple) restent deux salves. Sans cette heure, la
+/// mi-temps et la minute servent de repli.
 class SubstitutionSalvo {
   const SubstitutionSalvo({
     required this.half,
@@ -37,8 +40,12 @@ class SubstitutionExitMark {
   String get label => '$rest.$rank';
 }
 
+/// Identifiant de la salve d'un remplacement : même validation, même salve.
+(int, int, DateTime?) _salvoKey(MatchLiveEvent event) =>
+    (event.half, event.minute, event.createdAt);
+
 /// Remplacements dans l'ordre chronologique : mi-temps, puis minute, puis
-/// ordre d'arrivée.
+/// heure d'enregistrement, puis ordre d'arrivée.
 List<MatchLiveEvent> _chronologicalSubstitutions(
   Iterable<MatchLiveEvent> events,
 ) {
@@ -52,6 +59,12 @@ List<MatchLiveEvent> _chronologicalSubstitutions(
       if (byHalf != 0) return byHalf;
       final byMinute = a.$2.minute.compareTo(b.$2.minute);
       if (byMinute != 0) return byMinute;
+      final aAt = a.$2.createdAt;
+      final bAt = b.$2.createdAt;
+      if (aAt != null && bAt != null) {
+        final byTime = aAt.compareTo(bAt);
+        if (byTime != 0) return byTime;
+      }
       return a.$1.compareTo(b.$1);
     });
   return [for (final (_, event) in indexed) event];
@@ -61,15 +74,15 @@ List<MatchLiveEvent> _chronologicalSubstitutions(
 ///
 /// Un joueur qui entre sans être jamais sorti était sur le banc : il a déjà
 /// eu un passage. Un joueur ajouté en cours de match est traité de la même
-/// façon. Une série regroupe les changements de la même mi-temps et de la même
-/// minute, comme une salve.
+/// façon. Une série regroupe les changements validés ensemble, comme une
+/// salve.
 Map<MatchLiveEvent, SubstitutionExitMark> substitutionExitMarksByEvent(
   Iterable<MatchLiveEvent> events,
 ) {
   final rests = <String, int>{};
   // Pour chaque passage : nombre de séries déjà vues, et la dernière.
   final seriesByRest = <int, int>{};
-  final lastSeriesByRest = <int, (int, int)>{};
+  final lastSeriesByRest = <int, (int, int, DateTime?)>{};
   final result = Map<MatchLiveEvent, SubstitutionExitMark>.identity();
   for (final event in _chronologicalSubstitutions(events)) {
     final outKey = event.playerOutParticipantId ??
@@ -77,7 +90,7 @@ Map<MatchLiveEvent, SubstitutionExitMark> substitutionExitMarksByEvent(
         'event:${event.id}';
     final rest = (rests[outKey] ?? 0) + 1;
     rests[outKey] = rest;
-    final series = (event.half, event.minute);
+    final series = _salvoKey(event);
     if (lastSeriesByRest[rest] != series) {
       lastSeriesByRest[rest] = series;
       seriesByRest[rest] = (seriesByRest[rest] ?? 0) + 1;
@@ -99,12 +112,11 @@ Map<MatchLiveEvent, SubstitutionSalvo> substitutionSalvosByEvent(
 ) {
   final result = Map<MatchLiveEvent, SubstitutionSalvo>.identity();
   SubstitutionSalvo? current;
-  int? currentMinute;
+  (int, int, DateTime?)? currentKey;
   var colorIndex = -1;
   for (final event in _chronologicalSubstitutions(events)) {
-    final sameSalvo = current != null &&
-        current.half == event.half &&
-        currentMinute == event.minute;
+    final key = _salvoKey(event);
+    final sameSalvo = current != null && currentKey == key;
     if (!sameSalvo) {
       colorIndex += 1;
       final number = current != null && current.half == event.half
@@ -115,7 +127,7 @@ Map<MatchLiveEvent, SubstitutionSalvo> substitutionSalvosByEvent(
         number: number,
         colorIndex: colorIndex,
       );
-      currentMinute = event.minute;
+      currentKey = key;
     }
     result[event] = current;
   }
