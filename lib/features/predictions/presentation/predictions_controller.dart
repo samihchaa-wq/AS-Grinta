@@ -36,11 +36,8 @@ class PredictionsState {
 class PredictionsController extends StateNotifier<PredictionsState> {
   PredictionsController(this._repository) : super(const PredictionsState());
 
-  static const Duration _startupLoadFreshness = Duration(seconds: 30);
-
   final PredictionsRepository _repository;
   Future<void>? _loadInFlight;
-  DateTime? _lastSuccessfulLoadAt;
   bool _forceRefreshQueued = false;
 
   Future<void> load({bool forceRefresh = false}) {
@@ -50,14 +47,6 @@ class PredictionsController extends StateNotifier<PredictionsState> {
 
     final existing = _loadInFlight;
     if (existing != null) return existing;
-
-    final lastSuccessfulLoadAt = _lastSuccessfulLoadAt;
-    if (!forceRefresh &&
-        lastSuccessfulLoadAt != null &&
-        DateTime.now().difference(lastSuccessfulLoadAt) <
-            _startupLoadFreshness) {
-      return Future<void>.value();
-    }
 
     final request = _drainLoadQueue(initialForceRefresh: forceRefresh);
     _loadInFlight = request;
@@ -84,7 +73,6 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
-      _lastSuccessfulLoadAt = DateTime.now();
     } catch (error, stackTrace) {
       AppLogger.error('predictions.load', error, stackTrace);
       state = state.copyWith(
