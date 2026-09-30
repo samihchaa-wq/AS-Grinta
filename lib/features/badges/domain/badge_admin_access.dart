@@ -1,4 +1,6 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Gestion sensible des badges : volontairement limitée à deux comptes.
 ///
@@ -16,3 +18,7 @@ bool canManageBadges(AuthProfile? profile) {
       id != null &&
       badgeAdminProfileIds.contains(id);
 }
+
+final canManageBadgesProvider = Provider<bool>((ref) {
+  return canManageBadges(ref.watch(authControllerProvider).profile);
+});
