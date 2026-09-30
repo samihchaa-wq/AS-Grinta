@@ -47,8 +47,9 @@ void main() {
         );
       }
 
-      expect(sync, contains('matchesControllerProvider.notifier).load'));
-      expect(sync, contains('predictionsControllerProvider.notifier).load'));
+      expect(sync, contains('matchesControllerProvider.notifier'));
+      expect(sync, contains('predictionsControllerProvider.notifier'));
+      expect(sync, contains('forceRefresh: true'));
       expect(
         sync,
         contains('authControllerProvider.notifier).refreshProfile'),
