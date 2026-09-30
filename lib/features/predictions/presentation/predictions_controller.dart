@@ -41,8 +41,13 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   final PredictionsRepository _repository;
   Future<void>? _loadInFlight;
   DateTime? _lastSuccessfulLoadAt;
+  bool _forceRefreshQueued = false;
 
   Future<void> load({bool forceRefresh = false}) {
+    if (forceRefresh) {
+      _forceRefreshQueued = true;
+    }
+
     final existing = _loadInFlight;
     if (existing != null) return existing;
 
@@ -54,13 +59,24 @@ class PredictionsController extends StateNotifier<PredictionsState> {
       return Future<void>.value();
     }
 
-    final request = _performLoad();
+    final request = _drainLoadQueue(initialForceRefresh: forceRefresh);
     _loadInFlight = request;
     return request.whenComplete(() {
       if (identical(_loadInFlight, request)) {
         _loadInFlight = null;
       }
     });
+  }
+
+  Future<void> _drainLoadQueue({required bool initialForceRefresh}) async {
+    var forceRefresh = initialForceRefresh;
+    do {
+      if (forceRefresh) {
+        _forceRefreshQueued = false;
+      }
+      await _performLoad();
+      forceRefresh = _forceRefreshQueued;
+    } while (forceRefresh);
   }
 
   Future<void> _performLoad() async {
