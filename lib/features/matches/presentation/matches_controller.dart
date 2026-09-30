@@ -74,14 +74,10 @@ class MatchesController extends StateNotifier<MatchesState> {
   }) {
     final key = '${seasonId ?? ''}:$allSeasons';
     final existing = _loadInFlight;
-    if (existing != null) {
+    if (!forceRefresh && existing != null) {
       if (_loadKey == key) return existing;
       return existing.whenComplete(
-        () => load(
-          seasonId: seasonId,
-          allSeasons: allSeasons,
-          forceRefresh: forceRefresh,
-        ),
+        () => load(seasonId: seasonId, allSeasons: allSeasons),
       );
     }
 
