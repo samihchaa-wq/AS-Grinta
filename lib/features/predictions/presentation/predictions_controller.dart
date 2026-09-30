@@ -36,13 +36,39 @@ class PredictionsState {
 class PredictionsController extends StateNotifier<PredictionsState> {
   PredictionsController(this._repository) : super(const PredictionsState());
 
-  final PredictionsRepository _repository;
+  static const Duration _startupLoadFreshness = Duration(seconds: 30);
 
-  Future<void> load() async {
+  final PredictionsRepository _repository;
+  Future<void>? _loadInFlight;
+  DateTime? _lastSuccessfulLoadAt;
+
+  Future<void> load({bool forceRefresh = false}) {
+    final existing = _loadInFlight;
+    if (existing != null) return existing;
+
+    final lastSuccessfulLoadAt = _lastSuccessfulLoadAt;
+    if (!forceRefresh &&
+        lastSuccessfulLoadAt != null &&
+        DateTime.now().difference(lastSuccessfulLoadAt) <
+            _startupLoadFreshness) {
+      return Future<void>.value();
+    }
+
+    final request = _performLoad();
+    _loadInFlight = request;
+    return request.whenComplete(() {
+      if (identical(_loadInFlight, request)) {
+        _loadInFlight = null;
+      }
+    });
+  }
+
+  Future<void> _performLoad() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
+      _lastSuccessfulLoadAt = DateTime.now();
     } catch (error, stackTrace) {
       AppLogger.error('predictions.load', error, stackTrace);
       state = state.copyWith(
