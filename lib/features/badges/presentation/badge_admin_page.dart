@@ -32,6 +32,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   String _commonQuery = '';
   String _mysteryQuery = '';
 
+  /// Sous-onglet des badges mystères : Manuel (faux) ou Automatique (vrai).
+  bool _mysteryAutomatic = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -107,10 +110,20 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
       children: [
+        if (mystery) ...[
+          _MysteryModeBar(
+            automatic: _mysteryAutomatic,
+            onChanged: (automatic) =>
+                setState(() => _mysteryAutomatic = automatic),
+          ),
+          const SizedBox(height: 10),
+        ],
         Text(
-          mystery
-              ? 'Uniquement les badges mystères.'
-              : 'Tous les badges communs visibles dans l’application.',
+          !mystery
+              ? 'Tous les badges communs visibles dans l’application.'
+              : _mysteryAutomatic
+                  ? 'Badges mystères décernés automatiquement par l’application.'
+                  : 'Badges mystères à décerner à la main.',
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 12),
@@ -133,7 +146,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             final sectionBadges = badges.where((badge) {
               final isMystery =
                   badge.secret || badge.code.startsWith('custom_');
-              return mystery == isMystery;
+              if (mystery != isMystery) return false;
+              return !mystery ||
+                  badge.awardedAutomatically == _mysteryAutomatic;
             });
             final filtered = query.isEmpty
                 ? sectionBadges.toList()
@@ -322,6 +337,58 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Bande coupée en deux sous les onglets, visible dans « Mystères » :
+/// Manuel à gauche, Automatique à droite.
+class _MysteryModeBar extends StatelessWidget {
+  const _MysteryModeBar({required this.automatic, required this.onChanged});
+
+  final bool automatic;
+  final ValueChanged<bool> onChanged;
+
+  Widget _half(BuildContext context, String label, bool value) {
+    final selected = automatic == value;
+    return Expanded(
+      child: Material(
+        color: selected
+            ? AppTheme.accent.withValues(alpha: 0.16)
+            : Colors.transparent,
+        child: InkWell(
+          onTap: selected ? null : () => onChanged(value),
+          child: Container(
+            height: 40,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: selected ? AppTheme.accent : AppTheme.textSecondary,
+                  ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final border = Theme.of(context).colorScheme.outlineVariant;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          _half(context, 'Manuel', false),
+          Container(width: 1, height: 40, color: border),
+          _half(context, 'Automatique', true),
+        ],
       ),
     );
   }

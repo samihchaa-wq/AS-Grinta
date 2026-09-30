@@ -22,6 +22,8 @@ class BadgeDef {
     this.hasStar = false,
     this.standalone = false,
     this.secret = false,
+    this.auto = false,
+    this.autoRule,
   });
 
   final String code;
@@ -54,6 +56,17 @@ class BadgeDef {
   /// gagné. Une fois obtenu, il apparaît normalement dans « Validés ».
   final bool secret;
 
+  /// Badge à barème décerné par le recalcul (métrique + seuil).
+  final bool auto;
+
+  /// Fait de match qui décerne ce badge automatiquement (ex. `clutch`).
+  /// Nul pour un badge seulement manuel ou à barème.
+  final String? autoRule;
+
+  /// Vrai si l'application décerne ce badge toute seule, sans action admin.
+  bool get awardedAutomatically =>
+      (auto && metric != null && threshold != null) || autoRule != null;
+
   factory BadgeDef.fromMap(Map<String, dynamic> m) => BadgeDef(
         code: m['code'].toString(),
         name: (m['name'] ?? '').toString(),
@@ -70,6 +83,8 @@ class BadgeDef {
         hasStar: m['has_star'] == true,
         standalone: m['standalone'] == true,
         secret: m['secret'] == true,
+        auto: m['auto'] == true,
+        autoRule: m['auto_rule']?.toString(),
       );
 }
 
@@ -275,7 +290,7 @@ class BadgeRepository {
     final rows = await _client
         .from('badges')
         .select(
-            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone,secret')
+            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone,secret,auto,auto_rule')
         .order('sort_order');
     return (rows as List)
         .map((r) => BadgeDef.fromMap(Map<String, dynamic>.from(r as Map)))
