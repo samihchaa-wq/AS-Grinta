@@ -85,10 +85,14 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
           ..invalidate(_calendarPredictionProvider)
           ..invalidate(inlineMatchPredictionProvider);
         await Future.wait([
+          ref.read(matchesControllerProvider.notifier).load(
+                seasonId: state.selectedSeasonId,
+                allSeasons: true,
+                forceRefresh: true,
+              ),
           ref
-              .read(matchesControllerProvider.notifier)
-              .load(seasonId: state.selectedSeasonId, allSeasons: true),
-          ref.read(predictionsControllerProvider.notifier).load(),
+              .read(predictionsControllerProvider.notifier)
+              .load(forceRefresh: true),
         ]);
       },
       child: CustomScrollView(
@@ -115,7 +119,10 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                           if (!context.mounted) return;
                           await ref
                               .read(matchesControllerProvider.notifier)
-                              .load(allSeasons: true);
+                              .load(
+                                allSeasons: true,
+                                forceRefresh: true,
+                              );
                         },
                         icon: const Icon(Icons.add_circle),
                       ),
