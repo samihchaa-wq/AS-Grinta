@@ -53,11 +53,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     setState(() => _badgeImageBytes = edited);
   }
 
-  void _resetNewBadgeImage() {
-    if (_creating) return;
-    setState(() => _badgeImageBytes = null);
-  }
-
   Future<void> _createBadge() async {
     final name = _nameController.text.trim();
     final imageBytes = _badgeImageBytes;
@@ -314,7 +309,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                         imageBytes: _badgeImageBytes,
                         creating: _creating,
                         onEditImage: _editNewBadgeImage,
-                        onResetImage: _resetNewBadgeImage,
                         onCreate: _createBadge,
                       ),
                     ],
@@ -336,7 +330,6 @@ class _CreateBadgeCard extends StatelessWidget {
     required this.imageBytes,
     required this.creating,
     required this.onEditImage,
-    required this.onResetImage,
     required this.onCreate,
   });
 
@@ -345,7 +338,6 @@ class _CreateBadgeCard extends StatelessWidget {
   final Uint8List? imageBytes;
   final bool creating;
   final VoidCallback onEditImage;
-  final VoidCallback onResetImage;
   final VoidCallback onCreate;
 
   @override
@@ -359,18 +351,7 @@ class _CreateBadgeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Créer un badge',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Le badge est créé directement comme badge mystère, avec le '
-              'fond orange standard, son illustration, son nom et sa description.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 18),
-            Text(
-              '1. Illustration',
+              'Illustration',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
@@ -400,49 +381,10 @@ class _CreateBadgeCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          hasImage
-                              ? 'Illustration prête'
-                              : 'Ajoute l’image du badge',
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          hasImage
-                              ? 'L’aperçu ci-contre est celui qui sera enregistré.'
-                              : 'Choisis un PNG ou JPEG, puis déplace et zoome '
-                                  'l’image exactement comme pour les badges existants.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 10),
-                        FilledButton.tonalIcon(
-                          onPressed: creating ? null : onEditImage,
-                          icon: Icon(
-                            hasImage
-                                ? Icons.crop_rounded
-                                : Icons.photo_library_rounded,
-                          ),
-                          label: Text(
-                            hasImage
-                                ? 'Modifier le recadrage'
-                                : 'Choisir et recadrer',
-                          ),
-                        ),
-                        if (hasImage) ...[
-                          const SizedBox(height: 4),
-                          TextButton.icon(
-                            onPressed: creating ? null : onResetImage,
-                            icon: const Icon(
-                              Icons.restart_alt_rounded,
-                              size: 18,
-                            ),
-                            label: const Text('Choisir une autre image'),
-                          ),
-                        ],
-                      ],
+                    child: FilledButton.tonalIcon(
+                      onPressed: creating ? null : onEditImage,
+                      icon: const Icon(Icons.photo_library_rounded),
+                      label: const Text('Choisir et recadrer'),
                     ),
                   ),
                 ],
@@ -450,7 +392,7 @@ class _CreateBadgeCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              '2. Informations',
+              'Information',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 10),
@@ -460,7 +402,6 @@ class _CreateBadgeCard extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Nom du badge',
-                hintText: 'Ex. Champion du BBQ',
               ),
             ),
             const SizedBox(height: 12),
@@ -469,14 +410,8 @@ class _CreateBadgeCard extends StatelessWidget {
               enabled: !creating,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                labelText: 'Description (facultatif)',
+                labelText: 'Description',
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Plus besoin d’emoji : l’illustration choisie devient le visuel '
-              'du badge et son nom apparaît automatiquement sur le socle.',
-              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 18),
             SizedBox(
