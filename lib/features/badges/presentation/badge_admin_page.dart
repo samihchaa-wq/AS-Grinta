@@ -143,7 +143,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                 ? sectionBadges.toList()
                 : sectionBadges
                     .where(
-                      (badge) => badge.name.toLowerCase().contains(query),
+                      (badge) =>
+                          badge.name.toLowerCase().contains(query),
                     )
                     .toList();
 
