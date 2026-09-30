@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -104,7 +105,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     required ValueChanged<String> onSearchChanged,
   }) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
       children: [
         Text(
           mystery
@@ -180,7 +181,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           },
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+          padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -268,11 +269,14 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                 clipBehavior: Clip.antiAlias,
                 child: TabBar(
                   indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorColor: AppTheme.accent,
+                  labelColor: AppTheme.accent,
+                  unselectedLabelColor: AppTheme.textSecondary,
                   dividerColor: Colors.transparent,
                   tabs: [
-                    Tab(child: _tabLabel('Badges communs')),
-                    Tab(child: _tabLabel('Badges mystères')),
-                    Tab(child: _tabLabel('Création de badge')),
+                    Tab(child: _tabLabel('Mystères')),
+                    Tab(child: _tabLabel('Communs')),
+                    Tab(child: _tabLabel('Créer')),
                   ],
                 ),
               ),
@@ -283,21 +287,21 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                   _buildBadgeList(
                     context,
                     badgesAsync,
-                    mystery: false,
-                    searchController: _commonSearchController,
-                    query: _commonQuery,
-                    onSearchChanged: (value) => setState(
-                      () => _commonQuery = value.trim().toLowerCase(),
-                    ),
-                  ),
-                  _buildBadgeList(
-                    context,
-                    badgesAsync,
                     mystery: true,
                     searchController: _mysterySearchController,
                     query: _mysteryQuery,
                     onSearchChanged: (value) => setState(
                       () => _mysteryQuery = value.trim().toLowerCase(),
+                    ),
+                  ),
+                  _buildBadgeList(
+                    context,
+                    badgesAsync,
+                    mystery: false,
+                    searchController: _commonSearchController,
+                    query: _commonQuery,
+                    onSearchChanged: (value) => setState(
+                      () => _commonQuery = value.trim().toLowerCase(),
                     ),
                   ),
                   ListView(
