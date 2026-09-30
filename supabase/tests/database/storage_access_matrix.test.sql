@@ -6,7 +6,7 @@ select no_plan();
 insert into auth.users(id, email, raw_user_meta_data)
 values
   (
-    'e5000000-0000-0000-0000-000000000001',
+    '5c681291-ec75-47ed-8bee-1b538b69cefe',
     'storage-admin@example.invalid',
     '{"first_name":"Storage","last_name":"Admin"}'::jsonb
   ),
@@ -28,7 +28,7 @@ values
 
 update public.profiles
 set role = case
-      when id = 'e5000000-0000-0000-0000-000000000001' then 'admin'
+      when id = '5c681291-ec75-47ed-8bee-1b538b69cefe' then 'admin'
       else 'pronostiqueur'
     end,
     status = case
@@ -37,7 +37,7 @@ set role = case
     end,
     updated_at = now()
 where id in (
-  'e5000000-0000-0000-0000-000000000001',
+  '5c681291-ec75-47ed-8bee-1b538b69cefe',
   'e5000000-0000-0000-0000-000000000002',
   'e5000000-0000-0000-0000-000000000003',
   'e5000000-0000-0000-0000-000000000004'
@@ -166,7 +166,7 @@ select ok(
 
 select set_config(
   'request.jwt.claims',
-  '{"sub":"e5000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  '{"sub":"5c681291-ec75-47ed-8bee-1b538b69cefe","role":"authenticated","aud":"authenticated"}',
   true
 );
 set local role authenticated;
@@ -178,11 +178,11 @@ select lives_ok(
       'e5100000-0000-0000-0000-000000000007',
       'badge-images',
       'badge-admin.webp',
-      'e5000000-0000-0000-0000-000000000001',
-      'e5000000-0000-0000-0000-000000000001',
+      '5c681291-ec75-47ed-8bee-1b538b69cefe',
+      '5c681291-ec75-47ed-8bee-1b538b69cefe',
       '{"mimetype":"image/webp"}'::jsonb
     )$$,
-  'un administrateur actif gère les images de badge'
+  'un gestionnaire de badges autorisé gère les images de badge'
 );
 
 reset role;

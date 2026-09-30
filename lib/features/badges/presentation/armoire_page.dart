@@ -5,8 +5,8 @@ import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/domain/badge_admin_access.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
@@ -47,14 +47,13 @@ class ArmoirePage extends ConsumerWidget {
     final featured = ref
         .watch(myFeaturedCodesProvider)
         .maybeWhen(data: (codes) => codes, orElse: () => const <String>{});
-    // Le palmarès est une décision de club : seuls les admins y touchent.
-    final isAdmin = ref.watch(isAdminViewProvider);
+    final hasBadgeAdminAccess = ref.watch(canManageBadgesProvider);
 
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Armoire à badges'),
         actions: [
-          if (isAdmin)
+          if (hasBadgeAdminAccess)
             IconButton(
               tooltip: 'Gérer les badges',
               icon: const Icon(Icons.admin_panel_settings_outlined),
