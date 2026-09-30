@@ -224,8 +224,13 @@ class SharedDataRefreshCoordinator {
 
     try {
       await Future.wait<void>([
-        _ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
-        _ref.read(predictionsControllerProvider.notifier).load(),
+        _ref.read(matchesControllerProvider.notifier).load(
+              allSeasons: true,
+              forceRefresh: true,
+            ),
+        _ref
+            .read(predictionsControllerProvider.notifier)
+            .load(forceRefresh: true),
       ]);
     } catch (error, stackTrace) {
       AppLogger.error('shared_data.refresh_controllers', error, stackTrace);
