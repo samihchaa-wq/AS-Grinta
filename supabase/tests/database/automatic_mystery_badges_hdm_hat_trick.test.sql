@@ -39,7 +39,7 @@ set local session_replication_role = replica;
 insert into public.seasons(id,name,status)
 values
   ('c2000000-0000-0000-0000-000000000001','2209-2210','open'),
-  ('c2000000-0000-0000-0000-000000000002','2210-2211','open');
+  ('c2000000-0000-0000-0000-000000000002','2210-2211','archived');
 insert into public.opponents(id,name)
 values('c3000000-0000-0000-0000-000000000001','Hdm United');
 
