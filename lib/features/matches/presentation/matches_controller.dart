@@ -55,8 +55,12 @@ class MatchesController extends StateNotifier<MatchesState> {
   final Ref _ref;
   final CalendarMatchesLocalCache _localCache =
       const CalendarMatchesLocalCache();
+  static const Duration _startupLoadFreshness = Duration(seconds: 30);
+
   Future<void>? _loadInFlight;
   String? _loadKey;
+  String? _lastSuccessfulLoadKey;
+  DateTime? _lastSuccessfulLoadAt;
   int _loadGeneration = 0;
 
   AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
@@ -70,11 +74,24 @@ class MatchesController extends StateNotifier<MatchesState> {
   }) {
     final key = '${seasonId ?? ''}:$allSeasons';
     final existing = _loadInFlight;
-    if (!forceRefresh && existing != null) {
+    if (existing != null) {
       if (_loadKey == key) return existing;
       return existing.whenComplete(
-        () => load(seasonId: seasonId, allSeasons: allSeasons),
+        () => load(
+          seasonId: seasonId,
+          allSeasons: allSeasons,
+          forceRefresh: forceRefresh,
+        ),
       );
+    }
+
+    final lastSuccessfulLoadAt = _lastSuccessfulLoadAt;
+    if (!forceRefresh &&
+        _lastSuccessfulLoadKey == key &&
+        lastSuccessfulLoadAt != null &&
+        DateTime.now().difference(lastSuccessfulLoadAt) <
+            _startupLoadFreshness) {
+      return Future<void>.value();
     }
 
     // Une écriture peut arriver pendant qu'une ancienne lecture est encore en
@@ -160,6 +177,8 @@ class MatchesController extends StateNotifier<MatchesState> {
         isLoading: false,
         clearError: true,
       );
+      _lastSuccessfulLoadKey = '${seasonId ?? ''}:$allSeasons';
+      _lastSuccessfulLoadAt = DateTime.now();
 
       if (allSeasons && generation == _loadGeneration) {
         await _localCache.write(matches);
