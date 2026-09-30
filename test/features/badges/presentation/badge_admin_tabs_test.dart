@@ -88,27 +88,32 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Badges communs'), findsOneWidget);
-    expect(find.text('Badges mystères'), findsOneWidget);
-    expect(find.text('Création de badge'), findsOneWidget);
+    expect(find.text('Mystères'), findsOneWidget);
+    expect(find.text('Communs'), findsOneWidget);
+    expect(find.text('Créer'), findsOneWidget);
+
+    // L'onglet Mystères est volontairement le premier et donc sélectionné
+    // au chargement.
+    expect(find.text('Buteur'), findsNothing);
+    expect(find.text('Gardien'), findsNothing);
+    expect(find.text('Clutch'), findsOneWidget);
+    expect(find.text('Secret'), findsOneWidget);
+
+    await tester.tap(find.text('Communs'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Buteur'), findsOneWidget);
     expect(find.text('Gardien'), findsOneWidget);
     expect(find.text('Clutch'), findsNothing);
     expect(find.text('Secret'), findsNothing);
 
-    await tester.tap(find.text('Badges mystères'));
+    await tester.tap(find.text('Créer'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Buteur'), findsNothing);
-    expect(find.text('Gardien'), findsNothing);
-    expect(find.text('Clutch'), findsOneWidget);
-    expect(find.text('Secret'), findsOneWidget);
-
-    await tester.tap(find.text('Création de badge'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Créer un badge'), findsOneWidget);
+    expect(find.text('Illustration'), findsOneWidget);
+    expect(find.text('Information'), findsOneWidget);
     expect(find.text('Nom du badge'), findsOneWidget);
+    expect(find.text('Description'), findsOneWidget);
+    expect(find.text('Créer le badge'), findsOneWidget);
   });
 }
