@@ -9,10 +9,12 @@ import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_add_player_options.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_timeline.dart';
+import 'package:as_grinta/features/match_live/presentation/match_live_pilot.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final Random _scoreOperationRandom = Random.secure();
 const Duration matchLiveFallbackPollInterval = Duration(seconds: 30);
+const Duration matchLivePilotHeartbeatInterval = Duration(seconds: 15);
 
 String _newScoreOperationId() {
   final bytes = List<int>.generate(
@@ -31,8 +33,7 @@ String _newScoreOperationId() {
 /// Vrai si l'utilisateur courant peut piloter le Tableau Blanc de ce match :
 /// admin, ou joueur du roster coché "Coach" (season_players.is_coach) pour
 /// la saison du match. Purement indicatif côté client pour choisir l'écran à
-/// afficher — l'autorisation réelle est toujours revérifiée côté serveur par
-/// private.is_match_coach_or_admin dans chaque RPC d'écriture.
+/// afficher — l'autorisation réelle est toujours revérifiée côté serveur.
 final isMatchCoachOrAdminProvider =
     FutureProvider.autoDispose.family<bool, String>((ref, matchId) async {
   if (ref.watch(isAdminViewProvider)) return true;
@@ -71,10 +72,6 @@ final matchLiveTimelineProvider = FutureProvider.autoDispose
 /// être confirmée. Le contrôleur relit d'abord l'état autoritaire du serveur :
 /// le message ne remplace donc jamais le snapshot par une supposition locale.
 /// Delais des ecritures et relectures du Live, injectables pour les tests.
-///
-/// Le Live se joue sur un terrain, souvent avec une reception mediocre : une
-/// requete sans limite de temps laisse le coach devant un ecran fige, sans
-/// erreur ni resynchronisation.
 final matchLiveWriteTimeoutProvider = Provider<Duration>(
   (ref) => kConfirmedWriteTimeout,
 );
@@ -97,6 +94,18 @@ final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
   MatchLiveStateController.new,
 );
 
+/// Source de vérité du pilote : uniquement le snapshot serveur. Le choix
+/// visuel « Spectateur | Piloter » reste local, mais jamais la propriété du
+/// verrou.
+final livePilotProvider = Provider.autoDispose.family<LivePilot, String>((
+  ref,
+  matchId,
+) {
+  final session = ref.watch(matchLiveStateProvider(matchId)).valueOrNull?.session;
+  if (session == null || !session.pilotActive) return LivePilot.nobody;
+  return session.pilotIsMe ? LivePilot.me : LivePilot.other;
+});
+
 class MatchLiveStateController
     extends AutoDisposeFamilyAsyncNotifier<MatchLiveStateBundle, String> {
   StreamSubscription<void>? _subscription;
@@ -107,10 +116,6 @@ class MatchLiveStateController
   Future<MatchLiveStateBundle> build(String matchId) async {
     final repository = ref.watch(matchLiveRepositoryProvider);
 
-    // Charger d'abord un snapshot cohérent. L'abonnement est installé juste
-    // après et une relecture immédiate referme la petite fenêtre entre les deux.
-    // Cela évite surtout qu'un refresh lancé pendant build() soit ensuite
-    // écrasé par le résultat initial, plus ancien.
     final initial = await repository.fetchLiveState(matchId);
     ref.read(matchLiveRealtimeDegradedProvider(matchId).notifier).state = false;
     _subscription = repository.watchChanges(matchId).listen(
@@ -156,16 +161,9 @@ class MatchLiveStateController
         action, {
     Duration? writeTimeout,
   }) async {
-    // Une écriture invalide toutes les lectures déjà en vol. Si une nouvelle
-    // lecture ou une autre écriture démarre pendant celle-ci, son résultat est
-    // considéré comme plus récent et le bundle de cette action ne remplace pas
-    // cet état ; une relecture autoritaire tranche alors l'ordre réel serveur.
     final generation = ++_stateGeneration;
     final repository = ref.read(matchLiveRepositoryProvider);
     try {
-      // Sans limite de temps, une requete restee suspendue ne leve jamais
-      // d'erreur : ni la resynchronisation ci-dessous ni le retry du score ne
-      // se declenchent, et le coach reste bloque sur un ecran qui enregistre.
       final bundle = await action(repository).timeout(
         writeTimeout ?? ref.read(matchLiveWriteTimeoutProvider),
       );
@@ -205,6 +203,53 @@ class MatchLiveStateController
               'le Live avant de continuer.';
       Error.throwWithStackTrace(error, stackTrace);
     }
+  }
+
+  /// Signal technique silencieux : une perte réseau pendant le heartbeat ou
+  /// la libération ne doit pas afficher un message toutes les 15 secondes.
+  /// Le serveur expirera de toute façon le verrou après environ une minute.
+  Future<void> _pilotSignal(
+    Future<MatchLiveStateBundle> Function(MatchLiveRepository repository)
+        action,
+  ) async {
+    final generation = ++_stateGeneration;
+    final repository = ref.read(matchLiveRepositoryProvider);
+    try {
+      final bundle = await action(repository).timeout(
+        ref.read(matchLiveWriteTimeoutProvider),
+      );
+      if (generation == _stateGeneration) state = AsyncData(bundle);
+    } catch (error, stackTrace) {
+      AppLogger.error('match_live.pilot_signal', error, stackTrace);
+      if (generation == _stateGeneration) unawaited(_refresh());
+    }
+  }
+
+  Future<void> claimPilot({int? plannedDurationMinutes}) {
+    return _mutate(
+      (repository) => repository.claimPilot(
+        matchId: arg,
+        plannedDurationMinutes: plannedDurationMinutes,
+      ),
+    );
+  }
+
+  Future<void> takeOverPilot() {
+    return _mutate(
+      (repository) => repository.takeOverPilot(matchId: arg),
+    );
+  }
+
+  Future<void> heartbeatPilot() {
+    return _pilotSignal(
+      (repository) => repository.heartbeatPilot(matchId: arg),
+    );
+  }
+
+  Future<void> releasePilot() {
+    return _pilotSignal(
+      (repository) => repository.releasePilot(matchId: arg),
+    );
   }
 
   Future<MatchLiveAddPlayerOptions> fetchAddPlayerOptions() {
@@ -256,8 +301,6 @@ class MatchLiveStateController
   }) {
     final operationId = _newScoreOperationId();
     final attemptTimeout = ref.read(matchLiveWriteTimeoutProvider);
-    // Deux tentatives bornees, plus une marge : le budget global ne doit pas
-    // expirer avant elles, sinon le retry serait coupe en plein vol.
     final attemptBudget = attemptTimeout * 2 + const Duration(seconds: 1);
     return _mutate((repository) async {
       Future<MatchLiveStateBundle> send() => repository
@@ -273,10 +316,6 @@ class MatchLiveStateController
       try {
         return await send();
       } catch (_) {
-        // Le premier appel peut avoir ete committe alors que sa reponse reseau
-        // a ete perdue. Un unique retry avec le meme UUID est sans effet double
-        // grace au ledger serveur. Chaque tentative est bornee, sans quoi une
-        // requete suspendue empecherait le retry de partir.
         return send();
       }
     }, writeTimeout: attemptBudget);
@@ -347,8 +386,6 @@ class MatchLiveStateController
     );
   }
 
-  /// Remet le suivi en direct à zéro : tout ce qui a été saisi est effacé et
-  /// le match revient à l'écran de préparation.
   Future<void> restartSession({String? reason}) {
     return _mutate(
       (repository) => repository.restartSession(matchId: arg, reason: reason),
