@@ -132,11 +132,11 @@ String? resolveAuthRedirect({
   final isPlayersRoute = location == '/players';
 
   if (isFinalizationRoute && !isAdmin) return '/matches';
-  if (isBadgeAdminRoute && !canManageBadges(authState.profile)) {
-    return '/armoire';
-  }
   if ((isAdminRoute || isMatchAdminRoute || isPlayersRoute) && !isAdmin) {
     return '/matches';
+  }
+  if (isBadgeAdminRoute && !canManageBadges(authState.profile)) {
+    return '/armoire';
   }
   return null;
 }
