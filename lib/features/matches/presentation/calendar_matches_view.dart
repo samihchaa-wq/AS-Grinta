@@ -67,9 +67,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   Future<void> _refreshModernMatches() async {
     final state = ref.read(matchesControllerProvider);
     ref.invalidate(clubEventsProvider);
-    await ref
-        .read(matchesControllerProvider.notifier)
-        .load(
+    await ref.read(matchesControllerProvider.notifier).load(
           seasonId: state.selectedSeasonId,
           allSeasons: true,
           forceRefresh: true,
