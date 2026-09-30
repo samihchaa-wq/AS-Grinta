@@ -52,6 +52,24 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
+    test('coalesces concurrent loads and reuses a recent successful load',
+        () async {
+      final repository = _FakePredictionsRepository(
+        fetchResult: [_editableItem()],
+      );
+      final controller = PredictionsController(repository);
+      addTearDown(controller.dispose);
+
+      await Future.wait([controller.load(), controller.load()]);
+      await controller.load();
+
+      expect(repository.fetchCalls, 1);
+
+      await controller.load(forceRefresh: true);
+
+      expect(repository.fetchCalls, 2);
+    });
+
     test('clears items and exposes an error when loading fails', () async {
       final repository = _FakePredictionsRepository(
         fetchError: StateError('load failed'),
@@ -205,6 +223,7 @@ class _FakePredictionsRepository implements PredictionsRepository {
   final Object? fetchError;
   final Object? saveError;
 
+  int fetchCalls = 0;
   int saveCalls = 0;
   String? savedMatchId;
   int? savedScoreGrinta;
@@ -212,6 +231,7 @@ class _FakePredictionsRepository implements PredictionsRepository {
 
   @override
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
+    fetchCalls += 1;
     if (fetchError != null) throw fetchError!;
     return fetchResult;
   }
