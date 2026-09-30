@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,20 +54,43 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('coalesces concurrent loads and reuses a recent successful load',
-        () async {
+    test(
+      'coalesces concurrent loads and reuses a recent successful load',
+      () async {
+        final repository = _FakePredictionsRepository(
+          fetchResult: [_editableItem()],
+        );
+        final controller = PredictionsController(repository);
+        addTearDown(controller.dispose);
+
+        await Future.wait([controller.load(), controller.load()]);
+        await controller.load();
+
+        expect(repository.fetchCalls, 1);
+
+        await controller.load(forceRefresh: true);
+
+        expect(repository.fetchCalls, 2);
+      },
+    );
+
+    test('queues a forced refresh received during an active load', () async {
+      final gate = Completer<void>();
       final repository = _FakePredictionsRepository(
         fetchResult: [_editableItem()],
+        fetchGate: gate,
       );
       final controller = PredictionsController(repository);
       addTearDown(controller.dispose);
 
-      await Future.wait([controller.load(), controller.load()]);
-      await controller.load();
+      final initialLoad = controller.load();
+      await Future<void>.delayed(Duration.zero);
+      final forcedLoad = controller.load(forceRefresh: true);
 
       expect(repository.fetchCalls, 1);
 
-      await controller.load(forceRefresh: true);
+      gate.complete();
+      await Future.wait([initialLoad, forcedLoad]);
 
       expect(repository.fetchCalls, 2);
     });
@@ -217,11 +242,13 @@ class _FakePredictionsRepository implements PredictionsRepository {
     this.fetchResult = const [],
     this.fetchError,
     this.saveError,
+    this.fetchGate,
   });
 
   final List<MatchPredictionItem> fetchResult;
   final Object? fetchError;
   final Object? saveError;
+  Completer<void>? fetchGate;
 
   int fetchCalls = 0;
   int saveCalls = 0;
@@ -232,6 +259,11 @@ class _FakePredictionsRepository implements PredictionsRepository {
   @override
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
     fetchCalls += 1;
+    final gate = fetchGate;
+    if (gate != null) {
+      fetchGate = null;
+      await gate.future;
+    }
     if (fetchError != null) throw fetchError!;
     return fetchResult;
   }
