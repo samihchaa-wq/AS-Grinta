@@ -55,7 +55,7 @@ void main() {
     });
 
     test(
-      'coalesces concurrent loads and reuses a recent successful load',
+      'coalesces concurrent loads while later refreshes hit the server',
       () async {
         final repository = _FakePredictionsRepository(
           fetchResult: [_editableItem()],
@@ -64,13 +64,14 @@ void main() {
         addTearDown(controller.dispose);
 
         await Future.wait([controller.load(), controller.load()]);
-        await controller.load();
 
         expect(repository.fetchCalls, 1);
 
-        await controller.load(forceRefresh: true);
-
+        await controller.load();
         expect(repository.fetchCalls, 2);
+
+        await controller.load(forceRefresh: true);
+        expect(repository.fetchCalls, 3);
       },
     );
 
