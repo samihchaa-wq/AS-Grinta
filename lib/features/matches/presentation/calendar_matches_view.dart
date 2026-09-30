@@ -69,7 +69,11 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     ref.invalidate(clubEventsProvider);
     await ref
         .read(matchesControllerProvider.notifier)
-        .load(seasonId: state.selectedSeasonId, allSeasons: true);
+        .load(
+          seasonId: state.selectedSeasonId,
+          allSeasons: true,
+          forceRefresh: true,
+        );
   }
 
   Future<void> _openCreate() async {
