@@ -48,9 +48,7 @@ class ArmoirePage extends ConsumerWidget {
     final featured = ref
         .watch(myFeaturedCodesProvider)
         .maybeWhen(data: (codes) => codes, orElse: () => const <String>{});
-    final hasBadgeAdminAccess = canManageBadges(
-      ref.watch(authControllerProvider).profile,
-    );
+    final hasBadgeAdminAccess = ref.watch(canManageBadgesProvider);
 
     return Scaffold(
       appBar: GrintaAppBar(
