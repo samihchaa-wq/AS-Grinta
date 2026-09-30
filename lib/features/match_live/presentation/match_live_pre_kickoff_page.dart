@@ -2,11 +2,14 @@ import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
+import 'package:as_grinta/features/match_live/presentation/match_live_pilot.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_remove_player_sheet.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/match_squad_editing.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_squad_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -159,6 +162,7 @@ class _MatchLivePreKickoffPageState
           // désactive donc le contrôle intégré de MatchSquadEditor ici.
           onFormationChanged: null,
           formationBusy: _busy || _savingFormation,
+          namesOnly: true,
         ),
         if (widget.canEdit) ...[
           const SizedBox(height: 20),
@@ -176,6 +180,29 @@ class _MatchLivePreKickoffPageState
     final formation = formationForCode(lineup.formationCode);
     final controlsDisabled = _busy || _savingFormation;
 
+    InputDecoration decoration(String label) => InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 16,
+          ),
+        );
+
+    Widget iconAction({
+      required IconData icon,
+      required String tooltip,
+      required VoidCallback? onPressed,
+    }) =>
+        IconButton.outlined(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          constraints: const BoxConstraints.tightFor(width: 48, height: 52),
+          icon: Icon(icon),
+        );
+
+    // Une seule ligne : temps de jeu, dispositif, ajouter et retirer.
     return Row(
       key: const ValueKey('live-pre-kickoff-controls'),
       children: [
@@ -184,15 +211,7 @@ class _MatchLivePreKickoffPageState
             controller: _durationController,
             keyboardType: TextInputType.number,
             enabled: !_busy,
-            decoration: const InputDecoration(
-              labelText: 'Temps de jeu',
-              border: OutlineInputBorder(),
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 16,
-              ),
-            ),
+            decoration: decoration('Temps'),
           ),
         ),
         const SizedBox(width: 8),
@@ -201,15 +220,7 @@ class _MatchLivePreKickoffPageState
             key: ValueKey('squad-formation-${lineup.formationCode}'),
             initialValue: formation.code,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Dispositif',
-              border: OutlineInputBorder(),
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 16,
-              ),
-            ),
+            decoration: decoration('Dispo'),
             items: [
               for (final item in footballFormations)
                 DropdownMenuItem(value: item.code, child: Text(item.code)),
@@ -222,29 +233,59 @@ class _MatchLivePreKickoffPageState
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(
-          child: SizedBox(
-            height: 56,
-            child: OutlinedButton(
-              onPressed: controlsDisabled
-                  ? null
-                  : () => showMatchLiveAddPlayerSheet(
-                        context,
-                        ref,
-                        matchId: widget.matchId,
-                      ),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-              child: const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text('Ajouter un joueur'),
-              ),
-            ),
-          ),
+        iconAction(
+          icon: Icons.person_add_alt_1_rounded,
+          tooltip: 'Ajouter un joueur',
+          onPressed: controlsDisabled
+              ? null
+              : () => showMatchLiveAddPlayerSheet(
+                    context,
+                    ref,
+                    matchId: widget.matchId,
+                  ),
+        ),
+        const SizedBox(width: 6),
+        iconAction(
+          icon: Icons.person_remove_rounded,
+          tooltip: 'Retirer un joueur',
+          onPressed: controlsDisabled ? null : () => _removePlayer(lineup),
         ),
       ],
     );
+  }
+
+  Future<void> _removePlayer(MatchComposition lineup) async {
+    final removed = await showMatchLiveRemovePlayerPicker(
+      context,
+      candidates: [
+        ...lineup.entriesFor(MatchCompositionZone.field),
+        ...lineup.entriesFor(MatchCompositionZone.bench),
+      ],
+    );
+    if (removed == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      await _controller.saveLiveLineup(
+        entries: lineupWithoutPlayer(lineup, removed),
+        expectedLineupRevision: widget.bundle.session.lineupRevision,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${removed.displayName} retiré du match.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossible de retirer ce joueur. L’état Live a été '
+            'resynchronisé.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _changeFormation(
@@ -312,11 +353,7 @@ class _MatchLivePreKickoffPageState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Vérifiez que la composition est bonne'),
-        content: const Text(
-          'Une fois le match démarré, le chronomètre se lance pour tout le '
-          'monde et cette composition devient celle que voient les joueurs.',
-        ),
+        title: const Text('Démarrer le match ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -333,10 +370,65 @@ class _MatchLivePreKickoffPageState
 
     setState(() => _busy = true);
     try {
+      // Celui qui donne le coup d'envoi pilote le Live.
+      ref.read(livePilotProvider(widget.matchId).notifier).state = LivePilot.me;
+      ref.read(liveViewModeProvider(widget.matchId).notifier).state =
+          LiveViewMode.pilot;
       await _controller.openWorkspace(plannedDurationMinutes: minutes);
       await _controller.confirmStart();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+}
+
+/// Avant le coup d'envoi, pour ceux qui ne pilotent pas : la composition
+/// prévue, en lecture seule.
+class MatchLivePreKickoffSpectatorView extends StatelessWidget {
+  const MatchLivePreKickoffSpectatorView({super.key, required this.bundle});
+
+  final MatchLiveStateBundle bundle;
+
+  @override
+  Widget build(BuildContext context) {
+    final lineup = bundle.lineup;
+    if (lineup == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'La composition n’est pas encore prête.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    final theme = Theme.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              'Le match n’a pas encore démarré',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleSmall,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1,
+          child: CompositionPitchWithBench(
+            field: lineup.entriesFor(MatchCompositionZone.field),
+            bench: lineup.entriesFor(MatchCompositionZone.bench),
+          ),
+        ),
+      ],
+    );
   }
 }

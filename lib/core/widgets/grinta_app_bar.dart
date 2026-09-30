@@ -19,6 +19,7 @@ class GrintaAppBar extends AppBar {
     List<Widget>? actions,
     bool admin = false,
     super.bottom,
+    super.leading,
   }) : super(
           toolbarHeight: 60,
           titleSpacing: 0,

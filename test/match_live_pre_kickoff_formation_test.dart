@@ -17,7 +17,7 @@ void main() {
       (tester) async {
         await _pump(tester, bundle: _bundle(fieldPlayers: 1));
 
-        expect(find.text('Dispositif'), findsOneWidget);
+        expect(find.text('Dispo'), findsOneWidget);
         expect(
           find.byType(DropdownButtonFormField<String>),
           findsOneWidget,
@@ -28,7 +28,7 @@ void main() {
     );
 
     testWidgets(
-      'regroupe temps de jeu, dispositif et ajout joueur sur une ligne',
+      'regroupe temps, dispositif, ajouter et retirer sur une ligne',
       (tester) async {
         await _pump(tester, bundle: _bundle(fieldPlayers: 1));
 
@@ -37,30 +37,29 @@ void main() {
         );
         final durationField = find.byType(TextField);
         final formation = find.byType(DropdownButtonFormField<String>);
-        final addPlayer = find.widgetWithText(
-          OutlinedButton,
-          'Ajouter un joueur',
-        );
+        final addPlayer = find.byTooltip('Ajouter un joueur');
+        final removePlayer = find.byTooltip('Retirer un joueur');
 
         expect(controls, findsOneWidget);
-        expect(
-          find.descendant(of: controls, matching: durationField),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(of: controls, matching: formation),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(of: controls, matching: addPlayer),
-          findsOneWidget,
-        );
+        expect(tester.widget(controls), isA<Row>());
+        for (final control in [
+          durationField,
+          formation,
+          addPlayer,
+          removePlayer,
+        ]) {
+          expect(
+            find.descendant(of: controls, matching: control),
+            findsOneWidget,
+          );
+        }
         expect(
           tester.widget<TextField>(durationField).decoration?.labelText,
-          'Temps de jeu',
+          'Temps',
         );
 
-        for (final control in [durationField, formation, addPlayer]) {
+        // Temps et dispositif se partagent la place restante.
+        for (final control in [durationField, formation]) {
           final expanded = find.ancestor(
             of: control,
             matching: find.byType(Expanded),
@@ -86,8 +85,9 @@ void main() {
           canEdit: false,
         );
 
-        expect(find.text('Dispositif'), findsNothing);
-        expect(find.text('Ajouter un joueur'), findsNothing);
+        expect(find.text('Dispo'), findsNothing);
+        expect(find.byTooltip('Ajouter un joueur'), findsNothing);
+        expect(find.byTooltip('Retirer un joueur'), findsNothing);
         expect(find.text('Démarrer le match'), findsNothing);
       },
     );

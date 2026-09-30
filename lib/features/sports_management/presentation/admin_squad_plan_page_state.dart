@@ -383,6 +383,26 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                     : _AdminStep.effectif)
                 : _step;
 
+    // À partir de T-15, le Live occupe toute la page, comme sur la fiche du
+    // match des coachs : ni encadré du match ni onglets.
+    final liveTakesOver =
+        _selectedMatchId != null && !isInternal && !tooFarAway && !liveTooEarly;
+    if (liveTakesOver) {
+      return RefreshIndicator(
+        onRefresh: _loadMatches,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenGutter,
+            AppSpacing.sectionGap,
+            AppSpacing.screenGutter,
+            40,
+          ),
+          children: [MatchLiveTab(matchId: _selectedMatchId!)],
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _loadMatches,
       child: ListView(

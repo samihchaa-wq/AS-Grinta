@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/match_live/domain/substitution_salvos.dart';
 import 'package:flutter/material.dart';
 
@@ -18,9 +19,15 @@ const substitutionSalvoPalette = <Color>[
   Color(0xFF9CCC65), // vert clair
 ];
 
+/// Couleur du « 1.0 » : joueur passé par le banc sans en être jamais sorti.
+/// Contour jaune du club : il n'appartient à aucune salve.
+const substitutionStartColor = AppTheme.accent;
+
 Color substitutionSalvoColor(SubstitutionSalvo salvo) =>
-    substitutionSalvoPalette[
-        salvo.colorIndex % substitutionSalvoPalette.length];
+    substitutionSalvoColorAt(salvo.colorIndex);
+
+Color substitutionSalvoColorAt(int colorIndex) =>
+    substitutionSalvoPalette[colorIndex % substitutionSalvoPalette.length];
 
 /// Repère « passage.série » du joueur qui sort, à la place de l'icône de
 /// remplacement.

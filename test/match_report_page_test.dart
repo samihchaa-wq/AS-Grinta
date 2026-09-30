@@ -38,7 +38,7 @@ void main() {
   ) async {
     await _pump(tester, _repository(_report()));
 
-    expect(find.textContaining('Banc (3)'), findsOneWidget);
+    expect(find.text('Banc\n(3)'), findsOneWidget);
     expect(
       find.textContaining('Personne n’est encore sur le terrain'),
       findsOneWidget,
