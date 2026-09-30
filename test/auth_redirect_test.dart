@@ -296,7 +296,25 @@ void main() {
       }
     });
 
-    test('allows every privileged route for administrators', () {
+    test('blocks badge administration for regular users', () {
+      const state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        hasSession: true,
+        profile: _userProfile,
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/admin/badges'),
+          matchedLocation: '/admin/badges',
+        ),
+        '/matches',
+      );
+    });
+
+    test('allows the other privileged routes for administrators', () {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
@@ -307,7 +325,6 @@ void main() {
       for (final route in <String>[
         '/admin',
         '/admin/administration',
-        '/admin/badges',
         '/admin/matches',
         '/players',
         '/matches/abc/finalize',
