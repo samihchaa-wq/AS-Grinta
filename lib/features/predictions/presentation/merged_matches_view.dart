@@ -74,9 +74,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final state = ref.read(matchesControllerProvider);
     ref.invalidate(clubEventsProvider);
     ref.invalidate(allHistoricalMatchesProvider);
-    await ref
-        .read(matchesControllerProvider.notifier)
-        .load(
+    await ref.read(matchesControllerProvider.notifier).load(
           seasonId: state.selectedSeasonId,
           allSeasons: true,
           forceRefresh: true,
