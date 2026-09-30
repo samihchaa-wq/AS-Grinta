@@ -60,6 +60,14 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   groupe ; « Se déconnecter » est aussi proposé en bas des paramètres, avec
   la même confirmation que dans le profil.
 
+### Performance
+
+- les tâches planifiées chaque minute (ouverture/fermeture des disponibilités,
+  fin des matchs internes) ne déclenchent plus le signal de synchronisation
+  quand elles n'ont rien à faire : les applications ouvertes ne rechargent
+  plus toutes leurs données à chaque minute ronde. Voir
+  `docs/changes/idle-cron-shared-data-signal.md`.
+
 ## 0.2.2+4 — 2026-07-27
 
 ### Sécurité et données
