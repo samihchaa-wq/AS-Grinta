@@ -47,6 +47,22 @@ const _mysteryBadge = BadgeDef(
   metric: null,
   threshold: null,
   sortOrder: 3,
+  autoRule: 'clutch',
+);
+
+const _manualMysteryBadge = BadgeDef(
+  code: 'custom_la_glissade_1',
+  name: 'La glissade',
+  description: 'Badge mystère manuel',
+  emoji: '🏅',
+  imageUrl: null,
+  color: '#F97316',
+  family: 'joueur',
+  kind: 'custom',
+  category: 'faits_de_jeu',
+  metric: null,
+  threshold: null,
+  sortOrder: 5,
 );
 
 const _secretBadge = BadgeDef(
@@ -63,6 +79,7 @@ const _secretBadge = BadgeDef(
   threshold: 1,
   sortOrder: 4,
   secret: true,
+  auto: true,
 );
 
 void main() {
@@ -80,6 +97,7 @@ void main() {
               _roleBadge,
               _mysteryBadge,
               _secretBadge,
+              _manualMysteryBadge,
             ],
           ),
         ],
@@ -93,9 +111,23 @@ void main() {
     expect(find.text('Créer'), findsOneWidget);
 
     // L'onglet Mystères est volontairement le premier et donc sélectionné
-    // au chargement.
+    // au chargement, sur sa partie Manuel.
+    expect(find.text('Manuel'), findsOneWidget);
+    expect(find.text('Automatique'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Manuel')).dx,
+      lessThan(tester.getTopLeft(find.text('Automatique')).dx),
+    );
     expect(find.text('Buteur'), findsNothing);
     expect(find.text('Gardien'), findsNothing);
+    expect(find.text('La glissade'), findsOneWidget);
+    expect(find.text('Clutch'), findsNothing);
+    expect(find.text('Secret'), findsNothing);
+
+    await tester.tap(find.text('Automatique'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('La glissade'), findsNothing);
     expect(find.text('Clutch'), findsOneWidget);
     expect(find.text('Secret'), findsOneWidget);
 
@@ -106,6 +138,8 @@ void main() {
     expect(find.text('Gardien'), findsOneWidget);
     expect(find.text('Clutch'), findsNothing);
     expect(find.text('Secret'), findsNothing);
+    expect(find.text('La glissade'), findsNothing);
+    expect(find.text('Manuel'), findsNothing);
 
     await tester.tap(find.text('Créer'));
     await tester.pumpAndSettle();
