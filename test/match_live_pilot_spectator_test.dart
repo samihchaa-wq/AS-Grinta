@@ -10,14 +10,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Une seule personne pilote le Live ; tous les autres le suivent en
-/// spectateur. Un coach choisit sous « Live », un joueur est spectateur.
+/// Le pilote n'est plus simulé par un état local : le faux dépôt reproduit la
+/// réponse du serveur (personne / ce téléphone / un autre téléphone).
 void main() {
   group('Live : pilote et spectateur', () {
     testWidgets('un joueur voit directement le live, sans la barre', (
       tester,
     ) async {
-      await _pump(tester, _bundle('running'), coach: false);
+      await _pump(tester, state: 'running', coach: false);
 
       expect(find.text('Spectateur'), findsNothing);
       expect(find.text('Piloter'), findsNothing);
@@ -25,10 +25,10 @@ void main() {
       expect(find.text('Reset'), findsNothing);
     });
 
-    testWidgets('un coach arrive en spectateur et peut piloter', (
+    testWidgets('un coach arrive en spectateur, prend puis libère la place', (
       tester,
     ) async {
-      final container = await _pump(tester, _bundle('running'));
+      final container = await _pump(tester, state: 'running');
       LivePilot pilot() => container.read(livePilotProvider('match-1'));
 
       expect(find.text('Spectateur'), findsOneWidget);
@@ -41,18 +41,21 @@ void main() {
       expect(find.text('Reset'), findsOneWidget);
       expect(pilot(), LivePilot.me);
 
-      // Revenir en spectateur libère la place.
       await tester.tap(find.text('Spectateur'));
       await _settle(tester);
       expect(pilot(), LivePilot.nobody);
+      expect(find.text('Faits de match'), findsOneWidget);
     });
 
-    testWidgets('si un autre coach pilote, message et « Prendre la main »', (
+    testWidgets('un autre téléphone bloque le pilotage puis peut céder la main', (
       tester,
     ) async {
-      final container = await _pump(tester, _bundle('running'));
-      container.read(livePilotProvider('match-1').notifier).state =
-          LivePilot.other;
+      final container = await _pump(
+        tester,
+        state: 'running',
+        otherPilot: true,
+      );
+
       await tester.tap(find.text('Piloter'));
       await _settle(tester);
 
@@ -60,6 +63,7 @@ void main() {
         find.text('Quelqu’un d’autre pilote déjà le live'),
         findsOneWidget,
       );
+      expect(container.read(livePilotProvider('match-1')), LivePilot.other);
       expect(find.text('Reset'), findsNothing);
 
       await tester.tap(find.text('Prendre la main'));
@@ -71,22 +75,24 @@ void main() {
         ),
       );
       await _settle(tester);
+
       expect(container.read(livePilotProvider('match-1')), LivePilot.me);
       expect(find.text('Reset'), findsOneWidget);
     });
 
     testWidgets(
-        'avant le coup d’envoi : composition prévue en spectateur, '
-        'préparation en pilote', (tester) async {
-      await _pump(tester, _bundle('not_started'));
+      'avant le coup d’envoi : spectateur voit la composition, pilote prépare',
+      (tester) async {
+        await _pump(tester, state: 'not_started');
 
-      expect(find.text('Le match n’a pas encore démarré'), findsOneWidget);
-      expect(find.text('Démarrer le match'), findsNothing);
+        expect(find.text('Le match n’a pas encore démarré'), findsOneWidget);
+        expect(find.text('Démarrer le match'), findsNothing);
 
-      await tester.tap(find.text('Piloter'));
-      await _settle(tester);
-      expect(find.text('Démarrer le match'), findsOneWidget);
-    });
+        await tester.tap(find.text('Piloter'));
+        await _settle(tester);
+        expect(find.text('Démarrer le match'), findsOneWidget);
+      },
+    );
   });
 }
 
@@ -97,20 +103,24 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 Future<ProviderContainer> _pump(
-  WidgetTester tester,
-  MatchLiveStateBundle bundle, {
+  WidgetTester tester, {
+  required String state,
   bool coach = true,
+  bool otherPilot = false,
 }) async {
   tester.view
     ..physicalSize = const Size(1170, 2532)
     ..devicePixelRatio = 3;
   addTearDown(tester.view.reset);
-  // ProviderScope (et non un conteneur externe) : ses minuteries s'arrêtent
-  // avec l'écran, à la fin de chaque test.
+
+  final repository = _StubRepository(
+    state: state,
+    otherPilot: otherPilot,
+  );
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        matchLiveRepositoryProvider.overrideWithValue(_StubRepository(bundle)),
+        matchLiveRepositoryProvider.overrideWithValue(repository),
         isMatchCoachOrAdminProvider.overrideWith((ref, matchId) async => coach),
         upcomingMatchFixtureProvider.overrideWith(
           (ref, matchId) async => null,
@@ -130,7 +140,11 @@ Future<ProviderContainer> _pump(
   return container;
 }
 
-MatchLiveStateBundle _bundle(String state) {
+MatchLiveStateBundle _bundle(
+  String state, {
+  bool pilotActive = false,
+  bool pilotIsMe = false,
+}) {
   return MatchLiveStateBundle.fromRpc({
     'match_id': 'match-1',
     'session_exists': true,
@@ -142,6 +156,8 @@ MatchLiveStateBundle _bundle(String state) {
     'score_adverse': 0,
     'exported': false,
     'lineup_revision': 3,
+    'pilot_active': pilotActive,
+    'pilot_is_me': pilotIsMe,
     'events': const [],
     'substitute_counts': const <String, int>{'bench-0': 1},
     'lineup': {
@@ -183,12 +199,55 @@ MatchLiveStateBundle _bundle(String state) {
 }
 
 class _StubRepository implements MatchLiveRepository {
-  _StubRepository(this._bundle);
+  _StubRepository({required this.state, required bool otherPilot})
+      : _pilotActive = otherPilot,
+        _pilotIsMe = false;
 
-  final MatchLiveStateBundle _bundle;
+  final String state;
+  bool _pilotActive;
+  bool _pilotIsMe;
+
+  MatchLiveStateBundle get _current => _bundle(
+        state,
+        pilotActive: _pilotActive,
+        pilotIsMe: _pilotIsMe,
+      );
 
   @override
-  Future<MatchLiveStateBundle> fetchLiveState(String matchId) async => _bundle;
+  Future<MatchLiveStateBundle> fetchLiveState(String matchId) async => _current;
+
+  @override
+  Future<MatchLiveStateBundle> claimPilot({
+    required String matchId,
+    int? plannedDurationMinutes,
+  }) async {
+    if (!_pilotActive) {
+      _pilotActive = true;
+      _pilotIsMe = true;
+    }
+    return _current;
+  }
+
+  @override
+  Future<MatchLiveStateBundle> takeOverPilot({required String matchId}) async {
+    _pilotActive = true;
+    _pilotIsMe = true;
+    return _current;
+  }
+
+  @override
+  Future<MatchLiveStateBundle> heartbeatPilot({required String matchId}) async {
+    return _current;
+  }
+
+  @override
+  Future<MatchLiveStateBundle> releasePilot({required String matchId}) async {
+    if (_pilotIsMe) {
+      _pilotActive = false;
+      _pilotIsMe = false;
+    }
+    return _current;
+  }
 
   @override
   Stream<void> watchChanges(String matchId) => const Stream<void>.empty();
@@ -203,6 +262,6 @@ class _StubRepository implements MatchLiveRepository {
         MatchLiveAddPlayerOptions.fromRpc(const <String, dynamic>{}),
       );
     }
-    return Future<MatchLiveStateBundle>.value(_bundle);
+    return Future<MatchLiveStateBundle>.value(_current);
   }
 }
