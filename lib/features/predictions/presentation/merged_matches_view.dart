@@ -76,7 +76,11 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     ref.invalidate(allHistoricalMatchesProvider);
     await ref
         .read(matchesControllerProvider.notifier)
-        .load(seasonId: state.selectedSeasonId, allSeasons: true);
+        .load(
+          seasonId: state.selectedSeasonId,
+          allSeasons: true,
+          forceRefresh: true,
+        );
   }
 
   void _focusRelevantMatch({
