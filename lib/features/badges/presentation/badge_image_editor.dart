@@ -160,7 +160,6 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
 
   final TransformationController _controller = TransformationController();
   Uint8List? _bytes;
-  bool _picking = false;
   bool _saving = false;
   String? _imageError;
 
@@ -186,12 +185,19 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     super.dispose();
   }
 
+  // Le navigateur ne signale pas toujours qu'on a fermé le sélecteur de
+  // fichiers sans choisir d'image. On ne bloque donc jamais les boutons pendant
+  // le choix : relancer le sélecteur ou annuler reste possible, et seule la
+  // réponse du dernier sélecteur ouvert est prise en compte.
+  int _pickGeneration = 0;
+
   Future<void> _pickImage() async {
-    if (_picking || _saving) return;
-    setState(() => _picking = true);
+    if (_saving) return;
+    final generation = ++_pickGeneration;
     try {
       final bytes = await pickBadgeImageBytes();
-      if (bytes == null || bytes.isEmpty || !mounted) return;
+      if (!mounted || generation != _pickGeneration) return;
+      if (bytes == null || bytes.isEmpty) return;
 
       setState(() {
         _bytes = bytes;
@@ -199,12 +205,10 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
         _controller.value = Matrix4.identity();
       });
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || generation != _pickGeneration) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Impossible de lire cette image.')),
       );
-    } finally {
-      if (mounted) setState(() => _picking = false);
     }
   }
 
@@ -271,7 +275,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
   }
 
   Future<void> _confirm() async {
-    if (_saving || _picking || _bytes == null || _imageError != null) return;
+    if (_saving || _bytes == null || _imageError != null) return;
     setState(() => _saving = true);
     try {
       final result = await _renderJpeg();
@@ -306,13 +310,6 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Le cadre blanc montre exactement ce qui sera visible sur la carte. '
-            'Les axes indiquent le centre. Déplace l’image avec un doigt et '
-            'pince avec deux doigts pour zoomer ou dézoomer.',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
@@ -328,7 +325,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                 child: bytes == null
                     ? Center(
                         child: FilledButton.icon(
-                          onPressed: _picking ? null : _pickImage,
+                          onPressed: _pickImage,
                           icon: const Icon(Icons.photo_library_rounded),
                           label: const Text('Choisir une image'),
                         ),
@@ -396,7 +393,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
               spacing: 8,
               children: [
                 TextButton.icon(
-                  onPressed: _saving || _picking ? null : _pickImage,
+                  onPressed: _saving ? null : _pickImage,
                   icon: const Icon(Icons.photo_library_rounded, size: 18),
                   label: const Text('Changer d’image'),
                 ),
@@ -411,14 +408,12 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       ),
       actions: [
         TextButton(
-          onPressed:
-              _saving || _picking ? null : () => Navigator.of(context).pop(),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Annuler'),
         ),
         FilledButton.icon(
-          onPressed: _saving || _picking || bytes == null || _imageError != null
-              ? null
-              : _confirm,
+          onPressed:
+              _saving || bytes == null || _imageError != null ? null : _confirm,
           icon: const Icon(Icons.check_rounded),
           label: const Text('Enregistrer'),
         ),

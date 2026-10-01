@@ -49,6 +49,12 @@ void main() {
       final badgeRect = tester.getRect(badge);
       expect(badgeRect.left, greaterThanOrEqualTo(backRect.right));
 
+      // Un appui long n'affiche plus d'infobulle « Retour au calendrier ».
+      await tester.longPress(badge);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Retour au calendrier'), findsNothing);
+      await tester.pumpAndSettle();
+
       await tester.tap(badge);
       await tester.pumpAndSettle();
 

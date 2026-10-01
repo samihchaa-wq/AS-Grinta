@@ -125,6 +125,20 @@ class BadgeAdminRepository {
     });
   }
 
+  /// Corrige le nom et le descriptif d'un badge existant. Le code, l'image,
+  /// la couleur, le barème et les attributions restent inchangés.
+  Future<void> updateBadgeText({
+    required String badgeCode,
+    required String name,
+    required String description,
+  }) async {
+    await _client.rpc('staff_update_badge_text', params: {
+      'p_badge_code': badgeCode,
+      'p_name': name.trim(),
+      'p_description': description.trim(),
+    });
+  }
+
   /// Crée un badge manuel/mystère directement avec son illustration finale.
   /// Sa couleur est toujours l'orange des badges mystère.
   ///
