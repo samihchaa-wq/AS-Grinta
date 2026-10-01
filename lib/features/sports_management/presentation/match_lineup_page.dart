@@ -82,6 +82,9 @@ class MatchLineupPage extends ConsumerWidget {
                 ? (!isInternal && !liveTooEarly ? 'live' : 'effectif')
                 : section;
 
+    // À partir de T-15, le Live occupe toute la fiche : ni encadré du
+    // match ni onglets Info / Effectif / Compo / Prono.
+    final liveTakesOver = !isInternal && !tooFarAway && !liveTooEarly;
     final showInfo = resolvedSection == 'info';
     final showEffectif = resolvedSection == 'effectif';
     final showComposition = resolvedSection == 'composition';
@@ -117,54 +120,58 @@ class MatchLineupPage extends ConsumerWidget {
             AppSpacing.screenGutter,
             40,
           ),
-          children: [
-            UpcomingMatchFixtureHeader(matchId: matchId),
-            SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: [
-                const ButtonSegment(value: 'info', label: Text('Info')),
-                if (!tooFarAway)
-                  const ButtonSegment(
-                    value: 'effectif',
-                    label: Text('Effectif'),
+          children: liveTakesOver
+              ? [MatchLiveTab(matchId: matchId)]
+              : [
+                  UpcomingMatchFixtureHeader(matchId: matchId),
+                  SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    segments: [
+                      const ButtonSegment(value: 'info', label: Text('Info')),
+                      if (!tooFarAway)
+                        const ButtonSegment(
+                          value: 'effectif',
+                          label: Text('Effectif'),
+                        ),
+                      if (!tooFarAway)
+                        const ButtonSegment(
+                          value: 'composition',
+                          label: Text('Compo'),
+                        ),
+                      if (!isInternal && !tooFarAway && !liveTooEarly)
+                        const ButtonSegment(value: 'live', label: Text('Live')),
+                      if (!isInternal && !tooFarAway && !predictionClosed)
+                        const ButtonSegment(
+                          value: 'prediction',
+                          label: Text('Prono'),
+                        ),
+                    ],
+                    selected: {resolvedSection},
+                    onSelectionChanged: (selection) => context.go(
+                      '/matches/$matchId/lineup?section=${selection.first}',
+                    ),
                   ),
-                if (!tooFarAway)
-                  const ButtonSegment(
-                    value: 'composition',
-                    label: Text('Compo'),
-                  ),
-                if (!isInternal && !tooFarAway && !liveTooEarly)
-                  const ButtonSegment(value: 'live', label: Text('Live')),
-                if (!isInternal && !tooFarAway && !predictionClosed)
-                  const ButtonSegment(
-                    value: 'prediction',
-                    label: Text('Prono'),
-                  ),
-              ],
-              selected: {resolvedSection},
-              onSelectionChanged: (selection) => context.go(
-                '/matches/$matchId/lineup?section=${selection.first}',
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sectionGap),
-            if (showInfo) MatchInfoTab(matchId: matchId),
-            if (showEffectif)
-              MatchAvailabilityBoardCard(
-                matchId: matchId,
-                showAfterComposition: true,
-              ),
-            if (showComposition && isInternal)
-              InternalTeamCompositionView(matchId: matchId, editable: false)
-            else if (showComposition)
-              PublishedLineupPreview(
-                matchId: matchId,
-                expanded: true,
-                fallbackToEffectif: false,
-                emptyMessage: 'Composition non publiée.',
-              ),
-            if (showLive) MatchLiveTab(matchId: matchId),
-            if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
-          ],
+                  const SizedBox(height: AppSpacing.sectionGap),
+                  if (showInfo) MatchInfoTab(matchId: matchId),
+                  if (showEffectif)
+                    MatchAvailabilityBoardCard(
+                      matchId: matchId,
+                      showAfterComposition: true,
+                    ),
+                  if (showComposition && isInternal)
+                    InternalTeamCompositionView(
+                        matchId: matchId, editable: false)
+                  else if (showComposition)
+                    PublishedLineupPreview(
+                      matchId: matchId,
+                      expanded: true,
+                      fallbackToEffectif: false,
+                      emptyMessage: 'Composition non publiée.',
+                    ),
+                  if (showLive) MatchLiveTab(matchId: matchId),
+                  if (showPrediction)
+                    InlineMatchPredictionCard(matchId: matchId),
+                ],
         ),
       ),
     );

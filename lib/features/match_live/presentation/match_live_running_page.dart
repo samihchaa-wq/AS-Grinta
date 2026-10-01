@@ -1,22 +1,29 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/calendar_scoreline.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/features/match_live/domain/next_out_players.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_formation.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/domain/substitution_salvos.dart';
+import 'package:as_grinta/features/match_live/domain/time_on_field.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_report_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_remove_player_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/substitution_salvo_frame.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,11 +41,16 @@ class MatchLiveRunningPage extends ConsumerStatefulWidget {
     required this.matchId,
     required this.bundle,
     required this.canEdit,
+    this.fullScreen = false,
   });
 
   final String matchId;
   final MatchLiveStateBundle bundle;
   final bool canEdit;
+
+  /// Vue pilote : bandeau chrono / score et commandes en deux lignes, terrain
+  /// et banc, puis buts à attribuer et changements en attente.
+  final bool fullScreen;
 
   @override
   ConsumerState<MatchLiveRunningPage> createState() =>
@@ -55,6 +67,26 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
   String get matchId => widget.matchId;
   MatchLiveStateBundle get bundle => widget.bundle;
   bool get canEdit => widget.canEdit;
+
+  /// Rafraîchit le temps passé sur le terrain affiché à côté des prénoms
+  /// pendant que le chrono tourne.
+  Timer? _minuteTicker;
+
+  @override
+  void initState() {
+    super.initState();
+    _minuteTicker = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted && bundle.session.state == MatchLiveState.running) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _minuteTicker?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +116,123 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     final setupControlsDisabled =
         _saving || _savingFormation || _pending.isNotEmpty;
 
+    final pitchArea = LayoutBuilder(
+      builder: (context, constraints) {
+        final metrics = benchAndPitchMetrics(constraints.maxWidth);
+        final lastExits = lastExitMarksByParticipant(bundle.events);
+        // Prochains à sortir : calculés sur la dernière salve validée.
+        // Ils restent affichés pendant la préparation de la suivante, pour
+        // choisir parmi les joueurs en orange ceux qui restent à sortir.
+        final nextOut = nextOutPlayers(
+          field: lineup.entriesFor(MatchCompositionZone.field),
+          events: bundle.events,
+          substituteCounts: bundle.substituteCounts,
+          benchCount: lineup.entriesFor(MatchCompositionZone.bench).length,
+        );
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BenchColumn(
+                bench: bench,
+                bundle: bundle,
+                canEdit: canEdit,
+                metrics: metrics,
+                pendingOutIds: pendingOutIds,
+                onFieldPlayerDropped: (playerOut, playerIn) =>
+                    _stage(playerIn: playerIn, playerOut: playerOut),
+                footer: widget.fullScreen && canEdit
+                    ? Column(
+                        children: [
+                          _BenchAction(
+                            icon: Icons.person_add_alt_1_rounded,
+                            label: 'Ajouter',
+                            tooltip: 'Ajouter un joueur',
+                            onPressed: setupControlsDisabled
+                                ? null
+                                : () => showMatchLiveAddPlayerSheet(
+                                      context,
+                                      ref,
+                                      matchId: matchId,
+                                    ),
+                          ),
+                          _BenchAction(
+                            icon: Icons.person_remove_rounded,
+                            label: 'Retirer',
+                            tooltip: 'Retirer un joueur du banc',
+                            onPressed: setupControlsDisabled ||
+                                    lineup
+                                        .entriesFor(MatchCompositionZone.bench)
+                                        .isEmpty
+                                ? null
+                                : () => _removeBenchPlayer(lineup, controller),
+                          ),
+                        ],
+                      )
+                    : null,
+              ),
+              const SizedBox(width: _benchGap),
+              Expanded(
+                child: FormationPitchEditor(
+                  slots: formationForCode(lineup.formationCode).slots,
+                  entries: field,
+                  editable: canEdit,
+                  finishedBenchCounts: bundle.substituteCounts,
+                  benchLabels: {
+                    for (final MapEntry(:key, :value)
+                        in bundle.substituteCounts.entries)
+                      key: liveBenchLabel(lastExits[key], value),
+                  },
+                  benchColors: {
+                    for (final key in bundle.substituteCounts.keys)
+                      key: switch (lastExits[key]) {
+                        final exit? =>
+                          substitutionSalvoColorAt(exit.colorIndex),
+                        null => substitutionStartColor,
+                      },
+                  },
+                  namesOnly: true,
+                  nameSuffixes: {
+                    for (final MapEntry(:key, :value) in minutesOnField(
+                      field: lineup.entriesFor(MatchCompositionZone.field),
+                      events: bundle.events,
+                      elapsed: bundle.session.elapsedAt(DateTime.now()),
+                    ).entries)
+                      key: "$value'",
+                  },
+                  nameColors: {
+                    for (final id in nextOut.sure) id: nextOutSureColor,
+                    for (final id in nextOut.toChoose) id: nextOutToChooseColor,
+                  },
+                  markerMetrics: metrics,
+                  onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
+                    context,
+                    controller,
+                    lineup,
+                    moving,
+                    slot,
+                  ),
+                  onRemoveFromField: (entry) =>
+                      _explainHowToSubstitute(context),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (widget.fullScreen) {
+      return _buildFullScreen(
+        context,
+        lineup: lineup,
+        pitchArea: pitchArea,
+        controller: controller,
+        scorerCandidates: scorerCandidates,
+        setupControlsDisabled: setupControlsDisabled,
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.liveScreenGutter,
@@ -94,32 +243,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        _LiveTopBar(
-          session: bundle.session,
-          canEdit: canEdit,
-          onPause: () => controller.setClockState('pause'),
-          onResume: () => controller.setClockState('resume'),
-          onResumeSecondHalf: () =>
-              controller.setClockState('resume_second_half'),
-          onHalftime: () => _confirmHalftime(context, controller),
-          onRestart: () => _confirmRestart(context, controller),
-          onEndMatch: () => _confirmEndMatch(context, controller),
-        ),
-        const SizedBox(height: 10),
-        _ScoreCard(bundle: bundle, canEdit: canEdit),
-        if (canEdit && _pending.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          _PendingSubstitutions(
-            pending: _pending,
-            nameOf: (participantId) => _nameOf(lineup, participantId),
-            busy: _saving,
-            onRemove: (pair) => setState(() => _pending.remove(pair)),
-            onClear: () => setState(_pending.clear),
-            onValidate: () => _validatePending(lineup, controller),
-          ),
-        ],
         if (canEdit) ...[
-          const SizedBox(height: 10),
           Row(
             key: const ValueKey('live-running-controls'),
             children: [
@@ -177,63 +301,42 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
               ),
             ],
           ),
-          if (_pending.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                'Valide ou annule les remplacements en attente avant de '
-                'changer de dispositif ou d’ajouter un joueur.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
+          const SizedBox(height: 10),
         ],
-        const SizedBox(height: AppSpacing.sectionGap),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final metrics = benchAndPitchMetrics(constraints.maxWidth);
-            return IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _BenchColumn(
-                    bench: bench,
-                    bundle: bundle,
-                    canEdit: canEdit,
-                    metrics: metrics,
-                    pendingOutIds: pendingOutIds,
-                    onFieldPlayerDropped: (playerOut, playerIn) =>
-                        _stage(playerIn: playerIn, playerOut: playerOut),
-                  ),
-                  const SizedBox(width: _benchGap),
-                  Expanded(
-                    child: FormationPitchEditor(
-                      slots: formationForCode(lineup.formationCode).slots,
-                      entries: field,
-                      editable: canEdit,
-                      finishedBenchCounts: bundle.substituteCounts,
-                      benchLabels: {
-                        for (final MapEntry(:key, :value)
-                            in lastExitMarksByParticipant(bundle.events)
-                                .entries)
-                          key: value.label,
-                      },
-                      markerMetrics: metrics,
-                      onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
-                        context,
-                        controller,
-                        lineup,
-                        moving,
-                        slot,
-                      ),
-                      onRemoveFromField: (entry) =>
-                          _explainHowToSubstitute(context),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+        _LiveHeaderBar(
+          bundle: bundle,
+          canEdit: canEdit,
+          onPause: () => controller.setClockState('pause'),
+          onResume: () => controller.setClockState('resume'),
+          onResumeSecondHalf: () =>
+              controller.setClockState('resume_second_half'),
+          onHalftime: () => _confirmHalftime(context, controller),
+          onRestart: () => _confirmRestart(context, controller),
+          onEndMatch: () => _confirmEndMatch(context, controller),
         ),
+        const SizedBox(height: AppSpacing.sectionGap),
+        pitchArea,
+        // Remplacements en préparation : sous le terrain, pour qu'il ne
+        // descende pas à chaque joueur sélectionné.
+        if (canEdit && _pending.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _PendingSubstitutions(
+            pending: _pending,
+            nameOf: (participantId) => _nameOf(lineup, participantId),
+            busy: _saving,
+            onRemove: (pair) => setState(() => _pending.remove(pair)),
+            onClear: () => setState(_pending.clear),
+            onValidate: () => _validatePending(lineup, controller),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Valide ou annule les remplacements en attente avant de '
+              'changer de dispositif ou d’ajouter un joueur.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.sectionGap),
         _LiveJournal(
           key: _journalKey,
@@ -249,6 +352,300 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
           onDelete: (event) => _confirmDeleteEvent(context, controller, event),
         ),
       ],
+    );
+  }
+
+  /// Vue pilote, posée dans la fiche du match.
+  Widget _buildFullScreen(
+    BuildContext context, {
+    required MatchComposition lineup,
+    required Widget pitchArea,
+    required MatchLiveStateController controller,
+    required List<MatchCompositionEntry> scorerCandidates,
+    required bool setupControlsDisabled,
+  }) {
+    final session = bundle.session;
+    final canGoHalftime =
+        session.half == 1 && session.state != MatchLiveState.halftime;
+    final goalsToAttribute = [
+      for (final event in bundle.events)
+        if (event.type == MatchLiveEventType.goalUs && event.needsScorer) event,
+    ];
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          child: _LiveHeaderBar(
+            bundle: bundle,
+            canEdit: canEdit,
+            onlyClockAction: true,
+            onPause: () => controller.setClockState('pause'),
+            onResume: () => controller.setClockState('resume'),
+            onResumeSecondHalf: () =>
+                controller.setClockState('resume_second_half'),
+            onHalftime: () => _confirmHalftime(context, controller),
+            onRestart: () => _confirmRestart(context, controller),
+            onEndMatch: () => _confirmEndMatch(context, controller),
+            showClockAction: false,
+            // Seconde ligne : commandes du match à gauche, consultation à
+            // droite.
+            bottom: Row(
+              children: [
+                if (canEdit) ...[
+                  _MatchModeAction(
+                    icon: Icons.sports_rounded,
+                    label: 'Mi-temps',
+                    onPressed: canGoHalftime
+                        ? () => _confirmHalftime(context, controller)
+                        : null,
+                  ),
+                  _MatchModeAction(
+                    icon: Icons.flag_rounded,
+                    label: 'Fin',
+                    tooltip: 'Fin du match',
+                    danger: true,
+                    onPressed: () => _confirmEndMatch(context, controller),
+                  ),
+                  _MatchModeAction(
+                    icon: Icons.restart_alt_rounded,
+                    label: 'Reset',
+                    tooltip: 'Recommencer le match',
+                    onPressed: () => _confirmRestart(context, controller),
+                  ),
+                  switch (session.state) {
+                    MatchLiveState.running => _MatchModeAction(
+                        icon: Icons.pause_rounded,
+                        label: 'Pause',
+                        onPressed: () => controller.setClockState('pause'),
+                      ),
+                    MatchLiveState.paused => _MatchModeAction(
+                        icon: Icons.play_arrow_rounded,
+                        label: 'Reprendre',
+                        onPressed: () => controller.setClockState('resume'),
+                      ),
+                    MatchLiveState.halftime => _MatchModeAction(
+                        icon: Icons.play_arrow_rounded,
+                        label: '2e mi-temps',
+                        tooltip: 'Reprendre la 2e mi-temps',
+                        onPressed: () =>
+                            controller.setClockState('resume_second_half'),
+                      ),
+                    _ => const _MatchModeAction(
+                        icon: Icons.pause_rounded,
+                        label: 'Pause',
+                        onPressed: null,
+                      ),
+                  },
+                  Container(
+                    width: 1,
+                    height: 36,
+                    margin: const EdgeInsets.symmetric(horizontal: 6),
+                    color: Theme.of(context).dividerColor,
+                  ),
+                ] else
+                  const Spacer(flex: 4),
+                _MatchModeAction(
+                  icon: Icons.receipt_long_rounded,
+                  label: 'Journal',
+                  tooltip: 'Journal du match',
+                  badgeCount: bundle.events.length,
+                  onPressed: () =>
+                      _openJournal(context, controller, scorerCandidates),
+                ),
+                if (canEdit)
+                  _MatchModeAction(
+                    icon: Icons.grid_view_rounded,
+                    label: formationForCode(lineup.formationCode).code,
+                    tooltip: 'Changer de dispositif',
+                    onPressed: setupControlsDisabled
+                        ? null
+                        : () => _onMatchMenu(
+                              context,
+                              'formation',
+                              lineup,
+                              controller,
+                            ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 10, 8, 0),
+          child: pitchArea,
+        ),
+        // Sous le terrain : buts à attribuer et changements en attente.
+        if (canEdit && (_pending.isNotEmpty || goalsToAttribute.isNotEmpty))
+          Material(
+            color: Colors.transparent,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Buts d'AS Grinta sans buteur : un appui pour désigner
+                    // le buteur puis le passeur.
+                    for (final event in goalsToAttribute)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _GoalToAttributeBar(
+                          event: event,
+                          onChoose: () => _pickGoalScorer(
+                            context,
+                            controller,
+                            event,
+                            scorerCandidates,
+                          ),
+                        ),
+                      ),
+                    if (_pending.isNotEmpty)
+                      _PendingSubstitutions(
+                        pending: _pending,
+                        nameOf: (participantId) =>
+                            _nameOf(lineup, participantId),
+                        busy: _saving,
+                        onRemove: (pair) =>
+                            setState(() => _pending.remove(pair)),
+                        onClear: () => setState(_pending.clear),
+                        onValidate: () => _validatePending(lineup, controller),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Pendant le match, seul un joueur du banc peut quitter la feuille : un
+  /// joueur du terrain sort par un remplacement.
+  Future<void> _removeBenchPlayer(
+    MatchComposition lineup,
+    MatchLiveStateController controller,
+  ) async {
+    final removed = await showMatchLiveRemovePlayerPicker(
+      context,
+      candidates: lineup.entriesFor(MatchCompositionZone.bench),
+      note: 'Pendant le match, seuls les joueurs du banc peuvent être '
+          'retirés. Un joueur du terrain sort par un remplacement.',
+    );
+    if (removed == null || !mounted) return;
+    setState(() => _saving = true);
+    try {
+      await controller.saveLiveLineup(
+        entries: lineupWithoutPlayer(lineup, removed),
+        expectedLineupRevision: bundle.session.lineupRevision,
+      );
+      if (!mounted) return;
+      _showMessage(context, '${removed.displayName} retiré du match.');
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        context,
+        'Impossible de retirer ce joueur. L’état Live a été resynchronisé.',
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _onMatchMenu(
+    BuildContext context,
+    String value,
+    MatchComposition lineup,
+    MatchLiveStateController controller,
+  ) async {
+    switch (value) {
+      case 'halftime':
+        await _confirmHalftime(context, controller);
+      case 'formation':
+        final current = formationForCode(lineup.formationCode).code;
+        final code = await showDialog<String>(
+          context: context,
+          builder: (dialogContext) => SimpleDialog(
+            title: const Text('Dispositif'),
+            children: [
+              for (final formation in footballFormations)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(dialogContext, formation.code),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(formation.code)),
+                      if (formation.code == current)
+                        const Icon(Icons.check_rounded, size: 20),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+        if (code != null && mounted) {
+          await _changeFormation(lineup, code, controller);
+        }
+      case 'add':
+        await showMatchLiveAddPlayerSheet(context, ref, matchId: matchId);
+      case 'restart':
+        await _confirmRestart(context, controller);
+      case 'end':
+        await _confirmEndMatch(context, controller);
+    }
+  }
+
+  /// Journal en volet par-dessus l'écran : il suit l'état du direct, pour
+  /// qu'une suppression ou un buteur corrigé s'y voie tout de suite.
+  Future<void> _openJournal(
+    BuildContext context,
+    MatchLiveStateController controller,
+    List<MatchCompositionEntry> scorerCandidates,
+  ) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: .6,
+        minChildSize: .3,
+        maxChildSize: .92,
+        builder: (_, scrollController) => Consumer(
+          builder: (_, ref, __) {
+            final events = ref
+                    .watch(matchLiveStateProvider(matchId))
+                    .valueOrNull
+                    ?.events ??
+                bundle.events;
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+              child: _LiveJournal(
+                events: events,
+                expanded: true,
+                canEdit: canEdit,
+                onExpandedChanged: (_) {},
+                onEditScorer: (event) => _pickGoalScorer(
+                  context,
+                  controller,
+                  event,
+                  scorerCandidates,
+                ),
+                onEditAssist: (event) => _pickGoalAssist(
+                  context,
+                  controller,
+                  event,
+                  scorerCandidates,
+                ),
+                onDelete: (event) =>
+                    _confirmDeleteEvent(context, controller, event),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -529,15 +926,6 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     MatchLiveStateController controller,
     MatchLiveEvent event,
   ) async {
-    final description = switch (event.type) {
-      MatchLiveEventType.goalUs => event.isOpponentOwnGoal
-          ? "But AS Grinta (CSC adverse) · ${event.minute}'"
-          : "But AS Grinta · ${event.scorerName ?? 'buteur à désigner'} · "
-              "${event.minute}'",
-      MatchLiveEventType.goalThem => "But adverse · ${event.minute}'",
-      MatchLiveEventType.substitution => '${event.playerInName ?? '?'} entre · '
-          '${event.playerOutName ?? '?'} sort · ${event.minute}\'',
-    };
     final title = event.type == MatchLiveEventType.substitution
         ? 'Retirer ce remplacement ?'
         : 'Retirer ce but ?';
@@ -546,7 +934,6 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(title),
-        content: Text(description),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -568,20 +955,10 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     BuildContext context,
     MatchLiveStateController controller,
   ) async {
-    final planned = bundle.session.planPlannedDurationMinutes;
-    final target = Duration(seconds: planned * 30);
-    final minutes = target.inMinutes.toString().padLeft(2, '0');
-    final seconds = (target.inSeconds % 60).toString().padLeft(2, '0');
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Passer à la mi-temps ?'),
-        content: Text(
-          'Le chronomètre sera calé sur $minutes:$seconds — la moitié des '
-          '$planned minutes de jeu prévues — puis mis en pause.\n\n'
-          'Le temps affiché actuellement sera donc remplacé.',
-        ),
+        title: const Text('Mi-temps ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -606,8 +983,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Fin du match'),
-        content: const Text('Êtes-vous sûr de vouloir finir le match ?'),
+        title: const Text('Fin du match ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -629,29 +1005,10 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     BuildContext context,
     MatchLiveStateController controller,
   ) async {
-    final goals = bundle.ownGoals.length + bundle.opponentGoals.length;
-    final substitutions = bundle.substitutions.length;
-    final details = [
-      if (goals > 0) goals == 1 ? '1 but' : '$goals buts',
-      if (substitutions > 0)
-        substitutions == 1 ? '1 remplacement' : '$substitutions remplacements',
-    ];
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Recommencer le match ?'),
-        content: Text(
-          details.isEmpty
-              ? 'Le chronomètre et le score repartent à zéro, et la '
-                  'composition redevient celle du coup d’envoi.\n\n'
-                  'Cette action est définitive.'
-              : 'Tout ce qui a été saisi sera effacé : ${details.join(' et ')}, '
-                  'le chronomètre et le score.\n\n'
-                  'La composition redevient celle du coup d’envoi et tu '
-                  'reviens à l’écran de préparation.\n\n'
-                  'Cette action est définitive.',
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

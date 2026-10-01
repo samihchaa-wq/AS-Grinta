@@ -112,4 +112,46 @@ void main() {
       ['1.1', '1.2', '2.1', '1.3'],
     );
   });
+  test('deux validations dans la même minute restent deux salves', () {
+    final first = DateTime.utc(2026, 9, 28, 19, 45, 10);
+    final second = DateTime.utc(2026, 9, 28, 19, 45, 40);
+    MatchLiveEvent change(String id, String inP, String outP, DateTime at) =>
+        MatchLiveEvent(
+          id: id,
+          type: MatchLiveEventType.substitution,
+          minute: 45,
+          half: 1,
+          playerInParticipantId: inP,
+          playerOutParticipantId: outP,
+          createdAt: at,
+        );
+    final events = [
+      change('a', 'R1', 'T1', first),
+      change('b', 'R2', 'T2', first),
+      change('c', 'R3', 'T3', second),
+    ];
+
+    final salvos = substitutionSalvosByEvent(events);
+    expect(identical(salvos[events[0]], salvos[events[1]]), isTrue);
+    expect(salvos[events[2]]!.number, 2);
+    expect(salvos[events[2]]!.colorIndex, 1);
+
+    final marks = substitutionExitMarksByEvent(events);
+    expect([for (final e in events) marks[e]!.label], ['1.1', '1.1', '1.2']);
+  });
+
+  test("l'heure d'enregistrement du serveur est lue", () {
+    final event = MatchLiveEvent.fromJson({
+      'id': 'x',
+      'event_type': 'substitution',
+      'minute': 12,
+      'half': 1,
+      'created_at': '2026-09-28T19:12:03.123456+00:00',
+    });
+    expect(event.createdAt, DateTime.utc(2026, 9, 28, 19, 12, 3, 123, 456));
+    expect(
+      MatchLiveEvent.fromJson({'id': 'y', 'event_type': 'goal_us'}).createdAt,
+      isNull,
+    );
+  });
 }

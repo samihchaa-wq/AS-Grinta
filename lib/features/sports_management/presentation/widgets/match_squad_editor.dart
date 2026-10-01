@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -24,6 +25,7 @@ class MatchSquadEditor extends StatelessWidget {
     this.timesBenched = const {},
     this.header,
     this.benchLabel = 'Banc',
+    this.namesOnly = false,
   });
 
   final MatchComposition lineup;
@@ -44,15 +46,23 @@ class MatchSquadEditor extends StatelessWidget {
   final Widget? header;
   final String benchLabel;
 
+  /// Prénoms seuls, sans pastilles d'initiales ni photos (module Live).
+  final bool namesOnly;
+
+  static const double _benchGap = AppSpacing.contentGap;
+  static const double _benchMargin = AppSpacing.compactCardPadding;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Le terrain occupe toute la largeur disponible, plafonnée par
-        // FormationPitchEditor. Les vignettes du banc reprennent la même
-        // taille pour qu'un remplaçant occupe la place d'un titulaire.
+        // Banc à gauche, terrain à droite, comme dans le direct : le terrain
+        // prend la largeur restante et les vignettes du banc reprennent la
+        // taille des joueurs du terrain.
+        final pitchWidth =
+            (constraints.maxWidth - _benchGap - _benchMargin) * 5.6 / 6.6;
         final metrics = FormationMarkerMetrics.forPitch(
-          (constraints.maxWidth - 32).clamp(0.0, 540.0).toDouble(),
+          pitchWidth.clamp(0.0, 540.0).toDouble(),
         );
         return _buildContent(context, metrics);
       },
@@ -89,59 +99,64 @@ class MatchSquadEditor extends StatelessWidget {
           ),
           const SizedBox(height: 14),
         ],
-        Center(
-          child: FormationPitchEditor(
-            slots: formation.slots,
-            entries: field,
-            editable: editable,
-            markerMetrics: metrics,
-            onDroppedOnSlot: onDroppedOnSlot,
-            onRemoveFromField: onMoveToBench,
-          ),
-        ),
-        const SizedBox(height: 14),
-        DragTarget<MatchCompositionEntry>(
-          onWillAcceptWithDetails: (details) => editable,
-          onAcceptWithDetails: (details) => onMoveToBench(details.data),
-          builder: (context, candidates, rejected) => Card(
-            color: candidates.isNotEmpty
-                ? Theme.of(context).colorScheme.primaryContainer
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    '$benchLabel (${bench.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w400,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (bench.isEmpty)
-                    const Text('Aucun joueur sur le banc.')
-                  else
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 14,
-                      children: [
-                        for (final entry in bench)
-                          LiveBenchTile(
-                            entry: entry,
-                            draggable: editable,
-                            metrics: metrics,
-                            timesBenched:
-                                timesBenched[entry.participantId] ?? 0,
-                            onTap: editable && onRemoveFromSquad != null
-                                ? () => _confirmRemoval(context, entry)
-                                : null,
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: metrics.width + _benchMargin,
+                child: DragTarget<MatchCompositionEntry>(
+                  onWillAcceptWithDetails: (details) => editable,
+                  onAcceptWithDetails: (details) => onMoveToBench(details.data),
+                  builder: (context, candidates, rejected) => Card(
+                    margin: EdgeInsets.zero,
+                    color: candidates.isNotEmpty
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        children: [
+                          Text(
+                            '$benchLabel\n(${bench.length})',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
-                      ],
+                          const SizedBox(height: 8),
+                          for (final entry in bench)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: LiveBenchTile(
+                                entry: entry,
+                                draggable: editable,
+                                metrics: metrics,
+                                namesOnly: namesOnly,
+                                timesBenched:
+                                    timesBenched[entry.participantId] ?? 0,
+                                onTap: editable && onRemoveFromSquad != null
+                                    ? () => _confirmRemoval(context, entry)
+                                    : null,
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: _benchGap),
+              Expanded(
+                child: FormationPitchEditor(
+                  slots: formation.slots,
+                  entries: field,
+                  editable: editable,
+                  markerMetrics: metrics,
+                  namesOnly: namesOnly,
+                  onDroppedOnSlot: onDroppedOnSlot,
+                  onRemoveFromField: onMoveToBench,
+                ),
+              ),
+            ],
           ),
         ),
       ],
