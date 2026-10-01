@@ -19,11 +19,14 @@ const grintaTableScrollableHeaderPadding = EdgeInsets.fromLTRB(8, 12, 16, 12);
 /// Marge verticale réduite côté colonne figée : la hauteur des lignes reste
 /// donnée par les cellules de stats, mais un emblème peut occuper toute la
 /// hauteur au lieu d'être bridé par 17 px de vide en haut et en bas.
-const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(6, 8, 4, 8);
+///
+/// À gauche, 2 px seulement : le rang colle au bord du tableau, et la place
+/// gagnée revient aux emblèmes.
+const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(2, 8, 4, 8);
 
 const grintaTableScrollableRowPadding = EdgeInsets.fromLTRB(8, 17, 16, 17);
-const grintaTableRankWidth = 26.0;
-const grintaTableRankGap = 4.0;
+const grintaTableRankWidth = 18.0;
+const grintaTableRankGap = 6.0;
 
 TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
   return TextStyle(
@@ -112,7 +115,8 @@ double grintaTablePinnedWidthForNames(
 }
 
 /// Le rang d'une ligne, calé à droite dans une case juste assez large pour
-/// trois chiffres, puis un écart franc avant le nom.
+/// deux chiffres, puis un écart franc avant le nom. Si le texte est agrandi
+/// par l'appareil, le nombre rétrécit plutôt que de passer à la ligne.
 ///
 /// Aligné à gauche, un rang à un chiffre laissait derrière lui un trou aussi
 /// large que le chiffre manquant, et le nom ne démarrait jamais au même
@@ -129,11 +133,15 @@ class GrintaTableRankCell extends StatelessWidget {
       padding: const EdgeInsets.only(right: grintaTableRankGap),
       child: SizedBox(
         width: grintaTableRankWidth,
-        child: Text(
-          '$rank',
-          maxLines: 1,
-          textAlign: TextAlign.end,
-          style: grintaTableRankTextStyle(context, color: color),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(
+            '$rank',
+            maxLines: 1,
+            textAlign: TextAlign.end,
+            style: grintaTableRankTextStyle(context, color: color),
+          ),
         ),
       ),
     );
