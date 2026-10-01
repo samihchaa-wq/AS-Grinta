@@ -25,12 +25,8 @@ class BadgeAdminPage extends ConsumerStatefulWidget {
 class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _commonSearchController = TextEditingController();
-  final _mysterySearchController = TextEditingController();
   Uint8List? _badgeImageBytes;
   bool _creating = false;
-  String _commonQuery = '';
-  String _mysteryQuery = '';
 
   /// Sous-onglet des badges mystères : Manuel (faux) ou Automatique (vrai).
   bool _mysteryAutomatic = false;
@@ -39,8 +35,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _commonSearchController.dispose();
-    _mysterySearchController.dispose();
     super.dispose();
   }
 
@@ -103,9 +97,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     BuildContext context,
     AsyncValue<List<BadgeDef>> badgesAsync, {
     required bool mystery,
-    required TextEditingController searchController,
-    required String query,
-    required ValueChanged<String> onSearchChanged,
   }) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
@@ -118,24 +109,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           ),
           const SizedBox(height: 10),
         ],
-        Text(
-          !mystery
-              ? 'Tous les badges communs visibles dans l’application.'
-              : _mysteryAutomatic
-                  ? 'Badges mystères décernés automatiquement par l’application.'
-                  : 'Badges mystères à décerner à la main.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: searchController,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search),
-            hintText: 'Rechercher un badge…',
-          ),
-          onChanged: onSearchChanged,
-        ),
-        const SizedBox(height: 12),
         badgesAsync.when(
           loading: () => const Padding(
             padding: EdgeInsets.all(24),
@@ -143,18 +116,11 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           ),
           error: (e, _) => Text(humanizeError(e)),
           data: (badges) {
-            final sectionBadges = badges.where((badge) {
+            final filtered = badges.where((badge) {
               if (mystery != badge.isMystery) return false;
               return !mystery ||
                   badge.awardedAutomatically == _mysteryAutomatic;
-            });
-            final filtered = query.isEmpty
-                ? sectionBadges.toList()
-                : sectionBadges
-                    .where(
-                      (badge) => badge.name.toLowerCase().contains(query),
-                    )
-                    .toList();
+            }).toList();
             if (mystery) {
               filtered.sort((a, b) => compareBadgeNames(a.name, b.name));
             }
@@ -162,7 +128,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             if (filtered.isEmpty) {
               return const Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('Aucun badge trouvé.'),
+                child: Text('Aucun badge.'),
               );
             }
 
@@ -304,21 +270,11 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                     context,
                     badgesAsync,
                     mystery: true,
-                    searchController: _mysterySearchController,
-                    query: _mysteryQuery,
-                    onSearchChanged: (value) => setState(
-                      () => _mysteryQuery = value.trim().toLowerCase(),
-                    ),
                   ),
                   _buildBadgeList(
                     context,
                     badgesAsync,
                     mystery: false,
-                    searchController: _commonSearchController,
-                    query: _commonQuery,
-                    onSearchChanged: (value) => setState(
-                      () => _commonQuery = value.trim().toLowerCase(),
-                    ),
                   ),
                   ListView(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),

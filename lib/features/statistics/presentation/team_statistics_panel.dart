@@ -621,21 +621,27 @@ class _ScoreMarginCard extends StatelessWidget {
     );
   }
 
+  // Buts d'écart groupés par tranches de 3 : les scores fleuves sont
+  // fréquents, une échelle de 1 en 1 tassait presque tout dans la dernière
+  // colonne.
+  int _sumBetween(int min, int max) =>
+      _sumWhere((margin) => margin >= min && margin <= max);
+
   @override
   Widget build(BuildContext context) {
     final losses = _sumWhere((margin) => margin < 0);
     final draws = distribution[0] ?? 0;
     final wins = _sumWhere((margin) => margin > 0);
     final buckets = [
-      _MarginBucket('≤-4', _sumWhere((margin) => margin <= -4), _teamRed),
-      _MarginBucket('-3', distribution[-3] ?? 0, _teamRed),
-      _MarginBucket('-2', distribution[-2] ?? 0, _teamRed),
-      _MarginBucket('-1', distribution[-1] ?? 0, _teamRed),
+      _MarginBucket('≥10', _sumWhere((margin) => margin <= -10), _teamRed),
+      _MarginBucket('7-9', _sumBetween(-9, -7), _teamRed),
+      _MarginBucket('4-6', _sumBetween(-6, -4), _teamRed),
+      _MarginBucket('1-3', _sumBetween(-3, -1), _teamRed),
       _MarginBucket('0', draws, _teamYellow),
-      _MarginBucket('+1', distribution[1] ?? 0, _teamGreen),
-      _MarginBucket('+2', distribution[2] ?? 0, _teamGreen),
-      _MarginBucket('+3', distribution[3] ?? 0, _teamGreen),
-      _MarginBucket('≥+4', _sumWhere((margin) => margin >= 4), _teamGreen),
+      _MarginBucket('1-3', _sumBetween(1, 3), _teamGreen),
+      _MarginBucket('4-6', _sumBetween(4, 6), _teamGreen),
+      _MarginBucket('7-9', _sumBetween(7, 9), _teamGreen),
+      _MarginBucket('≥10', _sumWhere((margin) => margin >= 10), _teamGreen),
     ];
     final maxCount = math.max(
       1,
