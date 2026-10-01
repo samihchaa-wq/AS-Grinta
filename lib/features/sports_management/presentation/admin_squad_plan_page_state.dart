@@ -340,7 +340,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const SizedBox.shrink(),
-        admin: true,
         actions: [
           IconButton(
             tooltip: 'Actualiser',

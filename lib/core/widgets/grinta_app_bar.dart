@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
-import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_entry_button.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +16,6 @@ class GrintaAppBar extends AppBar {
     required Widget title,
     super.key,
     List<Widget>? actions,
-    bool admin = false,
     super.bottom,
     super.leading,
   }) : super(
@@ -28,7 +26,6 @@ class GrintaAppBar extends AppBar {
           title: _GrintaTitleBar(
             pageName: title,
             actions: actions,
-            admin: admin,
           ),
         );
 }
@@ -121,12 +118,10 @@ class _GrintaTitleBar extends StatelessWidget {
   const _GrintaTitleBar({
     required this.pageName,
     this.actions,
-    this.admin = false,
   });
 
   final Widget pageName;
   final List<Widget>? actions;
-  final bool admin;
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +146,7 @@ class _GrintaTitleBar extends StatelessWidget {
               child: pageName,
             ),
           ),
-          if (admin || (actions?.isNotEmpty ?? false)) ...[
+          if (actions?.isNotEmpty ?? false) ...[
             const SizedBox(width: 6),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 44),
@@ -159,11 +154,6 @@ class _GrintaTitleBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  if (admin) ...[
-                    const AdminBadge(),
-                    if (actions != null && actions!.isNotEmpty)
-                      const SizedBox(width: AppSpacing.microGap),
-                  ],
                   ...?actions,
                 ],
               ),

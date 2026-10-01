@@ -38,7 +38,7 @@ class _AdminPageState extends ConsumerState<AdminPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Administration'), admin: true),
+      appBar: GrintaAppBar(title: const Text('Administration')),
       body: Column(
         children: [
           Padding(

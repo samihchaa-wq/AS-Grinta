@@ -174,7 +174,7 @@ class _OpponentStadiumLibraryPageState
   Widget build(BuildContext context) {
     final items = _filteredItems;
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Équipes & stades'), admin: true),
+      appBar: GrintaAppBar(title: const Text('Équipes & stades')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _saving ? null : () => _openEditor(),
         icon: const Icon(Icons.add_rounded),

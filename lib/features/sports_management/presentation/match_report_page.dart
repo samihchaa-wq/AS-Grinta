@@ -33,7 +33,6 @@ class MatchReportPage extends ConsumerWidget {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Compte rendu'),
-        admin: true,
       ),
       body: MatchReportView(matchId: matchId),
     );

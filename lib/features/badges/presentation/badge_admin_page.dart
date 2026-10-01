@@ -269,7 +269,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: GrintaAppBar(title: const Text('Badges'), admin: true),
+        appBar: GrintaAppBar(title: const Text('Badges')),
         body: Column(
           children: [
             Padding(

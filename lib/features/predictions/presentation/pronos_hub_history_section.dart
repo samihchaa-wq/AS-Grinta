@@ -357,7 +357,6 @@ class _AdminMatchActions extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        const AdminBadge(),
         PopupMenuButton<String>(
           tooltip: 'Options du match',
           icon: const Text('✏️', style: TextStyle(fontSize: 22)),

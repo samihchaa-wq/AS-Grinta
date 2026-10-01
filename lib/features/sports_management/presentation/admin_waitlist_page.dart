@@ -209,7 +209,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Liste d’attente'),
-        admin: widget.editable,
         actions: [
           IconButton(
             tooltip: 'Actualiser',

@@ -116,7 +116,7 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
     final dashboard = ref.watch(adminDashboardProvider);
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Notification'), admin: true),
+      appBar: GrintaAppBar(title: const Text('Notification')),
       body: dashboard.when(
         loading: () => const Center(child: GrintaProgressIndicator()),
         error: (error, _) => Center(

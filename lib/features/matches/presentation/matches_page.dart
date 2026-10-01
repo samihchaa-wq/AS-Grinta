@@ -80,7 +80,6 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Calendrier'),
-        admin: true,
         actions: [
           if (isAdmin)
             IconButton(
