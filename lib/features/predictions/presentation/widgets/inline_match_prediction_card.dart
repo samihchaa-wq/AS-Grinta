@@ -140,14 +140,6 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               const Divider(height: 1),
               const SizedBox(height: AppSpacing.sectionGap),
-              Text(
-                'Score à modifier',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w400),
-              ),
-              const SizedBox(height: AppSpacing.contentGap),
               Row(
                 children: [
                   if (item.isHome) grintaPicker else opponentPicker,
@@ -158,14 +150,6 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               const Divider(height: 1),
               const SizedBox(height: AppSpacing.sectionGap),
-              Text(
-                'Les cotes',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w400),
-              ),
-              const SizedBox(height: AppSpacing.contentGap),
               Row(
                 children: [
                   Expanded(
@@ -227,18 +211,18 @@ class _InlineMatchPredictionCardState
                   label: const Text('Enregistrer'),
                 ),
               ),
-              const SizedBox(height: AppSpacing.contentGap),
-              Text(
-                notOpenYet
-                    ? 'Disponible à partir de J−6 à 12 h, heure de Paris.'
-                    : closed
-                        ? 'Pronostic fermé : le Live est désormais ouvert.'
-                        : 'Modifiable jusqu’à 15 minutes avant le coup d’envoi.',
-                style: const TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 12,
+              if (notOpenYet || closed) ...[
+                const SizedBox(height: AppSpacing.contentGap),
+                Text(
+                  notOpenYet
+                      ? 'Disponible à partir de J−6 à 12 h, heure de Paris.'
+                      : 'Pronostic fermé : le Live est désormais ouvert.',
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -359,11 +343,6 @@ class _HeadToHead extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Les 5 dernières rencontres',
-          style: TextStyle(fontWeight: FontWeight.w400),
-        ),
-        const SizedBox(height: AppSpacing.contentGap),
         if (matches.isEmpty)
           const Text(
             'Aucune confrontation précédente.',

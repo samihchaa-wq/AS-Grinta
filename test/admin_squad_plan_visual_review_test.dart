@@ -77,7 +77,7 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
     expect(
       find.text('Chaque changement est enregistré tout de suite.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'effectif_compact_enregistrer.png');
