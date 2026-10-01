@@ -32,16 +32,8 @@ class MatchResultScoreChip extends StatelessWidget {
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .10),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color, width: 1.7),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: .18),
-            blurRadius: 10,
-            spreadRadius: -4,
-          ),
-        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

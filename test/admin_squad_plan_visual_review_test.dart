@@ -42,7 +42,7 @@ void main() {
     );
     final waitlistButton = find.widgetWithText(
       OutlinedButton,
-      'Voir la liste d’attente',
+      'Liste d’attente',
     );
     final guestButton = find.widgetWithText(
       OutlinedButton,
@@ -62,6 +62,16 @@ void main() {
     expect(guestExpanded, findsOneWidget);
     expect(tester.widget<Expanded>(waitlistExpanded).flex, 1);
     expect(tester.widget<Expanded>(guestExpanded).flex, 1);
+    final limitField = find.widgetWithText(TextField, 'Joueurs convoqués');
+    expect(limitField, findsOneWidget);
+    expect(
+      tester.getTopLeft(waitlistButton).dy,
+      tester.getTopLeft(limitField).dy,
+    );
+    expect(
+      tester.getTopLeft(guestButton).dy,
+      tester.getTopLeft(limitField).dy,
+    );
     expect(
       find.byType(LongPressDraggable<ConvocationPlayer>),
       findsNWidgets(5),

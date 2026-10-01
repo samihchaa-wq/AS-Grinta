@@ -461,7 +461,7 @@ class _RecentResultsCard extends StatelessWidget {
                   );
 
             return Wrap(
-              alignment: WrapAlignment.spaceBetween,
+              alignment: WrapAlignment.start,
               runAlignment: WrapAlignment.center,
               spacing: gap,
               runSpacing: gap,
