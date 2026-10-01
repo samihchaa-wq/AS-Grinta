@@ -720,15 +720,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                       ),
                     ],
                   ),
-                if (!_postMatch) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Place les convoqués à leur poste habituel, en '
-                    'titularisant en priorité ceux qui ont le plus souvent '
-                    'commencé sur le banc. Tout reste modifiable.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
               ],
             ),
           ),

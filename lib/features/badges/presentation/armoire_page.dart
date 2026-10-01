@@ -84,11 +84,6 @@ class ArmoirePage extends ConsumerWidget {
           data: (armoire) => ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
             children: [
-              _Header(
-                validated: armoire.validated.length,
-                inProgress: armoire.inProgress.length,
-              ),
-              const SizedBox(height: 24),
               if (armoire.validated.isEmpty &&
                   armoire.inProgress.isEmpty &&
                   armoire.locked.isEmpty)
@@ -105,14 +100,6 @@ class ArmoirePage extends ConsumerWidget {
                   title: 'Débloqués',
                   count: armoire.validated.length,
                   icon: Icons.workspace_premium_rounded,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Choisis le badge à afficher près de ton prénom. En arborer '
-                  'un nouveau remplace le précédent.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
                 const SizedBox(height: 14),
                 _BadgeGrid(
@@ -158,66 +145,6 @@ class ArmoirePage extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header({required this.validated, required this.inProgress});
-
-  final int validated;
-  final int inProgress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: .56)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppTheme.reward.withValues(alpha: .12),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: AppTheme.reward.withValues(alpha: .34)),
-            ),
-            child: const Icon(
-              Icons.emoji_events_rounded,
-              color: AppTheme.reward,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Ma collection',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$validated débloqué${validated > 1 ? 's' : ''} · '
-                  '$inProgress en progression',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -379,6 +306,7 @@ class _BadgeTile extends ConsumerWidget {
                 context,
                 badge.def,
                 isFeatured: featured,
+                showLadder: false,
                 onToggleFeatured: canFeature
                     ? () => onToggleFeatured!(badge.def.code, !featured)
                     : null,

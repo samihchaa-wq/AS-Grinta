@@ -8,12 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Ouvre la feuille de détail d'un badge : sa description, tout son barème
 /// (chaque palier + sa description) et, pour l'admin, les actions d'édition
-/// et d'attribution.
+/// et d'attribution. [showLadder] à false n'affiche que le badge lui-même,
+/// sans les autres paliers de sa famille.
 void showBadgeDetailSheet(
   BuildContext context,
   BadgeDef badge, {
   VoidCallback? onAward,
   bool isFeatured = false,
+  bool showLadder = true,
   VoidCallback? onToggleFeatured,
 }) {
   showModalBottomSheet<void>(
@@ -26,6 +28,7 @@ void showBadgeDetailSheet(
       badge: badge,
       onAward: onAward,
       isFeatured: isFeatured,
+      showLadder: showLadder,
       onToggleFeatured: onToggleFeatured,
     ),
   );
@@ -37,12 +40,14 @@ class BadgeDetailSheet extends ConsumerWidget {
     required this.badge,
     this.onAward,
     this.isFeatured = false,
+    this.showLadder = true,
     this.onToggleFeatured,
   });
 
   final BadgeDef badge;
   final VoidCallback? onAward;
   final bool isFeatured;
+  final bool showLadder;
   final VoidCallback? onToggleFeatured;
 
   @override
@@ -182,7 +187,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                       ),
                 ),
               ],
-              if (ladder.length > 1) ...[
+              if (showLadder && ladder.length > 1) ...[
                 const SizedBox(height: 24),
                 Text(
                   'BARÈME',
