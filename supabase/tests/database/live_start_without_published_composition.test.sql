@@ -67,8 +67,6 @@ set local role authenticated;
 select public.admin_publish_match_convocations(current_setting('test.nocompo_match')::uuid,'Sans compo');
 reset role;
 
--- Aucune composition n'a jamais été enregistrée ni publiée : c'est exactement
--- la situation qui bloquait le Live.
 select is(
  (select count(*) from public.match_compositions
   where match_id=current_setting('test.nocompo_match')::uuid),
@@ -90,8 +88,16 @@ set kickoff_at=now()+interval '10 minutes',
 where id=current_setting('test.nocompo_match')::uuid;
 set local session_replication_role=origin;
 
-select set_config('request.jwt.claims','{"sub":"fb100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"fb100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"fb500000-0000-0000-0000-000000000001"}',
+  true
+);
 set local role authenticated;
+select lives_ok(
+ format('select public.claim_match_live_pilot(%L::uuid,90)',current_setting('test.nocompo_match')),
+ 'le coach prend la place de pilote'
+);
 select lives_ok(
  format('select public.open_match_live_workspace(%L::uuid,90)',current_setting('test.nocompo_match')),
  'le Live s’ouvre sans composition publiée'
@@ -120,7 +126,6 @@ select isnt(
  'le Live renvoie une composition au lieu de « Composition indisponible »'
 );
 
--- Le coach place un titulaire, exactement ce que fait le glisser-déposer.
 set local session_replication_role=replica;
 update public.match_composition_entries entry
 set zone='field',x=0.5,y=0.85,slot_label='GB'
@@ -132,13 +137,18 @@ where entry.match_id=current_setting('test.nocompo_match')::uuid
   );
 set local session_replication_role=origin;
 
-select set_config('request.jwt.claims','{"sub":"fb100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"fb100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"fb500000-0000-0000-0000-000000000001"}',
+  true
+);
 set local role authenticated;
 select lives_ok(
  format('select public.confirm_start_match_live(%L::uuid,%L)',current_setting('test.nocompo_match'),'Sans compo'),
  'le coup d’envoi part sans composition publiée au préalable'
 );
 reset role;
+select set_config('request.jwt.claims','{}',true);
 
 select is(
  (select count(*)::integer from public.match_composition_publications

@@ -183,9 +183,9 @@ set kickoff_at=now()+interval '10 minutes',
 where id=current_setting('test.cross_match')::uuid;
 set local session_replication_role=origin;
 
-select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"fa500000-0000-0000-0000-000000000001"}',true);
 set local role authenticated;
-select public.open_match_live_workspace(current_setting('test.cross_match')::uuid,90);
+select public.claim_match_live_pilot(current_setting('test.cross_match')::uuid,90);
 reset role;
 
 select is(
@@ -207,7 +207,7 @@ select is(
  'promoted player is injected into Live bench'
 );
 
-select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"fa500000-0000-0000-0000-000000000001"}',true);
 set local role authenticated;
 select lives_ok(
  format('select public.confirm_start_match_live(%L::uuid,%L)',current_setting('test.cross_match'),'Cross stage'),
