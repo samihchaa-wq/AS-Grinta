@@ -81,69 +81,79 @@ class ArmoirePage extends ConsumerWidget {
               ),
             ],
           ),
-          data: (armoire) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-            children: [
-              if (armoire.validated.isEmpty &&
-                  armoire.inProgress.isEmpty &&
-                  armoire.locked.isEmpty)
-                const Card(
-                  child: GrintaEmptyState(
-                    icon: Icons.emoji_events_outlined,
-                    title: 'Ta collection est vide',
-                    message: 'Joue, pronostique et gagne des matchs pour '
-                        'débloquer tes premiers badges.',
+          data: (armoire) {
+            final unlocked = armoire.unlocked;
+            final toDiscover = armoire.toDiscover;
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+              children: [
+                if (armoire.validated.isEmpty &&
+                    armoire.inProgress.isEmpty &&
+                    armoire.locked.isEmpty)
+                  const Card(
+                    child: GrintaEmptyState(
+                      icon: Icons.emoji_events_outlined,
+                      title: 'Ta collection est vide',
+                      message: 'Joue, pronostique et gagne des matchs pour '
+                          'débloquer tes premiers badges.',
+                    ),
                   ),
-                ),
-              if (armoire.validated.isNotEmpty) ...[
-                _SectionTitle(
-                  title: 'Débloqués',
-                  count: armoire.validated.length,
-                  icon: Icons.workspace_premium_rounded,
-                ),
-                const SizedBox(height: 14),
-                _BadgeGrid(
-                  badges: armoire.validated,
-                  featuredCodes: featured,
-                  onToggleFeatured: (code, nowFeatured) =>
-                      _toggleFeatured(context, ref, code, nowFeatured),
-                ),
-                const SizedBox(height: 28),
+                if (unlocked.isNotEmpty) ...[
+                  _SectionTitle(
+                    title: 'Débloqués',
+                    count: unlocked.length,
+                    icon: Icons.workspace_premium_rounded,
+                  ),
+                  const SizedBox(height: 14),
+                  _BadgeGrid(
+                    badges: unlocked,
+                    featuredCodes: featured,
+                    onToggleFeatured: (code, nowFeatured) =>
+                        _toggleFeatured(context, ref, code, nowFeatured),
+                  ),
+                  const SizedBox(height: 28),
+                ],
+                if (armoire.inProgress.isNotEmpty) ...[
+                  _SectionTitle(
+                    title: 'En progression',
+                    count: armoire.inProgress.length,
+                    icon: Icons.trending_up_rounded,
+                  ),
+                  const SizedBox(height: 14),
+                  EqualHeightColumn(
+                    spacing: 10,
+                    children: [
+                      for (final b in armoire.inProgress)
+                        _InProgressTile(badge: b),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                ],
+                if (toDiscover.isNotEmpty) ...[
+                  _SectionTitle(
+                    title: 'À découvrir',
+                    count: armoire.locked.length,
+                    icon: Icons.lock_outline_rounded,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Continue à jouer pour révéler ces récompenses.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
+                  ),
+                  const SizedBox(height: 14),
+                  _BadgeGrid(
+                    badges: toDiscover,
+                    discover: true,
+                    featuredCodes: featured,
+                    onToggleFeatured: (code, nowFeatured) =>
+                        _toggleFeatured(context, ref, code, nowFeatured),
+                  ),
+                ],
               ],
-              if (armoire.inProgress.isNotEmpty) ...[
-                _SectionTitle(
-                  title: 'En progression',
-                  count: armoire.inProgress.length,
-                  icon: Icons.trending_up_rounded,
-                ),
-                const SizedBox(height: 14),
-                EqualHeightColumn(
-                  spacing: 10,
-                  children: [
-                    for (final b in armoire.inProgress)
-                      _InProgressTile(badge: b),
-                  ],
-                ),
-                const SizedBox(height: 30),
-              ],
-              if (armoire.locked.isNotEmpty) ...[
-                _SectionTitle(
-                  title: 'À découvrir',
-                  count: armoire.locked.length,
-                  icon: Icons.lock_outline_rounded,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Continue à jouer pour révéler ces récompenses.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
-                ),
-                const SizedBox(height: 14),
-                _BadgeGrid(badges: armoire.locked, locked: true),
-              ],
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -197,13 +207,16 @@ class _SectionTitle extends StatelessWidget {
 class _BadgeGrid extends StatelessWidget {
   const _BadgeGrid({
     required this.badges,
-    this.locked = false,
+    this.discover = false,
     this.featuredCodes,
     this.onToggleFeatured,
   });
 
   final List<ArmoireBadge> badges;
-  final bool locked;
+
+  /// Grille « À découvrir » : les badges pas encore gagnés restent masqués et
+  /// les mystères gagnés n'affichent que leur emblème, sans nom.
+  final bool discover;
   final Set<String>? featuredCodes;
   final void Function(String code, bool nowFeatured)? onToggleFeatured;
 
@@ -216,7 +229,8 @@ class _BadgeGrid extends StatelessWidget {
         for (final b in badges)
           _BadgeTile(
             badge: b,
-            locked: locked,
+            locked: b.state == BadgeState.locked,
+            showName: !discover,
             featured: featuredCodes?.contains(b.def.code) ?? false,
             onToggleFeatured: onToggleFeatured,
           ),
@@ -232,12 +246,14 @@ class _BadgeTile extends ConsumerWidget {
   const _BadgeTile({
     required this.badge,
     this.locked = false,
+    this.showName = true,
     this.featured = false,
     this.onToggleFeatured,
   });
 
   final ArmoireBadge badge;
   final bool locked;
+  final bool showName;
   final bool featured;
   final void Function(String code, bool nowFeatured)? onToggleFeatured;
 
@@ -371,17 +387,19 @@ class _BadgeTile extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 7),
-          Text(
-            badge.def.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w400,
-                  height: 1.15,
-                ),
-          ),
+          if (showName) ...[
+            const SizedBox(height: 7),
+            Text(
+              badge.def.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w400,
+                    height: 1.15,
+                  ),
+            ),
+          ],
         ],
       ),
     );
