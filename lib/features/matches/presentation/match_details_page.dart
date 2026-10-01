@@ -6,7 +6,6 @@ import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
-import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
@@ -69,7 +68,6 @@ class MatchDetailsPage extends ConsumerWidget {
       void keepAlive(Object? _, Object? __) {}
       ref
         ..listen(publishedMatchCompositionProvider(matchId), keepAlive)
-        ..listen(matchLiveTimelineProvider(matchId), keepAlive)
         ..listen(matchGoalActionsProvider(matchId), keepAlive);
     }
 
@@ -81,7 +79,7 @@ class MatchDetailsPage extends ConsumerWidget {
           ref
             ..invalidate(matchDetailsProvider(matchId))
             ..invalidate(publishedMatchCompositionProvider(matchId))
-            ..invalidate(matchLiveTimelineProvider(matchId))
+            ..invalidate(matchGoalActionsProvider(matchId))
             ..invalidate(sportMotmVoteProvider(matchId));
           await ref.read(matchDetailsProvider(matchId).future);
         },
@@ -501,13 +499,10 @@ class _CompletedFactsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!sportsEnabled) return const SizedBox.shrink();
-    // Le bloc décide lui-même s'il a quelque chose à montrer : les buts
-    // viennent du compte rendu validé, les remplacements du journal du direct.
+    // Le bloc ne montre que les buts du compte rendu validé : sans but, il
+    // n'a rien à afficher.
     final goals = ref.watch(matchGoalActionsProvider(matchId)).valueOrNull;
-    final timeline = ref.watch(matchLiveTimelineProvider(matchId)).valueOrNull;
-    final hasFacts = (goals != null && goals.isNotEmpty) ||
-        (timeline != null && timeline.events.isNotEmpty);
-    if (!hasFacts) return const SizedBox.shrink();
+    if (goals == null || goals.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: MatchFaitsDuMatchCard(matchId: matchId),

@@ -148,7 +148,7 @@ void main() {
     expect(find.text('—'), findsOneWidget);
   });
 
-  testWidgets('les remplacements du direct rejoignent la chronologie', (
+  testWidgets('les remplacements du direct ne figurent pas dans la fiche', (
     tester,
   ) async {
     await pumpCard(
@@ -167,6 +167,7 @@ void main() {
         'match_id': 'match-1',
         'events': [
           {
+            'id': 'a',
             'event_type': 'substitution',
             'minute': 60,
             'half': 2,
@@ -180,56 +181,33 @@ void main() {
     await openCard(tester);
 
     expect(find.text('Samih'), findsOneWidget);
-    expect(find.text('Nabil'), findsOneWidget);
-    expect(find.text('Karim'), findsOneWidget);
-
-    final tile = tester.widget<ListTile>(
-      find.ancestor(
-        of: find.text('Nabil'),
-        matching: find.byType(ListTile),
-      ),
-    );
-    expect(tile.contentPadding, const EdgeInsets.fromLTRB(6, 0, 6, 0));
-    expect(tile.horizontalTitleGap, 4);
-    expect(tile.minLeadingWidth, 32);
+    expect(find.text('Nabil'), findsNothing);
+    expect(find.text('Karim'), findsNothing);
+    expect(find.text('2.1'), findsNothing);
   });
 
-  testWidgets('les joueurs d’une série portent le même repère', (
+  testWidgets('des remplacements sans but ne font pas apparaître le bloc', (
     tester,
   ) async {
-    Map<String, Object?> sub(
-            String id, int minute, String inName, String outName) =>
-        {
-          'id': id,
-          'event_type': 'substitution',
-          'minute': minute,
-          'half': 1,
-          'player_in_name': inName,
-          'player_out_name': outName,
-        };
     await pumpCard(
       tester,
       timeline: MatchLiveTimeline.tryFromRpc({
         'match_id': 'match-1',
         'events': [
-          sub('a', 5, 'Banc1', 'Titu1'),
-          sub('b', 5, 'Banc2', 'Titu2'),
-          // Banc1 a commencé sur le banc : sa première sortie est un 2.x.
-          sub('c', 20, 'Titu1', 'Banc1'),
+          {
+            'id': 'a',
+            'event_type': 'substitution',
+            'minute': 5,
+            'half': 1,
+            'player_in_name': 'Banc1',
+            'player_out_name': 'Titu1',
+          },
         ],
       }),
     );
     await tester.pumpAndSettle();
-    await openCard(tester);
 
-    // Titu1 et Titu2 sortent ensemble : chacun porte « 1.1 ».
-    expect(find.text('1.1'), findsNWidgets(2));
-    expect(find.text('1.2'), findsNothing);
-    expect(find.text('2.1'), findsOneWidget);
-    expect(find.byIcon(Icons.swap_horiz_rounded), findsNothing);
-
-    final badge = tester.widget<Text>(find.text('1.1').first);
-    expect(badge.style?.color, Colors.white);
+    expect(find.text('Faits du match'), findsNothing);
   });
 
   testWidgets('sans aucun fait, le bloc disparaît', (tester) async {
