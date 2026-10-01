@@ -72,7 +72,7 @@ class MatchDetailsPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Match')),
+      appBar: GrintaAppBar(title: const SizedBox.shrink()),
       body: RefreshIndicator(
         onRefresh: () async {
           await ref.read(featureFlagsControllerProvider.notifier).refresh();
