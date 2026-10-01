@@ -757,12 +757,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           },
         ),
         const SizedBox(height: 16),
-        if (!_locked)
-          Text(
-            _effectifSaving
-                ? 'Enregistrement…'
-                : 'Chaque changement est enregistré tout de suite.',
-          ),
+        if (!_locked && _effectifSaving) const Text('Enregistrement…'),
         if (_locked)
           const Padding(
             padding: EdgeInsets.only(top: 10),
