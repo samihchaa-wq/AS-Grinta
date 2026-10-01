@@ -1,5 +1,6 @@
 begin;
 
+-- Ce test vérifie aussi qu'une écriture Live exige d'abord la place de pilote.
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
