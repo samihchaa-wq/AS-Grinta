@@ -6,6 +6,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- statistiques d'équipe : le graphique « Écart de score » regroupe les écarts
+  par tranches de 3 buts (1-3, 4-6, 7-9, 10 et plus) au lieu de 1 en 1, pour
+  que les larges victoires ne s'entassent plus dans une seule colonne ;
+- écran Badges : retrait des phrases d'explication et des barres de recherche
+  dans les onglets Mystères (Manuel et Automatique) et Communs ;
 - archives : les 15 matchs joués avec Samih qui n'avaient qu'une liste de
   présents affichent désormais une composition reconstituée (formation des
   matchs voisins, joueurs à leur poste habituel, postes vides quand l'effectif
