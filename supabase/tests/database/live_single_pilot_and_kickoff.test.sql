@@ -42,7 +42,6 @@ insert into public.match_live_sessions(
   '4a100000-0000-0000-0000-000000000001'
 );
 
--- Téléphone A prend la place.
 select set_config(
   'request.jwt.claims',
   '{"sub":"4a100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"4a400000-0000-0000-0000-000000000001"}',
@@ -63,7 +62,6 @@ select ok(
 );
 reset role;
 
--- Téléphone B utilise le même compte, mais une autre session Auth.
 select set_config(
   'request.jwt.claims',
   '{"sub":"4a100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"4a400000-0000-0000-0000-000000000002"}',
@@ -75,14 +73,12 @@ select ok(
   and not (public.get_match_live_state('4a300000-0000-0000-0000-000000000001')->>'pilot_is_me')::boolean,
   'le téléphone B voit que la place est occupée sans la voler'
 );
-
 select ok(
   (public.take_over_match_live_pilot('4a300000-0000-0000-0000-000000000001')->>'pilot_is_me')::boolean,
   'Prendre la main transfère la place au téléphone B'
 );
 reset role;
 
--- L’ancien téléphone ne peut plus agir.
 select set_config(
   'request.jwt.claims',
   '{"sub":"4a100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"4a400000-0000-0000-0000-000000000001"}',
@@ -97,7 +93,6 @@ select throws_ok(
 );
 reset role;
 
--- Si B disparaît plus d’une minute, A peut reprendre sans rester bloqué.
 update public.match_live_sessions
 set pilot_heartbeat_at=now()-interval '61 seconds'
 where match_id='4a300000-0000-0000-0000-000000000001';
@@ -179,7 +174,7 @@ insert into public.match_composition_publications(
       )
     )
   ),
-  'prematch',
+  'initial',
   '4a100000-0000-0000-0000-000000000001'
 );
 
@@ -196,7 +191,6 @@ select ok(
 );
 reset role;
 
--- Un brouillon ne doit jamais être exposé par ce raccourci.
 update public.match_compositions
 set status='draft',has_unpublished_changes=true
 where match_id=current_setting('test.live_published_match')::uuid;
