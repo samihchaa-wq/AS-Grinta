@@ -1,3 +1,5 @@
+import 'package:as_grinta/features/match_live/domain/live_guest_display_name.dart';
+
 class MatchLiveAddPlayerOption {
   const MatchLiveAddPlayerOption({
     required this.displayName,
@@ -11,15 +13,18 @@ class MatchLiveAddPlayerOption {
   });
 
   factory MatchLiveAddPlayerOption.fromJson(Map<String, dynamic> json) {
+    final guestPlayerId = _nullableText(json['guest_player_id']);
+    final isGuest = json['is_guest'] == true || guestPlayerId != null;
+    final displayName = (json['display_name'] ?? 'Joueur').toString().trim();
     return MatchLiveAddPlayerOption(
       participantId: _nullableText(json['participant_id']),
       seasonPlayerId: _nullableText(json['season_player_id']),
-      guestPlayerId: _nullableText(json['guest_player_id']),
-      displayName: (json['display_name'] ?? 'Joueur').toString().trim(),
+      guestPlayerId: guestPlayerId,
+      displayName: isGuest ? liveGuestFirstName(displayName) : displayName,
       lastInitial: _nullableText(json['last_initial']),
       photoUrl: _nullableText(json['photo_url']),
       isGoalkeeper: json['is_goalkeeper'] == true,
-      isGuest: json['is_guest'] == true,
+      isGuest: isGuest,
     );
   }
 
