@@ -117,12 +117,13 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           error: (e, _) => Text(humanizeError(e)),
           data: (badges) {
             final filtered = badges.where((badge) {
-              final isMystery =
-                  badge.secret || badge.code.startsWith('custom_');
-              if (mystery != isMystery) return false;
+              if (mystery != badge.isMystery) return false;
               return !mystery ||
                   badge.awardedAutomatically == _mysteryAutomatic;
             }).toList();
+            if (mystery) {
+              filtered.sort((a, b) => compareBadgeNames(a.name, b.name));
+            }
 
             if (filtered.isEmpty) {
               return const Padding(

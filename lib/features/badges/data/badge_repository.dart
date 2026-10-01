@@ -63,6 +63,11 @@ class BadgeDef {
   /// Nul pour un badge seulement manuel ou à barème.
   final String? autoRule;
 
+  /// Badge « mystère » : secret ou créé à la main par un admin. Dans
+  /// l'armoire, il reste à sa place parmi les badges à découvrir, même une
+  /// fois gagné.
+  bool get isMystery => secret || code.startsWith('custom_');
+
   /// Vrai si l'application décerne ce badge toute seule, sans action admin.
   bool get awardedAutomatically =>
       (auto && metric != null && threshold != null) || autoRule != null;
@@ -143,12 +148,70 @@ class Armoire {
   final List<ArmoireBadge> inProgress;
   final List<ArmoireBadge> locked;
 
+  /// Badges gagnés hors mystères : section « Débloqués ».
+  List<ArmoireBadge> get unlocked =>
+      validated.where((b) => !b.def.isMystery).toList();
+
+  /// Section « Badges mystères » : badges pas encore gagnés et mystères déjà
+  /// gagnés, mélangés par ordre alphabétique. Un mystère gagné se révèle à
+  /// sa place au lieu de remonter en tête.
+  List<ArmoireBadge> get toDiscover => [
+        ...locked,
+        ...validated.where((b) => b.def.isMystery),
+      ]..sort((a, b) => compareBadgeNames(a.def.name, b.def.name));
+
   /// Aperçu pour l'accueil : les badges validés les plus récents.
   List<ArmoireBadge> get recent {
     final sorted = [...validated]..sort((a, b) =>
         (b.awardedAt ?? DateTime(0)).compareTo(a.awardedAt ?? DateTime(0)));
     return sorted;
   }
+}
+
+/// Compare deux noms de badges par ordre alphabétique, sans tenir compte des
+/// majuscules ni des accents (« Équipe » se range avec les E).
+int compareBadgeNames(String a, String b) {
+  final byFolded = _foldForSort(a).compareTo(_foldForSort(b));
+  return byFolded != 0 ? byFolded : a.compareTo(b);
+}
+
+const _accentFolds = {
+  'à': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'á': 'a',
+  'ã': 'a',
+  'å': 'a',
+  'ç': 'c',
+  'é': 'e',
+  'è': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'î': 'i',
+  'ï': 'i',
+  'í': 'i',
+  'ì': 'i',
+  'ô': 'o',
+  'ö': 'o',
+  'ó': 'o',
+  'ò': 'o',
+  'õ': 'o',
+  'ù': 'u',
+  'û': 'u',
+  'ü': 'u',
+  'ú': 'u',
+  'ÿ': 'y',
+  'ñ': 'n',
+  'œ': 'oe',
+  'æ': 'ae',
+};
+
+String _foldForSort(String value) {
+  final buffer = StringBuffer();
+  for (final char in value.trim().toLowerCase().split('')) {
+    buffer.write(_accentFolds[char] ?? char);
+  }
+  return buffer.toString();
 }
 
 /// Range le catalogue en trois sections d'armoire à partir des données déjà

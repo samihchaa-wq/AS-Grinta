@@ -190,11 +190,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
               SizedBox(height: sectionGap),
-              const _SectionHeading(
-                icon: Icons.person_outline_rounded,
-                title: 'Informations personnelles',
-              ),
-              SizedBox(height: compact ? 6 : 8),
               Card(
                 child: Padding(
                   padding: EdgeInsets.all(compact ? 10 : 12),
@@ -206,7 +201,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                           labelText: 'Prénom',
-                          prefixIcon: const Icon(Icons.person_outline_rounded),
                           errorText: _firstNameError,
                           isDense: true,
                         ),
@@ -218,7 +212,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                           labelText: 'Nom',
-                          prefixIcon: const Icon(Icons.badge_outlined),
                           errorText: _lastNameError,
                           isDense: true,
                         ),
@@ -230,7 +223,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                           labelText: 'Surnom (optionnel)',
-                          prefixIcon: const Icon(Icons.sports_soccer_rounded),
                           errorText: _surnomError,
                           isDense: true,
                         ),
@@ -240,6 +232,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ),
               ),
               SizedBox(height: compact ? 10 : 12),
+              OutlinedButton.icon(
+                onPressed: busy ? null : () => _changePassword(context),
+                icon: const Icon(Icons.lock_reset_rounded),
+                label: const Text('Changer le mot de passe'),
+              ),
+              SizedBox(height: compact ? 6 : 8),
               FilledButton.icon(
                 onPressed: busy ? null : _saveProfile,
                 icon: busy
@@ -250,12 +248,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       )
                     : const Icon(Icons.save_rounded),
                 label: const Text('Enregistrer les modifications'),
-              ),
-              SizedBox(height: compact ? 6 : 8),
-              OutlinedButton.icon(
-                onPressed: busy ? null : () => _changePassword(context),
-                icon: const Icon(Icons.lock_reset_rounded),
-                label: const Text('Changer le mot de passe'),
               ),
               if (_localError != null || authState.error != null) ...[
                 SizedBox(height: compact ? 6 : 8),
@@ -448,30 +440,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     confirmationController.dispose();
     if (result == null || !mounted) return;
     await ref.read(authControllerProvider.notifier).updatePassword(result);
-  }
-}
-
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppTheme.primaryBright),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w400),
-        ),
-      ],
-    );
   }
 }
 
