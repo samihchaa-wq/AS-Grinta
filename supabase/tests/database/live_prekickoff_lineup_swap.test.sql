@@ -29,11 +29,6 @@ values (
   'open'
 );
 
--- L'effectif est posé avant le match : depuis
--- 20260915103000_roster_member_joins_upcoming_matches, un membre ajouté alors
--- qu'un match à venir existe déjà y reçoit automatiquement sa ligne de
--- participation. Ce décor veut choisir lui-même les identifiants de ses
--- participants, donc il constitue l'effectif d'abord.
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper, is_active, position
 )
@@ -78,8 +73,6 @@ values (
   '42200000-0000-0000-0000-000000000001'
 );
 
--- match_sport_participants pointe vers match_sport_workflows, pas vers
--- matches : sans cette ligne, tout le décor du test est refusé.
 insert into public.match_sport_workflows(
   match_id,
   availability_opens_at,
@@ -169,8 +162,20 @@ values (
   '42200000-0000-0000-0000-000000000001'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"42200000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"42200000-0000-0000-0000-000000000099"}',
+  true
+);
 set local role authenticated;
-set local request.jwt.claim.sub = '42200000-0000-0000-0000-000000000001';
+
+select lives_ok(
+  $$select public.claim_match_live_pilot(
+    '42200000-0000-0000-0000-000000000020',
+    90
+  )$$,
+  'le coach prend la place de pilote avant de modifier la composition'
+);
 
 -- Avant le coup d'envoi, echanger le titulaire et le remplacant est une simple
 -- correction de composition : aucun remplacement n'est declare.
@@ -188,7 +193,7 @@ select lives_ok(
 );
 
 reset role;
-set local request.jwt.claim.sub = '';
+select set_config('request.jwt.claims', '{}', true);
 
 select is(
   (
@@ -221,16 +226,18 @@ select is(
   'aucun evenement de remplacement n’est cree avant le coup d’envoi'
 );
 
--- Une fois le match lance, le garde-fou reste entier : franchir la frontiere
--- terrain/banc sans declarer de remplacement fausserait les Faits du match.
 update public.match_live_sessions
 set state = 'running',
     running_since = now(),
     started_at = now()
 where match_id = '42200000-0000-0000-0000-000000000020';
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"42200000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"42200000-0000-0000-0000-000000000099"}',
+  true
+);
 set local role authenticated;
-set local request.jwt.claim.sub = '42200000-0000-0000-0000-000000000001';
 
 select throws_ok(
   $$select public.coach_save_match_live_lineup(
@@ -246,7 +253,6 @@ select throws_ok(
   'match lance : un echange terrain/banc non declare reste refuse'
 );
 
--- Le meme echange declare comme remplacement passe et cree l'evenement.
 select lives_ok(
   $$select public.coach_save_match_live_lineup(
     '42200000-0000-0000-0000-000000000020',
@@ -261,7 +267,7 @@ select lives_ok(
 );
 
 reset role;
-set local request.jwt.claim.sub = '';
+select set_config('request.jwt.claims', '{}', true);
 
 select is(
   (
