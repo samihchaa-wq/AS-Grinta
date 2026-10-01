@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/match_live/domain/live_guest_display_name.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -16,7 +17,9 @@ class MatchLiveStateBundle {
   factory MatchLiveStateBundle.fromRpc(Object? raw) {
     final json = _map(raw);
     final session = MatchLiveSession.fromJson(json);
-    final lineup = MatchComposition.tryFromRpc(json['lineup']);
+    final lineup = MatchComposition.tryFromRpc(
+      normalizeLiveLineupGuestNames(json['lineup']),
+    );
     final eventsRaw = json['events'];
     final countsRaw = json['substitute_counts'];
     return MatchLiveStateBundle(
