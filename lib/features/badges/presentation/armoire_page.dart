@@ -11,6 +11,7 @@ import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -269,12 +270,14 @@ class _BadgeTile extends ConsumerWidget {
         width: tile,
         child: Column(
           children: [
+            // Même silhouette qu'un vrai badge (carte haute aux coins
+            // arrondis), pour que les mystères révélés s'alignent dessus.
             Container(
-              height: emblem,
+              height: emblem * badgeEmblemHeightRatio(),
               width: emblem,
               decoration: BoxDecoration(
                 color: AppTheme.surfaceHigh,
-                borderRadius: BorderRadius.circular(emblem * .24),
+                borderRadius: BorderRadius.circular(emblem * .16),
                 border: Border.all(
                   color: AppTheme.outline.withValues(alpha: .38),
                 ),
