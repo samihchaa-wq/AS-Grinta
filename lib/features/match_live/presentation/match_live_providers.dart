@@ -101,7 +101,8 @@ final livePilotProvider = Provider.autoDispose.family<LivePilot, String>((
   ref,
   matchId,
 ) {
-  final session = ref.watch(matchLiveStateProvider(matchId)).valueOrNull?.session;
+  final session =
+      ref.watch(matchLiveStateProvider(matchId)).valueOrNull?.session;
   if (session == null || !session.pilotActive) return LivePilot.nobody;
   return session.pilotIsMe ? LivePilot.me : LivePilot.other;
 });
