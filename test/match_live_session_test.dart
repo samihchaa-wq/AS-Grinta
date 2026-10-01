@@ -15,6 +15,8 @@ void main() {
         scoreAdverse: 0,
         exported: false,
         lineupRevision: 0,
+        pilotActive: false,
+        pilotIsMe: false,
       );
       final now = DateTime.now();
       expect(session.elapsedAt(now), const Duration(seconds: 754));
@@ -36,6 +38,8 @@ void main() {
         scoreAdverse: 0,
         exported: false,
         lineupRevision: 0,
+        pilotActive: false,
+        pilotIsMe: false,
       );
       final elapsed = session.elapsedAt(DateTime.now());
       expect(elapsed.inSeconds, greaterThanOrEqualTo(90));
@@ -55,6 +59,8 @@ void main() {
           scoreAdverse: 0,
           exported: false,
           lineupRevision: 0,
+          pilotActive: false,
+          pilotIsMe: false,
         );
         final expected = state == MatchLiveState.running ||
             state == MatchLiveState.paused ||
@@ -76,6 +82,8 @@ void main() {
         'score_adverse': 1,
         'exported': false,
         'lineup_revision': 4,
+        'pilot_active': true,
+        'pilot_is_me': true,
       });
       expect(session.state, MatchLiveState.running);
       expect(session.planPlannedDurationMinutes, 70);
@@ -83,6 +91,8 @@ void main() {
       expect(session.scoreAsGrinta, 2);
       expect(session.scoreAdverse, 1);
       expect(session.lineupRevision, 4);
+      expect(session.pilotActive, isTrue);
+      expect(session.pilotIsMe, isTrue);
     });
   });
 }
