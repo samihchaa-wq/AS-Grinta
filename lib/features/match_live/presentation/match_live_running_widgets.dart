@@ -1,8 +1,10 @@
 part of 'match_live_running_page.dart';
 
-class _LiveTopBar extends StatelessWidget {
-  const _LiveTopBar({
-    required this.session,
+/// Bandeau du direct sur une seule ligne : chrono, commandes du match (en
+/// icônes) et tableau d'affichage.
+class _LiveHeaderBar extends ConsumerWidget {
+  const _LiveHeaderBar({
+    required this.bundle,
     required this.canEdit,
     required this.onPause,
     required this.onResume,
@@ -10,9 +12,12 @@ class _LiveTopBar extends StatelessWidget {
     required this.onHalftime,
     required this.onRestart,
     required this.onEndMatch,
+    this.onlyClockAction = false,
+    this.showClockAction = true,
+    this.bottom,
   });
 
-  final MatchLiveSession session;
+  final MatchLiveStateBundle bundle;
   final bool canEdit;
   final VoidCallback onPause;
   final VoidCallback onResume;
@@ -21,100 +26,59 @@ class _LiveTopBar extends StatelessWidget {
   final VoidCallback onRestart;
   final VoidCallback onEndMatch;
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.liveScreenGutter,
-          vertical: AppSpacing.sectionGap,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 90,
-              child: MatchLiveClock(session: session, compact: true),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: canEdit
-                  ? _LiveMatchControls(
-                      session: session,
-                      onPause: onPause,
-                      onResume: onResume,
-                      onResumeSecondHalf: onResumeSecondHalf,
-                      onHalftime: onHalftime,
-                      onRestart: onRestart,
-                      onEndMatch: onEndMatch,
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          size: 9,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Suivi en direct',
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ],
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+  /// Mode match : seul le bouton pause / reprendre reste dans la ligne, les
+  /// autres commandes passent sur la seconde ligne ([bottom]).
+  final bool onlyClockAction;
 
-class _LiveMatchControls extends StatelessWidget {
-  const _LiveMatchControls({
-    required this.session,
-    required this.onPause,
-    required this.onResume,
-    required this.onResumeSecondHalf,
-    required this.onHalftime,
-    required this.onRestart,
-    required this.onEndMatch,
-  });
+  /// Mode match : pause / reprendre passe sur la seconde ligne.
+  final bool showClockAction;
 
-  final MatchLiveSession session;
-  final VoidCallback onPause;
-  final VoidCallback onResume;
-  final VoidCallback onResumeSecondHalf;
-  final VoidCallback onHalftime;
-  final VoidCallback onRestart;
-  final VoidCallback onEndMatch;
+  /// Seconde ligne du bandeau (commandes occasionnelles du mode match).
+  final Widget? bottom;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = bundle.session;
+    final matchId = session.matchId;
+    final controller = ref.read(matchLiveStateProvider(matchId).notifier);
+    final fixture =
+        ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
+    final opponentName = fixture?.opponentName ?? 'Adversaire';
+    final grintaIsHome = fixture?.grintaIsHome ?? true;
+
+    _LiveScore team(bool grinta, {bool wide = false}) => _LiveScore(
+          wide: wide,
+          shortName: grinta ? 'ASG' : _shortName(opponentName),
+          fullName: grinta ? 'AS Grinta' : opponentName,
+          score: grinta ? session.scoreAsGrinta : session.scoreAdverse,
+          canEdit: canEdit,
+          onIncrement: () =>
+              controller.adjustScore(team: grinta ? 'us' : 'them', delta: 1),
+          onDecrement: () =>
+              controller.adjustScore(team: grinta ? 'us' : 'them', delta: -1),
+        );
+
     final firstAction = switch (session.state) {
       MatchLiveState.running => (
-          label: 'Pause',
+          tooltip: 'Pause',
           icon: Icons.pause_rounded,
-          callback: onPause,
+          callback: onPause as VoidCallback?,
           filled: false,
         ),
       MatchLiveState.paused => (
-          label: 'Reprendre',
+          tooltip: 'Reprendre',
           icon: Icons.play_arrow_rounded,
-          callback: onResume,
+          callback: onResume as VoidCallback?,
           filled: false,
         ),
       MatchLiveState.halftime => (
-          label: 'Reprendre 2e',
+          tooltip: 'Reprendre la 2e mi-temps',
           icon: Icons.play_arrow_rounded,
-          callback: onResumeSecondHalf,
+          callback: onResumeSecondHalf as VoidCallback?,
           filled: true,
         ),
       _ => (
-          label: 'Pause',
+          tooltip: 'Pause',
           icon: Icons.pause_rounded,
           callback: null,
           filled: false,
@@ -123,168 +87,137 @@ class _LiveMatchControls extends StatelessWidget {
     final canGoHalftime =
         session.half == 1 && session.state != MatchLiveState.halftime;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = (constraints.maxWidth - AppSpacing.microGap) / 2;
-
-        Widget button({
-          required String label,
-          required IconData icon,
-          required VoidCallback? onPressed,
-          bool filled = false,
-          bool danger = false,
-        }) {
-          final style = danger
-              ? OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 9,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                )
-              : filled
-                  ? FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 9,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    )
-                  : OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 9,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    );
-          final child = Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(icon, size: 16),
-              const SizedBox(width: AppSpacing.microGap),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.fade,
-                  softWrap: false,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 11.5),
-                ),
+    Widget action({
+      required String tooltip,
+      required IconData icon,
+      required VoidCallback? onPressed,
+      bool filled = false,
+      bool danger = false,
+    }) {
+      final scheme = Theme.of(context).colorScheme;
+      const size = BoxConstraints.tightFor(width: 36, height: 36);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 1.5),
+        child: filled
+            ? IconButton.filled(
+                tooltip: tooltip,
+                onPressed: onPressed,
+                constraints: size,
+                padding: EdgeInsets.zero,
+                iconSize: 20,
+                icon: Icon(icon),
+              )
+            : IconButton.outlined(
+                tooltip: tooltip,
+                onPressed: onPressed,
+                constraints: size,
+                padding: EdgeInsets.zero,
+                iconSize: 20,
+                color: danger ? scheme.error : null,
+                icon: Icon(icon),
               ),
-            ],
-          );
-
-          return SizedBox(
-            width: width,
-            child: filled
-                ? FilledButton(onPressed: onPressed, style: style, child: child)
-                : OutlinedButton(
-                    onPressed: onPressed,
-                    style: style,
-                    child: child,
-                  ),
-          );
-        }
-
-        return Wrap(
-          alignment: WrapAlignment.center,
-          spacing: AppSpacing.microGap,
-          runSpacing: AppSpacing.microGap,
-          children: [
-            button(
-              label: firstAction.label,
-              icon: firstAction.icon,
-              onPressed: firstAction.callback,
-              filled: firstAction.filled,
-            ),
-            button(
-              label: 'Mi-temps',
-              icon: Icons.sports_rounded,
-              onPressed: canGoHalftime ? onHalftime : null,
-            ),
-            button(
-              label: 'Recommencer',
-              icon: Icons.restart_alt_rounded,
-              onPressed: onRestart,
-            ),
-            button(
-              label: 'Fin du match',
-              icon: Icons.flag_rounded,
-              onPressed: onEndMatch,
-              danger: true,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _ScoreCard extends ConsumerWidget {
-  const _ScoreCard({required this.bundle, required this.canEdit});
-
-  final MatchLiveStateBundle bundle;
-  final bool canEdit;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final matchId = bundle.session.matchId;
-    final controller = ref.read(matchLiveStateProvider(matchId).notifier);
-    final fixture =
-        ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
-    final opponentName = fixture?.opponentName ?? 'Adversaire';
-    final grintaIsHome = fixture?.grintaIsHome ?? true;
-
-    final home = _ScoreTeamControl(
-      label: grintaIsHome ? 'AS Grinta' : opponentName,
-      score: grintaIsHome
-          ? bundle.session.scoreAsGrinta
-          : bundle.session.scoreAdverse,
-      canEdit: canEdit,
-      onIncrement: () =>
-          controller.adjustScore(team: grintaIsHome ? 'us' : 'them', delta: 1),
-      onDecrement: () =>
-          controller.adjustScore(team: grintaIsHome ? 'us' : 'them', delta: -1),
-    );
-    final away = _ScoreTeamControl(
-      label: grintaIsHome ? opponentName : 'AS Grinta',
-      score: grintaIsHome
-          ? bundle.session.scoreAdverse
-          : bundle.session.scoreAsGrinta,
-      canEdit: canEdit,
-      onIncrement: () =>
-          controller.adjustScore(team: grintaIsHome ? 'them' : 'us', delta: 1),
-      onDecrement: () =>
-          controller.adjustScore(team: grintaIsHome ? 'them' : 'us', delta: -1),
-    );
+      );
+    }
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.liveScreenGutter,
-          vertical: 9,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        // Sur un écran étroit, la ligne se réduit d'un bloc plutôt que de
+        // passer sur deux lignes.
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(child: home),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.microGap,
-              ),
-              child: Text(
-                '–',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w400,
+            if (!showClockAction)
+              // Mode match : la ligne ne porte plus que le chrono et le
+              // score, étalés sur toute la largeur et agrandis.
+              // La hauteur suit les noms d'équipe, qui peuvent passer sur
+              // plusieurs lignes ; le score reste aligné en bas.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Chrono : un cinquième de la ligne.
+                  Expanded(
+                    child: SizedBox(
+                      height: 64,
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        alignment: Alignment.centerLeft,
+                        child: MatchLiveClock(session: session, compact: true),
+                      ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Score : les quatre cinquièmes restants.
+                  Expanded(
+                    flex: 4,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(child: team(grintaIsHome, wide: true)),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: _scoreDash(context),
+                        ),
+                        Expanded(child: team(!grintaIsHome, wide: true)),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            else
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 72,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: MatchLiveClock(session: session, compact: true),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    if (canEdit) ...[
+                      if (showClockAction)
+                        action(
+                          tooltip: firstAction.tooltip,
+                          icon: firstAction.icon,
+                          onPressed: firstAction.callback,
+                          filled: firstAction.filled,
+                        ),
+                      if (!onlyClockAction) ...[
+                        action(
+                          tooltip: 'Mi-temps',
+                          icon: Icons.sports_rounded,
+                          onPressed: canGoHalftime ? onHalftime : null,
+                        ),
+                        action(
+                          tooltip: 'Recommencer',
+                          icon: Icons.restart_alt_rounded,
+                          onPressed: onRestart,
+                        ),
+                        action(
+                          tooltip: 'Fin du match',
+                          icon: Icons.flag_rounded,
+                          onPressed: onEndMatch,
+                          danger: true,
+                        ),
+                      ],
+                      const SizedBox(width: 8),
+                    ],
+                    team(grintaIsHome),
+                    _scoreDash(context),
+                    team(!grintaIsHome),
+                  ],
+                ),
               ),
-            ),
-            Expanded(child: away),
+            if (bottom != null) ...[
+              const Divider(height: 12),
+              bottom!,
+            ],
           ],
         ),
       ),
@@ -292,16 +225,189 @@ class _ScoreCard extends ConsumerWidget {
   }
 }
 
-class _ScoreTeamControl extends StatelessWidget {
-  const _ScoreTeamControl({
+/// Commande de la seconde ligne du mode match : icône et petit libellé.
+class _MatchModeAction extends StatelessWidget {
+  const _MatchModeAction({
+    required this.icon,
     required this.label,
+    required this.onPressed,
+    this.tooltip,
+    this.danger = false,
+    this.badgeCount = 0,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? tooltip;
+  final VoidCallback? onPressed;
+  final bool danger;
+  final int badgeCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final enabled = onPressed != null;
+    final color = !enabled
+        ? scheme.onSurface.withValues(alpha: .38)
+        : danger
+            ? scheme.error
+            : scheme.onSurface;
+    return Expanded(
+      child: Tooltip(
+        message: tooltip ?? label,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Badge.count(
+                  count: badgeCount,
+                  isLabelVisible: badgeCount > 0,
+                  child: Icon(icon, size: 22, color: color),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(fontSize: 11, color: color),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Barre du bas du mode match : un but d'AS Grinta attend son buteur.
+class _GoalToAttributeBar extends StatelessWidget {
+  const _GoalToAttributeBar({required this.event, required this.onChoose});
+
+  final MatchLiveEvent event;
+  final VoidCallback onChoose;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      color: theme.colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        child: Row(
+          children: [
+            const Icon(Icons.sports_soccer_rounded),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'But à la ${AppFormats.ordinalFeminine(event.minute)} '
+                'minute · buteur à désigner',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(onPressed: onChoose, child: const Text('Choisir')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Petit bouton du pied de la colonne du banc : icône et libellé.
+class _BenchAction extends StatelessWidget {
+  const _BenchAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = onPressed == null
+        ? scheme.onSurface.withValues(alpha: .38)
+        : scheme.onSurface;
+    return Tooltip(
+      message: tooltip ?? label,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 22, color: color),
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 11, color: color),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tiret du tableau d'affichage, aligné sur les scores (sous les sigles).
+Widget _scoreDash(BuildContext context) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(' ', style: Theme.of(context).textTheme.labelSmall),
+          Text('–', style: Theme.of(context).textTheme.headlineSmall),
+        ],
+      ),
+    );
+
+/// Trois premières lettres du nom, en capitales (« TOU » pour Toulouse).
+String _shortName(String name) {
+  final letters = name.replaceAll(RegExp(r'[^A-Za-zÀ-ÿ]'), '');
+  if (letters.isEmpty) return 'ADV';
+  return letters
+      .substring(0, letters.length < 3 ? letters.length : 3)
+      .toUpperCase();
+}
+
+/// Score d'une équipe dans le bandeau : sigle, puis « − », score et « + ».
+class _LiveScore extends StatelessWidget {
+  const _LiveScore({
+    required this.shortName,
+    required this.fullName,
     required this.score,
     required this.canEdit,
     required this.onIncrement,
     required this.onDecrement,
+    this.wide = false,
   });
 
-  final String label;
+  /// Mode match : « − », score et « + » répartis sur toute la largeur
+  /// disponible, score en grand.
+  final bool wide;
+
+  final String shortName;
+  final String fullName;
   final int score;
   final bool canEdit;
   final VoidCallback onIncrement;
@@ -310,51 +416,71 @@ class _ScoreTeamControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final number = Text(
+      '$score',
+      style:
+          (wide ? theme.textTheme.displaySmall : theme.textTheme.headlineSmall)
+              ?.copyWith(
+        fontWeight: FontWeight.w400,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+    final buttonSize = wide ? 36.0 : 30.0;
+    final iconSize = wide ? 28.0 : 22.0;
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          label,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w400,
+        // Mode match : nom complet en blanc, sur toute la largeur de son bloc
+        // (du « − » au « + »), réduit s'il est trop long.
+        if (wide)
+          // Même règle que le calendrier : taille et écriture fixes, retour
+          // à la ligne équilibré si le nom ne tient pas.
+          SizedBox(
+            width: double.infinity,
+            child: CalendarTeamName(name: fullName, color: Colors.white),
+          )
+        else
+          Text(
+            shortName,
+            style: theme.textTheme.labelSmall?.copyWith(letterSpacing: .5),
           ),
-        ),
-        const SizedBox(height: 3),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: wide ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment:
+              wide ? MainAxisAlignment.spaceEvenly : MainAxisAlignment.center,
           children: [
             if (canEdit)
               IconButton(
-                tooltip: 'Retirer un but',
+                tooltip: 'Retirer un but à $fullName',
                 onPressed: score > 0 ? onDecrement : null,
                 padding: EdgeInsets.zero,
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                constraints: BoxConstraints.tightFor(
+                  width: buttonSize,
+                  height: buttonSize,
+                ),
+                iconSize: iconSize,
                 icon: const Icon(Icons.remove_circle_outline_rounded),
               ),
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 34),
-              child: Text(
-                '$score',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w400,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            // Le score rétrécit plutôt que de déborder si la place manque.
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: number,
                 ),
               ),
             ),
             if (canEdit)
               IconButton(
-                tooltip: 'Ajouter un but',
+                tooltip: 'Ajouter un but à $fullName',
                 onPressed: onIncrement,
                 padding: EdgeInsets.zero,
-                visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                constraints: BoxConstraints.tightFor(
+                  width: buttonSize,
+                  height: buttonSize,
+                ),
+                iconSize: iconSize,
                 icon: const Icon(Icons.add_circle_outline_rounded),
               ),
           ],
@@ -384,7 +510,11 @@ class _BenchColumn extends StatelessWidget {
     required this.metrics,
     required this.pendingOutIds,
     required this.onFieldPlayerDropped,
+    this.footer,
   });
+
+  /// Actions collées en bas de la colonne (Ajouter / Retirer en mode match).
+  final Widget? footer;
 
   final List<MatchCompositionEntry> bench;
   final MatchLiveStateBundle bundle;
@@ -410,14 +540,6 @@ class _BenchColumn extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Banc (${bench.length})',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.contentGap),
               if (bench.isEmpty)
                 Text(
                   'Personne',
@@ -438,31 +560,25 @@ class _BenchColumn extends StatelessWidget {
                         final isPendingOut = pendingOutIds.contains(
                           entry.participantId,
                         );
-                        return DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: candidates.isNotEmpty
-                                  ? theme.colorScheme.primary
-                                  : isPendingOut
-                                      ? theme.colorScheme.error
-                                      : Colors.transparent,
-                              width: 2,
-                            ),
+                        return LiveBenchTile(
+                          outlineColor: candidates.isNotEmpty
+                              ? theme.colorScheme.primary
+                              : isPendingOut
+                                  ? theme.colorScheme.error
+                                  : Colors.transparent,
+                          entry: entry,
+                          draggable: canEdit,
+                          metrics: metrics,
+                          timesBenched: bundle.timesBenched(
+                            entry.participantId,
                           ),
-                          child: LiveBenchTile(
-                            entry: entry,
-                            draggable: canEdit,
-                            metrics: metrics,
-                            timesBenched: bundle.timesBenched(
-                              entry.participantId,
-                            ),
-                            lastExit: lastExits[entry.participantId],
-                          ),
+                          lastExit: lastExits[entry.participantId],
+                          namesOnly: true,
                         );
                       },
                     ),
                   ),
+              if (footer != null) ...[const Spacer(), footer!],
             ],
           ),
         ),
@@ -591,7 +707,15 @@ class _LiveJournal extends StatelessWidget {
     required this.onEditScorer,
     required this.onEditAssist,
     required this.onDelete,
+    this.plain = false,
+    this.title = 'Journal du match',
+    this.emptyText = 'Aucun événement pour le moment.',
   });
+
+  /// Vue spectateur : ni encadrés de salve ni repères « passage.série ».
+  final bool plain;
+  final String title;
+  final String emptyText;
 
   final List<MatchLiveEvent> events;
   final bool expanded;
@@ -605,8 +729,12 @@ class _LiveJournal extends StatelessWidget {
   Widget build(BuildContext context) {
     final ordered = events.reversed.toList();
     final latest = ordered.isEmpty ? null : ordered.first;
-    final salvos = substitutionSalvosByEvent(events);
-    final marks = substitutionExitMarksByEvent(events);
+    final salvos = plain
+        ? <MatchLiveEvent, SubstitutionSalvo>{}
+        : substitutionSalvosByEvent(events);
+    final marks = plain
+        ? <MatchLiveEvent, SubstitutionExitMark>{}
+        : substitutionExitMarksByEvent(events);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -627,7 +755,7 @@ class _LiveJournal extends StatelessWidget {
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      'Journal du match',
+                      title,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w400,
                           ),
@@ -650,8 +778,8 @@ class _LiveJournal extends StatelessWidget {
             ),
           ),
           if (latest == null)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
                 AppSpacing.cardPadding,
                 0,
                 AppSpacing.cardPadding,
@@ -659,7 +787,7 @@ class _LiveJournal extends StatelessWidget {
               ),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Aucun événement pour le moment.'),
+                child: Text(emptyText),
               ),
             )
           else if (!expanded) ...[
@@ -761,7 +889,7 @@ class _JournalEventRow extends StatelessWidget {
     final (icon, color, label) = switch (event.type) {
       MatchLiveEventType.goalUs => (
           Icons.sports_soccer_rounded,
-          theme.colorScheme.primary,
+          theme.colorScheme.onSurface,
           event.isOpponentOwnGoal
               ? 'But AS Grinta · CSC adverse'
               : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}'
@@ -923,14 +1051,7 @@ class _JournalEventRow extends StatelessWidget {
                                     textAlign: isOpponentGoal
                                         ? TextAlign.right
                                         : TextAlign.left,
-                                    style: canChooseScorer
-                                        ? theme.textTheme.bodyMedium?.copyWith(
-                                            color: theme.colorScheme.primary,
-                                            fontWeight: FontWeight.w400,
-                                            decoration:
-                                                TextDecoration.underline,
-                                          )
-                                        : theme.textTheme.bodyMedium,
+                                    style: theme.textTheme.bodyMedium,
                                   ),
                                   if (hasScore)
                                     Text(
@@ -985,6 +1106,157 @@ class _Message extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Text(message, textAlign: TextAlign.center),
       ),
+    );
+  }
+}
+
+/// Vue spectateur du direct : pour tous ceux qui ne pilotent pas.
+///
+/// Chrono et score sur une ligne, composition en direct avec les ballons
+/// (buts) et chaussures (passes décisives) comme sur la fiche d'après-match,
+/// puis le journal, sans les repères réservés au pilote.
+class MatchLiveSpectatorView extends ConsumerStatefulWidget {
+  const MatchLiveSpectatorView({
+    super.key,
+    required this.bundle,
+    this.header,
+  });
+
+  final MatchLiveStateBundle bundle;
+
+  /// Bandeau au-dessus du direct (pour un coach : piloter / prendre la main).
+  final Widget? header;
+
+  @override
+  ConsumerState<MatchLiveSpectatorView> createState() =>
+      _MatchLiveSpectatorViewState();
+}
+
+class _MatchLiveSpectatorViewState
+    extends ConsumerState<MatchLiveSpectatorView> {
+  bool _journalExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final bundle = widget.bundle;
+    final session = bundle.session;
+    final fixture =
+        ref.watch(upcomingMatchFixtureProvider(session.matchId)).valueOrNull;
+    final opponentName = fixture?.opponentName ?? 'Adversaire';
+    final grintaIsHome = fixture?.grintaIsHome ?? true;
+    final lineup = bundle.lineup;
+
+    _LiveScore team(bool grinta) => _LiveScore(
+          shortName: grinta ? 'ASG' : _shortName(opponentName),
+          fullName: grinta ? 'AS Grinta' : opponentName,
+          score: grinta ? session.scoreAsGrinta : session.scoreAdverse,
+          canEdit: false,
+          wide: true,
+          onIncrement: () {},
+          onDecrement: () {},
+        );
+
+    // Buts et passes décisives de chaque joueur, pour les ballons et les
+    // chaussures sur la composition.
+    final goals = <String, int>{};
+    final assists = <String, int>{};
+    for (final event in bundle.events) {
+      if (event.type != MatchLiveEventType.goalUs) continue;
+      final scorer = event.scorerParticipantId;
+      final assist = event.assistParticipantId;
+      if (scorer != null) goals[scorer] = (goals[scorer] ?? 0) + 1;
+      if (assist != null) assists[assist] = (assists[assist] ?? 0) + 1;
+    }
+    List<MatchCompositionEntry> withStats(MatchCompositionZone zone) => [
+          for (final entry in lineup?.entriesFor(zone) ?? const [])
+            entry.copyWith(
+              goals: goals[entry.participantId] ?? 0,
+              assists: assists[entry.participantId] ?? 0,
+            ),
+        ];
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.liveScreenGutter,
+        AppSpacing.sectionGap,
+        AppSpacing.liveScreenGutter,
+        32,
+      ),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        if (widget.header != null) ...[
+          widget.header!,
+          const SizedBox(height: 10),
+        ],
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            // Même ligne que le pilote : chrono sur un cinquième, noms
+            // complets des équipes et score sur le reste.
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 64,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      alignment: Alignment.centerLeft,
+                      child: MatchLiveClock(session: session, compact: true),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 4,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(child: team(grintaIsHome)),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: _scoreDash(context),
+                      ),
+                      Expanded(child: team(!grintaIsHome)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sectionGap),
+        // Composition dessinée à taille fixe : sans ce plafond, le grossissement
+        // de texte de l'application faisait déborder les prénoms d'un pixel.
+        if (lineup != null)
+          MediaQuery.withClampedTextScaling(
+            maxScaleFactor: 1,
+            child: CompositionPitchWithBench(
+              field: withStats(MatchCompositionZone.field),
+              bench: withStats(MatchCompositionZone.bench),
+            ),
+          ),
+        const SizedBox(height: AppSpacing.sectionGap),
+        // Spectateur : seulement les buts.
+        _LiveJournal(
+          events: [
+            for (final event in bundle.events)
+              if (event.type != MatchLiveEventType.substitution) event,
+          ],
+          expanded: _journalExpanded,
+          canEdit: false,
+          plain: true,
+          title: 'Faits de match',
+          emptyText: 'Aucun but pour le moment.',
+          onExpandedChanged: (value) =>
+              setState(() => _journalExpanded = value),
+          onEditScorer: (_) {},
+          onEditAssist: (_) {},
+          onDelete: (_) {},
+        ),
+      ],
     );
   }
 }

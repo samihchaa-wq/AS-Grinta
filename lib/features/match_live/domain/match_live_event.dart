@@ -1,3 +1,5 @@
+import 'package:as_grinta/features/match_live/domain/live_guest_display_name.dart';
+
 enum MatchLiveEventType {
   goalUs,
   goalThem,
@@ -29,6 +31,7 @@ class MatchLiveEvent {
     this.playerOutParticipantId,
     this.playerOutName,
     this.isOpponentOwnGoal = false,
+    this.createdAt,
   });
 
   factory MatchLiveEvent.fromJson(Map<String, dynamic> json) {
@@ -38,16 +41,17 @@ class MatchLiveEvent {
       minute: (json['minute'] as num?)?.toInt() ?? 0,
       half: (json['half'] as num?)?.toInt() ?? 1,
       scorerParticipantId: _nullableText(json['scorer_participant_id']),
-      scorerName: _nullableText(json['scorer_name']),
+      scorerName: liveEventDisplayName(json['scorer_name']),
       assistParticipantId: _nullableText(json['assist_participant_id']),
-      assistName: _nullableText(json['assist_name']),
+      assistName: liveEventDisplayName(json['assist_name']),
       scoreAsGrintaAfter: (json['score_as_grinta_after'] as num?)?.toInt(),
       scoreAdverseAfter: (json['score_adverse_after'] as num?)?.toInt(),
       playerInParticipantId: _nullableText(json['player_in_participant_id']),
-      playerInName: _nullableText(json['player_in_name']),
+      playerInName: liveEventDisplayName(json['player_in_name']),
       playerOutParticipantId: _nullableText(json['player_out_participant_id']),
-      playerOutName: _nullableText(json['player_out_name']),
+      playerOutName: liveEventDisplayName(json['player_out_name']),
       isOpponentOwnGoal: json['is_opponent_own_goal'] == true,
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
     );
   }
 
@@ -72,6 +76,11 @@ class MatchLiveEvent {
   /// But d'AS Grinta marqué contre son camp par l'adversaire : il compte au
   /// score mais n'est crédité à aucun joueur.
   final bool isOpponentOwnGoal;
+
+  /// Heure d'enregistrement côté serveur. Les remplacements validés d'un même
+  /// geste sont écrits ensemble et partagent exactement la même heure.
+  /// `null` quand la source ne la fournit pas.
+  final DateTime? createdAt;
 
   /// Un but d'AS Grinta dont le buteur reste à désigner.
   bool get needsScorer =>

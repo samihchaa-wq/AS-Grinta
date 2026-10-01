@@ -11,6 +11,22 @@ abstract interface class MatchLiveRepository {
   Future<MatchLiveTimeline?> fetchTimeline(String matchId);
   Future<MatchLiveAddPlayerOptions> fetchAddPlayerOptions(String matchId);
 
+  /// Tente de prendre la place de pilote. Si un autre téléphone la tient
+  /// encore, le snapshot renvoyé l'indique sans lui voler la main.
+  Future<MatchLiveStateBundle> claimPilot({
+    required String matchId,
+    int? plannedDurationMinutes,
+  });
+
+  /// Prend volontairement la main à un autre pilote après confirmation UI.
+  Future<MatchLiveStateBundle> takeOverPilot({required String matchId});
+
+  /// Signal de présence périodique du téléphone pilote.
+  Future<MatchLiveStateBundle> heartbeatPilot({required String matchId});
+
+  /// Libère la place si ce téléphone la détient encore.
+  Future<MatchLiveStateBundle> releasePilot({required String matchId});
+
   Future<MatchLiveStateBundle> openWorkspace({
     required String matchId,
     int? plannedDurationMinutes,
@@ -137,6 +153,48 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
       params: {'p_match_id': matchId},
     );
     return MatchLiveAddPlayerOptions.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> claimPilot({
+    required String matchId,
+    int? plannedDurationMinutes,
+  }) async {
+    final response = await _client.rpc(
+      'claim_match_live_pilot',
+      params: {
+        'p_match_id': matchId,
+        'p_planned_duration_minutes': plannedDurationMinutes,
+      },
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> takeOverPilot({required String matchId}) async {
+    final response = await _client.rpc(
+      'take_over_match_live_pilot',
+      params: {'p_match_id': matchId},
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> heartbeatPilot({required String matchId}) async {
+    final response = await _client.rpc(
+      'heartbeat_match_live_pilot',
+      params: {'p_match_id': matchId},
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> releasePilot({required String matchId}) async {
+    final response = await _client.rpc(
+      'release_match_live_pilot',
+      params: {'p_match_id': matchId},
+    );
+    return MatchLiveStateBundle.fromRpc(response);
   }
 
   @override

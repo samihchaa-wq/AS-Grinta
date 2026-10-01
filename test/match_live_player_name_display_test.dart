@@ -99,9 +99,9 @@ void main() {
     await pump(lastExit: const SubstitutionExitMark(rest: 2, rank: 1));
     expect(find.text('2.1'), findsOneWidget);
 
-    // Jamais sorti du terrain : seul le compteur s'affiche.
+    // Jamais sorti du terrain : passage suivi de « .0 ».
     await pump();
-    expect(find.text('2'), findsOneWidget);
+    expect(find.text('2.0'), findsOneWidget);
   });
 
   testWidgets('un prénom long n’est pas tronqué sur le banc', (tester) async {

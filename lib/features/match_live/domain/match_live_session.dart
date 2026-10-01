@@ -32,6 +32,8 @@ class MatchLiveSession {
     required this.scoreAdverse,
     required this.exported,
     required this.lineupRevision,
+    required this.pilotActive,
+    required this.pilotIsMe,
     this.runningSince,
     this.startedAt,
     this.finishedAt,
@@ -55,6 +57,8 @@ class MatchLiveSession {
       exported: json['exported'] == true,
       exportedAt: _dateOrNull(json['exported_at']),
       lineupRevision: (json['lineup_revision'] as num?)?.toInt() ?? 0,
+      pilotActive: json['pilot_active'] == true,
+      pilotIsMe: json['pilot_is_me'] == true,
     );
   }
 
@@ -72,6 +76,14 @@ class MatchLiveSession {
   final bool exported;
   final DateTime? exportedAt;
   final int lineupRevision;
+
+  /// Un téléphone détient actuellement la place de pilote et a donné signe de
+  /// vie depuis moins d'une minute.
+  final bool pilotActive;
+
+  /// Ce téléphone est le pilote actif. La session Auth elle-même n'est jamais
+  /// exposée par le serveur.
+  final bool pilotIsMe;
 
   bool get isLive =>
       state == MatchLiveState.running ||
