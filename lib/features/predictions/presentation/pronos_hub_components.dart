@@ -197,6 +197,7 @@ StickyTableRow _leaderboardRow(
             profileId: profileId,
             name: name,
             badgeSize: badgeSize,
+            alignBadgesEnd: true,
           ),
         ),
       ],
