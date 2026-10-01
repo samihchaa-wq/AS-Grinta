@@ -262,7 +262,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final busy = state.isLoading || _squadLimitLoading || _saving;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Modifier'), admin: true),
+      appBar: GrintaAppBar(title: const Text('Modifier')),
       body: Form(
         key: _formKey,
         child: ListView(

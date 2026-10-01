@@ -1,6 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_repository.dart';
@@ -336,8 +335,6 @@ class _AvailabilityPanel extends StatelessWidget {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(width: 8),
-                const AdminBadge(),
               ],
             ),
             const SizedBox(height: 10),

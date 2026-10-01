@@ -344,7 +344,6 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Invités'),
-        admin: true,
         actions: [
           IconButton(
             tooltip: 'Actualiser',

@@ -37,7 +37,6 @@ class _UnavailabilityPageState extends ConsumerState<UnavailabilityPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Indisponibilité'),
-        admin: isAdminView && section == _UnavailabilitySection.club,
       ),
       body: Column(
         children: [
