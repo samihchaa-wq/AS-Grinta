@@ -189,9 +189,8 @@ class _EncounterChip extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .16),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: .5)),
+        border: Border.all(color: color),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
