@@ -370,8 +370,8 @@ class _MatchLivePreKickoffPageState
 
     setState(() => _busy = true);
     try {
-      // Celui qui donne le coup d'envoi pilote le Live.
-      ref.read(livePilotProvider(widget.matchId).notifier).state = LivePilot.me;
+      // Le téléphone a déjà obtenu la place de pilote auprès du serveur avant
+      // d'afficher cet écran. On ne la force jamais localement ici.
       ref.read(liveViewModeProvider(widget.matchId).notifier).state =
           LiveViewMode.pilot;
       await _controller.openWorkspace(plannedDurationMinutes: minutes);
