@@ -142,6 +142,10 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   Future<void> _showCalendarSubscriptionChoices(Uri httpsUri) async {
     await showModalBottomSheet<void>(
       context: context,
+      // Au-dessus de la barre de navigation du bas, sinon elle masque la fin
+      // de la liste.
+      useRootNavigator: true,
+      isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) {
         Future<void> choose(Future<void> Function() action) async {
@@ -150,7 +154,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         }
 
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -161,11 +165,6 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                   style: Theme.of(
                     sheetContext,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w400),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Choisis ton calendrier. Il restera lié à AS Grinta : les ajouts, changements, annulations et suppressions de matchs seront récupérés lors de la prochaine synchronisation du service choisi.',
-                  style: Theme.of(sheetContext).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 12),
                 ListTile(

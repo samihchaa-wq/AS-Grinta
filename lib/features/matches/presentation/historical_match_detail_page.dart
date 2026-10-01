@@ -28,7 +28,7 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
     final loadedDetail = detailAsync.valueOrNull;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Match archivé')),
+      appBar: GrintaAppBar(title: const SizedBox.shrink()),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(historicalMatchDetailProvider(matchId));

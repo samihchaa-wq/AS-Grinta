@@ -6,7 +6,6 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/photo_crop_preview.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/features/auth/presentation/sign_out_confirmation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -296,23 +295,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ),
               ],
-              SizedBox(height: compact ? 8 : 10),
-              const Divider(height: 1),
-              SizedBox(height: compact ? 6 : 8),
-              OutlinedButton.icon(
-                onPressed: busy ? null : () => confirmAndSignOut(context, ref),
-                icon: const Icon(Icons.logout_rounded),
-                label: const Text('Se déconnecter'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                  side: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .error
-                        .withValues(alpha: .5),
-                  ),
-                ),
-              ),
             ],
           );
         },
