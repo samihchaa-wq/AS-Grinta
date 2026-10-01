@@ -598,21 +598,45 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (!_isInternalMatch)
-                  TextField(
-                    controller: _limitController,
-                    enabled: !_busy && !_locked,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Nombre de joueurs souhaité',
-                      border: const OutlineInputBorder(),
-                      errorText: _validatedSquadLimit(showError: false) == null
-                          ? 'Saisis un nombre entre 1 et 30.'
-                          : null,
-                    ),
-                    onChanged: (_) {
-                      _updateState(() {});
-                      _scheduleEffectifSave();
-                    },
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _limitController,
+                          enabled: !_busy && !_locked,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Joueurs convoqués',
+                            border: const OutlineInputBorder(),
+                            errorText:
+                                _validatedSquadLimit(showError: false) == null
+                                    ? 'Entre 1 et 30'
+                                    : null,
+                          ),
+                          onChanged: (_) {
+                            _updateState(() {});
+                            _scheduleEffectifSave();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _EffectifActionButton(
+                          onPressed: () => context.push('/admin/waitlist'),
+                          icon: Icons.format_list_numbered_rounded,
+                          label: 'Liste d’attente',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _EffectifActionButton(
+                          onPressed: _busy || _locked ? null : _addGuest,
+                          icon: Icons.person_add_alt_1_outlined,
+                          label: 'Ajouter un invité',
+                        ),
+                      ),
+                    ],
                   ),
                 if (!_isInternalMatch && over) ...[
                   const SizedBox(height: 10),
@@ -624,34 +648,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     ),
                   ),
                 ],
-                if (!_isInternalMatch) const SizedBox(height: 12),
-                if (!_isInternalMatch)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.push('/admin/waitlist'),
-                          icon: const Icon(Icons.format_list_numbered_rounded),
-                          label: const Text(
-                            'Voir la liste d’attente',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _busy || _locked ? null : _addGuest,
-                          icon: const Icon(Icons.person_add_alt_1_outlined),
-                          label: const Text(
-                            'Ajouter un invité',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                else
+                if (_isInternalMatch)
                   OutlinedButton.icon(
                     onPressed: _busy || _locked ? null : _addGuest,
                     icon: const Icon(Icons.person_add_alt_1_outlined),
@@ -764,6 +761,46 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             child: Text('Effectif verrouillé au coup d’envoi.'),
           ),
       ],
+    );
+  }
+}
+
+/// Bouton compact (icône au-dessus du texte) pour tenir à trois sur une ligne
+/// avec le champ « Joueurs convoqués ».
+class _EffectifActionButton extends StatelessWidget {
+  const _EffectifActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 56),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -57,24 +57,22 @@ class GrintaClubHomeButton extends StatelessWidget {
       label: 'Retour au calendrier',
       child: Tooltip(
         message: 'Retour au calendrier',
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkResponse(
-            key: grintaClubHomeBadgeKey,
-            onTap: () => _returnToCalendar(context),
-            radius: 24,
-            containedInkWell: true,
-            child: SizedBox(
-              width: 48,
-              height: 48,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Image.asset(
-                  'assets/images/as_grinta_logo.webp',
-                  height: 42,
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                ),
+        // Pas d'effet visuel au toucher : l'écusson renvoie au calendrier sans
+        // faire apparaître de carré gris.
+        child: GestureDetector(
+          key: grintaClubHomeBadgeKey,
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _returnToCalendar(context),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Image.asset(
+                'assets/images/as_grinta_logo.webp',
+                height: 42,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
             ),
           ),
