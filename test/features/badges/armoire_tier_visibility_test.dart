@@ -22,9 +22,9 @@ BadgeDef _tier(String code, String name, String metric, int threshold,
 final _paliersMatchs = <BadgeDef>[
   _tier('matches_played__50', 'Fidèle', 'matches_played', 50, sortOrder: 1),
   _tier('matches_played__100', 'Vétéran', 'matches_played', 100, sortOrder: 2),
-  _tier('matches_played__200', 'Cadre du club', 'matches_played', 200,
+  _tier('matches_played__150', 'Cadre du club', 'matches_played', 150,
       sortOrder: 3),
-  _tier('matches_played__300', 'Légende du club', 'matches_played', 300,
+  _tier('matches_played__200', 'Légende du club', 'matches_played', 200,
       sortOrder: 4),
 ];
 
@@ -63,9 +63,9 @@ void main() {
     );
     // Le premier palier pas encore gagné reste la cible en cours.
     expect(armoire.inProgress.map((b) => b.def.code),
-        contains('matches_played__200'));
+        contains('matches_played__150'));
     expect(armoire.validated.map((b) => b.def.code),
-        isNot(contains('matches_played__200')));
+        isNot(contains('matches_played__150')));
   });
 
   test('seul le palier le plus haut porte le cumul réel', () {
