@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('la taille commune des badges Statistiques reste celle de Prono Matchs',
       () {
-    expect(statisticsBadgeSize, 36);
+    expect(statisticsBadgeSize, 46);
     expect(nameWithBadgesMinimumSize, statisticsBadgeSize);
   });
 

@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const nameWithBadgesGap = 10.0;
-const statisticsBadgeSize = 36.0;
+const statisticsBadgeSize = 46.0;
 const nameWithBadgesMinimumSize = statisticsBadgeSize;
 
 /// Affiche le nom seul partout, sauf sous une [BadgeDisplayScope] active — le
