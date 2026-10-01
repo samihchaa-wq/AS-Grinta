@@ -47,7 +47,8 @@ void main() {
       expect(find.text('Faits de match'), findsOneWidget);
     });
 
-    testWidgets('un autre téléphone bloque le pilotage puis peut céder la main', (
+    testWidgets('un autre téléphone bloque le pilotage puis peut céder la main',
+        (
       tester,
     ) async {
       final container = await _pump(
