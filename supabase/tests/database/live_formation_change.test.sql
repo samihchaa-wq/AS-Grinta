@@ -124,8 +124,20 @@ values (
   '42100000-0000-0000-0000-000000000001'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"42100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"42100000-0000-0000-0000-000000000030"}',
+  true
+);
 set local role authenticated;
-set local request.jwt.claim.sub = '42100000-0000-0000-0000-000000000001';
+
+select lives_ok(
+  $$select public.claim_match_live_pilot(
+    '42100000-0000-0000-0000-000000000020',
+    90
+  )$$,
+  'le coach prend la place de pilote avant de modifier le Live'
+);
 
 select lives_ok(
   $$select public.coach_change_match_live_formation(
@@ -149,7 +161,7 @@ select throws_ok(
 );
 
 reset role;
-set local request.jwt.claim.sub = '';
+select set_config('request.jwt.claims', '{}', true);
 
 select is(
   (
