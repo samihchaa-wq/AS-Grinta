@@ -56,11 +56,22 @@ class MatchEncounter {
     this.date,
     this.id,
     this.isHistorical = false,
+    this.grintaIsHome,
   });
 
   final int grintaScore;
   final int opponentScore;
   final DateTime? date;
+
+  /// Vrai si AS Grinta recevait. Absent tant que le backend n'a pas déployé
+  /// la version qui l'expose : le score reste alors écrit AS Grinta en premier.
+  final bool? grintaIsHome;
+
+  /// Score écrit dans l'ordre domicile – extérieur, comme sur la fiche du
+  /// match et dans le calendrier.
+  String get scoreLabel => grintaIsHome == false
+      ? '$opponentScore–$grintaScore'
+      : '$grintaScore–$opponentScore';
 
   /// Identifiant de la rencontre source. Absent uniquement tant que le backend
   /// n'a pas encore déployé la version enrichie de l'historique.
@@ -214,6 +225,7 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
           date: DateTime.tryParse('${map['encounter_date'] ?? ''}')?.toLocal(),
           id: _clean(map['encounter_id']),
           isHistorical: map['is_historical'] == true,
+          grintaIsHome: map['is_home'] as bool?,
         ),
       );
     }

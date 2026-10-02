@@ -135,10 +135,9 @@ class _BadgeImageEditorButtonState
       );
     }
 
-    return FilledButton.tonalIcon(
+    return FilledButton.tonal(
       onPressed: _busy ? null : _editImage,
-      icon: Icon(icon),
-      label: Text(tooltip),
+      child: Text(hasImage ? 'Image' : 'Ajouter une image'),
     );
   }
 }

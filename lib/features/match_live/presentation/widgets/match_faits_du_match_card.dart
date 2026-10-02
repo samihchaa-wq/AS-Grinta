@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/widgets/collapsible_section_card.dart';
+import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_goal_action.dart';
 import 'package:flutter/material.dart';
@@ -10,15 +11,18 @@ class _FactRow {
     required this.minuteLabel,
     required this.text,
     required this.scoreLabel,
-    required this.isAsGrintaGoal,
+    required this.isAwayGoal,
   });
 
   final String minuteLabel;
   final String text;
 
-  /// Score cumulé après ce but.
+  /// Score cumulé après ce but, dans l'ordre domicile – extérieur.
   final String scoreLabel;
-  final bool isAsGrintaGoal;
+
+  /// Les buts de l'équipe qui reçoit sont à gauche, ceux de l'équipe qui se
+  /// déplace à droite, comme dans l'en-tête de la fiche.
+  final bool isAwayGoal;
 }
 
 /// Chronologie des buts d'un match terminé, dans sa fiche.
@@ -38,7 +42,9 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goals = ref.watch(matchGoalActionsProvider(matchId)).valueOrNull;
-    final rows = _buildRows(goals ?? const []);
+    final grintaIsHome =
+        ref.watch(matchCoreProvider(matchId)).valueOrNull?.grintaIsHome ?? true;
+    final rows = _buildRows(goals ?? const [], grintaIsHome: grintaIsHome);
     if (rows.isEmpty) return const SizedBox.shrink();
 
     return CollapsibleSectionCard(
@@ -54,7 +60,10 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
 
   /// Les buts arrivent déjà dans l'ordre retenu par le compte rendu : le score
   /// cumulé se reconstitue simplement en les parcourant.
-  List<_FactRow> _buildRows(List<MatchGoalAction> goals) {
+  List<_FactRow> _buildRows(
+    List<MatchGoalAction> goals, {
+    required bool grintaIsHome,
+  }) {
     var scoreAsGrinta = 0;
     var scoreAdverse = 0;
     final rows = <_FactRow>[];
@@ -67,8 +76,10 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
       rows.add(
         _FactRow(
           minuteLabel: goal.minute == null ? '—' : "${goal.minute}'",
-          scoreLabel: '$scoreAsGrinta-$scoreAdverse',
-          isAsGrintaGoal: goal.isAsGrinta,
+          scoreLabel: grintaIsHome
+              ? '$scoreAsGrinta-$scoreAdverse'
+              : '$scoreAdverse-$scoreAsGrinta',
+          isAwayGoal: goal.isAsGrinta != grintaIsHome,
           text: _goalText(goal),
         ),
       );
@@ -95,7 +106,7 @@ class _FactLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isOpponentGoal = !row.isAsGrintaGoal;
+    final isOpponentGoal = row.isAwayGoal;
     final goalIndent =
         (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0).toDouble();
     final theme = Theme.of(context);

@@ -17,14 +17,13 @@ class BadgeTextEditorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    return OutlinedButton(
       onPressed: () => showDialog<void>(
         context: context,
         barrierDismissible: false,
         builder: (_) => _BadgeTextDialog(badge: badge),
       ),
-      icon: const Icon(Icons.edit_outlined, size: 18),
-      label: const Text('Modifier'),
+      child: const Text('Texte'),
     );
   }
 }

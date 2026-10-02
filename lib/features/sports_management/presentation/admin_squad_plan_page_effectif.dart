@@ -606,6 +606,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                           controller: _limitController,
                           enabled: !_busy && !_locked,
                           keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
                           decoration: InputDecoration(
                             labelText: 'Convoqués',
                             border: const OutlineInputBorder(),

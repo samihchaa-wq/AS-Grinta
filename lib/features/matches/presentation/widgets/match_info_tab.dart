@@ -198,7 +198,7 @@ class _EncounterChip extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
-              '${encounter.grintaScore}–${encounter.opponentScore}',
+              encounter.scoreLabel,
               maxLines: 1,
               style: TextStyle(
                 color: color,
