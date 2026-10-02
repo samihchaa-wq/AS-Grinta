@@ -614,43 +614,29 @@ class _ScoreMarginCard extends StatelessWidget {
 
   final Map<int, int> distribution;
 
-  // Au-delà de cet écart, les matchs sont regroupés dans une colonne « 10+ »
-  // pour que les barres restent lisibles sur un téléphone.
-  static const _maxDetailedMargin = 9;
-
   static const _chartHeight = 190.0;
   static const _valueLabelSpace = 18.0;
   static const _yAxisWidth = 26.0;
 
-  /// Colonnes du graphique : de la plus large défaite à la plus large
+  // En dessous de cette largeur, une colonne devient illisible : le graphique
+  // défile alors horizontalement plutôt que de regrouper des écarts.
+  static const _minColumnWidth = 20.0;
+
+  /// Une colonne par écart, de la plus large défaite à la plus large
   /// victoire réellement observées, en passant toujours par le nul.
   static List<_MarginBucket> bucketsFor(Map<int, int> distribution) {
     final observed = [
       for (final entry in distribution.entries)
-        if (entry.value > 0)
-          entry.key.clamp(-_maxDetailedMargin - 1, _maxDetailedMargin + 1),
+        if (entry.value > 0) entry.key,
     ];
     final lowest = observed.fold<int>(0, math.min);
     final highest = observed.fold<int>(0, math.max);
 
-    int countFor(int margin) {
-      if (margin.abs() <= _maxDetailedMargin) return distribution[margin] ?? 0;
-      return distribution.entries
-          .where(
-            (entry) =>
-                entry.key.sign == margin.sign &&
-                entry.key.abs() > _maxDetailedMargin,
-          )
-          .fold<int>(0, (total, entry) => total + entry.value);
-    }
-
     return [
       for (var margin = lowest; margin <= highest; margin++)
         _MarginBucket(
-          margin.abs() > _maxDetailedMargin
-              ? '${_maxDetailedMargin + 1}+'
-              : '${margin.abs()}',
-          countFor(margin),
+          '${margin.abs()}',
+          distribution[margin] ?? 0,
           margin < 0
               ? _teamRed
               : margin == 0
@@ -711,77 +697,105 @@ class _ScoreMarginCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: _chartHeight,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: _yAxisWidth,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        for (final tick in ticks)
-                          Positioned(
-                            top: tickY(tick) - 8,
-                            left: 0,
-                            right: 6,
-                            height: 16,
-                            child: Text(
-                              '$tick',
-                              textAlign: TextAlign.right,
-                              style: axisStyle,
-                            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: _yAxisWidth,
+                  height: _chartHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      for (final tick in ticks)
+                        Positioned(
+                          top: tickY(tick) - 8,
+                          left: 0,
+                          right: 6,
+                          height: 16,
+                          child: Text(
+                            '$tick',
+                            textAlign: TextAlign.right,
+                            style: axisStyle,
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
-                  Expanded(
-                    child: CustomPaint(
-                      painter: _MarginGridPainter(
-                        lineYs: [for (final tick in ticks) tickY(tick)],
-                        color: axisColor.withValues(alpha: .18),
-                        baselineColor: axisColor.withValues(alpha: .45),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (final bucket in buckets)
-                            Expanded(
-                              child: _MarginBar(
-                                bucket: bucket,
-                                barMaxHeight: _chartHeight - _valueLabelSpace,
-                                yMax: yMax,
-                                valueStyle: theme.textTheme.labelSmall
-                                    ?.copyWith(fontWeight: FontWeight.w400),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final neededWidth = buckets.length * _minColumnWidth;
+                      final scrolls = neededWidth > constraints.maxWidth;
+                      final plot = SizedBox(
+                        width: scrolls ? neededWidth : constraints.maxWidth,
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: _chartHeight,
+                              child: CustomPaint(
+                                painter: _MarginGridPainter(
+                                  lineYs: [
+                                    for (final tick in ticks) tickY(tick),
+                                  ],
+                                  color: axisColor.withValues(alpha: .18),
+                                  baselineColor:
+                                      axisColor.withValues(alpha: .45),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    for (final bucket in buckets)
+                                      Expanded(
+                                        child: _MarginBar(
+                                          bucket: bucket,
+                                          barMaxHeight:
+                                              _chartHeight - _valueLabelSpace,
+                                          yMax: yMax,
+                                          valueStyle: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const SizedBox(width: _yAxisWidth),
-                for (final bucket in buckets)
-                  Expanded(
-                    child: SizedBox(
-                      height: 18,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          bucket.label,
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
-                          style: axisStyle?.copyWith(color: bucket.color),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                for (final bucket in buckets)
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 18,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          bucket.label,
+                                          maxLines: 1,
+                                          textAlign: TextAlign.center,
+                                          style: axisStyle?.copyWith(
+                                            color: bucket.color,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
+                      );
+
+                      if (!scrolls) return plot;
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: plot,
+                      );
+                    },
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 4),

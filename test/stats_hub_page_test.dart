@@ -187,6 +187,48 @@ void main() {
     expect(find.text('Victoires'), findsOneWidget);
     expect(find.text('Séries'), findsOneWidget);
   });
+  testWidgets(
+      'un très large écart garde une colonne par écart, sans regroupement',
+      (tester) async {
+    repository.team[StatisticsPeriod.current] = _team(
+      played: 3,
+      wins: 2,
+      draws: 0,
+      losses: 1,
+      goalsFor: 20,
+      goalsAgainst: 6,
+      scoreMarginDistribution: const {-4: 1, 2: 1, 14: 1},
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await pumpStats(tester, section: 'team');
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Écart de buts'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    final chart = find.ancestor(
+      of: find.text('Écart de buts'),
+      matching: find.byType(Card),
+    );
+
+    expect(tester.takeException(), isNull);
+    Finder inChart(String text) =>
+        find.descendant(of: chart, matching: find.text(text));
+    expect(inChart('14'), findsOneWidget);
+    expect(inChart('13'), findsOneWidget);
+    expect(find.textContaining('+'), findsNothing);
+    // 19 colonnes (de -4 à +14) : trop pour l’écran, le graphique défile.
+    expect(
+      find.descendant(
+        of: chart,
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 PlayerStatistics _player(
