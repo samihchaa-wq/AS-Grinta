@@ -148,7 +148,9 @@ class PredictionsRepository {
 
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (userId == null) {
+      throw StateError('Ta session a expiré. Reconnecte-toi.');
+    }
     final response = await _client
         .from('matches')
         .select(_matchSelect)
@@ -188,7 +190,9 @@ class PredictionsRepository {
     if (match == null) return null;
 
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (userId == null) {
+      throw StateError('Ta session a expiré. Reconnecte-toi.');
+    }
     final prediction = await _client
         .from('match_predictions')
         .select(_predictionSelect)
@@ -257,7 +261,7 @@ class PredictionsRepository {
     required int scoreOpponent,
   }) async {
     if (_client.auth.currentUser == null) {
-      throw StateError('Utilisateur non authentifié.');
+      throw StateError('Ta session a expiré. Reconnecte-toi.');
     }
     if (scoreGrinta < 0 ||
         scoreGrinta > 99 ||

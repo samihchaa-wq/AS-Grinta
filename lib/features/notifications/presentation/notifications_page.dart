@@ -124,7 +124,7 @@ class _OptionalNotificationsCard extends ConsumerWidget {
             children: [
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Ouverture des pronos'),
+                title: const Text('Rappel pronostic (jour du match)'),
                 value: preferences.predictionNotifications,
                 onChanged: (value) => _update(
                   context,
@@ -134,7 +134,7 @@ class _OptionalNotificationsCard extends ConsumerWidget {
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Vote Homme du Match'),
+                title: const Text('Vote Homme du match'),
                 value: preferences.motmVoteNotifications,
                 onChanged: (value) => _update(
                   context,
@@ -306,7 +306,7 @@ class _NotificationActionsRow extends ConsumerWidget {
               child: OutlinedButton(
                 onPressed: () => context.push('/admin/notification'),
                 child: const Text(
-                  'Envoyer une notif.',
+                  'Envoyer une notification',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

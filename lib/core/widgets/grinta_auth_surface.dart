@@ -49,7 +49,7 @@ class GrintaAuthSurface extends StatelessWidget {
                           children: [
                             Semantics(
                               header: true,
-                              label: 'AS La Grinta',
+                              label: 'AS Grinta',
                               child: Image.asset(
                                 'assets/images/as_grinta_logo.webp',
                                 height: 138,

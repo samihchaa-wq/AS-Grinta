@@ -265,7 +265,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
           button: onTap != null,
           label: player.displayName,
           hint:
-              onShowInfo == null ? null : 'Touchez pour sélectionner le joueur',
+              onShowInfo == null ? null : 'Touche pour sélectionner le joueur',
           child: tile,
         );
 

@@ -31,17 +31,17 @@ class AdminSportsManagementSection extends ConsumerWidget {
             Text(
               'Ce module gère la vie sportive du club : disponibilités des '
               'joueurs, convocations, composition d’équipe, feuille de match et '
-              'vote de l’Homme du Match, avec les notifications associées.',
+              'vote de l’Homme du match, avec les notifications associées.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
             Text(
-              'Réglages serveur : disponibilités, effectif, composition et '
-              'pronostic ouverts à J−6 à 12 h (heure de Paris), Live ouvert '
+              'Calendrier automatique : disponibilités, effectif, composition '
+              'et pronostics ouverts à J−6 à 12 h (heure de Paris), Live ouvert '
               '15 minutes avant le match, effectif proposé à '
-              '${feature.usualSquadSize} (modifiable match par match), scrutin '
-              'Homme du Match ouvert après la validation du compte rendu et '
-              'disponible pendant 24 h.',
+              '${feature.usualSquadSize} (modifiable match par match), vote '
+              'Homme du match ouvert après la validation du compte rendu et '
+              'fermé 24 h après le coup d’envoi.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

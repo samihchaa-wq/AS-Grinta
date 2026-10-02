@@ -206,7 +206,7 @@ class _PilotPlaceAvailable extends ConsumerWidget {
       child: Column(
         children: [
           const Text(
-            'Personne ne pilote le live',
+            'Personne ne pilote le Live',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -218,7 +218,7 @@ class _PilotPlaceAvailable extends ConsumerWidget {
                     .claimPilot();
               } catch (_) {}
             },
-            child: const Text('Piloter le live'),
+            child: const Text('Piloter le Live'),
           ),
         ],
       ),
@@ -239,7 +239,7 @@ class _SomeoneElsePilots extends ConsumerWidget {
       child: Column(
         children: [
           Text(
-            'Quelqu’un d’autre pilote déjà le live',
+            'Quelqu’un d’autre pilote déjà le Live',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium,
           ),

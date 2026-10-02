@@ -270,7 +270,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                     ? null
                     : (value) => setState(() => _seasonId = value ?? ''),
                 validator: (value) => value == null || value.isEmpty
-                    ? 'Sélectionnez une saison'
+                    ? 'Sélectionne une saison'
                     : null,
               ),
               const SizedBox(height: 18),
@@ -493,7 +493,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                           },
                           validator: (_) =>
                               _isNormalMatch && _opponentId.isEmpty
-                                  ? 'Sélectionnez un adversaire'
+                                  ? 'Sélectionne un adversaire'
                                   : null,
                         );
                       },
@@ -598,7 +598,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                         () => _rememberAddressAsDefault = value ?? false,
                       ),
               title: Text(
-                'Mémorise cette adresse',
+                'Garder cette adresse',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,

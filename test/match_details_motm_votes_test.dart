@@ -118,13 +118,13 @@ void main() {
       }),
     );
 
-    expect(find.text('Votes HDM'), findsOneWidget);
+    expect(find.text('Votes Homme du match'), findsOneWidget);
     // Fermé à l'ouverture de la fiche : le classement s'affiche au toucher.
     expect(find.text('4 voix'), findsNothing);
-    await tester.tap(find.text('Votes HDM'));
+    await tester.tap(find.text('Votes Homme du match'));
     await tester.pumpAndSettle();
     final card = find.ancestor(
-      of: find.text('Votes HDM'),
+      of: find.text('Votes Homme du match'),
       matching: find.byType(Card),
     );
     Finder inCard(Finder finder) => find.descendant(of: card, matching: finder);
@@ -282,7 +282,7 @@ void main() {
       _vote('open', [_candidate('a', 'Alice', null)]),
     );
 
-    expect(find.text('Votes HDM'), findsNothing);
+    expect(find.text('Votes Homme du match'), findsNothing);
   });
 }
 

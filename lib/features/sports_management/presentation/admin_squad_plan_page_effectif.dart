@@ -113,7 +113,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         actionIcon: Icons.notifications_active_outlined,
         content: Text(
           '${player.displayName} entre dans l’effectif : il reçoit tout de '
-          'suite la notification « Tu es convoqué », s’il les a activées. '
+          'suite la notification « Tu es convoqué », s’il a activé les notifications. '
           'Elle ne peut pas être rattrapée.',
         ),
       );

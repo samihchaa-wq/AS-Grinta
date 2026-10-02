@@ -22,7 +22,7 @@ select is(
     'absent',
     '2026-09-08 12:07:00+00'::timestamptz
   ),
-  'Alice est passé de présent à absent à 14h07.',
+  'À 14h07, Alice est passé de présent à absent.',
   'Présent -> Absent utilise le libellé demandé et l’heure de Paris'
 );
 
@@ -33,7 +33,7 @@ select is(
     'available',
     '2026-09-08 19:42:00+00'::timestamptz
   ),
-  'Bruno est passé d''absent à présent à 21h42.',
+  'À 21h42, Bruno est passé d''absent à présent.',
   'Absent -> Présent utilise une formulation naturelle et l’heure de Paris'
 );
 

@@ -6,12 +6,12 @@ select plan(8);
 select is(
   (select threshold from public.badges where code = 'assists_season__3'),
   5,
-  'Première passe se débloque à 5 passes décisives sur une saison'
+  'Passeur en herbe se débloque à 5 passes décisives sur une saison'
 );
 select is(
   (select description from public.badges where code = 'assists_season__3'),
   'Délivrer 5 passes décisives au cours d’une même saison.',
-  'Première passe affiche le nouveau barème'
+  'Passeur en herbe affiche le nouveau barème'
 );
 
 select is(

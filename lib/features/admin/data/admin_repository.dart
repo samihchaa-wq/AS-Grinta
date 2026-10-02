@@ -213,7 +213,7 @@ class AdminRepository {
       },
     );
     if (result != true) {
-      throw StateError("Le profil n'a pas pu être mis à jour.");
+      throw StateError('Le profil n’a pas pu être mis à jour.');
     }
   }
 
@@ -273,7 +273,7 @@ class AdminRepository {
       params: {'p_profile_id': profileId, 'p_historical_id': historicalId},
     );
     if (result != true) {
-      throw StateError("L'historique n'a pas pu être rattaché.");
+      throw StateError('L’historique n’a pas pu être rattaché.');
     }
   }
 

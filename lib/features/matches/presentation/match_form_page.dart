@@ -339,7 +339,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                                   _suggestOdds();
                                 },
                           validator: (value) => value == null || value.isEmpty
-                              ? 'Sélectionnez un adversaire'
+                              ? 'Sélectionne un adversaire'
                               : null,
                         ),
                       ),

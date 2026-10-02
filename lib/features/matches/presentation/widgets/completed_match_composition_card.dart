@@ -155,7 +155,7 @@ class _MpgCompletedCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
-                  'Les emplacements grisés — sont des postes dont la feuille '
+                  'Les emplacements grisés sont des postes dont la feuille '
                   'de match n’a pas gardé le nom du joueur.',
                   style: Theme.of(
                     context,

@@ -119,6 +119,32 @@ void main() {
         isNot('Une erreur est survenue. Réessaie dans un instant.'),
       );
     });
+
+    test('affiche les refus serveur qui tombaient dans le générique', () {
+      const messages = [
+        'Les pronostics de ce match sont fermés.',
+        'Le Live n’est pas encore ouvert.',
+        'Tu ne pilotes pas ce Live.',
+        'Le titre ne peut pas dépasser 80 caractères.',
+        'Choisis au moins un destinataire.',
+        'Le prénom ne doit contenir que des lettres (ni emoji, ni chiffre, '
+            'ni symbole).',
+        'Les deux équipes doivent avoir des maillots différents.',
+        'Choisis le dispositif de chaque équipe.',
+        'La fenêtre de correction de 24 h est fermée.',
+        'Ta session a expiré. Reconnecte-toi.',
+      ];
+      for (final message in messages) {
+        expect(humanizeError(message), message);
+      }
+    });
+
+    test('garde le générique pour un refus technique en anglais', () {
+      expect(
+        humanizeError('Live session not found'),
+        'Une erreur est survenue. Réessaie dans un instant.',
+      );
+    });
   });
 
   group('AppLogger', () {
