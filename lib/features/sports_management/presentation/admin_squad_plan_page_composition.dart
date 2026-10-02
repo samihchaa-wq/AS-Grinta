@@ -204,19 +204,15 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     if (formationForCode(composition.formationCode).code == code) return;
     final slots = formationForCode(code).slots;
     final field = composition.entriesFor(MatchCompositionZone.field);
-    final ordered = [
-      ...field.where((entry) => entry.isGoalkeeper),
-      ...field.where((entry) => !entry.isGoalkeeper),
-    ];
-    final placement = <String, Offset>{};
-    final overflow = <String>{};
-    for (var index = 0; index < ordered.length; index += 1) {
-      if (index < slots.length) {
-        placement[ordered[index].participantId] = slots[index].position;
-      } else {
-        overflow.add(ordered[index].participantId);
-      }
-    }
+    // Chaque titulaire rejoint le poste le plus proche de sa place actuelle.
+    final placement = {
+      for (final assigned in assignFieldPlayersToSlots(field, slots).entries)
+        assigned.key: assigned.value.position,
+    };
+    final overflow = <String>{
+      for (final entry in field)
+        if (!placement.containsKey(entry.participantId)) entry.participantId,
+    };
     final benchBase = composition.entriesFor(MatchCompositionZone.bench).length;
     var benchExtra = 0;
     _updateState(() {

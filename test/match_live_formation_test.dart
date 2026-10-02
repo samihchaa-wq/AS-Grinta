@@ -79,10 +79,14 @@ void main() {
     };
     expect(fieldById['keeper']!.x, slots[0].position.dx);
     expect(fieldById['keeper']!.y, slots[0].position.dy);
-    expect(fieldById['player-a']!.x, slots[1].position.dx);
-    expect(fieldById['player-a']!.y, slots[1].position.dy);
-    expect(fieldById['player-b']!.x, slots[2].position.dx);
-    expect(fieldById['player-b']!.y, slots[2].position.dy);
+    // Chacun rejoint le poste le plus proche : les deux milieux excentrés
+    // deviennent les pistons du 3-5-2, ils ne sont pas envoyés en défense.
+    final mg = slots.firstWhere((slot) => slot.label == 'MG');
+    final md = slots.firstWhere((slot) => slot.label == 'MD');
+    expect(fieldById['player-a']!.x, mg.position.dx);
+    expect(fieldById['player-a']!.y, mg.position.dy);
+    expect(fieldById['player-b']!.x, md.position.dx);
+    expect(fieldById['player-b']!.y, md.position.dy);
 
     final bench = changed.entriesFor(MatchCompositionZone.bench).single;
     expect(bench.participantId, 'bench');
