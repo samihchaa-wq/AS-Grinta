@@ -148,6 +148,47 @@ void main() {
   });
 
   testWidgets(
+      'le bilan tient en un seul anneau et les séries en chiffres clés, '
+      'sans barre rapportée au nombre de matchs', (tester) async {
+    repository.team[StatisticsPeriod.current] = _team(
+      played: 315,
+      wins: 213,
+      draws: 46,
+      losses: 56,
+      goalsFor: 1246,
+      goalsAgainst: 589,
+      bestWinStreak: const TeamStreak(
+        length: 12,
+        startDate: '2019-11-07',
+        endDate: '2020-10-05',
+      ),
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await pumpStats(tester, section: 'team');
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('315'), findsOneWidget);
+    // 67,6 % + 14,6 % + 17,8 % : arrondis à 68 + 14 + 18 = 100.
+    expect(find.text('68 %'), findsOneWidget);
+    expect(find.text('14 %'), findsOneWidget);
+    expect(find.text('18 %'), findsOneWidget);
+    expect(find.text('+657'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('victoires d’affilée'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('du 07/11/2019'), findsOneWidget);
+    expect(find.textContaining('/ 315'), findsNothing);
+  });
+
+  testWidgets(
       'l’écart de score s’affiche en graphique sur un téléphone, '
       'avec des axes adaptés aux résultats', (tester) async {
     repository.team[StatisticsPeriod.current] = _team(
@@ -219,7 +260,10 @@ void main() {
         find.descendant(of: chart, matching: find.text(text));
     expect(inChart('14'), findsOneWidget);
     expect(inChart('13'), findsOneWidget);
-    expect(find.textContaining('+'), findsNothing);
+    expect(
+      find.descendant(of: chart, matching: find.textContaining('+')),
+      findsNothing,
+    );
     // 19 colonnes (de -4 à +14) : trop pour l’écran, le graphique défile.
     expect(
       find.descendant(
@@ -263,6 +307,7 @@ TeamStatistics _team({
   required int goalsFor,
   required int goalsAgainst,
   Map<int, int> scoreMarginDistribution = const {},
+  TeamStreak? bestWinStreak,
 }) {
   const noStreak = TeamStreak(length: 0, startDate: null, endDate: null);
   return TeamStatistics(
@@ -277,7 +322,7 @@ TeamStatistics _team({
     goalDifference: goalsFor - goalsAgainst,
     recentResults: const ['V', 'N', 'D'],
     scoreMarginDistribution: scoreMarginDistribution,
-    bestWinStreak: noStreak,
+    bestWinStreak: bestWinStreak ?? noStreak,
     bestUnbeatenStreak: noStreak,
     worstLossStreak: noStreak,
     worstWinlessStreak: noStreak,
