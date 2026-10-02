@@ -87,8 +87,7 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
               : '$scoreAdverse - $scoreAsGrinta',
           isAwayGoal: goal.isAsGrinta != grintaIsHome,
           scorerLabel: _scorerLabel(goal),
-          assistLabel:
-              goal.isAsGrinta &&
+          assistLabel: goal.isAsGrinta &&
                   !goal.isOwnGoal &&
                   goal.assistKind == MatchGoalAssistKind.player
               ? goal.assistName

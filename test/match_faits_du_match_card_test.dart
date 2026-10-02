@@ -264,7 +264,8 @@ class _GoalActionsOnlyRepository implements MatchSportReportRepository {
     required MatchComposition lineup,
     required List<MatchGoalAction> goalActions,
     String? reason,
-  }) => Future<MatchSportReport>.error(UnimplementedError('submit'));
+  }) =>
+      Future<MatchSportReport>.error(UnimplementedError('submit'));
 
   @override
   Future<MatchSportReport> attachPlayer({
@@ -275,5 +276,6 @@ class _GoalActionsOnlyRepository implements MatchSportReportRepository {
     String? lastName,
     bool isGoalkeeper = false,
     String? reason,
-  }) => Future<MatchSportReport>.error(UnimplementedError('attachPlayer'));
+  }) =>
+      Future<MatchSportReport>.error(UnimplementedError('attachPlayer'));
 }
