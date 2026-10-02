@@ -146,6 +146,89 @@ void main() {
     expect(find.text('23'), findsWidgets);
     expect(find.text('14'), findsWidgets);
   });
+
+  testWidgets(
+      'l’écart de score s’affiche en graphique sur un téléphone, '
+      'avec des axes adaptés aux résultats', (tester) async {
+    repository.team[StatisticsPeriod.current] = _team(
+      played: 5,
+      wins: 4,
+      draws: 1,
+      losses: 0,
+      goalsFor: 15,
+      goalsAgainst: 4,
+      scoreMarginDistribution: const {0: 1, 1: 1, 3: 3},
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await pumpStats(tester, section: 'team');
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Séries'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Écart de buts'), findsOneWidget);
+    final chart = find.ancestor(
+      of: find.text('Écart de buts'),
+      matching: find.byType(Card),
+    );
+    Finder inChart(String text) =>
+        find.descendant(of: chart, matching: find.text(text));
+    // Abscisse : du nul (0) au plus large écart observé (3). Ordonnée : de 0
+    // au plus grand nombre de matchs pour un même écart (3). Rien au-delà.
+    for (final label in ['0', '1', '2', '3']) {
+      expect(inChart(label), findsWidgets);
+    }
+    expect(inChart('4'), findsNothing);
+    expect(find.text('Victoires'), findsOneWidget);
+    expect(find.text('Séries'), findsOneWidget);
+  });
+  testWidgets(
+      'un très large écart garde une colonne par écart, sans regroupement',
+      (tester) async {
+    repository.team[StatisticsPeriod.current] = _team(
+      played: 3,
+      wins: 2,
+      draws: 0,
+      losses: 1,
+      goalsFor: 20,
+      goalsAgainst: 6,
+      scoreMarginDistribution: const {-4: 1, 2: 1, 14: 1},
+    );
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await pumpStats(tester, section: 'team');
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Écart de buts'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    final chart = find.ancestor(
+      of: find.text('Écart de buts'),
+      matching: find.byType(Card),
+    );
+
+    expect(tester.takeException(), isNull);
+    Finder inChart(String text) =>
+        find.descendant(of: chart, matching: find.text(text));
+    expect(inChart('14'), findsOneWidget);
+    expect(inChart('13'), findsOneWidget);
+    expect(find.textContaining('+'), findsNothing);
+    // 19 colonnes (de -4 à +14) : trop pour l’écran, le graphique défile.
+    expect(
+      find.descendant(
+        of: chart,
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 PlayerStatistics _player(
@@ -179,6 +262,7 @@ TeamStatistics _team({
   required int losses,
   required int goalsFor,
   required int goalsAgainst,
+  Map<int, int> scoreMarginDistribution = const {},
 }) {
   const noStreak = TeamStreak(length: 0, startDate: null, endDate: null);
   return TeamStatistics(
@@ -192,7 +276,7 @@ TeamStatistics _team({
     goalsAgainst: goalsAgainst,
     goalDifference: goalsFor - goalsAgainst,
     recentResults: const ['V', 'N', 'D'],
-    scoreMarginDistribution: const {},
+    scoreMarginDistribution: scoreMarginDistribution,
     bestWinStreak: noStreak,
     bestUnbeatenStreak: noStreak,
     worstLossStreak: noStreak,

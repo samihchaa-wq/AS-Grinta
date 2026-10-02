@@ -65,7 +65,7 @@ class TeamStatisticsPanel extends ConsumerWidget {
               const _TeamSectionTitle('Écart de score'),
               const SizedBox(height: 3),
               Text(
-                'Répartition des matchs selon le score final',
+                'Nombre de matchs selon l’écart de buts final',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w400,
@@ -614,99 +614,197 @@ class _ScoreMarginCard extends StatelessWidget {
 
   final Map<int, int> distribution;
 
-  int _sumWhere(bool Function(int margin) test) {
-    return distribution.entries.fold<int>(
-      0,
-      (total, entry) => test(entry.key) ? total + entry.value : total,
-    );
+  static const _chartHeight = 190.0;
+  static const _valueLabelSpace = 18.0;
+  static const _yAxisWidth = 26.0;
+
+  // En dessous de cette largeur, une colonne devient illisible : le graphique
+  // défile alors horizontalement plutôt que de regrouper des écarts.
+  static const _minColumnWidth = 20.0;
+
+  /// Une colonne par écart, de la plus large défaite à la plus large
+  /// victoire réellement observées, en passant toujours par le nul.
+  static List<_MarginBucket> bucketsFor(Map<int, int> distribution) {
+    final observed = [
+      for (final entry in distribution.entries)
+        if (entry.value > 0) entry.key,
+    ];
+    final lowest = observed.fold<int>(0, math.min);
+    final highest = observed.fold<int>(0, math.max);
+
+    return [
+      for (var margin = lowest; margin <= highest; margin++)
+        _MarginBucket(
+          '${margin.abs()}',
+          distribution[margin] ?? 0,
+          margin < 0
+              ? _teamRed
+              : margin == 0
+                  ? _teamYellow
+                  : _teamGreen,
+        ),
+    ];
   }
 
-  // Un écart par colonne de 1 à 6 buts, puis une colonne « 7+ » de chaque
-  // côté pour les scores fleuves. Quinze colonnes ne laissent plus la place
-  // à des barres pleines : chaque valeur est donc dessinée par un trait épais.
-  static const _maxDetailedMargin = 6;
+  /// Pas de graduation « rond » (1, 2, 5, 10, 20…) pour environ 4 lignes.
+  static int tickStepFor(int maxCount) {
+    final raw = math.max(1, maxCount) / 4;
+    var magnitude = 1;
+    while (true) {
+      for (final factor in const [1, 2, 5]) {
+        if (factor * magnitude >= raw) return factor * magnitude;
+      }
+      magnitude *= 10;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final losses = _sumWhere((margin) => margin < 0);
-    final draws = distribution[0] ?? 0;
-    final wins = _sumWhere((margin) => margin > 0);
-    const wideLabel = '${_maxDetailedMargin + 1}+';
-    final buckets = [
-      _MarginBucket(
-        wideLabel,
-        _sumWhere((margin) => margin < -_maxDetailedMargin),
-        _teamRed,
-      ),
-      for (var margin = _maxDetailedMargin; margin >= 1; margin--)
-        _MarginBucket('$margin', distribution[-margin] ?? 0, _teamRed),
-      _MarginBucket('0', draws, _teamYellow),
-      for (var margin = 1; margin <= _maxDetailedMargin; margin++)
-        _MarginBucket('$margin', distribution[margin] ?? 0, _teamGreen),
-      _MarginBucket(
-        wideLabel,
-        _sumWhere((margin) => margin > _maxDetailedMargin),
-        _teamGreen,
-      ),
-    ];
-    final maxCount = math.max(
-      1,
-      buckets.fold<int>(
-        0,
-        (maximum, bucket) => math.max(maximum, bucket.count),
-      ),
+    final theme = Theme.of(context);
+    final buckets = bucketsFor(distribution);
+    final maxCount = buckets.fold<int>(
+      0,
+      (maximum, bucket) => math.max(maximum, bucket.count),
     );
+    final step = tickStepFor(maxCount);
+    final yMax = math.max(step, (maxCount / step).ceil() * step);
+    final ticks = [for (var tick = 0; tick <= yMax; tick += step) tick];
+    final axisColor = theme.colorScheme.onSurfaceVariant;
+    final axisStyle = theme.textTheme.labelSmall?.copyWith(
+      color: axisColor,
+      fontWeight: FontWeight.w400,
+    );
+
+    double tickY(int tick) =>
+        _valueLabelSpace +
+        (1 - tick / yMax) * (_chartHeight - _valueLabelSpace);
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        padding: const EdgeInsets.fromLTRB(12, 16, 16, 14),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _MarginSummaryRow(
-              losses: losses,
-              draws: draws,
-              wins: wins,
-            ),
-            const SizedBox(height: 18),
-            const Row(
+            const Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 16,
+              runSpacing: 6,
               children: [
-                Expanded(
-                  flex: 7,
-                  child: _MarginGroupLabel(
-                    label: 'DÉFAITES',
-                    color: _teamRed,
+                _MarginLegend(label: 'Défaites', color: _teamRed),
+                _MarginLegend(label: 'Nuls', color: _teamYellow),
+                _MarginLegend(label: 'Victoires', color: _teamGreen),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: _yAxisWidth,
+                  height: _chartHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      for (final tick in ticks)
+                        Positioned(
+                          top: tickY(tick) - 8,
+                          left: 0,
+                          right: 6,
+                          height: 16,
+                          child: Text(
+                            '$tick',
+                            textAlign: TextAlign.right,
+                            style: axisStyle,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 Expanded(
-                  child: _MarginGroupLabel(
-                    label: 'NUL',
-                    color: _teamYellow,
-                  ),
-                ),
-                Expanded(
-                  flex: 7,
-                  child: _MarginGroupLabel(
-                    label: 'VICTOIRES',
-                    color: _teamGreen,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final neededWidth = buckets.length * _minColumnWidth;
+                      final scrolls = neededWidth > constraints.maxWidth;
+                      final plot = SizedBox(
+                        width: scrolls ? neededWidth : constraints.maxWidth,
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              height: _chartHeight,
+                              child: CustomPaint(
+                                painter: _MarginGridPainter(
+                                  lineYs: [
+                                    for (final tick in ticks) tickY(tick),
+                                  ],
+                                  color: axisColor.withValues(alpha: .18),
+                                  baselineColor:
+                                      axisColor.withValues(alpha: .45),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    for (final bucket in buckets)
+                                      Expanded(
+                                        child: _MarginBar(
+                                          bucket: bucket,
+                                          barMaxHeight:
+                                              _chartHeight - _valueLabelSpace,
+                                          yMax: yMax,
+                                          valueStyle: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                for (final bucket in buckets)
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 18,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          bucket.label,
+                                          maxLines: 1,
+                                          textAlign: TextAlign.center,
+                                          style: axisStyle?.copyWith(
+                                            color: bucket.color,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (!scrolls) return plot;
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: plot,
+                      );
+                    },
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 190,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final bucket in buckets)
-                    Expanded(
-                      child: _MarginBar(
-                        bucket: bucket,
-                        maxCount: maxCount,
-                      ),
-                    ),
-                ],
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: _yAxisWidth),
+              child: Text(
+                'Écart de buts',
+                textAlign: TextAlign.center,
+                style: axisStyle,
               ),
             ),
           ],
@@ -724,42 +822,33 @@ class _MarginBucket {
   final Color color;
 }
 
-class _MarginSummaryRow extends StatelessWidget {
-  const _MarginSummaryRow({
-    required this.losses,
-    required this.draws,
-    required this.wins,
-  });
+class _MarginLegend extends StatelessWidget {
+  const _MarginLegend({required this.label, required this.color});
 
-  final int losses;
-  final int draws;
-  final int wins;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: _MarginSummaryItem(
-            label: 'Défaites',
-            value: losses,
-            color: _teamRed,
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _MarginSummaryItem(
-            label: 'Nuls',
-            value: draws,
-            color: _teamYellow,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _MarginSummaryItem(
-            label: 'Victoires',
-            value: wins,
-            color: _teamGreen,
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w400,
           ),
         ),
       ],
@@ -767,150 +856,91 @@ class _MarginSummaryRow extends StatelessWidget {
   }
 }
 
-class _MarginSummaryItem extends StatelessWidget {
-  const _MarginSummaryItem({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: .22)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            maxLines: 1,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: 1),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              maxLines: 1,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MarginGroupLabel extends StatelessWidget {
-  const _MarginGroupLabel({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    // La colonne « NUL » ne fait qu'une barre de large : le libellé déborde
-    // sur ses voisines plutôt que d'être coupé en « NU ».
-    return OverflowBox(
-      maxWidth: double.infinity,
-      child: Text(
-        label,
-        maxLines: 1,
-        softWrap: false,
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w400,
-              letterSpacing: .5,
-            ),
-      ),
-    );
-  }
-}
-
 class _MarginBar extends StatelessWidget {
   const _MarginBar({
     required this.bucket,
-    required this.maxCount,
+    required this.barMaxHeight,
+    required this.yMax,
+    required this.valueStyle,
   });
 
   final _MarginBucket bucket;
-  final int maxCount;
+  final double barMaxHeight;
+  final int yMax;
+  final TextStyle? valueStyle;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final heightFactor = bucket.count == 0 ? 0.0 : bucket.count / maxCount;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final barWidth = math.min(28.0, constraints.maxWidth * .62);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: 20,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                '${bucket.count}',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w400,
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (bucket.count > 0)
+              SizedBox(
+                height: 16,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('${bucket.count}', style: valueStyle),
+                ),
+              ),
+            const SizedBox(height: 2),
+            Container(
+              width: barWidth,
+              height: bucket.count / yMax * barMaxHeight,
+              decoration: BoxDecoration(
+                color: bucket.color,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Expanded(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: FractionallySizedBox(
-                heightFactor: heightFactor,
-                child: Container(
-                  width: 6,
-                  decoration: BoxDecoration(
-                    color: bucket.color,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 18,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                bucket.label,
-                maxLines: 1,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
+  }
+}
+
+class _MarginGridPainter extends CustomPainter {
+  const _MarginGridPainter({
+    required this.lineYs,
+    required this.color,
+    required this.baselineColor,
+  });
+
+  final List<double> lineYs;
+  final Color color;
+  final Color baselineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var index = 0; index < lineYs.length; index++) {
+      final y = lineYs[index];
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        Paint()
+          ..color = index == 0 ? baselineColor : color
+          ..strokeWidth = 1,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MarginGridPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.baselineColor != baselineColor ||
+      !_sameLines(oldDelegate.lineYs, lineYs);
+
+  static bool _sameLines(List<double> a, List<double> b) {
+    if (a.length != b.length) return false;
+    for (var index = 0; index < a.length; index++) {
+      if (a[index] != b[index]) return false;
+    }
+    return true;
   }
 }
 
