@@ -36,6 +36,20 @@ const List<_Archived> _archived4231 = [
   (50, 5, 'A'),
 ];
 
+const List<_Archived> _archived4312 = [
+  (50, 95, 'G'),
+  (10, 68.5, 'D'),
+  (33, 74.8, 'D'),
+  (67, 74.8, 'D'),
+  (90, 68.5, 'D'),
+  (10.9, 43.3, 'M'),
+  (50, 52.1, 'M'),
+  (89.1, 43.3, 'M'),
+  (50, 22.5, 'M'),
+  (24.8, 5, 'A'),
+  (75.2, 5, 'A'),
+];
+
 const List<_Archived> _archived352 = [
   (50, 93.8, 'G'),
   (10, 61.3, 'D'),
@@ -116,6 +130,7 @@ void main() {
     expectAligned('4-3-3', _archived433);
     expectAligned('4-2-3-1', _archived4231);
     expectAligned('3-5-2', _archived352);
+    expectAligned('4-3-1-2', _archived4312);
   });
 
   test('le 4-3-3 des archives garde ses trois attaquants devant', () {
@@ -134,7 +149,7 @@ void main() {
 
   test('un dispositif inconnu garde son dessin d’origine', () {
     final field = _field(_archived433);
-    expect(identical(alignFieldToFormation('4-3-1-2', field), field), isTrue);
+    expect(identical(alignFieldToFormation('4-3-0-3', field), field), isTrue);
     expect(identical(alignFieldToFormation(null, field), field), isTrue);
   });
 

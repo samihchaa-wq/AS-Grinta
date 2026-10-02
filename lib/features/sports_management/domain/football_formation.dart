@@ -370,6 +370,25 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       FootballFormationSlot(label: 'AD', position: Offset(.86, .24)),
     ],
   ),
+  // Trois milieux presque à plat, un meneur, deux pointes. Plus large et
+  // moins étagé que le 4-4-2 losange.
+  FootballFormation(
+    code: '4-3-1-2',
+    defenderLine: 4,
+    slots: [
+      FootballFormationSlot(label: 'GB', position: Offset(.50, .89)),
+      FootballFormationSlot(label: 'DG', position: Offset(.12, .67)),
+      FootballFormationSlot(label: 'DCG', position: Offset(.36, .72)),
+      FootballFormationSlot(label: 'DCD', position: Offset(.64, .72)),
+      FootballFormationSlot(label: 'DD', position: Offset(.88, .67)),
+      FootballFormationSlot(label: 'MCG', position: Offset(.30, .45)),
+      FootballFormationSlot(label: 'MC', position: Offset(.50, .48)),
+      FootballFormationSlot(label: 'MCD', position: Offset(.70, .45)),
+      FootballFormationSlot(label: 'MOC', position: Offset(.50, .31)),
+      FootballFormationSlot(label: 'BUG', position: Offset(.37, .14)),
+      FootballFormationSlot(label: 'BUD', position: Offset(.63, .14)),
+    ],
+  ),
   // ---- 3 défenseurs ----
   FootballFormation(
     code: '3-5-2',
