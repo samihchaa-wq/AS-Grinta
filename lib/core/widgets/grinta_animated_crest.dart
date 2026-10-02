@@ -9,7 +9,7 @@ class GrintaAnimatedCrest extends StatefulWidget {
   const GrintaAnimatedCrest({
     super.key,
     this.width = 240,
-    this.semanticLabel = 'AS La Grinta',
+    this.semanticLabel = 'AS Grinta',
   });
 
   final double width;

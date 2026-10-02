@@ -100,7 +100,7 @@ class _RosterList extends ConsumerWidget {
                         if (player.isCoach) 'Coach',
                         if (player.isGoalkeeper) 'Gardien',
                         player.linkedProfileId == null
-                            ? 'Aucun pronostiqueur lié'
+                            ? 'Aucun compte lié'
                             : 'Lié à ${player.linkedProfileLabel ?? 'un compte'}',
                         // Le nom affiché vient du compte : on rappelle celui de
                         // la fiche quand il diffère, pour que l'admin retrouve
@@ -193,7 +193,7 @@ class _RosterList extends ConsumerWidget {
                           value: 'link',
                           child: Text(
                             player.linkedProfileId == null
-                                ? 'Relier à un pronostiqueur'
+                                ? 'Relier à un compte'
                                 : 'Modifier la liaison',
                           ),
                         ),
@@ -306,7 +306,7 @@ Future<void> _showProfileLinkDialog(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Choisis le compte du pronostiqueur correspondant. Si le '
+                'Choisis le compte correspondant. Si le '
                 'compte est déjà relié à un autre joueur, la liaison sera '
                 'déplacée vers celui-ci.',
               ),
@@ -513,7 +513,7 @@ Future<void> _showPlayerDialog(
                 // seulement hors composition, liste d'attente et statistiques
                 // joueurs.
                 subtitle: const Text(
-                  'Se déclare présent/absent, parie et vote comme les autres. '
+                  'Se déclare présent/absent, pronostique et vote comme les autres. '
                   'Reste hors composition et liste d’attente.',
                 ),
                 value: isCoach,

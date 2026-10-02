@@ -30,7 +30,7 @@ La documentation explique le contrat attendu mais ne remplace jamais une vérifi
 - Le Live ouvre à **T-15**.
 - Effectif et Composition sont gelés à **T-15**.
 - Un match Live doit être validé avant son passage normal en match passé.
-- Le vote Homme du match ouvre après la validation du compte rendu et reste ouvert **24 heures**.
+- Le vote Homme du match ouvre après la validation du compte rendu et ferme **24 heures après le coup d’envoi**.
 - Un joueur ajouté tardivement au Live est ajouté directement sur le banc.
 - Le réglage utilisateur HDM couvre l’ouverture du vote **et** son résultat.
 - Le portefeuille / multiplicateur **×2 a été retiré du produit actuel**. Des migrations ou signatures de compatibilité peuvent encore en garder la trace.

@@ -190,7 +190,7 @@ select throws_ok(
     current_setting('test.archive_match')
   ),
   '22023',
-  'Les matchs d''une saison archivée sont immuables.',
+  'Les matchs d’une saison archivée ne peuvent plus être modifiés.',
   'a stale direct write cannot reopen a match after season archival'
 );
 

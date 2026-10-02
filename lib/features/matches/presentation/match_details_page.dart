@@ -127,7 +127,7 @@ class MatchDetailsPage extends ConsumerWidget {
             final motmActionLabel =
                 vote != null && vote.isOpen && vote.isEligibleVoter
                     ? (vote.hasVoted
-                        ? 'Vote HDM enregistré'
+                        ? 'Vote Homme du match enregistré'
                         : 'Voter pour l’Homme du match')
                     : null;
             return ListView(
@@ -663,7 +663,7 @@ class _MotmVotesCard extends ConsumerWidget {
       child: CollapsibleSectionCard(
         storageKey: 'match-$matchId-votes-hdm',
         icon: Icons.emoji_events_outlined,
-        title: 'Votes HDM',
+        title: 'Votes Homme du match',
         childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
         children: rows,
       ),

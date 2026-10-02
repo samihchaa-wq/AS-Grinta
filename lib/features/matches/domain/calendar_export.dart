@@ -11,10 +11,10 @@ String buildSeasonIcs({
   final buffer = StringBuffer()
     ..write('BEGIN:VCALENDAR\r\n')
     ..write('VERSION:2.0\r\n')
-    ..write('PRODID:-//AS La Grinta//Calendrier $seasonName//FR\r\n')
+    ..write('PRODID:-//AS Grinta//Calendrier $seasonName//FR\r\n')
     ..write('CALSCALE:GREGORIAN\r\n')
     ..write('METHOD:PUBLISH\r\n')
-    ..write(_foldIcsLine('X-WR-CALNAME:AS La Grinta $seasonName'));
+    ..write(_foldIcsLine('X-WR-CALNAME:AS Grinta $seasonName'));
 
   final orderedMatches = matches.where((match) => !match.isCancelled).toList()
     ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
@@ -42,7 +42,7 @@ String buildSeasonIcs({
       ..write(_foldIcsLine('SUMMARY:${_escapeIcs(summary)}'))
       ..write(
         _foldIcsLine(
-          'DESCRIPTION:${_escapeIcs('AS La Grinta — ${match.matchTypeLabel}')}',
+          'DESCRIPTION:${_escapeIcs('AS Grinta — ${match.matchTypeLabel}')}',
         ),
       );
 
@@ -68,7 +68,7 @@ String buildSeasonIcs({
       ..write('DTSTART:${_formatUtc(start)}\r\n')
       ..write('DTEND:${_formatUtc(end)}\r\n')
       ..write(_foldIcsLine('SUMMARY:${_escapeIcs(event.title)}'))
-      ..write(_foldIcsLine('DESCRIPTION:AS La Grinta — Événement'))
+      ..write(_foldIcsLine('DESCRIPTION:AS Grinta — Événement'))
       ..write(_foldIcsLine('LOCATION:${_escapeIcs(event.location)}'))
       ..write('END:VEVENT\r\n');
   }

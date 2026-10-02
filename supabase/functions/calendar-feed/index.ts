@@ -48,10 +48,10 @@ function summaryFor(row: Record<string, unknown>): string {
 
 function descriptionFor(row: Record<string, unknown>): string {
   const matchType = String(row.match_type ?? "championnat");
-  if (matchType === "entre_nous") return "AS La Grinta — Match entre nous";
-  if (matchType === "amical") return "AS La Grinta — Match amical";
+  if (matchType === "entre_nous") return "AS Grinta — Match entre nous";
+  if (matchType === "amical") return "AS Grinta — Match amical";
   const round = row.championship_round;
-  return round == null ? "AS La Grinta — Championnat" : `AS La Grinta — Championnat · J${round}`;
+  return round == null ? "AS Grinta — Championnat" : `AS Grinta — Championnat · J${round}`;
 }
 
 // Un match annulé ne produit aucun événement : il disparaît du flux, et
@@ -133,10 +133,10 @@ Deno.serve(async (req: Request) => {
   const now = new Date();
   let ics = "BEGIN:VCALENDAR\r\n";
   ics += "VERSION:2.0\r\n";
-  ics += "PRODID:-//AS La Grinta//Calendrier dynamique//FR\r\n";
+  ics += "PRODID:-//AS Grinta//Calendrier dynamique//FR\r\n";
   ics += "CALSCALE:GREGORIAN\r\n";
   ics += "METHOD:PUBLISH\r\n";
-  ics += foldLine("X-WR-CALNAME:AS La Grinta");
+  ics += foldLine("X-WR-CALNAME:AS Grinta");
   ics += "REFRESH-INTERVAL;VALUE=DURATION:PT15M\r\n";
   ics += "X-PUBLISHED-TTL:PT15M\r\n";
 

@@ -266,7 +266,7 @@ class MatchMotmVoteCard extends ConsumerWidget {
         child: const Card(
           child: ListTile(
             leading: Icon(Icons.error_outline),
-            title: Text('Vote HDM momentanément indisponible.'),
+            title: Text('Vote Homme du match momentanément indisponible.'),
           ),
         ),
       ),
@@ -280,7 +280,7 @@ class MatchMotmVoteCard extends ConsumerWidget {
         final (icon, title, subtitle) = switch (vote.state) {
           SportMotmVoteState.open when vote.hasVoted => (
               Icons.lock_outline,
-              'Vote HDM enregistré',
+              'Vote Homme du match enregistré',
               'Résultats révélés après la clôture.',
             ),
           SportMotmVoteState.open => (
@@ -301,12 +301,12 @@ class MatchMotmVoteCard extends ConsumerWidget {
             ),
           SportMotmVoteState.cancelled => (
               Icons.cancel_outlined,
-              'Vote HDM annulé',
+              'Vote Homme du match annulé',
               'Aucun résultat collectif.',
             ),
           _ => (
               Icons.schedule_outlined,
-              'Vote HDM en préparation',
+              'Vote Homme du match en préparation',
               'Le scrutin sera disponible prochainement.',
             ),
         };

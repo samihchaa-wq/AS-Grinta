@@ -269,7 +269,7 @@ class _OpeningSlide extends StatelessWidget {
       bottom: WrappedReveal(
         delay: const Duration(milliseconds: 1100),
         child: Text(
-          'L’année est finie. Voici ton résumé…',
+          'La saison est finie. Voici ton résumé…',
           style: WrappedType.title(skin.text, size: 22),
         ),
       ),

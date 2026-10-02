@@ -64,7 +64,7 @@ class _CalendarToolbar extends StatelessWidget {
         // Défilé/Par mois et à 1/3 pour ces deux actions.
         final exportIconButton = IconButton.outlined(
           onPressed: onExport,
-          tooltip: 'Ajouter au calendrier ics',
+          tooltip: 'S’abonner au calendrier',
           icon: const Icon(Icons.calendar_month_outlined),
         );
         final createIconButton = IconButton.outlined(

@@ -54,7 +54,7 @@ class PreferencesRepository {
 
   Future<AppPreferences> fetch() async {
     if (_client.auth.currentUser == null) {
-      throw StateError('Utilisateur non authentifié.');
+      throw StateError('Ta session a expiré. Reconnecte-toi.');
     }
 
     final response = await _client.rpc('get_my_profile');

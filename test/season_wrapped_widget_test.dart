@@ -235,7 +235,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('TA SAISON'), findsOneWidget);
-    expect(find.text('L’année est finie. Voici ton résumé…'), findsOneWidget);
+    expect(find.text('La saison est finie. Voici ton résumé…'), findsOneWidget);
     // Le millésime est posé sur deux lignes, en très grand.
     expect(find.text('2026\n2027'), findsOneWidget);
     expect(find.text('SAMIH'), findsOneWidget);

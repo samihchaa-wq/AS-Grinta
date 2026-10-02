@@ -133,11 +133,11 @@ select ok(
 
 select ok(
   position(
-    'Compositions faites' in pg_get_functiondef(
+    'Les compositions sont en ligne' in pg_get_functiondef(
       'private.dispatch_composition_published_push(uuid,uuid[])'::regprocedure
     )
   ) > 0,
-  'le push entre nous utilise le libellé Compositions faites'
+  'le push entre nous utilise le libellé Les compositions sont en ligne'
 );
 
 select ok(

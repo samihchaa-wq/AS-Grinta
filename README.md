@@ -45,7 +45,7 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 - Un Live mal rempli garde sa chronologie après validation : un administrateur
   peut supprimer les « Faits du match » depuis la fiche du match, sans toucher au
   score, aux statistiques, à la composition ni au vote Homme du match.
-- Le vote Homme du match ouvre après cette validation et reste ouvert **24 h**.
+- Le vote Homme du match ouvre après cette validation et ferme **24 h après le coup d’envoi**.
 
 ## Pronostics
 

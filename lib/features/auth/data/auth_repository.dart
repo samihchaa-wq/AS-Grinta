@@ -242,7 +242,9 @@ class AuthRepository {
     String? surnom,
   }) async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (userId == null) {
+      throw StateError('Ta session a expiré. Reconnecte-toi.');
+    }
 
     final updated = await _client
         .from('profiles')
@@ -274,7 +276,9 @@ class AuthRepository {
     required String fileExt,
   }) async {
     final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (userId == null) {
+      throw StateError('Ta session a expiré. Reconnecte-toi.');
+    }
 
     final image = validateImageUpload(bytes, fileExt: fileExt);
     final path =

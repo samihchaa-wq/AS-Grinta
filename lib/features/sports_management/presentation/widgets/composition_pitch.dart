@@ -540,7 +540,7 @@ class VacantSlotMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: "Poste sans joueur connu dans l'archive",
+      label: 'Poste sans joueur connu dans l’archive',
       child: ExcludeSemantics(
         child: SizedBox(
           width: 60,

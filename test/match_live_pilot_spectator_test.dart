@@ -61,7 +61,7 @@ void main() {
       await _settle(tester);
 
       expect(
-        find.text('Quelqu’un d’autre pilote déjà le live'),
+        find.text('Quelqu’un d’autre pilote déjà le Live'),
         findsOneWidget,
       );
       expect(container.read(livePilotProvider('match-1')), LivePilot.other);

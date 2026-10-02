@@ -99,7 +99,7 @@ class MorePage extends ConsumerWidget {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              'AS La Grinta • version ${AppConfig.version}',
+              'AS Grinta • version ${AppConfig.version}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
