@@ -108,8 +108,8 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
 }
 
 /// Une ligne à la manière des sites de résultats : la minute au bord, la
-/// pastille du score juste à côté, puis le buteur en gras et son passeur
-/// entre parenthèses. Les buts de l'équipe qui reçoit partent de la gauche,
+/// pastille du score juste à côté, puis le buteur et son passeur entre
+/// parenthèses, en gris. Les buts de l'équipe qui reçoit partent de la gauche,
 /// ceux de l'équipe qui se déplace de la droite, en miroir.
 class _FactLine extends StatelessWidget {
   const _FactLine({required this.row});
@@ -146,9 +146,7 @@ class _FactLine extends StatelessWidget {
           ],
           Text(
             row.scoreLabel,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: theme.textTheme.bodyMedium,
           ),
           if (isAway) ...[
             const SizedBox(width: 6),
@@ -160,7 +158,7 @@ class _FactLine extends StatelessWidget {
 
     final scorer = TextSpan(
       text: row.scorerLabel,
-      style: const TextStyle(fontWeight: FontWeight.w700),
+      style: TextStyle(color: theme.colorScheme.onSurface),
     );
     final assist = row.assistLabel == null
         ? null
