@@ -454,10 +454,19 @@ class CompositionDropZone extends StatelessWidget {
 }
 
 class CompositionPlayerTile extends StatelessWidget {
-  const CompositionPlayerTile({super.key, required this.entry, this.onTap});
+  const CompositionPlayerTile({
+    super.key,
+    required this.entry,
+    this.onTap,
+    this.cornerBadge,
+  });
 
   final MatchCompositionEntry entry;
   final VoidCallback? onTap;
+
+  /// Repère posé sur le coin haut-droit de la photo, au même endroit que sur
+  /// le terrain (nombre de débuts de match sur le banc, par exemple).
+  final Widget? cornerBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -506,6 +515,10 @@ class CompositionPlayerTile extends StatelessWidget {
                     top: 53,
                     child: AssistBadge(assists: entry.assists),
                   ),
+                // La photo (52) est centrée en bas d'une case de 60 × 64 :
+                // son coin haut-droit est à 4 du bord droit et 12 du haut.
+                if (cornerBadge != null)
+                  Positioned(right: 2, top: 10, child: cornerBadge!),
               ],
             ),
           ),

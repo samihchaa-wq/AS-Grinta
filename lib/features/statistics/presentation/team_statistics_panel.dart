@@ -825,15 +825,21 @@ class _MarginGroupLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      maxLines: 1,
-      textAlign: TextAlign.center,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w400,
-            letterSpacing: .5,
-          ),
+    // La colonne « NUL » ne fait qu'une barre de large : le libellé déborde
+    // sur ses voisines plutôt que d'être coupé en « NU ».
+    return OverflowBox(
+      maxWidth: double.infinity,
+      child: Text(
+        label,
+        maxLines: 1,
+        softWrap: false,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w400,
+              letterSpacing: .5,
+            ),
+      ),
     );
   }
 }

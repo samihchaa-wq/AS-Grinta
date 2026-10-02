@@ -124,22 +124,18 @@ class _BenchBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final tile = SizedBox(
       width: 70,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CompositionPlayerTile(
-            entry: entry,
-            onTap: draggable
-                ? () => FormationPitchTapSelection.placePlayer(entry)
-                : null,
-          ),
-          if (finishedBenchCount > 0)
-            Positioned(
-              top: 0,
-              right: -2,
-              child: SubstituteHistoryBadge(count: finishedBenchCount),
-            ),
-        ],
+      child: Align(
+        alignment: Alignment.topLeft,
+        heightFactor: 1,
+        child: CompositionPlayerTile(
+          entry: entry,
+          onTap: draggable
+              ? () => FormationPitchTapSelection.placePlayer(entry)
+              : null,
+          cornerBadge: finishedBenchCount > 0
+              ? SubstituteHistoryBadge(count: finishedBenchCount)
+              : null,
+        ),
       ),
     );
     final selectableTile = FormationPitchTapSelectionHighlight(
