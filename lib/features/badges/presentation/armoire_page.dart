@@ -121,12 +121,21 @@ class ArmoirePage extends ConsumerWidget {
                     icon: Icons.trending_up_rounded,
                   ),
                   const SizedBox(height: 14),
-                  EqualHeightColumn(
-                    spacing: 10,
-                    children: [
-                      for (final b in armoire.inProgress)
-                        _InProgressTile(badge: b),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final emblemSize = _inProgressEmblemSize(
+                        context,
+                        armoire.inProgress,
+                        constraints.maxWidth,
+                      );
+                      return EqualHeightColumn(
+                        spacing: 10,
+                        children: [
+                          for (final b in armoire.inProgress)
+                            _InProgressTile(badge: b, emblemSize: emblemSize),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 30),
                 ],
@@ -224,8 +233,8 @@ class _BadgeGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 12,
-      runSpacing: 16,
+      spacing: _gridSpacing,
+      runSpacing: 14,
       children: [
         for (final b in badges)
           _BadgeTile(
@@ -239,6 +248,10 @@ class _BadgeGrid extends StatelessWidget {
     );
   }
 }
+
+/// Cinq badges par ligne dans les grilles de l'armoire.
+const _gridColumns = 5;
+const _gridSpacing = 8.0;
 
 String? badgeValueLabel(ArmoireBadge badge) =>
     baremeLabelFor(badge.def.metric, badge.displayValue);
@@ -260,9 +273,10 @@ class _BadgeTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const columns = 3;
-    final tile =
-        (MediaQuery.of(context).size.width - 32 - (columns - 1) * 12) / columns;
+    final tile = (MediaQuery.of(context).size.width -
+            32 -
+            (_gridColumns - 1) * _gridSpacing) /
+        _gridColumns;
     final emblem = tile < 87 ? tile : 87.0;
 
     if (locked) {
@@ -409,10 +423,96 @@ class _BadgeTile extends ConsumerWidget {
   }
 }
 
+// Mise en page d'une carte « En progression » : marges intérieures, espace
+// entre l'emblème et le texte, puis place du chevron à droite.
+const _tilePadding = 14.0;
+const _tileBorder = 1.0;
+const _emblemGap = 14.0;
+const _chevronSpace = 8.0 + 24.0;
+const _nameGap = 3.0;
+const _progressGap = 10.0;
+
+TextStyle? _tileNameStyle(BuildContext context) =>
+    Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w400,
+        );
+
+TextStyle? _tileDescriptionStyle(BuildContext context) =>
+    Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppTheme.textFaint,
+        );
+
+TextStyle? _tileCountStyle(BuildContext context) =>
+    Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppTheme.textSecondary,
+          fontWeight: FontWeight.w400,
+        );
+
+double _textHeight(
+  BuildContext context,
+  String text,
+  TextStyle? style,
+  double maxWidth,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout(maxWidth: maxWidth);
+  final height = painter.height;
+  painter.dispose();
+  return height;
+}
+
+/// Taille commune des emblèmes « En progression » : la plus petite qui
+/// atteint la hauteur du plus grand bloc nom + description + jauge de la
+/// liste. Les cartes n'ont ainsi pas de vide créé par l'emblème.
+///
+/// La largeur laissée au texte dépend de celle de l'emblème, et inversement :
+/// quelques passes suffisent à stabiliser le résultat.
+double _inProgressEmblemSize(
+  BuildContext context,
+  List<ArmoireBadge> badges,
+  double availableWidth,
+) {
+  final anyStar = badges.any((b) => b.def.hasStar);
+  final ratio = badgeEmblemHeightRatio(hasStar: anyStar);
+  final nameStyle = _tileNameStyle(context);
+  final descriptionStyle = _tileDescriptionStyle(context);
+  final countStyle = _tileCountStyle(context);
+  var emblem = 60.0;
+  for (var pass = 0; pass < 4; pass++) {
+    final textWidth = availableWidth -
+        2 * (_tilePadding + _tileBorder) -
+        emblem -
+        _emblemGap -
+        _chevronSpace;
+    if (textWidth <= 0) return emblem;
+    var tallest = 0.0;
+    for (final b in badges) {
+      var height = _textHeight(context, b.def.name, nameStyle, textWidth);
+      if (b.def.description.isNotEmpty) {
+        height += _nameGap +
+            _textHeight(
+                context, b.def.description, descriptionStyle, textWidth);
+      }
+      if (b.target != null) {
+        height += _progressGap +
+            _textHeight(
+                context, '${b.current}/${b.target}', countStyle, textWidth);
+      }
+      tallest = height > tallest ? height : tallest;
+    }
+    emblem = tallest / ratio;
+  }
+  return emblem;
+}
+
 class _InProgressTile extends StatelessWidget {
-  const _InProgressTile({required this.badge});
+  const _InProgressTile({required this.badge, required this.emblemSize});
 
   final ArmoireBadge badge;
+  final double emblemSize;
 
   @override
   Widget build(BuildContext context) {
@@ -420,7 +520,7 @@ class _InProgressTile extends StatelessWidget {
     return GestureDetector(
       onTap: () => showBadgeDetailSheet(context, badge.def),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(_tilePadding),
         decoration: BoxDecoration(
           color: AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
@@ -441,30 +541,23 @@ class _InProgressTile extends StatelessWidget {
               ),
               showStar: badge.def.hasStar,
               starCount: badge.stars,
-              size: 81,
+              size: emblemSize,
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: _emblemGap),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    badge.def.name,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w400,
-                        ),
-                  ),
+                  Text(badge.def.name, style: _tileNameStyle(context)),
                   if (badge.def.description.isNotEmpty) ...[
-                    const SizedBox(height: 3),
+                    const SizedBox(height: _nameGap),
                     Text(
                       badge.def.description,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textFaint,
-                          ),
+                      style: _tileDescriptionStyle(context),
                     ),
                   ],
                   if (showProgress) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: _progressGap),
                     Row(
                       children: [
                         Expanded(
@@ -483,11 +576,7 @@ class _InProgressTile extends StatelessWidget {
                         const SizedBox(width: 10),
                         Text(
                           '${badge.current}/${badge.target}',
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                          style: _tileCountStyle(context),
                         ),
                       ],
                     ),

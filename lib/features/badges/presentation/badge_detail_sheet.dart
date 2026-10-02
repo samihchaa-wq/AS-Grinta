@@ -79,6 +79,11 @@ class BadgeDetailSheet extends ConsumerWidget {
           ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
     final ladder = tiers.isEmpty ? <BadgeDef>[currentBadge] : tiers;
     final canEdit = onAward != null;
+    final showFamily = showLadder && ladder.length > 1;
+    // Ouverte depuis une famille de badges, la feuille montre directement ses
+    // paliers : le palier en cours y est déjà mis en avant. L'administration
+    // garde l'en-tête, qui porte les actions d'édition.
+    final showHero = !showFamily || canEdit;
 
     return SafeArea(
       child: Padding(
@@ -92,85 +97,86 @@ class BadgeDetailSheet extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.surfaceHero.withValues(alpha: .94),
-                      AppTheme.surfaceHigh.withValues(alpha: .84),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                  border: Border.all(
-                    color: AppTheme.reward.withValues(alpha: .22),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        BadgeEmblem(
-                          emoji: currentBadge.emoji,
-                          imageUrl: currentBadge.imageUrl,
-                          color: currentBadge.color,
-                          baremeLabel: baremeLabelFor(
-                            currentBadge.metric,
-                            currentBadge.threshold,
-                          ),
-                          descriptor: badgeDescriptorFor(
-                            code: currentBadge.code,
-                            metric: currentBadge.metric,
-                            category: currentBadge.category,
-                            name: currentBadge.name,
-                          ),
-                          showStar: currentBadge.hasStar,
-                          size: 123,
-                        ),
-                        if (canEdit)
-                          Positioned(
-                            right: -8,
-                            bottom: -6,
-                            child: BadgeImageEditorButton(
-                              badge: currentBadge,
-                              compact: true,
-                            ),
-                          ),
+              if (showHero)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.surfaceHero.withValues(alpha: .94),
+                        AppTheme.surfaceHigh.withValues(alpha: .84),
                       ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                    border: Border.all(
+                      color: AppTheme.reward.withValues(alpha: .22),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          Text(
-                            currentBadge.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w400),
-                          ),
-                          if (currentBadge.description.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              currentBadge.description,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(color: AppTheme.textSecondary),
+                          BadgeEmblem(
+                            emoji: currentBadge.emoji,
+                            imageUrl: currentBadge.imageUrl,
+                            color: currentBadge.color,
+                            baremeLabel: baremeLabelFor(
+                              currentBadge.metric,
+                              currentBadge.threshold,
                             ),
-                          ],
+                            descriptor: badgeDescriptorFor(
+                              code: currentBadge.code,
+                              metric: currentBadge.metric,
+                              category: currentBadge.category,
+                              name: currentBadge.name,
+                            ),
+                            showStar: currentBadge.hasStar,
+                            size: 123,
+                          ),
+                          if (canEdit)
+                            Positioned(
+                              right: -8,
+                              bottom: -6,
+                              child: BadgeImageEditorButton(
+                                badge: currentBadge,
+                                compact: true,
+                              ),
+                            ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentBadge.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.w400),
+                            ),
+                            if (currentBadge.description.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                currentBadge.description,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               if (canEdit) ...[
                 const SizedBox(height: 12),
                 Row(
@@ -185,21 +191,8 @@ class BadgeDetailSheet extends ConsumerWidget {
                   ],
                 ),
               ],
-              if (showLadder && ladder.length > 1) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'BARÈME',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: AppTheme.textSecondary,
-                        letterSpacing: .8,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Chaque palier et ce qu’il récompense.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
+              if (showFamily) ...[
+                if (showHero) const SizedBox(height: 16),
                 EqualHeightColumn(
                   spacing: 8,
                   children: [
