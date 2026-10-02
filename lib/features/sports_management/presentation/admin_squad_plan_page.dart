@@ -26,6 +26,7 @@ import 'package:as_grinta/features/sports_management/domain/composition_publicat
 import 'package:as_grinta/features/sports_management/domain/composition_simulation.dart';
 import 'package:as_grinta/features/sports_management/domain/effectif_validation_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
+import 'package:as_grinta/features/sports_management/domain/formation_assignment.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';

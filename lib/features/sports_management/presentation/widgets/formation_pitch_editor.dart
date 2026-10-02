@@ -382,30 +382,55 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
     widget.onDroppedOnSlot(entry, selected);
   }
 
-  MatchCompositionEntry? _entryFor(
-    FootballFormationSlot slot,
-    bool legacyFlat442,
-  ) {
-    MatchCompositionEntry? closest;
-    var distance = double.infinity;
-    for (final entry in widget.entries) {
-      final current = _displayPosition(entry, legacyFlat442: legacyFlat442);
-      final candidate = (current - slot.position).distance;
-      if (candidate < distance) {
-        distance = candidate;
-        closest = entry;
+  /// Le joueur affiché sur chaque poste, indexé par position dans
+  /// `widget.slots`.
+  ///
+  /// L'association est exclusive : un joueur n'apparaît que sur un seul
+  /// poste. Les paires les plus proches sont servies en premier, si bien
+  /// qu'un poste vide ne « récupère » jamais le joueur du poste voisin.
+  Map<int, MatchCompositionEntry> _entriesBySlot(bool legacyFlat442) {
+    final pairs = <({int slot, int entry, double distance})>[];
+    for (var slot = 0; slot < widget.slots.length; slot += 1) {
+      for (var entry = 0; entry < widget.entries.length; entry += 1) {
+        final current = _displayPosition(
+          widget.entries[entry],
+          legacyFlat442: legacyFlat442,
+        );
+        final distance = (current - widget.slots[slot].position).distance;
+        if (distance < .12) {
+          pairs.add((slot: slot, entry: entry, distance: distance));
+        }
       }
     }
-    if (distance < .12) return closest;
+    pairs.sort((a, b) => a.distance.compareTo(b.distance));
+
+    final result = <int, MatchCompositionEntry>{};
+    final placed = <int>{};
+    for (final pair in pairs) {
+      if (result.containsKey(pair.slot) || placed.contains(pair.entry)) {
+        continue;
+      }
+      result[pair.slot] = widget.entries[pair.entry];
+      placed.add(pair.entry);
+    }
 
     // Compatibilité : les nouveaux gabarits peuvent déplacer un poste alors
     // qu'une composition enregistrée conserve encore ses anciennes
     // coordonnées. Dans ce cas seulement, slot_label permet de retrouver le
     // joueur au lieu de le faire disparaître du terrain.
-    for (final entry in widget.entries) {
-      if (entry.slotLabel == slot.label) return entry;
+    for (var slot = 0; slot < widget.slots.length; slot += 1) {
+      if (result.containsKey(slot)) continue;
+      for (var entry = 0; entry < widget.entries.length; entry += 1) {
+        if (placed.contains(entry)) continue;
+        if (widget.entries[entry].slotLabel != widget.slots[slot].label) {
+          continue;
+        }
+        result[slot] = widget.entries[entry];
+        placed.add(entry);
+        break;
+      }
     }
-    return null;
+    return result;
   }
 
   @override
@@ -417,6 +442,7 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final legacyFlat442 = _usesLegacyFlat442Layout(widget.entries);
+            final entriesBySlot = _entriesBySlot(legacyFlat442);
             return DecoratedBox(
               decoration: BoxDecoration(
                 color: const Color(0xFF124529),
@@ -437,12 +463,12 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                     const Positioned.fill(
                       child: CustomPaint(painter: FootballPitchPainter()),
                     ),
-                    for (final slot in widget.slots)
+                    for (var index = 0; index < widget.slots.length; index++)
                       _slot(
                         context,
                         constraints.biggest,
-                        slot,
-                        _entryFor(slot, legacyFlat442),
+                        widget.slots[index],
+                        entriesBySlot[index],
                         widget.finishedBenchCounts,
                         legacyFlat442,
                       ),

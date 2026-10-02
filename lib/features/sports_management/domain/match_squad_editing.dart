@@ -1,6 +1,7 @@
 import 'dart:ui' show Offset;
 
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
+import 'package:as_grinta/features/sports_management/domain/formation_assignment.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 
 /// Règles de manipulation d'un effectif sur le terrain et le banc.
@@ -147,6 +148,10 @@ List<MatchCompositionEntry> removedEntries(MatchComposition lineup) => [
 /// Replace les titulaires selon [formationCode] sans franchir la frontière
 /// terrain/banc : changer de dispositif n'est jamais un remplacement.
 ///
+/// Chaque titulaire rejoint le poste du nouveau dispositif le plus proche de
+/// sa place actuelle (voir [assignFieldPlayersToSlots]) : un défenseur reste
+/// en défense, un attaquant reste devant.
+///
 /// Quand le terrain contient plus de joueurs que le dispositif n'a de postes,
 /// le changement est refusé plutôt que d'éjecter quelqu'un en silence.
 MatchComposition repositionForFormation(
@@ -156,22 +161,15 @@ MatchComposition repositionForFormation(
   final formation = formationForCode(formationCode);
   final slots = formation.slots;
   final field = lineup.entriesFor(MatchCompositionZone.field);
-  final ordered = [
-    ...field.where((entry) => entry.isGoalkeeper),
-    ...field.where((entry) => !entry.isGoalkeeper),
-  ];
 
-  if (ordered.length > slots.length) {
+  if (field.length > slots.length) {
     throw StateError(
       'Le dispositif ${formation.code} ne peut pas contenir '
-      '${ordered.length} joueurs sur le terrain.',
+      '${field.length} joueurs sur le terrain.',
     );
   }
 
-  final positionByParticipant = <String, FootballFormationSlot>{
-    for (var index = 0; index < ordered.length; index += 1)
-      ordered[index].participantId: slots[index],
-  };
+  final positionByParticipant = assignFieldPlayersToSlots(field, slots);
 
   return lineup.copyWith(
     formationCode: formation.code,
