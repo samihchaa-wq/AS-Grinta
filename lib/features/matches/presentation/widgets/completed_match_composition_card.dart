@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/features/sports_management/domain/formation_display.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
@@ -65,9 +66,14 @@ Offset _legacyFlat442Position(MatchCompositionEntry entry) {
   return raw;
 }
 
+/// Les titulaires tels qu'on les dessine : sur les emplacements actuels du
+/// dispositif quand c'est possible, sinon à leurs coordonnées enregistrées.
 List<MatchCompositionEntry> _displayFieldEntries(
+  String? formationCode,
   List<MatchCompositionEntry> entries,
 ) {
+  final aligned = alignFieldToFormation(formationCode, entries);
+  if (!identical(aligned, entries)) return aligned;
   if (!_usesLegacyFlat442Layout(entries)) return entries;
   return [
     for (final entry in entries)
@@ -141,6 +147,7 @@ class _MpgCompletedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bench = composition.entriesFor(MatchCompositionZone.bench);
     final field = _displayFieldEntries(
+      composition.formationCode,
       composition.entriesFor(MatchCompositionZone.field),
     );
     final hasVacantSlots = field.any((entry) => entry.isVacant);

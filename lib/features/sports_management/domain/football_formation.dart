@@ -567,6 +567,10 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
 /// uniquement à retrouver le dispositif équivalent dans le catalogue actuel.
 const Map<String, String> _legacyFormationAliases = <String, String>{
   '4-4-2': '4-4-2 à plat',
+  // Noms des archives importées. Leurs 4-3-3 ont la pointe basse du
+  // milieu et trois attaquants sur une ligne : c'est le 4-3-3 défensif.
+  '4-3-3': '4-3-3 défensif',
+  '4-3-2-1': '4-3-2-1 sapin',
 };
 
 /// Retourne le dispositif correspondant à [code] sans fallback silencieux.
