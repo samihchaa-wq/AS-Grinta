@@ -9,13 +9,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class _FactRow {
   const _FactRow({
     required this.minuteLabel,
-    required this.text,
+    required this.scorerLabel,
+    required this.assistLabel,
     required this.scoreLabel,
     required this.isAwayGoal,
   });
 
   final String minuteLabel;
-  final String text;
+
+  /// Buteur, ou à défaut la nature du but (« But adverse », « CSC adverse »).
+  final String scorerLabel;
+
+  /// Passeur décisif, s'il est connu.
+  final String? assistLabel;
 
   /// Score cumulé après ce but, dans l'ordre domicile – extérieur.
   final String scoreLabel;
@@ -77,28 +83,35 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
         _FactRow(
           minuteLabel: goal.minute == null ? '—' : "${goal.minute}'",
           scoreLabel: grintaIsHome
-              ? '$scoreAsGrinta-$scoreAdverse'
-              : '$scoreAdverse-$scoreAsGrinta',
+              ? '$scoreAsGrinta - $scoreAdverse'
+              : '$scoreAdverse - $scoreAsGrinta',
           isAwayGoal: goal.isAsGrinta != grintaIsHome,
-          text: _goalText(goal),
+          scorerLabel: _scorerLabel(goal),
+          assistLabel:
+              goal.isAsGrinta &&
+                  !goal.isOwnGoal &&
+                  goal.assistKind == MatchGoalAssistKind.player
+              ? goal.assistName
+              : null,
         ),
       );
     }
     return rows;
   }
 
-  String _goalText(MatchGoalAction goal) {
+  String _scorerLabel(MatchGoalAction goal) {
     if (!goal.isAsGrinta) {
       return goal.isOwnGoal ? 'CSC AS Grinta' : 'But adverse';
     }
     if (goal.isOwnGoal) return 'CSC adverse';
-    final scorer = goal.scorerName ?? 'But AS Grinta';
-    return goal.assistKind == MatchGoalAssistKind.player
-        ? '$scorer (passe ${goal.assistName})'
-        : scorer;
+    return goal.scorerName ?? 'But AS Grinta';
   }
 }
 
+/// Une ligne à la manière des sites de résultats : la minute au bord, la
+/// pastille du score juste à côté, puis le buteur en gras et son passeur
+/// entre parenthèses. Les buts de l'équipe qui reçoit partent de la gauche,
+/// ceux de l'équipe qui se déplace de la droite, en miroir.
 class _FactLine extends StatelessWidget {
   const _FactLine({required this.row});
 
@@ -106,75 +119,83 @@ class _FactLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isOpponentGoal = row.isAwayGoal;
-    final goalIndent =
-        (MediaQuery.sizeOf(context).width * .12).clamp(36.0, 64.0).toDouble();
     final theme = Theme.of(context);
+    final isAway = row.isAwayGoal;
+    final muted = theme.colorScheme.onSurfaceVariant;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: isOpponentGoal
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: isOpponentGoal ? 0 : goalIndent,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.sports_soccer_rounded, size: 20),
-                        const SizedBox(width: 8),
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: constraints.maxWidth * .58,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: isOpponentGoal
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                row.text,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: isOpponentGoal
-                                    ? TextAlign.right
-                                    : TextAlign.left,
-                              ),
-                              Text(
-                                row.scoreLabel,
-                                textAlign: isOpponentGoal
-                                    ? TextAlign.right
-                                    : TextAlign.left,
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                row.minuteLabel,
-                style: const TextStyle(fontWeight: FontWeight.w400),
-              ),
-            ],
+    final minute = SizedBox(
+      width: 34,
+      child: Text(
+        row.minuteLabel,
+        textAlign: isAway ? TextAlign.right : TextAlign.left,
+        style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+      ),
+    );
+
+    final scorePill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isAway) ...[
+            const Icon(Icons.sports_soccer_rounded, size: 16),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            row.scoreLabel,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        );
-      },
+          if (isAway) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.sports_soccer_rounded, size: 16),
+          ],
+        ],
+      ),
+    );
+
+    final scorer = TextSpan(
+      text: row.scorerLabel,
+      style: const TextStyle(fontWeight: FontWeight.w700),
+    );
+    final assist = row.assistLabel == null
+        ? null
+        : TextSpan(
+            text: '(${row.assistLabel})',
+            style: TextStyle(color: muted),
+          );
+    final label = Expanded(
+      child: Text.rich(
+        TextSpan(
+          style: theme.textTheme.bodyMedium,
+          children: isAway
+              ? [
+                  if (assist != null) ...[assist, const TextSpan(text: ' ')],
+                  scorer,
+                ]
+              : [
+                  scorer,
+                  if (assist != null) ...[const TextSpan(text: ' '), assist],
+                ],
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        textAlign: isAway ? TextAlign.right : TextAlign.left,
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      child: Row(
+        children: isAway
+            ? [label, const SizedBox(width: 10), scorePill, minute]
+            : [minute, scorePill, const SizedBox(width: 10), label],
+      ),
     );
   }
 }

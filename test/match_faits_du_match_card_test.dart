@@ -20,10 +20,12 @@ void main() {
     return tester.pumpWidget(
       ProviderScope(
         overrides: [
-          matchLiveRepositoryProvider
-              .overrideWithValue(_TimelineOnlyRepository(timeline)),
-          matchSportReportRepositoryProvider
-              .overrideWithValue(_GoalActionsOnlyRepository(goals)),
+          matchLiveRepositoryProvider.overrideWithValue(
+            _TimelineOnlyRepository(timeline),
+          ),
+          matchSportReportRepositoryProvider.overrideWithValue(
+            _GoalActionsOnlyRepository(goals),
+          ),
         ],
         child: const MaterialApp(
           home: Scaffold(body: MatchFaitsDuMatchCard(matchId: 'match-1')),
@@ -37,10 +39,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  MatchGoalAction goal(
-    Map<String, Object?> json, [
-    int index = 0,
-  ]) =>
+  MatchGoalAction goal(Map<String, Object?> json, [int index = 0]) =>
       MatchGoalAction.fromJson(json, index);
 
   testWidgets('les buts affichés sont ceux du compte rendu validé', (
@@ -79,11 +78,11 @@ void main() {
 
     // Le bloc est fermé à l'ouverture de la fiche.
     expect(find.text('Faits du match'), findsOneWidget);
-    expect(find.text('Sofiane (passe Yanis)'), findsNothing);
+    expect(find.text('Sofiane (Yanis)', findRichText: true), findsNothing);
 
     await openCard(tester);
-    expect(find.text('Sofiane (passe Yanis)'), findsOneWidget);
-    expect(find.text('Karim'), findsNothing);
+    expect(find.text('Sofiane (Yanis)', findRichText: true), findsOneWidget);
+    expect(find.text('Karim', findRichText: true), findsNothing);
   });
 
   testWidgets('un match saisi sans direct a aussi sa chronologie', (
@@ -114,15 +113,26 @@ void main() {
     await openCard(tester);
 
     expect(find.text('Faits du match'), findsOneWidget);
-    expect(find.text('Samih'), findsOneWidget);
-    expect(find.text('But adverse'), findsOneWidget);
-    expect(find.text('1-0'), findsOneWidget);
-    expect(find.text('1-1'), findsOneWidget);
+    expect(find.text('Samih', findRichText: true), findsOneWidget);
+    expect(find.text('But adverse', findRichText: true), findsOneWidget);
+    expect(find.text('1 - 0'), findsOneWidget);
+    expect(find.text('1 - 1'), findsOneWidget);
 
-    // Le but adverse est visuellement poussé plus à droite que le but Grinta.
+    // Comme sur les sites de résultats : le but de l'équipe qui reçoit part
+    // de la gauche avec sa minute au bord gauche, le but adverse de la droite.
     expect(
-      tester.getCenter(find.text('But adverse')).dx,
-      greaterThan(tester.getCenter(find.text('Samih')).dx),
+      tester.getCenter(find.text('1 - 1')).dx,
+      greaterThan(tester.getCenter(find.text('1 - 0')).dx),
+    );
+    expect(
+      tester.getCenter(find.text("12'")).dx,
+      lessThan(tester.getCenter(find.text('Samih', findRichText: true)).dx),
+    );
+    expect(
+      tester.getCenter(find.text("25'")).dx,
+      greaterThan(
+        tester.getCenter(find.text('But adverse', findRichText: true)).dx,
+      ),
     );
   });
 
@@ -180,9 +190,9 @@ void main() {
     await tester.pumpAndSettle();
     await openCard(tester);
 
-    expect(find.text('Samih'), findsOneWidget);
-    expect(find.text('Nabil'), findsNothing);
-    expect(find.text('Karim'), findsNothing);
+    expect(find.text('Samih', findRichText: true), findsOneWidget);
+    expect(find.text('Nabil', findRichText: true), findsNothing);
+    expect(find.text('Karim', findRichText: true), findsNothing);
     expect(find.text('2.1'), findsNothing);
   });
 
@@ -254,8 +264,7 @@ class _GoalActionsOnlyRepository implements MatchSportReportRepository {
     required MatchComposition lineup,
     required List<MatchGoalAction> goalActions,
     String? reason,
-  }) =>
-      Future<MatchSportReport>.error(UnimplementedError('submit'));
+  }) => Future<MatchSportReport>.error(UnimplementedError('submit'));
 
   @override
   Future<MatchSportReport> attachPlayer({
@@ -266,6 +275,5 @@ class _GoalActionsOnlyRepository implements MatchSportReportRepository {
     String? lastName,
     bool isGoalkeeper = false,
     String? reason,
-  }) =>
-      Future<MatchSportReport>.error(UnimplementedError('attachPlayer'));
+  }) => Future<MatchSportReport>.error(UnimplementedError('attachPlayer'));
 }

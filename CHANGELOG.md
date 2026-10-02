@@ -6,6 +6,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche du match : « Faits du match » adopte la présentation des sites de
+  résultats (minute au bord, pastille ⚽ avec le score, buteur en gras et
+  passeur entre parenthèses, buts adverses en miroir à droite) ;
 - statistiques d'équipe : le graphique « Écart de score » regroupe les écarts
   par tranches de 3 buts (1-3, 4-6, 7-9, 10 et plus) au lieu de 1 en 1, pour
   que les larges victoires ne s'entassent plus dans une seule colonne ;
