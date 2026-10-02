@@ -28,14 +28,14 @@ void main() {
 
       await tester.tap(find.text('Effectif'));
       await _settle(tester);
-      expect(find.textContaining('Convoqués'), findsOneWidget);
+      expect(find.textContaining('Convoqués ('), findsOneWidget);
 
       // Même page, même section demandée : seules les pronostics viennent de
       // fermer.
       await _pump(tester, showPredictionStep: false);
       expect(find.text('Prono'), findsNothing);
       expect(
-        find.textContaining('Convoqués'),
+        find.textContaining('Convoqués ('),
         findsOneWidget,
         reason: 'l’onglet choisi à la main doit survivre à la fermeture des '
             'pronostics',

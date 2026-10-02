@@ -46,6 +46,14 @@ class _FakeBadgeAdminRepository implements BadgeAdminRepository {
   @override
   Future<String> uploadBadgeImage(Uint8List bytes, String fileExt) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> updateBadgeText({
+    required String badgeCode,
+    required String name,
+    required String description,
+  }) =>
+      throw UnimplementedError();
 }
 
 const _clutch = BadgeDef(

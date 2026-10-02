@@ -68,8 +68,11 @@ void main() {
       discover.skip(1).every((b) => b.state == BadgeState.locked),
       isTrue,
     );
-    // Le mystère gagné n'est pas répété dans « Débloqués ».
-    expect(armoire.unlocked.map((b) => b.def.code), ['role_goalkeeper']);
+    // Le mystère gagné apparaît aussi dans « Débloqués ».
+    expect(
+      armoire.unlocked.map((b) => b.def.code),
+      containsAll(['custom_doubl_hdm', 'role_goalkeeper']),
+    );
   });
 
   test('le tri ignore majuscules et accents', () {

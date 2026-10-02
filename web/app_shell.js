@@ -285,8 +285,15 @@
   // "change" du vrai input HTML : sur Safari/iOS en PWA, le chemin générique
   // d'image_picker peut interpréter le retour du sélecteur comme une annulation
   // avant que le fichier choisi ne soit remonté à Flutter.
+  //
+  // Fermer le sélecteur sans choisir d'image ne déclenche pas "change". On
+  // écoute donc aussi "cancel" (navigateurs récents) et, comme filet, une
+  // nouvelle ouverture termine la précédente : sans cela la promesse restait
+  // en attente pour toujours et l'écran de recadrage se figeait.
+  var pendingBadgeImagePick = null;
   window.asGrintaBadgeImage = {
     pick: function () {
+      if (pendingBadgeImagePick) pendingBadgeImagePick('');
       return new Promise(function (resolve) {
         var input = document.createElement('input');
         input.type = 'file';
@@ -301,9 +308,13 @@
         function finish(value) {
           if (finished) return;
           finished = true;
+          if (pendingBadgeImagePick === finish) pendingBadgeImagePick = null;
           input.remove();
           resolve(value || '');
         }
+        pendingBadgeImagePick = finish;
+
+        input.addEventListener('cancel', function () { finish(''); }, { once: true });
 
         input.addEventListener('change', function () {
           var file = input.files && input.files.length ? input.files[0] : null;

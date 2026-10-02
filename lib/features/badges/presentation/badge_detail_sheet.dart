@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/equal_height_column.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_editor.dart';
+import 'package:as_grinta/features/badges/presentation/badge_text_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -172,19 +173,16 @@ class BadgeDetailSheet extends ConsumerWidget {
               ),
               if (canEdit) ...[
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: BadgeImageEditorButton(badge: currentBadge),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Choisis un PNG transparent, puis déplace et zoome exactement '
-                  'comme pour une photo de profil. Le fond, le titre et le '
-                  'descriptif du badge ne changent pas.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BadgeImageEditorButton(badge: currentBadge),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: BadgeTextEditorButton(badge: currentBadge),
+                    ),
+                  ],
                 ),
               ],
               if (showLadder && ladder.length > 1) ...[

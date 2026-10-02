@@ -607,7 +607,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                           enabled: !_busy && !_locked,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Joueurs convoqués',
+                            labelText: 'Convoqués',
                             border: const OutlineInputBorder(),
                             errorText:
                                 _validatedSquadLimit(showError: false) == null
@@ -766,7 +766,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 }
 
 /// Bouton compact (icône au-dessus du texte) pour tenir à trois sur une ligne
-/// avec le champ « Joueurs convoqués ».
+/// avec le champ « Convoqués ».
 class _EffectifActionButton extends StatelessWidget {
   const _EffectifActionButton({
     required this.onPressed,

@@ -132,8 +132,8 @@ class ArmoirePage extends ConsumerWidget {
                 ],
                 if (toDiscover.isNotEmpty) ...[
                   _SectionTitle(
-                    title: 'À découvrir',
-                    count: armoire.locked.length,
+                    title: 'Badges mystères',
+                    count: toDiscover.length,
                     icon: Icons.lock_outline_rounded,
                   ),
                   const SizedBox(height: 6),
@@ -215,7 +215,7 @@ class _BadgeGrid extends StatelessWidget {
 
   final List<ArmoireBadge> badges;
 
-  /// Grille « À découvrir » : les badges pas encore gagnés restent masqués et
+  /// Grille « Badges mystères » : les badges pas encore gagnés restent masqués et
   /// les mystères gagnés n'affichent que leur emblème, sans nom.
   final bool discover;
   final Set<String>? featuredCodes;

@@ -46,6 +46,7 @@ Les 23 fonctions suivantes sont des points d’entrée applicatifs. L’audit de
 - `staff_list_profiles()`
 - `staff_profile_username(uuid)`
 - `staff_revoke_badge(uuid,text)`
+- `staff_update_badge_text(text,text,text)`
 - `staff_set_historical_profile(uuid,bigint)`
 - `staff_set_season_player_profile(uuid,uuid)`
 - `staff_validate_profile(uuid,uuid)`

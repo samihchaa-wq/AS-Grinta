@@ -62,7 +62,7 @@ void main() {
     expect(guestExpanded, findsOneWidget);
     expect(tester.widget<Expanded>(waitlistExpanded).flex, 1);
     expect(tester.widget<Expanded>(guestExpanded).flex, 1);
-    final limitField = find.widgetWithText(TextField, 'Joueurs convoqués');
+    final limitField = find.widgetWithText(TextField, 'Convoqués');
     expect(limitField, findsOneWidget);
     expect(
       tester.getTopLeft(waitlistButton).dy,

@@ -621,27 +621,33 @@ class _ScoreMarginCard extends StatelessWidget {
     );
   }
 
-  // Buts d'écart groupés par tranches de 3 : les scores fleuves sont
-  // fréquents, une échelle de 1 en 1 tassait presque tout dans la dernière
-  // colonne.
-  int _sumBetween(int min, int max) =>
-      _sumWhere((margin) => margin >= min && margin <= max);
+  // Un écart par colonne de 1 à 6 buts, puis une colonne « 7+ » de chaque
+  // côté pour les scores fleuves. Quinze colonnes ne laissent plus la place
+  // à des barres pleines : chaque valeur est donc dessinée par un trait épais.
+  static const _maxDetailedMargin = 6;
 
   @override
   Widget build(BuildContext context) {
     final losses = _sumWhere((margin) => margin < 0);
     final draws = distribution[0] ?? 0;
     final wins = _sumWhere((margin) => margin > 0);
+    const wideLabel = '${_maxDetailedMargin + 1}+';
     final buckets = [
-      _MarginBucket('≥10', _sumWhere((margin) => margin <= -10), _teamRed),
-      _MarginBucket('7-9', _sumBetween(-9, -7), _teamRed),
-      _MarginBucket('4-6', _sumBetween(-6, -4), _teamRed),
-      _MarginBucket('1-3', _sumBetween(-3, -1), _teamRed),
+      _MarginBucket(
+        wideLabel,
+        _sumWhere((margin) => margin < -_maxDetailedMargin),
+        _teamRed,
+      ),
+      for (var margin = _maxDetailedMargin; margin >= 1; margin--)
+        _MarginBucket('$margin', distribution[-margin] ?? 0, _teamRed),
       _MarginBucket('0', draws, _teamYellow),
-      _MarginBucket('1-3', _sumBetween(1, 3), _teamGreen),
-      _MarginBucket('4-6', _sumBetween(4, 6), _teamGreen),
-      _MarginBucket('7-9', _sumBetween(7, 9), _teamGreen),
-      _MarginBucket('≥10', _sumWhere((margin) => margin >= 10), _teamGreen),
+      for (var margin = 1; margin <= _maxDetailedMargin; margin++)
+        _MarginBucket('$margin', distribution[margin] ?? 0, _teamGreen),
+      _MarginBucket(
+        wideLabel,
+        _sumWhere((margin) => margin > _maxDetailedMargin),
+        _teamGreen,
+      ),
     ];
     final maxCount = math.max(
       1,
@@ -666,7 +672,7 @@ class _ScoreMarginCard extends StatelessWidget {
             const Row(
               children: [
                 Expanded(
-                  flex: 4,
+                  flex: 7,
                   child: _MarginGroupLabel(
                     label: 'DÉFAITES',
                     color: _teamRed,
@@ -679,7 +685,7 @@ class _ScoreMarginCard extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  flex: 4,
+                  flex: 7,
                   child: _MarginGroupLabel(
                     label: 'VICTOIRES',
                     color: _teamGreen,
@@ -847,7 +853,7 @@ class _MarginBar extends StatelessWidget {
     final heightFactor = bucket.count == 0 ? 0.0 : bucket.count / maxCount;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -871,12 +877,10 @@ class _MarginBar extends StatelessWidget {
               child: FractionallySizedBox(
                 heightFactor: heightFactor,
                 child: Container(
-                  width: 22,
+                  width: 6,
                   decoration: BoxDecoration(
                     color: bucket.color,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(4),
-                    ),
+                    borderRadius: BorderRadius.circular(3),
                   ),
                 ),
               ),

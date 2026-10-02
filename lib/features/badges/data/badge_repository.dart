@@ -148,11 +148,11 @@ class Armoire {
   final List<ArmoireBadge> inProgress;
   final List<ArmoireBadge> locked;
 
-  /// Badges gagnés hors mystères : section « Débloqués ».
-  List<ArmoireBadge> get unlocked =>
-      validated.where((b) => !b.def.isMystery).toList();
+  /// Section « Débloqués » : tous les badges gagnés, mystères compris. Un
+  /// mystère gagné reste aussi révélé à sa place dans « Badges mystères ».
+  List<ArmoireBadge> get unlocked => validated;
 
-  /// Section « À découvrir » : badges pas encore gagnés et mystères déjà
+  /// Section « Badges mystères » : badges pas encore gagnés et mystères déjà
   /// gagnés, mélangés par ordre alphabétique. Un mystère gagné se révèle à
   /// sa place au lieu de remonter en tête.
   List<ArmoireBadge> get toDiscover => [

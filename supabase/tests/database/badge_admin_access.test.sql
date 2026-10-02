@@ -44,6 +44,41 @@ select lives_ok(
   'un gestionnaire autorisé peut créer un badge'
 );
 
+select lives_ok(
+  $$select public.staff_update_badge_text(
+    'badge_access_allowed_test',
+    '  Nom corrigé  ',
+    '  Descriptif corrigé  '
+  )$$,
+  'un gestionnaire autorisé peut renommer un badge'
+);
+
+select is(
+  (
+    select name || '|' || description
+    from public.badges
+    where code = 'badge_access_allowed_test'
+  ),
+  'Nom corrigé|Descriptif corrigé',
+  'le nom et le descriptif sont enregistrés sans espaces superflus'
+);
+
+select throws_ok(
+  $$select public.staff_update_badge_text(
+    'badge_access_allowed_test',
+    '   ',
+    ''
+  )$$,
+  '22023',
+  'un badge ne peut pas recevoir un nom vide'
+);
+
+select throws_ok(
+  $$select public.staff_update_badge_text('badge_inconnu_test', 'Nom', '')$$,
+  'P0002',
+  'un badge inconnu est signalé'
+);
+
 reset role;
 
 select set_config(
@@ -64,6 +99,16 @@ select throws_ok(
   )$$,
   '42501',
   'un autre administrateur ne peut pas créer de badge'
+);
+
+select throws_ok(
+  $$select public.staff_update_badge_text(
+    'badge_access_allowed_test',
+    'Nom interdit',
+    ''
+  )$$,
+  '42501',
+  'un autre administrateur ne peut pas renommer un badge'
 );
 
 select throws_ok(
