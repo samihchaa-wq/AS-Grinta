@@ -26,7 +26,9 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref.invalidate(matchDetailsProvider(match.id));
-    await ref.read(matchesControllerProvider.notifier).load(allSeasons: true);
+    await ref
+        .read(matchesControllerProvider.notifier)
+        .load(allSeasons: true, forceRefresh: true);
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {

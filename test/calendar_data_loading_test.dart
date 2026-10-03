@@ -221,6 +221,28 @@ void main() {
       expect(repository.matchLoads, 1);
     });
 
+    test(
+      'une relecture immédiate réutilise le snapshot sauf refresh forcé',
+      () async {
+        final repository = _FakeMatchesRepository();
+        final controller =
+            containerWith(repository).read(matchesControllerProvider.notifier);
+
+        await controller.load(allSeasons: true);
+        await controller.load(allSeasons: true);
+
+        expect(repository.seasonLoads, 1);
+        expect(repository.opponentLoads, 1);
+        expect(repository.matchLoads, 1);
+
+        await controller.load(allSeasons: true, forceRefresh: true);
+
+        expect(repository.seasonLoads, 2);
+        expect(repository.opponentLoads, 2);
+        expect(repository.matchLoads, 2);
+      },
+    );
+
     test('saisons, adversaires et matchs partent en même temps', () async {
       final repository = _FakeMatchesRepository()
         ..seasonsGate = Completer<void>();

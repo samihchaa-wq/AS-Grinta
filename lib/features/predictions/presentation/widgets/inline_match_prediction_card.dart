@@ -241,7 +241,9 @@ class _InlineMatchPredictionCardState
       ref
         ..invalidate(inlineMatchPredictionProvider(widget.matchId))
         ..invalidate(matchDetailsProvider(widget.matchId));
-      await ref.read(predictionsControllerProvider.notifier).load();
+      await ref
+          .read(predictionsControllerProvider.notifier)
+          .load(forceRefresh: true);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
