@@ -183,6 +183,17 @@ set kickoff_at=now()+interval '10 minutes',
 where id=current_setting('test.cross_match')::uuid;
 set local session_replication_role=origin;
 
+reset role;
+-- Seul le coach de la saison pilote le Live : le compte qui pilote ce test
+-- est déclaré coach, sans être ajouté aux matchs déjà créés.
+insert into public.season_players(
+  id,season_id,first_name,last_name,is_goalkeeper,is_active,is_coach,profile_id
+) values (
+  'fa400000-0000-0000-0000-0000000000c1','fa200000-0000-0000-0000-000000000001','Pilote','Coach',false,false,true,'fa100000-0000-0000-0000-000000000001'
+);
+set local session_replication_role=replica;
+update public.season_players set is_active=true where id='fa400000-0000-0000-0000-0000000000c1';
+set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated","session_id":"fa500000-0000-0000-0000-000000000001"}',true);
 set local role authenticated;
 select public.claim_match_live_pilot(current_setting('test.cross_match')::uuid,90);

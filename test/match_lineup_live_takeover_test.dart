@@ -30,7 +30,12 @@ void main() {
       expect(find.text('Info'), findsNothing);
       expect(find.text('Effectif'), findsNothing);
       expect(find.text('Compo'), findsNothing);
-      expect(find.text('Piloter'), coach ? findsOneWidget : findsNothing);
+      // Le coach arrive directement sur le pilotage (ici, le faux serveur ne
+      // lui accorde pas la place : il voit le bouton pour la reprendre).
+      expect(
+        find.text('Piloter le Live'),
+        coach ? findsOneWidget : findsNothing,
+      );
     });
 
     testWidgets('$who, la veille : onglets habituels', (tester) async {
@@ -81,6 +86,7 @@ Future<void> _pump(
           (ref) async => null,
         ),
         isMatchCoachOrAdminProvider.overrideWith((ref, id) async => coach),
+        isMatchLiveCoachProvider.overrideWith((ref, id) async => coach),
         matchLiveRepositoryProvider.overrideWithValue(_StubRepository()),
       ],
       child: MaterialApp.router(routerConfig: router),

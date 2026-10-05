@@ -25,26 +25,55 @@ void main() {
       expect(find.text('Reset'), findsNothing);
     });
 
-    testWidgets('un coach arrive en spectateur, prend puis libère la place', (
+    testWidgets('un administrateur qui n’est pas coach reste spectateur', (
+      tester,
+    ) async {
+      final container = await _pump(
+        tester,
+        state: 'running',
+        coach: false,
+        admin: true,
+      );
+
+      expect(find.text('Spectateur'), findsNothing);
+      expect(find.text('Piloter'), findsNothing);
+      expect(find.text('Faits de match'), findsOneWidget);
+      expect(find.text('Reset'), findsNothing);
+      expect(container.read(livePilotProvider('match-1')), LivePilot.nobody);
+      expect(_lastRepository.claimCount, 0);
+    });
+
+    testWidgets('le coach arrive directement en pilotage, sans la barre', (
       tester,
     ) async {
       final container = await _pump(tester, state: 'running');
       LivePilot pilot() => container.read(livePilotProvider('match-1'));
 
-      expect(find.text('Spectateur'), findsOneWidget);
-      expect(find.text('Faits de match'), findsOneWidget);
-      expect(find.text('Reset'), findsNothing);
-      expect(pilot(), LivePilot.nobody);
-
-      await tester.tap(find.text('Piloter'));
-      await _settle(tester);
+      expect(find.text('Spectateur'), findsNothing);
+      expect(find.text('Piloter'), findsNothing);
       expect(find.text('Reset'), findsOneWidget);
       expect(pilot(), LivePilot.me);
+    });
 
-      await tester.tap(find.text('Spectateur'));
+    testWidgets('le coach reprend la place au retour au premier plan', (
+      tester,
+    ) async {
+      final container = await _pump(tester, state: 'running');
+      LivePilot pilot() => container.read(livePilotProvider('match-1'));
+      expect(pilot(), LivePilot.me);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await _settle(tester);
       expect(pilot(), LivePilot.nobody);
-      expect(find.text('Faits de match'), findsOneWidget);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await _settle(tester);
+      expect(pilot(), LivePilot.me);
+      expect(find.text('Reset'), findsOneWidget);
     });
 
     testWidgets('un autre téléphone bloque le pilotage puis peut céder la main',
@@ -56,9 +85,6 @@ void main() {
         state: 'running',
         otherPilot: true,
       );
-
-      await tester.tap(find.text('Piloter'));
-      await _settle(tester);
 
       expect(
         find.text('Quelqu’un d’autre pilote déjà le Live'),
@@ -82,15 +108,13 @@ void main() {
     });
 
     testWidgets(
-      'avant le coup d’envoi : spectateur voit la composition, pilote prépare',
+      'avant le coup d’envoi : spectateur voit la composition, coach prépare',
       (tester) async {
-        await _pump(tester, state: 'not_started');
-
+        await _pump(tester, state: 'not_started', coach: false);
         expect(find.text('Le match n’a pas encore démarré'), findsOneWidget);
         expect(find.text('Démarrer le match'), findsNothing);
 
-        await tester.tap(find.text('Piloter'));
-        await _settle(tester);
+        await _pump(tester, state: 'not_started');
         expect(find.text('Démarrer le match'), findsOneWidget);
       },
     );
@@ -103,10 +127,13 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
+late _StubRepository _lastRepository;
+
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   required String state,
   bool coach = true,
+  bool admin = false,
   bool otherPilot = false,
 }) async {
   tester.view
@@ -118,11 +145,18 @@ Future<ProviderContainer> _pump(
     state: state,
     otherPilot: otherPilot,
   );
+  _lastRepository = repository;
   await tester.pumpWidget(
     ProviderScope(
+      // Une nouvelle clé force un ProviderScope neuf quand un test enchaîne
+      // deux profils.
+      key: UniqueKey(),
       overrides: [
         matchLiveRepositoryProvider.overrideWithValue(repository),
-        isMatchCoachOrAdminProvider.overrideWith((ref, matchId) async => coach),
+        isMatchCoachOrAdminProvider.overrideWith(
+          (ref, matchId) async => coach || admin,
+        ),
+        isMatchLiveCoachProvider.overrideWith((ref, matchId) async => coach),
         upcomingMatchFixtureProvider.overrideWith(
           (ref, matchId) async => null,
         ),
@@ -207,6 +241,7 @@ class _StubRepository implements MatchLiveRepository {
   final String state;
   bool _pilotActive;
   bool _pilotIsMe;
+  int claimCount = 0;
 
   MatchLiveStateBundle get _current => _bundle(
         state,
@@ -222,6 +257,7 @@ class _StubRepository implements MatchLiveRepository {
     required String matchId,
     int? plannedDurationMinutes,
   }) async {
+    claimCount += 1;
     if (!_pilotActive) {
       _pilotActive = true;
       _pilotIsMe = true;

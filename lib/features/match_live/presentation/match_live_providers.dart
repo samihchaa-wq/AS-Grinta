@@ -30,14 +30,22 @@ String _newScoreOperationId() {
       '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
 }
 
-/// Vrai si l'utilisateur courant peut piloter le Tableau Blanc de ce match :
-/// admin, ou joueur du roster coché "Coach" (season_players.is_coach) pour
-/// la saison du match. Purement indicatif côté client pour choisir l'écran à
-/// afficher — l'autorisation réelle est toujours revérifiée côté serveur.
+/// Vrai si l'utilisateur courant peut valider le compte rendu de ce match :
+/// admin, ou coach de la saison du match. Purement indicatif côté client pour
+/// choisir l'écran à afficher — l'autorisation réelle est revérifiée côté
+/// serveur.
 final isMatchCoachOrAdminProvider =
     FutureProvider.autoDispose.family<bool, String>((ref, matchId) async {
   if (ref.watch(isAdminViewProvider)) return true;
+  return ref.watch(isMatchLiveCoachProvider(matchId).future);
+});
 
+/// Vrai si l'utilisateur courant pilote le Live de ce match : joueur du
+/// roster coché "Coach" (season_players.is_coach) pour la saison du match.
+/// Un administrateur qui n'est pas coach suit le Live en spectateur. Le
+/// serveur refuse de toute façon la place de pilote à tout autre profil.
+final isMatchLiveCoachProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, matchId) async {
   final profileId = ref.watch(
     authControllerProvider.select((state) => state.profile?.id),
   );
@@ -94,9 +102,8 @@ final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
   MatchLiveStateController.new,
 );
 
-/// Source de vérité du pilote : uniquement le snapshot serveur. Le choix
-/// visuel « Spectateur | Piloter » reste local, mais jamais la propriété du
-/// verrou.
+/// Source de vérité du pilote : uniquement le snapshot serveur, jamais un état
+/// local.
 final livePilotProvider = Provider.autoDispose.family<LivePilot, String>((
   ref,
   matchId,

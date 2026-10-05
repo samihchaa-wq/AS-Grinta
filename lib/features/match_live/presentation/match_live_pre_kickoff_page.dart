@@ -2,7 +2,6 @@ import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
-import 'package:as_grinta/features/match_live/presentation/match_live_pilot.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_remove_player_sheet.dart';
@@ -372,8 +371,6 @@ class _MatchLivePreKickoffPageState
     try {
       // Le téléphone a déjà obtenu la place de pilote auprès du serveur avant
       // d'afficher cet écran. On ne la force jamais localement ici.
-      ref.read(liveViewModeProvider(widget.matchId).notifier).state =
-          LiveViewMode.pilot;
       await _controller.openWorkspace(plannedDurationMinutes: minutes);
       await _controller.confirmStart();
     } finally {

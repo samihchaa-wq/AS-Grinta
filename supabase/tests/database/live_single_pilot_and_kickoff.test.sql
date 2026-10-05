@@ -7,14 +7,16 @@ select no_plan();
 -- ---------------------------------------------------------------------------
 insert into auth.users(id,email,raw_user_meta_data) values
 ('4a100000-0000-0000-0000-000000000001','live-pilot-admin@example.invalid','{"first_name":"Live","last_name":"Pilot"}'::jsonb),
-('4a100000-0000-0000-0000-000000000002','live-pilot-viewer@example.invalid','{"first_name":"Live","last_name":"Viewer"}'::jsonb);
+('4a100000-0000-0000-0000-000000000002','live-pilot-viewer@example.invalid','{"first_name":"Live","last_name":"Viewer"}'::jsonb),
+('4a100000-0000-0000-0000-000000000003','live-pilot-other-admin@example.invalid','{"first_name":"Live","last_name":"Admin"}'::jsonb);
 
 update public.profiles
-set role=case when id='4a100000-0000-0000-0000-000000000001' then 'admin' else 'pronostiqueur' end,
+set role=case when id='4a100000-0000-0000-0000-000000000002' then 'pronostiqueur' else 'admin' end,
     status='active',updated_at=now()
 where id in (
   '4a100000-0000-0000-0000-000000000001',
-  '4a100000-0000-0000-0000-000000000002'
+  '4a100000-0000-0000-0000-000000000002',
+  '4a100000-0000-0000-0000-000000000003'
 );
 
 update private.app_feature_flags
@@ -23,6 +25,16 @@ where key='sports_management';
 
 insert into public.seasons(id,name,status)
 values('4a200000-0000-0000-0000-000000000001','2104-2105','open');
+
+-- Le pilote est le coach de la saison ; l'autre administrateur ne l'est pas.
+insert into public.season_players(
+  id,season_id,first_name,last_name,is_goalkeeper,is_active,is_coach,profile_id
+) values (
+  '4a700000-0000-0000-0000-000000000001',
+  '4a200000-0000-0000-0000-000000000001',
+  'Live','Coach',false,true,true,
+  '4a100000-0000-0000-0000-000000000001'
+);
 
 insert into public.matches(
   id,season_id,match_date,match_time,location,planned_duration_minutes,status,
@@ -41,6 +53,41 @@ insert into public.match_live_sessions(
   '4a300000-0000-0000-0000-000000000001','running',90,1,0,now(),
   '4a100000-0000-0000-0000-000000000001'
 );
+
+-- Seul le coach pilote : un administrateur ou un joueur reste spectateur.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"4a100000-0000-0000-0000-000000000003","role":"authenticated","aud":"authenticated","session_id":"4a400000-0000-0000-0000-000000000031"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.claim_match_live_pilot('4a300000-0000-0000-0000-000000000001',90)$$,
+  '42501',
+  'Seul le coach peut piloter le Live.',
+  'un administrateur qui n’est pas coach ne peut pas piloter'
+);
+select throws_ok(
+  $$select public.take_over_match_live_pilot('4a300000-0000-0000-0000-000000000001')$$,
+  '42501',
+  'Seul le coach peut piloter le Live.',
+  'un administrateur qui n’est pas coach ne peut pas prendre la main'
+);
+reset role;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"4a100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated","session_id":"4a400000-0000-0000-0000-000000000032"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.claim_match_live_pilot('4a300000-0000-0000-0000-000000000001',90)$$,
+  '42501',
+  'Seul le coach peut piloter le Live.',
+  'un joueur ne peut pas piloter'
+);
+reset role;
 
 select set_config(
   'request.jwt.claims',
