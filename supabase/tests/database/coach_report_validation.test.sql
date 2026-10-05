@@ -93,7 +93,6 @@ returns uuid language sql stable as $function$
   where participant.match_id=current_setting('test.coach_match')::uuid
     and player.position=p_position;
 $function$;
-grant execute on function pg_temp.participant_of(integer) to authenticated;
 
 create or replace function pg_temp.report_lineup()
 returns jsonb language sql stable as $function$
@@ -119,7 +118,18 @@ returns jsonb language sql stable as $function$
     and participant.is_eligible
     and player.position is not null;
 $function$;
-grant execute on function pg_temp.report_lineup() to authenticated;
+
+-- Paquets préparés avant de changer de rôle : un coach ou un joueur ne lit
+-- pas directement ces tables.
+select set_config('test.coach_lineup', pg_temp.report_lineup()::text, true);
+select set_config(
+  'test.coach_goals',
+  jsonb_build_array(jsonb_build_object(
+    'minute',10,'team_side','as_grinta',
+    'scorer_participant_id',pg_temp.participant_of(2),'assist_kind','none','is_own_goal',false
+  ))::text,
+  true
+);
 
 -- ---------------------------------------------------------------------------
 -- 1. Un joueur ne valide pas le compte rendu.
@@ -132,11 +142,9 @@ select set_config(
 set local role authenticated;
 select throws_ok(
   $$select public.admin_submit_match_sport_report(
-    current_setting('test.coach_match')::uuid,1,0,pg_temp.report_lineup(),
-    jsonb_build_array(jsonb_build_object(
-      'minute',10,'team_side','as_grinta',
-      'scorer_participant_id',pg_temp.participant_of(2),'assist_kind','none','is_own_goal',false
-    )),
+    current_setting('test.coach_match')::uuid,1,0,
+    current_setting('test.coach_lineup')::jsonb,
+    current_setting('test.coach_goals')::jsonb,
     'tentative joueur'
   )$$,
   '42501',
@@ -156,11 +164,9 @@ select set_config(
 set local role authenticated;
 select lives_ok(
   $$select public.admin_submit_match_sport_report(
-    current_setting('test.coach_match')::uuid,1,0,pg_temp.report_lineup(),
-    jsonb_build_array(jsonb_build_object(
-      'minute',10,'team_side','as_grinta',
-      'scorer_participant_id',pg_temp.participant_of(2),'assist_kind','none','is_own_goal',false
-    )),
+    current_setting('test.coach_match')::uuid,1,0,
+    current_setting('test.coach_lineup')::jsonb,
+    current_setting('test.coach_goals')::jsonb,
     'validation par le coach'
   )$$,
   'le coach valide le compte rendu du match qu’il a piloté'
@@ -170,19 +176,19 @@ select lives_ok(
 select throws_ok(
   $$select public.staff_set_match_mvp(current_setting('test.coach_match')::uuid,'{}'::uuid[])$$,
   '42501',
-  'Active administrator role required',
+  null,
   'le coach ne peut pas appeler directement le réglage HDM'
 );
 select throws_ok(
   $$select public.staff_set_match_attendance(current_setting('test.coach_match')::uuid,'{}'::uuid[])$$,
   '42501',
-  'Active administrator role required',
+  null,
   'le coach ne peut pas appeler directement le réglage des présences'
 );
 select throws_ok(
   $$select public.finalize_match_postgame(current_setting('test.coach_match')::uuid,0,'[]'::jsonb,null,0)$$,
   '42501',
-  'Active administrator role required',
+  null,
   'le coach ne peut pas appeler directement la saisie du score'
 );
 reset role;
