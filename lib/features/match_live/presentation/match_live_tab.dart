@@ -13,8 +13,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Point d'entrée de l'onglet "Tableau blanc" dans la fiche du match :
 /// aiguille vers l'écran de préparation, le direct ou le récapitulatif selon
-/// l'état de la session live, et vers une vue lecture seule pour les
-/// spectateurs qui ne sont ni admin ni coach de la saison.
+/// l'état de la session live. Pendant le match, le coach de la saison arrive
+/// directement en pilotage ; tous les autres, administrateurs compris, arrivent
+/// directement en spectateur.
 class MatchLiveTab extends ConsumerWidget {
   const MatchLiveTab({super.key, required this.matchId});
 
@@ -35,6 +36,7 @@ class MatchLiveTab extends ConsumerWidget {
     });
 
     final canEditAsync = ref.watch(isMatchCoachOrAdminProvider(matchId));
+    final isCoachAsync = ref.watch(isMatchLiveCoachProvider(matchId));
     final stateAsync = ref.watch(matchLiveStateProvider(matchId));
 
     return stateAsync.when(
@@ -52,10 +54,11 @@ class MatchLiveTab extends ConsumerWidget {
       ),
       data: (bundle) {
         final canEdit = canEditAsync.valueOrNull ?? false;
+        final isCoach = isCoachAsync.valueOrNull ?? false;
 
         try {
           if (bundle.session.state != MatchLiveState.finished) {
-            final Widget child = canEdit
+            final Widget child = isCoach
                 ? _CoachLiveView(matchId: matchId, bundle: bundle)
                 : _spectatorView(bundle);
             return _LiveRealtimeBoundary(matchId: matchId, child: child);
@@ -101,106 +104,114 @@ Widget _spectatorView(MatchLiveStateBundle bundle) {
   return MatchLivePreKickoffSpectatorView(bundle: bundle);
 }
 
-/// Coach de T-15 à la fin du match : barre « Spectateur | Piloter ».
-class _CoachLiveView extends ConsumerWidget {
+/// Coach de T-15 à la fin du match : directement en pilotage, sans passer par
+/// une vue spectateur. La place est demandée au serveur à l'ouverture et au
+/// retour au premier plan ; si un autre téléphone du coach la tient encore,
+/// l'écran propose « Prendre la main ».
+class _CoachLiveView extends ConsumerStatefulWidget {
   const _CoachLiveView({required this.matchId, required this.bundle});
 
   final String matchId;
   final MatchLiveStateBundle bundle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final mode = ref.watch(liveViewModeProvider(matchId));
-    final pilot = ref.watch(livePilotProvider(matchId));
+  ConsumerState<_CoachLiveView> createState() => _CoachLiveViewState();
+}
 
-    Future<void> select(LiveViewMode next) async {
-      final modeNotifier = ref.read(liveViewModeProvider(matchId).notifier);
-      final controller = ref.read(matchLiveStateProvider(matchId).notifier);
+class _CoachLiveViewState extends ConsumerState<_CoachLiveView>
+    with WidgetsBindingObserver {
+  bool _claiming = false;
 
-      if (next == LiveViewMode.spectator) {
-        modeNotifier.state = LiveViewMode.spectator;
-        if (pilot == LivePilot.me) await controller.releasePilot();
-        return;
-      }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_claim()));
+  }
 
-      try {
-        // Le serveur prend la décision. Si la place est occupée, le snapshot
-        // revient avec pilot=other et l'écran propose alors « Prendre la main ».
-        await controller.claimPilot(
-          plannedDurationMinutes: bundle.session.planPlannedDurationMinutes,
-        );
-        modeNotifier.state = LiveViewMode.pilot;
-      } catch (_) {
-        // Le contrôleur a déjà affiché un message propre et relu le serveur.
-      }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Passer en arrière-plan libère la place (voir _PilotSession) : au retour,
+    // le coach la reprend sans rien toucher.
+    if (state == AppLifecycleState.resumed) unawaited(_claim());
+  }
+
+  Future<void> _claim() async {
+    if (!mounted || _claiming) return;
+    if (ref.read(livePilotProvider(widget.matchId)) != LivePilot.nobody) {
+      return;
     }
+    setState(() => _claiming = true);
+    try {
+      // Le serveur prend la décision. Si la place est occupée, le snapshot
+      // revient avec pilot=other et l'écran propose alors « Prendre la main ».
+      await ref
+          .read(matchLiveStateProvider(widget.matchId).notifier)
+          .claimPilot(
+            plannedDurationMinutes:
+                widget.bundle.session.planPlannedDurationMinutes,
+          );
+    } catch (_) {
+      // Le contrôleur a déjà affiché un message propre et relu le serveur.
+    } finally {
+      if (mounted) setState(() => _claiming = false);
+    }
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    final matchId = widget.matchId;
+    final bundle = widget.bundle;
+    final pilot = ref.watch(livePilotProvider(matchId));
     final started = bundle.session.sessionExists &&
         bundle.session.state != MatchLiveState.notStarted;
-    final Widget body;
-    if (mode == LiveViewMode.spectator) {
-      body = _spectatorView(bundle);
-    } else {
-      body = switch (pilot) {
-        LivePilot.me => _PilotSession(
-            matchId: matchId,
-            child: started
-                ? MatchLiveRunningPage(
-                    matchId: matchId,
-                    bundle: bundle,
-                    canEdit: true,
-                    fullScreen: true,
-                  )
-                : MatchLivePreKickoffPage(
-                    matchId: matchId,
-                    bundle: bundle,
-                    canEdit: true,
-                  ),
-          ),
-        LivePilot.other => _SomeoneElsePilots(matchId: matchId),
-        LivePilot.nobody => _PilotPlaceAvailable(matchId: matchId),
-      };
-    }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-          child: SegmentedButton<LiveViewMode>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(
-                value: LiveViewMode.spectator,
-                label: Text('Spectateur'),
-              ),
-              ButtonSegment(
-                value: LiveViewMode.pilot,
-                label: Text('Piloter'),
-              ),
-            ],
-            selected: {mode},
-            onSelectionChanged: (selection) {
-              unawaited(select(selection.first));
-            },
+    return switch (pilot) {
+      LivePilot.me => _PilotSession(
+          matchId: matchId,
+          child: started
+              ? MatchLiveRunningPage(
+                  matchId: matchId,
+                  bundle: bundle,
+                  canEdit: true,
+                  fullScreen: true,
+                )
+              : MatchLivePreKickoffPage(
+                  matchId: matchId,
+                  bundle: bundle,
+                  canEdit: true,
+                ),
+        ),
+      LivePilot.other => _SomeoneElsePilots(matchId: matchId),
+      LivePilot.nobody when _claiming => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 48),
+          child: Center(
+            child: GrintaLoader.page(
+              message: 'Ouverture du pilotage…',
+              semanticLabel: 'Ouverture du pilotage du Live',
+            ),
           ),
         ),
-        body,
-      ],
-    );
+      LivePilot.nobody => _PilotPlaceAvailable(onClaim: _claim),
+    };
   }
 }
 
-/// La place a expiré (par exemple après une coupure réseau d'une minute) et
-/// personne ne l'a reprise. Un clic suffit pour redevenir pilote.
-class _PilotPlaceAvailable extends ConsumerWidget {
-  const _PilotPlaceAvailable({required this.matchId});
+/// La place n'a pas pu être prise automatiquement (par exemple sans réseau)
+/// ou a expiré après une coupure d'une minute. Un clic suffit pour la reprendre.
+class _PilotPlaceAvailable extends StatelessWidget {
+  const _PilotPlaceAvailable({required this.onClaim});
 
-  final String matchId;
+  final Future<void> Function() onClaim;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 32, 16, 32),
       child: Column(
@@ -211,13 +222,7 @@ class _PilotPlaceAvailable extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: () async {
-              try {
-                await ref
-                    .read(matchLiveStateProvider(matchId).notifier)
-                    .claimPilot();
-              } catch (_) {}
-            },
+            onPressed: () => unawaited(onClaim()),
             child: const Text('Piloter le Live'),
           ),
         ],
@@ -310,8 +315,6 @@ class _PilotSessionState extends ConsumerState<_PilotSession>
   void _releaseForBackground() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
-    ref.read(liveViewModeProvider(widget.matchId).notifier).state =
-        LiveViewMode.spectator;
     unawaited(_controller.releasePilot());
   }
 

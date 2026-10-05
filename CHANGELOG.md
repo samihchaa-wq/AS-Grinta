@@ -6,6 +6,13 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- Live : seul le coach de la saison pilote. Il arrive directement sur le
+  pilotage, sans la barre « Spectateur | Piloter » ; tous les autres,
+  administrateurs compris, arrivent directement en spectateur. Le serveur
+  refuse la place de pilote à tout autre profil ;
+- compte rendu : un coach qui n'est pas administrateur peut de nouveau le
+  valider après le Live (la validation échouait sur un contrôle réservé aux
+  administrateurs) ;
 - fiche du match : « Faits du match » adopte la présentation des sites de
   résultats (minute au bord, pastille ⚽ avec le score, buteur puis
   passeur entre parenthèses en gris, buts adverses en miroir à droite) ;
