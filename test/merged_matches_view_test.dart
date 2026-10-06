@@ -22,6 +22,7 @@ void main() {
     WidgetTester tester, {
     required int pastMatches,
     required int upcomingMatches,
+    String? focusMatchId,
   }) async {
     await tester.binding.setSurfaceSize(const Size(420, 860));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -52,7 +53,9 @@ void main() {
           ),
           myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
         ],
-        child: const MaterialApp(home: Scaffold(body: MergedMatchesView())),
+        child: MaterialApp(
+          home: Scaffold(body: MergedMatchesView(focusMatchId: focusMatchId)),
+        ),
       ),
     );
     // Le positionnement se fait en plusieurs passes espacées de 60 ms.
@@ -101,6 +104,47 @@ void main() {
       headerRect(tester, 'À venir').top,
       tester.getRect(scrollable).top,
     );
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets(
+      'ouvert depuis une notification, le calendrier montre le match '
+      'concerné', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 12,
+      upcomingMatches: 12,
+      focusMatchId: 'next-6',
+    );
+
+    final header = headerRect(tester, 'À venir');
+    final viewport = tester.getRect(find.byType(Scrollable).first);
+    final card = tester.getRect(find.text('Clubnext6'));
+    // La carte visée est en haut de l'écran, juste sous l'en-tête épinglé,
+    // et non le dernier match joué.
+    expect(card.top, greaterThanOrEqualTo(header.bottom));
+    expect(card.top - header.bottom, lessThan(120));
+    expect(card.bottom, lessThanOrEqualTo(viewport.bottom));
+    expect(find.text('Clubpast1'), findsNothing);
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets(
+      'un match demandé introuvable laisse le calendrier sur le dernier '
+      'match joué', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 12,
+      upcomingMatches: 12,
+      focusMatchId: 'match-inconnu',
+    );
+
+    final header = headerRect(tester, 'Terminés');
+    final card = tester.getRect(find.text('Clubpast1'));
+    expect(card.top, greaterThanOrEqualTo(header.bottom));
+    expect(card.top - header.bottom, lessThan(120));
 
     await disposeCalendar(tester);
   });

@@ -31,9 +31,12 @@ part 'pronos_hub_components.dart';
 enum _PronosCategory { matches, general }
 
 class PronosHubPage extends ConsumerStatefulWidget {
-  const PronosHubPage({super.key, this.initialCategory});
+  const PronosHubPage({super.key, this.initialCategory, this.focusMatchId});
 
   final String? initialCategory;
+
+  /// Match sur lequel ouvrir le calendrier, sinon le dernier match joué.
+  final String? focusMatchId;
 
   @override
   ConsumerState<PronosHubPage> createState() => _PronosHubPageState();
@@ -68,7 +71,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final content = switch (_category) {
-      _PronosCategory.matches => const CalendarMatchesView(),
+      _PronosCategory.matches =>
+        CalendarMatchesView(focusMatchId: widget.focusMatchId),
       _PronosCategory.general => const _GeneralRankingsSection(),
     };
 

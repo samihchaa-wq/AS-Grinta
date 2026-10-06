@@ -30,7 +30,12 @@ import 'package:go_router/go_router.dart';
 double? _persistedMergedMatchesScrollOffset;
 
 class MergedMatchesView extends ConsumerStatefulWidget {
-  const MergedMatchesView({super.key});
+  const MergedMatchesView({super.key, this.focusMatchId});
+
+  /// Match à amener en haut de l'écran à l'ouverture, par exemple depuis une
+  /// notification de disponibilité. Sans lui, ou s'il ne figure pas dans le
+  /// calendrier, c'est le dernier match joué.
+  final String? focusMatchId;
 
   @override
   ConsumerState<MergedMatchesView> createState() => _MergedMatchesViewState();
@@ -206,10 +211,15 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     entries.sort((a, b) => a.date.compareTo(b.date));
     final feedSections = _buildFeedSections(entries);
 
-    int? focusIndex;
-    for (var i = 0; i < entries.length; i += 1) {
-      if (entries[i].date.isAfter(now)) break;
-      focusIndex = i;
+    final requestedIndex = widget.focusMatchId == null
+        ? -1
+        : entries.indexWhere((entry) => entry.match?.id == widget.focusMatchId);
+    int? focusIndex = requestedIndex >= 0 ? requestedIndex : null;
+    if (focusIndex == null) {
+      for (var i = 0; i < entries.length; i += 1) {
+        if (entries[i].date.isAfter(now)) break;
+        focusIndex = i;
+      }
     }
     if (focusIndex == null && entries.isNotEmpty) {
       focusIndex = 0;

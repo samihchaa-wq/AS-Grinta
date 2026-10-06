@@ -36,7 +36,10 @@ part 'calendar_matches_widgets.dart';
 enum _CalendarDisplayMode { scroll, month }
 
 class CalendarMatchesView extends ConsumerStatefulWidget {
-  const CalendarMatchesView({super.key});
+  const CalendarMatchesView({super.key, this.focusMatchId});
+
+  /// Match sur lequel ouvrir le défilé, sinon le dernier match joué.
+  final String? focusMatchId;
 
   @override
   ConsumerState<CalendarMatchesView> createState() =>
@@ -47,6 +50,18 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   _CalendarDisplayMode _displayMode = _CalendarDisplayMode.scroll;
   DateTime _monthCursor = DateTime(DateTime.now().year, DateTime.now().month);
   final Map<String, Future<List<HistoricalMatchResult>>> _historyLoads = {};
+
+  @override
+  void didUpdateWidget(covariant CalendarMatchesView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Un match demandé (notification de disponibilité) se montre dans le
+    // défilé, où se trouve son sélecteur de présence.
+    if (widget.focusMatchId != null &&
+        widget.focusMatchId != oldWidget.focusMatchId &&
+        _displayMode != _CalendarDisplayMode.scroll) {
+      setState(() => _displayMode = _CalendarDisplayMode.scroll);
+    }
+  }
 
   Future<List<HistoricalMatchResult>> _historyForSeason(String seasonName) {
     return _historyLoads.putIfAbsent(
@@ -331,7 +346,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                   child: IndexedStack(
                     index: _displayMode == _CalendarDisplayMode.scroll ? 0 : 1,
                     children: [
-                      const MergedMatchesView(),
+                      MergedMatchesView(focusMatchId: widget.focusMatchId),
                       _buildMonthView(
                         state: state,
                         selectedSeason: selectedSeason,
