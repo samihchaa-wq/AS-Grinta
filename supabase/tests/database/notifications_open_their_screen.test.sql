@@ -90,6 +90,47 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
+-- Disponibilité, relance et match reporté : le calendrier, sur la carte du
+-- match, là où se choisit Présent / Absent
+-- ---------------------------------------------------------------------------
+
+select is(
+  public.internal_sport_push_dispatch(
+    'availability_open',
+    'f0e40000-0000-0000-0000-000000000001',
+    array['f0e10000-0000-0000-0000-000000000001'::uuid]
+  ) #>> '{payload,url}',
+  'matches?match=f0e40000-0000-0000-0000-000000000001',
+  'l''ouverture des disponibilités ouvre le calendrier sur le match'
+);
+select is(
+  public.internal_sport_push_dispatch(
+    'availability_manual',
+    'f0e40000-0000-0000-0000-000000000001',
+    array['f0e10000-0000-0000-0000-000000000001'::uuid]
+  ) #>> '{payload,url}',
+  'matches?match=f0e40000-0000-0000-0000-000000000001',
+  'la relance de disponibilité ouvre le calendrier sur le match'
+);
+select is(
+  public.internal_push_dispatch(
+    'match_rescheduled_date',
+    'f0e40000-0000-0000-0000-000000000001'
+  ) #>> '{payload,url}',
+  'matches?match=f0e40000-0000-0000-0000-000000000001',
+  'un match reporté ouvre le calendrier sur le match'
+);
+select is(
+  public.internal_sport_push_dispatch(
+    'convocation_promoted',
+    'f0e40000-0000-0000-0000-000000000001',
+    array['f0e10000-0000-0000-0000-000000000001'::uuid]
+  ) #>> '{payload,url}',
+  'matches/f0e40000-0000-0000-0000-000000000001/lineup?section=effectif',
+  'la convocation, sans réponse à donner, garde l''Effectif du match'
+);
+
+-- ---------------------------------------------------------------------------
 -- Badges : l'armoire
 -- ---------------------------------------------------------------------------
 

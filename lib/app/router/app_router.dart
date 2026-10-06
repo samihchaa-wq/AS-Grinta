@@ -100,9 +100,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/matches',
-                pageBuilder: (_, __) => const NoTransitionPage(
-                  key: ValueKey<String>('matches-root'),
-                  child: PronosHubPage(initialCategory: 'matches'),
+                // `?match=<id>` ouvre le calendrier sur la carte de ce match :
+                // c'est là que se répond la disponibilité.
+                pageBuilder: (_, state) => NoTransitionPage(
+                  key: const ValueKey<String>('matches-root'),
+                  child: PronosHubPage(
+                    initialCategory: 'matches',
+                    focusMatchId: state.uri.queryParameters['match'],
+                  ),
                 ),
               ),
               GoRoute(

@@ -380,8 +380,9 @@ class _PinnedScrollableRowState extends State<_PinnedScrollableRow> {
 }
 
 /// Cellule d'en-tête cliquable : un appui trie le tableau selon cette colonne
-/// (et inverse le sens si la colonne est déjà active). Une flèche ↑/↓ indique
-/// la colonne et le sens de tri courants. Sans [flex], la cellule prend toute
+/// (et inverse le sens si la colonne est déjà active). La colonne triée est
+/// signalée par la couleur de son libellé, sans flèche ; le sens de tri reste
+/// annoncé aux lecteurs d'écran. Sans [flex], la cellule prend toute
 /// la place de son parent (utile pour la colonne figée, hors d'un Row à
 /// flex) ; avec [flex], elle se comporte comme un `Expanded` classique.
 class SortableHeaderCell extends StatelessWidget {
@@ -425,28 +426,23 @@ class SortableHeaderCell extends StatelessWidget {
             textAlign: align,
           ),
         ),
-        if (active) ...[
-          const SizedBox(width: 3),
-          Icon(
-            descending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-            size: 15,
-            color: AppTheme.accent,
-          ),
-        ],
       ],
     );
 
     // Les en-têtes de tri sont l'interaction principale de l'écran
     // Statistiques : avec 4 px de marge verticale ils ne faisaient que 21 px
     // de haut, loin des 44 px minimum d'une cible tactile.
-    final cell = InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 44),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Center(widthFactor: 1, child: content),
+    final cell = Semantics(
+      value: active ? (descending ? 'tri décroissant' : 'tri croissant') : null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Center(widthFactor: 1, child: content),
+          ),
         ),
       ),
     );

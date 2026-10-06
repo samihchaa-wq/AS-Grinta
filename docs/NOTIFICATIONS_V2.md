@@ -100,7 +100,7 @@ Toucher une notification ouvre l’écran qu’elle annonce :
 
 | Notification | Écran |
 | --- | --- |
-| Ouverture des disponibilités, relance, match reporté | Fiche du match, Effectif |
+| Ouverture des disponibilités, relance, match reporté | Calendrier, sur la carte du match (choix Présent / Absent) |
 | Convocation | Fiche du match, Effectif |
 | Composition en ligne | Fiche du match, Composition |
 | Rappel pronostic | Fiche du match, Prono |

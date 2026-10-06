@@ -6,6 +6,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- tableaux (Statistiques, Prono…) : la flèche de tri disparaît de la colonne
+  sélectionnée, signalée seulement par la couleur de son libellé ;
+- notifications de disponibilité (ouverture, relance, match reporté) : elles
+  ouvrent le calendrier directement sur la carte du match, là où se choisit
+  Présent / Absent, au lieu de l'onglet Effectif de la fiche du match ;
 - badge « Traître » : décerné seulement si l'AS Grinta perd réellement, comme
   l'annonce sa description (« … et avoir raison »). La règle comptait jusqu'ici
   tout pronostic de défaite, même faux ; le badge attribué ainsi à tort est
