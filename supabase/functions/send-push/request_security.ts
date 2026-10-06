@@ -68,3 +68,24 @@ export async function readBoundedJson<T>(
 
   return JSON.parse(json) as T;
 }
+
+// Adresse d'écran portée par une notification : une route relative de
+// l'application (`matches/<id>/lineup?section=effectif`, `armoire`…). Tout le
+// reste — adresse absolue, autre domaine, chemin remontant, caractères
+// inattendus — ramène à l'accueil de l'application.
+const NOTIFICATION_ROUTE =
+  /^[A-Za-z0-9][A-Za-z0-9_-]*(?:\/[A-Za-z0-9_-]+)*(?:\?[A-Za-z0-9_=&-]*)?$/;
+const MAX_NOTIFICATION_ROUTE_LENGTH = 200;
+
+export function safeNotificationUrl(value: unknown): string {
+  if (typeof value !== "string") return ".";
+  const route = value.trim();
+  if (
+    route.length === 0 ||
+    route.length > MAX_NOTIFICATION_ROUTE_LENGTH ||
+    !NOTIFICATION_ROUTE.test(route)
+  ) {
+    return ".";
+  }
+  return route;
+}

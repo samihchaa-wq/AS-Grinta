@@ -94,6 +94,30 @@ Les automatismes suivants ne font plus partie du produit actuel :
 Les anciens types peuvent rester dans l’historique de migrations ou d’audit sans
 être encore générés par le système actuel.
 
+## Écran ouvert par chaque notification
+
+Toucher une notification ouvre l’écran qu’elle annonce :
+
+| Notification | Écran |
+| --- | --- |
+| Ouverture des disponibilités, relance, match reporté | Fiche du match, Effectif |
+| Convocation | Fiche du match, Effectif |
+| Composition en ligne | Fiche du match, Composition |
+| Rappel pronostic | Fiche du match, Prono |
+| Match annulé, horaire modifié | Fiche du match, Info |
+| Coup d’envoi, buts, fin de match (Live) | Fiche du match, Live |
+| Ouverture du vote Homme du match | Vote Homme du match |
+| Résultat Homme du match | Fiche du match terminé |
+| Badge(s) débloqué(s) | Armoire à badges |
+| Nouveau compte en attente (admin) | Administration |
+| Changement de disponibilité (admin) | Fiche du match, Effectif |
+| Message libre d’un administrateur | Accueil |
+
+La fiche du match reste soumise à ses règles habituelles : un onglet qui n’est
+plus disponible (Prono après T-15, par exemple) bascule sur l’onglet prévu.
+L’adresse est contrôlée par `send-push` : seule une route de l’application est
+acceptée, toute autre valeur ouvre l’accueil.
+
 ## Coupe-circuit global
 
 `notifications_paused` reste prioritaire sur les envois lorsqu’il est activé.
