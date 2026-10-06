@@ -1,7 +1,7 @@
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Les « 5 dernières rencontres » écrivent le score dans l'ordre domicile –
+/// Les « Dernières rencontres » écrivent le score dans l'ordre domicile –
 /// extérieur, comme la fiche du match : un 2–5 à l'extérieur ne doit plus
 /// apparaître en 5–2.
 void main() {

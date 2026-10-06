@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Affiche un score entouré en vert, orange ou rouge selon le résultat
-/// d’AS Grinta.
+/// d’AS Grinta. La date éventuelle reste en blanc, lisible quelle que soit la
+/// couleur du résultat.
 class MatchResultScoreChip extends StatelessWidget {
   const MatchResultScoreChip({
     super.key,
@@ -51,8 +52,8 @@ class MatchResultScoreChip extends StatelessWidget {
             Text(
               subtitle!,
               maxLines: 1,
-              style: TextStyle(
-                color: color.withValues(alpha: .82),
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 10,
                 fontWeight: FontWeight.w400,
               ),
