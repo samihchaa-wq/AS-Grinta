@@ -6,6 +6,20 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- badge « Triplé Chrono » : décerné automatiquement à qui marque trois buts
+  ou plus dans la même mi-temps (mi-temps notée par le Live, sinon déduite de
+  la minute) ; les matchs déjà validés sont rattrapés ;
+- notifications : chacune ouvre l'écran qu'elle annonce. Convocation,
+  composition en ligne, résultat Homme du match, badges débloqués et
+  changement de disponibilité (admin) ouvraient jusqu'ici l'accueil ;
+- « Francois » devient « François » sur le profil, l'effectif, l'identité du
+  joueur et les statistiques d'archives ; l'identifiant de connexion ne change
+  pas ;
+- Statistiques → Prono : nouvelle colonne « Prono » (pronostics remplis sur
+  les matchs terminés) avant « Bons », et points centrés ;
+- fiche d'un match à venir : « 5 dernières rencontres » devient « Dernières
+  rencontres », et la date de chaque rencontre passe en blanc (Info et
+  Prono), le score et le cadre gardant la couleur du résultat ;
 - Live : seul le coach de la saison pilote. Il arrive directement sur le
   pilotage, sans la barre « Spectateur | Piloter » ; tous les autres,
   administrateurs compris, arrivent directement en spectateur. Le serveur
