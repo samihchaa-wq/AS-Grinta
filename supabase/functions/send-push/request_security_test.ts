@@ -1,6 +1,7 @@
 import {
   readBoundedJson,
   RequestBodyTooLargeError,
+  safeNotificationUrl,
   secretsEqual,
 } from "./request_security.ts";
 
@@ -77,4 +78,39 @@ Deno.test("laisse remonter un JSON invalide sous la limite", async () => {
     () => readBoundedJson(request, 64),
     SyntaxError,
   );
+});
+
+Deno.test("garde la route d'application portée par une notification", () => {
+  const matchId = "6f1d2c3b-0a9e-4f8d-8c7b-1a2b3c4d5e6f";
+  assertEquals(
+    safeNotificationUrl(`matches/${matchId}/lineup?section=effectif`),
+    `matches/${matchId}/lineup?section=effectif`,
+  );
+  assertEquals(safeNotificationUrl(`matches/${matchId}`), `matches/${matchId}`);
+  assertEquals(safeNotificationUrl("armoire"), "armoire");
+  assertEquals(safeNotificationUrl("admin/administration"), "admin/administration");
+});
+
+Deno.test("ramène à l'accueil toute adresse de notification douteuse", () => {
+  for (
+    const value of [
+      undefined,
+      null,
+      42,
+      "",
+      "   ",
+      ".",
+      "https://exemple.invalid/matches",
+      "//exemple.invalid/matches",
+      "/matches",
+      "../matches",
+      "matches/../admin",
+      "javascript:alert(1)",
+      "matches/1#/admin",
+      "matches/1?section=<script>",
+      "a".repeat(201),
+    ]
+  ) {
+    assertEquals(safeNotificationUrl(value), ".", `accepté à tort : ${value}`);
+  }
 });

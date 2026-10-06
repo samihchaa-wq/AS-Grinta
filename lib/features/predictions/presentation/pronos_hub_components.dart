@@ -1,6 +1,6 @@
 part of 'pronos_hub_page.dart';
 
-enum _LbCol { name, first, second, points }
+enum _LbCol { name, pronos, first, second, points }
 
 const _leaderboardValueFlex = 10;
 const _leaderboardPointsFlex = 12;
@@ -27,6 +27,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
   _LbCol _sort = _LbCol.points;
   bool _desc = true;
 
+  double _pronos(LeaderboardEntry e) => (e.matchPronos ?? 0).toDouble();
   double _first(LeaderboardEntry e) => e.matchBons.toDouble();
   double _second(LeaderboardEntry e) => e.matchExacts.toDouble();
 
@@ -35,6 +36,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
   /// jamais visible.
   double _sortedColumnValue(LeaderboardEntry e) => switch (_sort) {
         _LbCol.name => 0,
+        _LbCol.pronos => _pronos(e),
         _LbCol.first => _first(e),
         _LbCol.second => _second(e),
         _LbCol.points => widget.points(e),
@@ -68,6 +70,8 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
         switch (_sort) {
           case _LbCol.name:
             cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          case _LbCol.pronos:
+            cmp = _pronos(a).compareTo(_pronos(b));
           case _LbCol.first:
             cmp = _first(a).compareTo(_first(b));
           case _LbCol.second:
@@ -128,6 +132,14 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
         child: Row(
           children: [
             SortableHeaderCell(
+              label: 'Prono',
+              flex: _leaderboardValueFlex,
+              active: _sort == _LbCol.pronos,
+              descending: _desc,
+              onTap: () => _onSort(_LbCol.pronos),
+              style: style,
+            ),
+            SortableHeaderCell(
               label: 'Bons',
               flex: _leaderboardValueFlex,
               active: _sort == _LbCol.first,
@@ -146,7 +158,6 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
             SortableHeaderCell(
               label: 'Points',
               flex: _leaderboardPointsFlex,
-              align: TextAlign.end,
               active: _sort == _LbCol.points,
               descending: _desc,
               onTap: () => _onSort(_LbCol.points),
@@ -162,6 +173,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
             rank: ranks[index],
             profileId: sorted[index].profileId,
             name: sorted[index].name,
+            pronosValue: sorted[index].matchPronos?.toString() ?? '–',
             firstValue: '${_first(sorted[index]).round()}',
             secondValue: '${_second(sorted[index]).round()}',
             points: '${widget.points(sorted[index]).round()}',
@@ -179,6 +191,7 @@ StickyTableRow _leaderboardRow(
   required int rank,
   required String name,
   required String? profileId,
+  required String pronosValue,
   required String firstValue,
   required String secondValue,
   required String points,
@@ -211,6 +224,14 @@ StickyTableRow _leaderboardRow(
         Expanded(
           flex: _leaderboardValueFlex,
           child: Text(
+            pronosValue,
+            textAlign: TextAlign.center,
+            style: valueStyle,
+          ),
+        ),
+        Expanded(
+          flex: _leaderboardValueFlex,
+          child: Text(
             firstValue,
             textAlign: TextAlign.center,
             style: valueStyle,
@@ -226,7 +247,7 @@ StickyTableRow _leaderboardRow(
         ),
         Expanded(
           flex: _leaderboardPointsFlex,
-          child: Text(points, textAlign: TextAlign.end, style: valueStyle),
+          child: Text(points, textAlign: TextAlign.center, style: valueStyle),
         ),
       ],
     ),

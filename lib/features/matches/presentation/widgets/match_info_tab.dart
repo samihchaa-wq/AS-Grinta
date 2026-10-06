@@ -116,7 +116,7 @@ class MatchInfoTab extends ConsumerWidget {
                 if (!info.isInternal)
                   Text(
                     encounters.length > 1
-                        ? '5 dernières rencontres'
+                        ? 'Dernières rencontres'
                         : 'Dernière rencontre',
                     style: Theme.of(context)
                         .textTheme
@@ -214,8 +214,8 @@ class _EncounterChip extends StatelessWidget {
               child: Text(
                 dateLabel,
                 maxLines: 1,
-                style: TextStyle(
-                  color: color.withValues(alpha: .82),
+                style: const TextStyle(
+                  color: Colors.white,
                   fontSize: 9,
                   fontWeight: FontWeight.w400,
                 ),

@@ -9,6 +9,7 @@ import {
 import {
   readBoundedJson,
   RequestBodyTooLargeError,
+  safeNotificationUrl,
   secretsEqual,
 } from "./request_security.ts";
 import { refreshMatchWeather } from "./weather_refresh.ts";
@@ -40,6 +41,7 @@ type PushRequestBody = {
   display_name?: string;
   title?: string;
   message?: string;
+  url?: string;
 };
 
 const sportsAvailabilityKinds = new Set([
@@ -373,9 +375,11 @@ Deno.serve(async (req: Request) => {
     return Response.json(result);
   }
 
-  // Message libre écrit par un administrateur, envoyé aux destinataires
-  // qu'il a choisis. Le titre et le texte viennent de la RPC, qui a déjà
-  // vérifié les droits et borné leur longueur.
+  // Contenu préparé par la base pour des destinataires précis : message libre
+  // d'un administrateur, convocation, composition, résultat HDM, badges…
+  // Le titre et le texte viennent de la RPC, qui a déjà vérifié les droits et
+  // borné leur longueur. L'écran à ouvrir est facultatif : une route de
+  // l'application, sinon l'accueil.
   if (body.kind === "custom") {
     const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
     const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -392,7 +396,7 @@ Deno.serve(async (req: Request) => {
       {
         title,
         body: message,
-        url: ".",
+        url: safeNotificationUrl(body.url),
         tag: `custom-${Date.now()}`,
       },
       { public: config.vapid_public, private: config.vapid_private },

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
+import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
 import 'package:flutter/material.dart';
@@ -13,11 +14,19 @@ import 'package:flutter_test/flutter_test.dart';
 /// selon les chiffres reçus, le tri des colonnes et le choix de la période.
 void main() {
   late _FakeStatisticsRepository repository;
+  var leaderboard = <LeaderboardEntry>[];
 
-  setUp(() => repository = _FakeStatisticsRepository());
+  setUp(() {
+    repository = _FakeStatisticsRepository();
+    leaderboard = <LeaderboardEntry>[];
+  });
 
-  Future<void> pumpStats(WidgetTester tester, {String? section}) async {
-    await tester.binding.setSurfaceSize(const Size(900, 1200));
+  Future<void> pumpStats(
+    WidgetTester tester, {
+    String? section,
+    Size size = const Size(900, 1200),
+  }) async {
+    await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
@@ -29,6 +38,7 @@ void main() {
           statisticsBadgeEmblemsProvider.overrideWith(
             (ref) async => const <String, List<StatisticsBadgeEmblemData>>{},
           ),
+          leaderboardProvider.overrideWith((ref) async => leaderboard),
         ],
         child: MaterialApp(home: StatsHubPage(initialSection: section)),
       ),
@@ -273,7 +283,79 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('le classement Prono compte les pronos avant les bons',
+      (tester) async {
+    leaderboard = [
+      _predictor('Karim', pronos: 14, bons: 9, exacts: 3, points: .37),
+      _predictor('Maxime', pronos: 11, bons: 5, exacts: 1, points: .18),
+    ];
+
+    await pumpStats(tester, section: 'rankings');
+
+    // « Prono » est à la fois l'onglet et la nouvelle colonne.
+    final pronoHeader = find.text('Prono').last;
+    final bonsHeader = find.text('Bons');
+    expect(bonsHeader, findsOneWidget);
+    expect(
+      tester.getCenter(pronoHeader).dx,
+      lessThan(tester.getCenter(bonsHeader).dx),
+    );
+    expect(find.text('14'), findsOneWidget);
+    expect(find.text('11'), findsOneWidget);
+  });
+
+  testWidgets('la colonne Prono tient sur un écran de téléphone',
+      (tester) async {
+    leaderboard = [
+      _predictor('Karim', pronos: 104, bons: 61, exacts: 12, points: 2.47),
+    ];
+
+    await pumpStats(tester, section: 'rankings', size: const Size(360, 780));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('104'), findsOneWidget);
+    expect(find.text('247'), findsOneWidget);
+  });
+
+  testWidgets('les points du classement Prono sont centrés', (tester) async {
+    leaderboard = [
+      _predictor('Karim', pronos: 14, bons: 9, exacts: 3, points: .37),
+    ];
+
+    await pumpStats(tester, section: 'rankings');
+
+    expect(tester.widget<Text>(find.text('37')).textAlign, TextAlign.center);
+  });
+
+  testWidgets('sans total publié par la base, la colonne Prono reste vide',
+      (tester) async {
+    leaderboard = [
+      _predictor('Karim', pronos: null, bons: 9, exacts: 3, points: .37),
+    ];
+
+    await pumpStats(tester, section: 'rankings');
+
+    expect(find.text('Karim'), findsOneWidget);
+    expect(find.text('–'), findsOneWidget);
+  });
 }
+
+LeaderboardEntry _predictor(
+  String name, {
+  required int? pronos,
+  required int bons,
+  required int exacts,
+  required double points,
+}) =>
+    LeaderboardEntry(
+      profileId: 'profil-$name',
+      name: name,
+      matchPoints: points,
+      matchBons: bons,
+      matchExacts: exacts,
+      matchPronos: pronos,
+    );
 
 PlayerStatistics _player(
   String name, {

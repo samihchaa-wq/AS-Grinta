@@ -10,6 +10,7 @@ class LeaderboardEntry {
     required this.matchPoints,
     required this.matchBons,
     required this.matchExacts,
+    this.matchPronos,
   });
 
   final String profileId;
@@ -21,6 +22,11 @@ class LeaderboardEntry {
   /// Statistiques matchs : bons vainqueurs et scores exacts trouvés.
   final int matchBons;
   final int matchExacts;
+
+  /// Pronostics remplis sur des matchs terminés : la base sur laquelle Bons,
+  /// Exacts et Points sont comptés. Nul tant que la base de données ne publie
+  /// pas encore ce total.
+  final int? matchPronos;
 }
 
 class LeaderboardRepository {
@@ -29,13 +35,15 @@ class LeaderboardRepository {
   final SupabaseClient _client;
 
   Future<List<LeaderboardEntry>> fetchCurrentLeaderboard() async {
-    final response = await _client.from('v_classement_general').select('''
-          profile_id,
-          first_name,
-          match_points,
-          match_bons,
-          match_exacts
-        ''').order('match_points', ascending: false).order('first_name');
+    // Toutes les colonnes plutôt qu'une liste fixe : le nombre de pronostics
+    // (match_pronos) arrive avec une migration livrée à part de l'application.
+    // Une colonne nommée mais encore absente ferait échouer tout le
+    // classement ; lue ainsi, elle reste simplement vide en attendant.
+    final response = await _client
+        .from('v_classement_general')
+        .select()
+        .order('match_points', ascending: false)
+        .order('first_name');
 
     final rows = (response as List)
         .map((row) => Map<String, dynamic>.from(row as Map))
@@ -73,6 +81,7 @@ class LeaderboardRepository {
         matchPoints: (map['match_points'] as num?)?.toDouble() ?? 0,
         matchBons: (map['match_bons'] as num?)?.toInt() ?? 0,
         matchExacts: (map['match_exacts'] as num?)?.toInt() ?? 0,
+        matchPronos: (map['match_pronos'] as num?)?.toInt(),
       );
     }).toList();
   }
