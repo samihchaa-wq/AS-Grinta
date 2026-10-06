@@ -6,6 +6,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- badge « Traître » : décerné seulement si l'AS Grinta perd réellement, comme
+  l'annonce sa description (« … et avoir raison »). La règle comptait jusqu'ici
+  tout pronostic de défaite, même faux ; le badge attribué ainsi à tort est
+  retiré ;
 - badge « Triplé Chrono » : décerné automatiquement à qui marque trois buts
   ou plus dans la même mi-temps (mi-temps notée par le Live, sinon déduite de
   la minute) ; les matchs déjà validés sont rattrapés ;
