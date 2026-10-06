@@ -50,4 +50,42 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'la colonne triée se signale par sa couleur, sans flèche',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Row(
+              children: [
+                SortableHeaderCell(
+                  label: 'HDM',
+                  flex: 1,
+                  active: true,
+                  descending: true,
+                  style: const TextStyle(color: Colors.white),
+                  onTap: () {},
+                ),
+                SortableHeaderCell(
+                  label: 'B',
+                  flex: 1,
+                  active: false,
+                  descending: true,
+                  style: const TextStyle(color: Colors.white),
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Icon), findsNothing);
+      expect(
+        tester.widget<Text>(find.text('HDM')).style?.color,
+        isNot(tester.widget<Text>(find.text('B')).style?.color),
+      );
+    },
+  );
 }
