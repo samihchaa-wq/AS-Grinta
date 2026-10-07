@@ -21,8 +21,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   l'abonnement dans la page en cours et tout de suite, avant de copier le
   lien. Ouvert jusqu'ici dans une nouvelle fenêtre après la copie, il pouvait
   être bloqué par Safari sans aucun message. Si l'abonnement ne s'affiche
-  pas, le message propose d'ouvrir la page d'abonnement. Plusieurs appuis
-  rapides n'empilent plus les fenêtres de choix ;
+  pas, le message propose d'ouvrir la page d'abonnement. Outlook s'ouvre
+  depuis le bouton du message, une fois le lien copié. Si l'appareil refuse
+  la copie du lien, un message le dit et mène à la page d'abonnement au lieu
+  de ne rien afficher. Plusieurs appuis rapides n'empilent plus les fenêtres
+  de choix ;
 - tableaux (Statistiques, Prono…) : la flèche de tri disparaît de la colonne
   sélectionnée, signalée seulement par la couleur de son libellé ;
 - notifications de disponibilité (ouverture, relance, match reporté) : elles
