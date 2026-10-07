@@ -85,6 +85,57 @@ void main() {
   });
 
   testWidgets(
+    'la flèche se colle au bord gauche et reste cliquable jusqu’au bord',
+    (tester) async {
+      final router = GoRouter(
+        initialLocation: '/fiche',
+        routes: [
+          GoRoute(
+            path: '/matches',
+            builder: (_, __) => const SizedBox(),
+          ),
+          GoRoute(
+            path: '/fiche',
+            builder: (_, __) => Scaffold(
+              body: MatchSheetListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: const [
+                  MatchSheetTopRow(
+                    header: SizedBox(key: _bannerKey, height: 90),
+                  ),
+                  SizedBox(key: ValueKey<String>('content'), height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      final icon = tester.getRect(
+        find.descendant(
+          of: find.byType(BackButton),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(icon.left, MatchSheetBackButton.edgeInset);
+      // Le reste de la fiche garde sa marge.
+      expect(
+        tester.getRect(find.byKey(const ValueKey<String>('content'))).left,
+        16,
+      );
+
+      // Un appui sur la pointe de la flèche, près du bord, est bien pris.
+      await tester.tapAt(Offset(icon.left + 2, icon.center.dy));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/matches');
+    },
+  );
+
+  testWidgets(
     'le bandeau des fiches ne coupe jamais un texte par « … »',
     (tester) async {
       await tester.pumpWidget(

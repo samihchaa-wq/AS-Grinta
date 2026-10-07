@@ -85,7 +85,7 @@ class MatchDetailsPage extends ConsumerWidget {
             await ref.read(matchDetailsProvider(matchId).future);
           },
           child: detailsAsync.when(
-            loading: () => ListView(
+            loading: () => MatchSheetListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: const [
                 MatchSheetTopRow(),
@@ -93,7 +93,7 @@ class MatchDetailsPage extends ConsumerWidget {
                 Center(child: GrintaProgressIndicator()),
               ],
             ),
-            error: (error, _) => ListView(
+            error: (error, _) => MatchSheetListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               children: [
                 const MatchSheetTopRow(),
@@ -107,7 +107,7 @@ class MatchDetailsPage extends ConsumerWidget {
             ),
             data: (details) {
               if (!details.isValidated) {
-                return ListView(
+                return MatchSheetListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                   children: [
                     MatchSheetTopRow(
@@ -137,7 +137,7 @@ class MatchDetailsPage extends ConsumerWidget {
                           ? 'Vote Homme du match enregistré'
                           : 'Voter pour l’Homme du match')
                       : null;
-              return ListView(
+              return MatchSheetListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   MatchSheetTopRow(

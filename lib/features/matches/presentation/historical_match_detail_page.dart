@@ -35,7 +35,7 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
             ref.invalidate(historicalMatchDetailProvider(matchId));
             await ref.read(historicalMatchDetailProvider(matchId).future);
           },
-          child: ListView(
+          child: MatchSheetListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
               MatchSheetTopRow(
