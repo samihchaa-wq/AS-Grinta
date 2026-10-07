@@ -95,13 +95,16 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     await _refreshModernMatches();
   }
 
-  Future<void> _copyCalendarLink(Uri httpsUri) async {
-    await Clipboard.setData(ClipboardData(text: httpsUri.toString()));
+  Future<void> _copyCalendarLink(Uri uri) async {
+    await Clipboard.setData(ClipboardData(text: uri.toString()));
   }
 
   Future<void> _openAppleCalendar(Uri httpsUri) async {
-    await _copyCalendarLink(httpsUri);
+    // Le lien webcal est copié plutôt que le lien https : collé dans Safari,
+    // le https proposait « Ajouter tous les événements », une copie unique
+    // qui ne se met jamais à jour. Le webcal ouvre toujours l'abonnement.
     final webcalUri = httpsUri.replace(scheme: 'webcal');
+    await _copyCalendarLink(webcalUri);
     try {
       await launchUrl(webcalUri, mode: LaunchMode.externalApplication);
     } catch (_) {
@@ -127,7 +130,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       const SnackBar(
         duration: Duration(seconds: 8),
         content: Text(
-          'Lien copié. Google Agenda permet l’abonnement par URL depuis un navigateur sur ordinateur : Autres agendas > + > À partir de l’URL.',
+          'Lien copié. L’appli Google Agenda ne permet pas l’abonnement : ouvre calendar.google.com dans un navigateur (sur téléphone, en version ordinateur), puis Autres agendas > + > À partir de l’URL.',
         ),
       ),
     );
@@ -193,7 +196,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                   leading: const Icon(Icons.event_rounded),
                   title: const Text('Google Agenda'),
                   subtitle: const Text(
-                    'Abonnement par URL à faire dans Google Agenda sur ordinateur',
+                    'Android : abonnement à faire sur Google Agenda en version web',
                   ),
                   trailing: const Icon(Icons.content_copy_rounded),
                   onTap: () => choose(() => _useGoogleCalendar(httpsUri)),
