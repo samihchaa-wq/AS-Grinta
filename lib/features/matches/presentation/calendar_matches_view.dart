@@ -95,13 +95,16 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     await _refreshModernMatches();
   }
 
-  Future<void> _copyCalendarLink(Uri httpsUri) async {
-    await Clipboard.setData(ClipboardData(text: httpsUri.toString()));
+  Future<void> _copyCalendarLink(Uri uri) async {
+    await Clipboard.setData(ClipboardData(text: uri.toString()));
   }
 
   Future<void> _openAppleCalendar(Uri httpsUri) async {
-    await _copyCalendarLink(httpsUri);
+    // Le lien webcal est copié plutôt que le lien https : collé dans Safari,
+    // le https proposait « Ajouter tous les événements », une copie unique
+    // qui ne se met jamais à jour. Le webcal ouvre toujours l'abonnement.
     final webcalUri = httpsUri.replace(scheme: 'webcal');
+    await _copyCalendarLink(webcalUri);
     try {
       await launchUrl(webcalUri, mode: LaunchMode.externalApplication);
     } catch (_) {

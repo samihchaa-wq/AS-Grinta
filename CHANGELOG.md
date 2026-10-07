@@ -6,6 +6,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- abonnement au calendrier : ouvert dans un navigateur, le lien affiche une
+  page qui mène à l'abonnement au lieu de proposer « Ajouter tous les
+  événements », une copie unique qui ne se mettait jamais à jour. Pour Apple
+  Calendrier, le lien copié est désormais un lien d'abonnement (webcal) ;
 - tableaux (Statistiques, Prono…) : la flèche de tri disparaît de la colonne
   sélectionnée, signalée seulement par la couleur de son libellé ;
 - notifications de disponibilité (ouverture, relance, match reporté) : elles
