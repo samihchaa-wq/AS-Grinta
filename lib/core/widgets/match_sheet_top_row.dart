@@ -40,14 +40,55 @@ class MatchSheetTopRow extends StatelessWidget {
   }
 }
 
-/// Flèche retour des fiches de match.
+/// Liste défilante d'une fiche de match.
+///
+/// Comme un [ListView], sauf que la marge gauche de [padding] ne s'applique
+/// pas aux [MatchSheetTopRow] : leur flèche retour se colle au bord gauche de
+/// l'écran au lieu de s'aligner sur le contenu. La marge est posée enfant par
+/// enfant plutôt que sur la liste, sinon la zone tactile de la flèche serait
+/// coupée par la marge.
+class MatchSheetListView extends StatelessWidget {
+  const MatchSheetListView({
+    super.key,
+    required this.padding,
+    required this.children,
+    this.physics,
+  });
+
+  final EdgeInsets padding;
+  final List<Widget> children;
+  final ScrollPhysics? physics;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: physics,
+      padding: EdgeInsets.only(top: padding.top, bottom: padding.bottom),
+      children: [
+        for (final child in children)
+          Padding(
+            padding: EdgeInsets.only(
+              left: child is MatchSheetTopRow ? 0 : padding.left,
+              right: padding.right,
+            ),
+            child: child,
+          ),
+      ],
+    );
+  }
+}
+
+/// Flèche retour des fiches de match, collée au bord gauche de l'écran.
 ///
 /// Revient à l'écran précédent. Ouverte sans écran précédent (lien direct),
 /// elle ramène au calendrier plutôt que de ne rien faire.
 class MatchSheetBackButton extends StatelessWidget {
   const MatchSheetBackButton({super.key});
 
-  static const double width = 40;
+  static const double width = 36;
+
+  /// Écart entre le bord de l'écran et la flèche.
+  static const double edgeInset = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +96,10 @@ class MatchSheetBackButton extends StatelessWidget {
       style: IconButton.styleFrom(
         minimumSize: const Size(width, kMinInteractiveDimension),
         maximumSize: const Size(width, kMinInteractiveDimension),
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.only(left: edgeInset),
+        alignment: Alignment.centerLeft,
+        // Sinon Flutter élargit le bouton à 48 et recentre la flèche.
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       onPressed: () {
         final navigator = Navigator.of(context);

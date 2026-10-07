@@ -350,7 +350,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(
-                AppSpacing.screenGutter,
+                0,
                 AppSpacing.sectionGap,
                 AppSpacing.screenGutter,
                 0,
@@ -396,7 +396,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (liveTakesOver) {
       return RefreshIndicator(
         onRefresh: _loadMatches,
-        child: ListView(
+        child: MatchSheetListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenGutter,
@@ -414,7 +414,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
     return RefreshIndicator(
       onRefresh: _loadMatches,
-      child: ListView(
+      child: MatchSheetListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.screenGutter,
