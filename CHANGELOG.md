@@ -17,6 +17,12 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   page qui mène à l'abonnement au lieu de proposer « Ajouter tous les
   événements », une copie unique qui ne se mettait jamais à jour. Pour Apple
   Calendrier, le lien copié est désormais un lien d'abonnement (webcal) ;
+- abonnement au calendrier sur iPhone : le bouton « Apple Calendrier » ouvre
+  l'abonnement dans la page en cours et tout de suite, avant de copier le
+  lien. Ouvert jusqu'ici dans une nouvelle fenêtre après la copie, il pouvait
+  être bloqué par Safari sans aucun message. Si l'abonnement ne s'affiche
+  pas, le message propose d'ouvrir la page d'abonnement. Plusieurs appuis
+  rapides n'empilent plus les fenêtres de choix ;
 - tableaux (Statistiques, Prono…) : la flèche de tri disparaît de la colonne
   sélectionnée, signalée seulement par la couleur de son libellé ;
 - notifications de disponibilité (ouverture, relance, match reporté) : elles
