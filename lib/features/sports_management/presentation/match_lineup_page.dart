@@ -114,7 +114,7 @@ class MatchLineupPage extends ConsumerWidget {
                 ref.read(inlineMatchPredictionProvider(matchId).future),
             ]);
           },
-          child: ListView(
+          child: MatchSheetListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.screenGutter,
@@ -210,7 +210,7 @@ class _MatchInfoOnlyPage extends ConsumerWidget {
               ref.read(matchInfoProvider(matchId).future),
             ]);
           },
-          child: ListView(
+          child: MatchSheetListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.screenGutter,
