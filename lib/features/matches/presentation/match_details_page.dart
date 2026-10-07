@@ -1,8 +1,8 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/collapsible_section_card.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
+import 'package:as_grinta/core/widgets/match_sheet_top_row.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -72,128 +72,139 @@ class MatchDetailsPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const SizedBox.shrink()),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(featureFlagsControllerProvider.notifier).refresh();
-          ref
-            ..invalidate(matchDetailsProvider(matchId))
-            ..invalidate(publishedMatchCompositionProvider(matchId))
-            ..invalidate(matchGoalActionsProvider(matchId))
-            ..invalidate(sportMotmVoteProvider(matchId));
-          await ref.read(matchDetailsProvider(matchId).future);
-        },
-        child: detailsAsync.when(
-          loading: () => ListView(
-            children: const [
-              SizedBox(height: 220),
-              Center(child: GrintaProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(humanizeError(error)),
-                ),
-              ),
-            ],
-          ),
-          data: (details) {
-            if (!details.isValidated) {
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  _UpcomingHeader(details: details),
-                  const SizedBox(height: 16),
-                  if (sportsEnabled)
-                    _UpcomingModules(matchId: matchId, isAdmin: isAdmin)
-                  else
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(18),
-                        child: Text('Gestion sportive indisponible.'),
-                      ),
-                    ),
-                ],
-              );
-            }
-
-            final vote = sportsEnabled
-                ? ref.watch(sportMotmVoteProvider(matchId)).valueOrNull
-                : null;
-            final motmActionLabel =
-                vote != null && vote.isOpen && vote.isEligibleVoter
-                    ? (vote.hasVoted
-                        ? 'Vote Homme du match enregistré'
-                        : 'Voter pour l’Homme du match')
-                    : null;
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await ref.read(featureFlagsControllerProvider.notifier).refresh();
+            ref
+              ..invalidate(matchDetailsProvider(matchId))
+              ..invalidate(publishedMatchCompositionProvider(matchId))
+              ..invalidate(matchGoalActionsProvider(matchId))
+              ..invalidate(sportMotmVoteProvider(matchId));
+            await ref.read(matchDetailsProvider(matchId).future);
+          },
+          child: detailsAsync.when(
+            loading: () => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              children: const [
+                MatchSheetTopRow(),
+                SizedBox(height: 170),
+                Center(child: GrintaProgressIndicator()),
+              ],
+            ),
+            error: (error, _) => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               children: [
-                MatchDetailHeaderCard(
-                  homeName: details.location == 'domicile'
-                      ? 'AS Grinta'
-                      : details.opponentName,
-                  awayName: details.location == 'domicile'
-                      ? details.opponentName
-                      : 'AS Grinta',
-                  grintaIsHome: details.location == 'domicile',
-                  homeScore: details.location == 'domicile'
-                      ? details.scoreGrinta ?? 0
-                      : details.scoreOpponent ?? 0,
-                  awayScore: details.location == 'domicile'
-                      ? details.scoreOpponent ?? 0
-                      : details.scoreGrinta ?? 0,
-                  finished: true,
-                  kickoffAt: details.kickoffAt,
-                  matchType: details.matchType,
-                  typeLabel: calendarMatchTypeLabel(
-                    details.matchType,
-                    details.championshipRound,
+                const MatchSheetTopRow(),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(humanizeError(error)),
                   ),
-                  address: details.address,
-                  motmActionLabel: motmActionLabel,
-                  onMotmTap: motmActionLabel == null
-                      ? null
-                      : () => context.push('/matches/$matchId/vote'),
-                  compact: true,
                 ),
-                _CompletedCompositionCard(
-                  details: details,
-                  matchId: matchId,
-                  sportsEnabled: sportsEnabled,
-                ),
-                _CompletedFactsSection(
-                  matchId: matchId,
-                  sportsEnabled: sportsEnabled,
-                ),
-                if (vote != null && vote.isClosed && vote.winners.isNotEmpty)
-                  _MotmVotesCard(matchId: matchId, vote: vote),
-                if (details.predictions.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _PredictionsTable(
-                    matchId: matchId,
-                    predictions: details.predictions,
-                    actualGrinta: details.scoreGrinta ?? 0,
-                    actualOpponent: details.scoreOpponent ?? 0,
-                    isHome: details.location == 'domicile',
-                    currentProfileId: currentProfileId,
+              ],
+            ),
+            data: (details) {
+              if (!details.isValidated) {
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  children: [
+                    MatchSheetTopRow(
+                      header: _UpcomingHeader(details: details),
+                      bottomSpacing: 0,
+                    ),
+                    const SizedBox(height: 16),
+                    if (sportsEnabled)
+                      _UpcomingModules(matchId: matchId, isAdmin: isAdmin)
+                    else
+                      const Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(18),
+                          child: Text('Gestion sportive indisponible.'),
+                        ),
+                      ),
+                  ],
+                );
+              }
+
+              final vote = sportsEnabled
+                  ? ref.watch(sportMotmVoteProvider(matchId)).valueOrNull
+                  : null;
+              final motmActionLabel =
+                  vote != null && vote.isOpen && vote.isEligibleVoter
+                      ? (vote.hasVoted
+                          ? 'Vote Homme du match enregistré'
+                          : 'Voter pour l’Homme du match')
+                      : null;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                children: [
+                  MatchSheetTopRow(
+                    bottomSpacing: 0,
+                    header: MatchDetailHeaderCard(
+                      homeName: details.location == 'domicile'
+                          ? 'AS Grinta'
+                          : details.opponentName,
+                      awayName: details.location == 'domicile'
+                          ? details.opponentName
+                          : 'AS Grinta',
+                      grintaIsHome: details.location == 'domicile',
+                      homeScore: details.location == 'domicile'
+                          ? details.scoreGrinta ?? 0
+                          : details.scoreOpponent ?? 0,
+                      awayScore: details.location == 'domicile'
+                          ? details.scoreOpponent ?? 0
+                          : details.scoreGrinta ?? 0,
+                      finished: true,
+                      kickoffAt: details.kickoffAt,
+                      matchType: details.matchType,
+                      typeLabel: calendarMatchTypeLabel(
+                        details.matchType,
+                        details.championshipRound,
+                      ),
+                      address: details.address,
+                      motmActionLabel: motmActionLabel,
+                      onMotmTap: motmActionLabel == null
+                          ? null
+                          : () => context.push('/matches/$matchId/vote'),
+                      compact: true,
+                    ),
                   ),
-                ],
-                if (isAdmin) ...[
-                  const SizedBox(height: 16),
-                  _PostgameAdminActions(
+                  _CompletedCompositionCard(
                     details: details,
                     matchId: matchId,
                     sportsEnabled: sportsEnabled,
                   ),
+                  _CompletedFactsSection(
+                    matchId: matchId,
+                    sportsEnabled: sportsEnabled,
+                  ),
+                  if (vote != null && vote.isClosed && vote.winners.isNotEmpty)
+                    _MotmVotesCard(matchId: matchId, vote: vote),
+                  if (details.predictions.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _PredictionsTable(
+                      matchId: matchId,
+                      predictions: details.predictions,
+                      actualGrinta: details.scoreGrinta ?? 0,
+                      actualOpponent: details.scoreOpponent ?? 0,
+                      isHome: details.location == 'domicile',
+                      currentProfileId: currentProfileId,
+                    ),
+                  ],
+                  if (isAdmin) ...[
+                    const SizedBox(height: 16),
+                    _PostgameAdminActions(
+                      details: details,
+                      matchId: matchId,
+                      sportsEnabled: sportsEnabled,
+                    ),
+                  ],
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

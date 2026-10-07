@@ -63,10 +63,16 @@ class MatchDetailHeaderCard extends StatelessWidget {
   final String? motmActionLabel;
   final VoidCallback? onMotmTap;
 
-  /// Les fiches de matchs à venir utilisent un en-tête plus serré.
-  /// Les matchs terminés et les archives conservent volontairement
-  /// leur gabarit historique.
+  /// En-tête des fiches de match : plus serré, noms et écusson plus petits
+  /// (identiques sur toutes les fiches), et aucun texte coupé par « … » :
+  /// un nom ou une adresse trop longs passent simplement à la ligne.
   final bool compact;
+
+  /// Taille des noms d'équipes et du score dans l'en-tête compact.
+  static const double compactNameSize = 15;
+
+  /// Taille de l'écusson AS Grinta dans l'en-tête compact.
+  static const double compactCrestSize = 24;
 
   bool get _isInternal => matchType == 'entre_nous';
 
@@ -103,13 +109,18 @@ class MatchDetailHeaderCard extends StatelessWidget {
           showTime: showTime,
           // Un match entre nous l'annonce déjà au centre de la carte.
           label: _isInternal && !hasScores ? null : typeLabel,
+          limitLines: !compact,
         ),
         body: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_isInternal && !hasScores)
-              const CalendarCenteredTitle('Match entre nous')
+              CalendarCenteredTitle(
+                'Match entre nous',
+                fontSize:
+                    compact ? compactNameSize : CalendarTeamName.regularSize,
+              )
             else
               CalendarScoreline(
                 homeName: homeName,
@@ -118,6 +129,12 @@ class MatchDetailHeaderCard extends StatelessWidget {
                 homeScore: homeScore,
                 awayScore: awayScore,
                 finished: hasScores,
+                nameSize:
+                    compact ? compactNameSize : CalendarTeamName.regularSize,
+                crestSize: compact
+                    ? compactCrestSize
+                    : CalendarScoreline.regularCrestSize,
+                limitNameLines: !compact,
               ),
             if (showMotmAction) ...[
               SizedBox(height: compact ? 8 : 14),
@@ -157,6 +174,7 @@ class MatchDetailHeaderCard extends StatelessWidget {
             ? CalendarAddressLine(
                 cleanAddress,
                 onTap: () => showMatchAddressSheet(context, cleanAddress),
+                limitLines: !compact,
               )
             : null,
       ),

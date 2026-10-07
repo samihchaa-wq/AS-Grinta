@@ -1,6 +1,6 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/match_sheet_top_row.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_tab.dart';
@@ -93,86 +93,97 @@ class MatchLineupPage extends ConsumerWidget {
     final showPrediction = resolvedSection == 'prediction';
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Fiche du match')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref
-            ..invalidate(upcomingMatchFixtureProvider(matchId))
-            ..invalidate(publishedMatchCompositionProvider(matchId))
-            ..invalidate(matchAvailabilityBoardProvider(matchId))
-            ..invalidate(matchInfoProvider(matchId))
-            ..invalidate(inlineMatchPredictionProvider(matchId));
-          await Future.wait([
-            ref.read(upcomingMatchFixtureProvider(matchId).future),
-            if (showComposition)
-              ref.read(publishedMatchCompositionProvider(matchId).future),
-            if (showEffectif)
-              ref.read(matchAvailabilityBoardProvider(matchId).future),
-            if (showInfo) ref.read(matchInfoProvider(matchId).future),
-            if (showPrediction)
-              ref.read(inlineMatchPredictionProvider(matchId).future),
-          ]);
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screenGutter,
-            AppSpacing.sectionGap,
-            AppSpacing.screenGutter,
-            40,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref
+              ..invalidate(upcomingMatchFixtureProvider(matchId))
+              ..invalidate(publishedMatchCompositionProvider(matchId))
+              ..invalidate(matchAvailabilityBoardProvider(matchId))
+              ..invalidate(matchInfoProvider(matchId))
+              ..invalidate(inlineMatchPredictionProvider(matchId));
+            await Future.wait([
+              ref.read(upcomingMatchFixtureProvider(matchId).future),
+              if (showComposition)
+                ref.read(publishedMatchCompositionProvider(matchId).future),
+              if (showEffectif)
+                ref.read(matchAvailabilityBoardProvider(matchId).future),
+              if (showInfo) ref.read(matchInfoProvider(matchId).future),
+              if (showPrediction)
+                ref.read(inlineMatchPredictionProvider(matchId).future),
+            ]);
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenGutter,
+              AppSpacing.sectionGap,
+              AppSpacing.screenGutter,
+              40,
+            ),
+            children: liveTakesOver
+                ? [
+                    const MatchSheetTopRow(bottomSpacing: 0),
+                    MatchLiveTab(matchId: matchId),
+                  ]
+                : [
+                    MatchSheetTopRow(
+                      header: UpcomingMatchFixtureHeader(
+                        matchId: matchId,
+                        bottomSpacing: 0,
+                      ),
+                    ),
+                    SegmentedButton<String>(
+                      showSelectedIcon: false,
+                      segments: [
+                        const ButtonSegment(value: 'info', label: Text('Info')),
+                        if (!tooFarAway)
+                          const ButtonSegment(
+                            value: 'effectif',
+                            label: Text('Effectif'),
+                          ),
+                        if (!tooFarAway)
+                          const ButtonSegment(
+                            value: 'composition',
+                            label: Text('Compo'),
+                          ),
+                        if (!isInternal && !tooFarAway && !liveTooEarly)
+                          const ButtonSegment(
+                              value: 'live', label: Text('Live')),
+                        if (!isInternal && !tooFarAway && !predictionClosed)
+                          const ButtonSegment(
+                            value: 'prediction',
+                            label: Text('Prono'),
+                          ),
+                      ],
+                      selected: {resolvedSection},
+                      onSelectionChanged: (selection) => context.go(
+                        '/matches/$matchId/lineup?section=${selection.first}',
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sectionGap),
+                    if (showInfo) MatchInfoTab(matchId: matchId),
+                    if (showEffectif)
+                      MatchAvailabilityBoardCard(
+                        matchId: matchId,
+                        showAfterComposition: true,
+                      ),
+                    if (showComposition && isInternal)
+                      InternalTeamCompositionView(
+                          matchId: matchId, editable: false)
+                    else if (showComposition)
+                      PublishedLineupPreview(
+                        matchId: matchId,
+                        expanded: true,
+                        fallbackToEffectif: false,
+                        emptyMessage: 'Composition non publiée.',
+                      ),
+                    if (showLive) MatchLiveTab(matchId: matchId),
+                    if (showPrediction)
+                      InlineMatchPredictionCard(matchId: matchId),
+                  ],
           ),
-          children: liveTakesOver
-              ? [MatchLiveTab(matchId: matchId)]
-              : [
-                  UpcomingMatchFixtureHeader(matchId: matchId),
-                  SegmentedButton<String>(
-                    showSelectedIcon: false,
-                    segments: [
-                      const ButtonSegment(value: 'info', label: Text('Info')),
-                      if (!tooFarAway)
-                        const ButtonSegment(
-                          value: 'effectif',
-                          label: Text('Effectif'),
-                        ),
-                      if (!tooFarAway)
-                        const ButtonSegment(
-                          value: 'composition',
-                          label: Text('Compo'),
-                        ),
-                      if (!isInternal && !tooFarAway && !liveTooEarly)
-                        const ButtonSegment(value: 'live', label: Text('Live')),
-                      if (!isInternal && !tooFarAway && !predictionClosed)
-                        const ButtonSegment(
-                          value: 'prediction',
-                          label: Text('Prono'),
-                        ),
-                    ],
-                    selected: {resolvedSection},
-                    onSelectionChanged: (selection) => context.go(
-                      '/matches/$matchId/lineup?section=${selection.first}',
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sectionGap),
-                  if (showInfo) MatchInfoTab(matchId: matchId),
-                  if (showEffectif)
-                    MatchAvailabilityBoardCard(
-                      matchId: matchId,
-                      showAfterComposition: true,
-                    ),
-                  if (showComposition && isInternal)
-                    InternalTeamCompositionView(
-                        matchId: matchId, editable: false)
-                  else if (showComposition)
-                    PublishedLineupPreview(
-                      matchId: matchId,
-                      expanded: true,
-                      fallbackToEffectif: false,
-                      emptyMessage: 'Composition non publiée.',
-                    ),
-                  if (showLive) MatchLiveTab(matchId: matchId),
-                  if (showPrediction)
-                    InlineMatchPredictionCard(matchId: matchId),
-                ],
         ),
       ),
     );
@@ -187,29 +198,36 @@ class _MatchInfoOnlyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Fiche du match')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref
-            ..invalidate(upcomingMatchFixtureProvider(matchId))
-            ..invalidate(matchInfoProvider(matchId));
-          await Future.wait([
-            ref.read(upcomingMatchFixtureProvider(matchId).future),
-            ref.read(matchInfoProvider(matchId).future),
-          ]);
-        },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.screenGutter,
-            AppSpacing.sectionGap,
-            AppSpacing.screenGutter,
-            40,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref
+              ..invalidate(upcomingMatchFixtureProvider(matchId))
+              ..invalidate(matchInfoProvider(matchId));
+            await Future.wait([
+              ref.read(upcomingMatchFixtureProvider(matchId).future),
+              ref.read(matchInfoProvider(matchId).future),
+            ]);
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenGutter,
+              AppSpacing.sectionGap,
+              AppSpacing.screenGutter,
+              40,
+            ),
+            children: [
+              MatchSheetTopRow(
+                header: UpcomingMatchFixtureHeader(
+                  matchId: matchId,
+                  bottomSpacing: 0,
+                ),
+              ),
+              MatchInfoTab(matchId: matchId),
+            ],
           ),
-          children: [
-            UpcomingMatchFixtureHeader(matchId: matchId),
-            MatchInfoTab(matchId: matchId),
-          ],
         ),
       ),
     );

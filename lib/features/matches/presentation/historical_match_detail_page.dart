@@ -1,7 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
+import 'package:as_grinta/core/widgets/match_sheet_top_row.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
@@ -28,45 +28,50 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
     final loadedDetail = detailAsync.valueOrNull;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const SizedBox.shrink()),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(historicalMatchDetailProvider(matchId));
-          await ref.read(historicalMatchDetailProvider(matchId).future);
-        },
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            _HistoricalMatchHeaderSection(
-              matchId: matchId,
-              initialMatch: initialMatch,
-              detail: loadedDetail,
-            ),
-            detailAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Center(child: GrintaProgressIndicator()),
-              ),
-              error: (error, _) => Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(humanizeError(error)),
-                  ),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(historicalMatchDetailProvider(matchId));
+            await ref.read(historicalMatchDetailProvider(matchId).future);
+          },
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            children: [
+              MatchSheetTopRow(
+                bottomSpacing: 0,
+                header: _HistoricalMatchHeaderSection(
+                  matchId: matchId,
+                  initialMatch: initialMatch,
+                  detail: loadedDetail,
                 ),
               ),
-              data: (detail) {
-                if (detail == null || detail.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-                return _HistoricalMatchDetailBody(
-                  matchId: matchId,
-                  detail: detail,
-                );
-              },
-            ),
-          ],
+              detailAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: Center(child: GrintaProgressIndicator()),
+                ),
+                error: (error, _) => Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Text(humanizeError(error)),
+                    ),
+                  ),
+                ),
+                data: (detail) {
+                  if (detail == null || detail.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return _HistoricalMatchDetailBody(
+                    matchId: matchId,
+                    detail: detail,
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

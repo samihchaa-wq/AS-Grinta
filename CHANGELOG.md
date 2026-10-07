@@ -6,6 +6,13 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiches de match (passées, archivées, à venir, version admin) : plus de
+  barre en haut. L'écusson, le titre « Fiche du match » et le bouton
+  d'actualisation disparaissent ; le bandeau du match se place à droite de la
+  flèche retour et tout le contenu remonte. Noms d'équipes et écusson du
+  bandeau sont plus petits, à la même taille sur toutes les fiches, et un
+  texte trop long passe à la ligne au lieu d'être coupé par « … ». Tirer
+  l'écran vers le bas recharge toujours la fiche ;
 - abonnement au calendrier : ouvert dans un navigateur, le lien affiche une
   page qui mène à l'abonnement au lieu de proposer « Ajouter tous les
   événements », une copie unique qui ne se mettait jamais à jour. Pour Apple
