@@ -23,6 +23,9 @@ class CalendarScoreline extends StatelessWidget {
     this.awayScore,
     this.finished = false,
     this.foreground,
+    this.nameSize = CalendarTeamName.regularSize,
+    this.crestSize = regularCrestSize,
+    this.limitNameLines = true,
   });
 
   final String homeName;
@@ -33,7 +36,20 @@ class CalendarScoreline extends StatelessWidget {
   final bool finished;
   final Color? foreground;
 
+  /// Taille des noms d'équipes et du score.
+  final double nameSize;
+
+  /// Taille de l'écusson AS Grinta.
+  final double crestSize;
+
+  /// Sans limite, un nom très long passe sur autant de lignes que nécessaire
+  /// et n'est jamais coupé par « … ».
+  final bool limitNameLines;
+
   static const String crestAsset = 'assets/images/as_grinta_logo.webp';
+
+  /// Taille habituelle de l'écusson, celle des cartes du calendrier.
+  static const double regularCrestSize = 32;
 
   /// Écart identique entre chaque équipe et le score.
   static const double scoreGap = 12;
@@ -59,7 +75,7 @@ class CalendarScoreline extends StatelessWidget {
           // Même taille que les noms d'équipes, sur la même ligne.
           style: theme.textTheme.titleMedium?.copyWith(
             color: scoreColor,
-            fontSize: CalendarTeamName.regularSize,
+            fontSize: nameSize,
             height: 1.15,
             fontWeight: FontWeight.w400,
             // Des chiffres colorés sur fond sombre paraissent plus fins que
@@ -96,6 +112,9 @@ class CalendarScoreline extends StatelessWidget {
             isGrinta: grintaIsHome,
             isHome: true,
             color: nameColor,
+            nameSize: nameSize,
+            crestSize: crestSize,
+            limitLines: limitNameLines,
           ),
         ),
         Padding(
@@ -108,6 +127,9 @@ class CalendarScoreline extends StatelessWidget {
             isGrinta: !grintaIsHome,
             isHome: false,
             color: nameColor,
+            nameSize: nameSize,
+            crestSize: crestSize,
+            limitLines: limitNameLines,
           ),
         ),
       ],
@@ -121,6 +143,9 @@ class _ScorelineTeam extends StatelessWidget {
     required this.isGrinta,
     required this.isHome,
     required this.color,
+    required this.nameSize,
+    required this.crestSize,
+    required this.limitLines,
   });
 
   final String name;
@@ -132,36 +157,47 @@ class _ScorelineTeam extends StatelessWidget {
   /// pile au centre de sa moitié.
   final bool isHome;
   final Color color;
+  final double nameSize;
+  final double crestSize;
+  final bool limitLines;
 
-  static const double _crestSize = 32;
   static const double _crestGap = 6;
 
   @override
   Widget build(BuildContext context) {
-    const crest = ExcludeSemantics(
+    final crest = ExcludeSemantics(
       child: Image(
-        image: AssetImage(CalendarScoreline.crestAsset),
-        width: _crestSize,
-        height: _crestSize,
+        image: const AssetImage(CalendarScoreline.crestAsset),
+        width: crestSize,
+        height: crestSize,
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
       ),
     );
-    final label = CalendarTeamName(name: name, color: color);
+    final label = CalendarTeamName(
+      name: name,
+      color: color,
+      fontSize: nameSize,
+      limitLines: limitLines,
+    );
 
     if (!isGrinta) return Center(child: label);
 
-    const reserved = SizedBox(width: _crestSize + _crestGap);
+    final reserved = SizedBox(width: crestSize + _crestGap);
     return LayoutBuilder(
       builder: (context, constraints) {
         // Le nom est centré dans sa moitié, avec en miroir de l'écusson un
         // espace de même largeur. Si cette réserve ferait passer le nom sur
         // deux lignes, on centre plutôt le bloc écusson + nom : le nom reste
         // sur une ligne, légèrement décalé.
-        final nameWidth =
-            CalendarTeamName.singleLineWidth(context, name, color);
+        final nameWidth = CalendarTeamName.singleLineWidth(
+          context,
+          name,
+          color,
+          fontSize: nameSize,
+        );
         final symmetric =
-            nameWidth + 2 * (_crestSize + _crestGap) <= constraints.maxWidth;
+            nameWidth + 2 * (crestSize + _crestGap) <= constraints.maxWidth;
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -191,11 +227,17 @@ class CalendarTeamName extends StatelessWidget {
     required this.name,
     required this.color,
     this.textAlign = TextAlign.center,
+    this.fontSize = regularSize,
+    this.limitLines = true,
   });
 
   final String name;
   final Color color;
   final TextAlign textAlign;
+  final double fontSize;
+
+  /// Sans limite, le nom n'est jamais coupé par « … ».
+  final bool limitLines;
 
   static const double regularSize = 17;
 
@@ -211,15 +253,16 @@ class CalendarTeamName extends StatelessWidget {
   static List<String> balancedLines(
     String name,
     double Function(String line) widthOf,
-    double maxWidth,
-  ) {
+    double maxWidth, {
+    int lineLimit = maxLines,
+  }) {
     final trimmed = name.trim();
     final words = trimmed.split(RegExp(r'\s+'));
     if (words.length < 2 || widthOf(trimmed) <= maxWidth) return [trimmed];
 
     List<String>? fallback;
     var fallbackWidth = double.infinity;
-    for (var count = 2; count <= maxLines && count <= words.length; count++) {
+    for (var count = 2; count <= lineLimit && count <= words.length; count++) {
       List<String>? best;
       var bestWidth = double.infinity;
 
@@ -254,10 +297,14 @@ class CalendarTeamName extends StatelessWidget {
     return fallback ?? [trimmed];
   }
 
-  static TextStyle _style(BuildContext context, Color color) =>
+  static TextStyle _style(
+    BuildContext context,
+    Color color, {
+    double fontSize = regularSize,
+  }) =>
       (Theme.of(context).textTheme.titleMedium ?? const TextStyle()).copyWith(
         color: color,
-        fontSize: regularSize,
+        fontSize: fontSize,
         fontWeight: FontWeight.w400,
         height: 1.15,
       );
@@ -283,25 +330,38 @@ class CalendarTeamName extends StatelessWidget {
   static double singleLineWidth(
     BuildContext context,
     String name,
-    Color color,
-  ) =>
-      _lineWidth(context, name.trim(), _style(context, color));
+    Color color, {
+    double fontSize = regularSize,
+  }) =>
+      _lineWidth(
+        context,
+        name.trim(),
+        _style(context, color, fontSize: fontSize),
+      );
 
   @override
   Widget build(BuildContext context) {
-    final style = _style(context, color);
+    final style = _style(context, color, fontSize: fontSize);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         double widthOf(String line) => _lineWidth(context, line, style);
 
-        final lines = balancedLines(name, widthOf, constraints.maxWidth);
+        final lines = balancedLines(
+          name,
+          widthOf,
+          constraints.maxWidth,
+          // Au-delà de 6 lignes, la recherche de coupures équilibrées
+          // devient coûteuse ; le retour à la ligne automatique prend le
+          // relais sans jamais tronquer.
+          lineLimit: limitLines ? maxLines : 6,
+        );
         return Text(
           lines.join('\n'),
           semanticsLabel: name,
           textAlign: textAlign,
-          maxLines: maxLines,
-          overflow: TextOverflow.ellipsis,
+          maxLines: limitLines ? maxLines : null,
+          overflow: limitLines ? TextOverflow.ellipsis : null,
           // La largeur du texte épouse sa ligne la plus longue : le nom reste
           // collé au score même quand il passe sur plusieurs lignes.
           textWidthBasis: TextWidthBasis.longestLine,
@@ -314,10 +374,16 @@ class CalendarTeamName extends StatelessWidget {
 
 /// Titre centré d'une carte sans affiche (« Match entre nous », événement).
 class CalendarCenteredTitle extends StatelessWidget {
-  const CalendarCenteredTitle(this.text, {super.key, this.color});
+  const CalendarCenteredTitle(
+    this.text, {
+    super.key,
+    this.color,
+    this.fontSize = CalendarTeamName.regularSize,
+  });
 
   final String text;
   final Color? color;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +393,7 @@ class CalendarCenteredTitle extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 17,
+              fontSize: fontSize,
               height: 1.15,
               fontWeight: FontWeight.w400,
               color: color ?? AppTheme.textPrimary,
@@ -467,26 +533,41 @@ class CalendarDateLine extends StatelessWidget {
     this.showTime = true,
     this.label,
     this.endInset = 0,
+    this.limitLines = true,
   });
 
   final DateTime kickoffAt;
   final bool showTime;
   final String? label;
 
+  /// Sans limite, la ligne passe à la ligne autant que nécessaire et n'est
+  /// jamais coupée par « … ».
+  final bool limitLines;
+
   /// Place laissée à droite pour le bouton d'administration.
   final double endInset;
+
+  String _compose() {
+    final parts = [
+      AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
+      if (label case final extra? when extra.trim().isNotEmpty) extra,
+    ];
+    if (limitLines) return parts.join(' • ');
+    // Sans limite de lignes, la ligne ne se coupe qu'entre deux éléments :
+    // jamais « J2 » ou « 2026 » seul en dessous.
+    return parts
+        .map((part) => part.trim().replaceAll(' ', '\u00A0'))
+        .join('\u00A0• ');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsetsDirectional.only(end: endInset),
       child: Text(
-        [
-          AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
-          if (label case final extra? when extra.trim().isNotEmpty) extra,
-        ].join(' • '),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+        _compose(),
+        maxLines: limitLines ? 2 : null,
+        overflow: limitLines ? TextOverflow.ellipsis : null,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: AppTheme.textPrimary,
               fontSize: 12,
@@ -500,17 +581,25 @@ class CalendarDateLine extends StatelessWidget {
 
 /// Adresse du bandeau du bas, cliquable pour ouvrir le choix du GPS.
 class CalendarAddressLine extends StatelessWidget {
-  const CalendarAddressLine(this.address, {super.key, this.onTap});
+  const CalendarAddressLine(
+    this.address, {
+    super.key,
+    this.onTap,
+    this.limitLines = true,
+  });
 
   final String address;
   final VoidCallback? onTap;
+
+  /// Sans limite, l'adresse n'est jamais coupée par « … ».
+  final bool limitLines;
 
   @override
   Widget build(BuildContext context) {
     final text = Text(
       address,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
+      maxLines: limitLines ? 2 : null,
+      overflow: limitLines ? TextOverflow.ellipsis : null,
       // Même hauteur de ligne que la date du bandeau du haut : l'espace entre
       // le bord de la carte et le texte est ainsi identique en haut et en bas.
       style: Theme.of(context).textTheme.labelMedium?.copyWith(

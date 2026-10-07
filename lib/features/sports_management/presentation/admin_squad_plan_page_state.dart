@@ -337,26 +337,33 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Pas de barre supérieure : la flèche retour se place à gauche du
+    // bandeau du match. Tirer l'écran vers le bas recharge la fiche.
     return Scaffold(
-      appBar: GrintaAppBar(
-        title: const SizedBox.shrink(),
-        actions: [
-          IconButton(
-            tooltip: 'Actualiser',
-            onPressed: _loading || _busy ? null : _loadMatches,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: _buildBody(),
+      body: SafeArea(bottom: false, child: _buildBody()),
     );
   }
 
   Widget _buildBody() {
-    if (_loading) return const Center(child: GrintaProgressIndicator());
+    Widget withBackArrow(Widget child) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.screenGutter,
+                AppSpacing.sectionGap,
+                AppSpacing.screenGutter,
+                0,
+              ),
+              child: MatchSheetTopRow(bottomSpacing: 0),
+            ),
+            Expanded(child: Center(child: child)),
+          ],
+        );
+    if (_loading) return withBackArrow(const GrintaProgressIndicator());
     if (_matches.isEmpty) {
-      return const Center(
-        child: GrintaEmptyState(
+      return withBackArrow(
+        const GrintaEmptyState(
           icon: Icons.event_busy_rounded,
           title: 'Aucun match disponible',
           message: 'Crée un match depuis l’onglet Matchs pour préparer '
@@ -397,7 +404,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             AppSpacing.screenGutter,
             40,
           ),
-          children: [MatchLiveTab(matchId: _selectedMatchId!)],
+          children: [
+            const MatchSheetTopRow(bottomSpacing: 0),
+            MatchLiveTab(matchId: _selectedMatchId!),
+          ],
         ),
       );
     }
@@ -413,8 +423,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           40,
         ),
         children: [
-          if (_selectedMatchId != null)
-            UpcomingMatchFixtureHeader(matchId: _selectedMatchId!),
+          MatchSheetTopRow(
+            header: _selectedMatchId == null
+                ? null
+                : UpcomingMatchFixtureHeader(
+                    matchId: _selectedMatchId!,
+                    bottomSpacing: 0,
+                  ),
+          ),
           SegmentedButton<_AdminStep>(
             showSelectedIcon: false,
             segments: [
