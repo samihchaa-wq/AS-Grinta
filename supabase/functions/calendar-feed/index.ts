@@ -91,41 +91,17 @@ function eventLines(row: Record<string, unknown>): string {
 // copiés une seule fois dans l'agenda, sans jamais se mettre à jour. Les
 // navigateurs envoient Sec-Fetch-Mode: navigate, pas les agendas (Apple,
 // Google, Outlook) qui relisent le flux : eux continuent de recevoir l'ICS.
+// Le navigateur est renvoyé vers la page d'abonnement de l'app, Supabase ne
+// servant pas de HTML depuis ses fonctions (réécrit en text/plain).
+const SUBSCRIBE_PAGE_URL = "https://samihchaa-wq.github.io/AS-Grinta/abonnement-calendrier.html";
+
 function isBrowserNavigation(req: Request): boolean {
   return req.headers.get("sec-fetch-mode")?.toLowerCase() === "navigate";
 }
 
-function subscribePage(supabaseUrl: string, token: string): string {
-  const httpsUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/calendar-feed?token=${token}`;
-  const webcalUrl = httpsUrl.replace(/^https?:/, "webcal:");
-  return `<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calendrier AS Grinta</title>
-<style>
-body{font-family:-apple-system,system-ui,sans-serif;margin:0;padding:24px 16px;background:#f5f5f5;color:#111;line-height:1.45}
-main{max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:24px}
-h1{font-size:22px;margin:0 0 12px}
-a.btn{display:block;text-align:center;background:#111;color:#fff;text-decoration:none;padding:14px;border-radius:12px;font-weight:600;margin:20px 0}
-code{display:block;word-break:break-all;background:#f0f0f0;padding:10px;border-radius:8px;font-size:13px}
-@media (prefers-color-scheme:dark){body{background:#000;color:#eee}main{background:#1c1c1e}a.btn{background:#fff;color:#111}code{background:#2c2c2e}}
-</style>
-</head>
-<body>
-<main>
-<h1>Calendrier AS Grinta</h1>
-<p>Ce lien sert à <strong>s'abonner</strong> au calendrier, pour que les nouveaux matchs et les changements arrivent tout seuls dans ton agenda.</p>
-<p>Ne pas utiliser « Ajouter tous les événements » : les matchs seraient copiés une seule fois et ne se mettraient plus à jour.</p>
-<a class="btn" href="${webcalUrl}">S'abonner dans Apple Calendrier</a>
-<p><strong>Google Agenda</strong> (sur ordinateur) : Autres agendas &gt; + &gt; À partir de l'URL, puis colle ce lien :</p>
-<code>${httpsUrl}</code>
-<p><strong>Outlook</strong> : Ajouter un calendrier &gt; S'abonner à partir du web, avec le même lien.</p>
-</main>
-</body>
-</html>
-`;
+function subscribePageUrl(supabaseUrl: string, token: string): string {
+  const feed = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/calendar-feed?token=${token}`;
+  return `${SUBSCRIBE_PAGE_URL}#${new URLSearchParams({ feed })}`;
 }
 
 Deno.serve(async (req: Request) => {
@@ -158,10 +134,10 @@ Deno.serve(async (req: Request) => {
   if (!subscription) return new Response("Not found", { status: 404 });
 
   if (isBrowserNavigation(req)) {
-    return new Response(req.method === "HEAD" ? null : subscribePage(supabaseUrl, token), {
-      status: 200,
+    return new Response(null, {
+      status: 302,
       headers: {
-        "Content-Type": "text/html; charset=utf-8",
+        Location: subscribePageUrl(supabaseUrl, token),
         "Cache-Control": "no-cache, no-store, must-revalidate",
       },
     });
