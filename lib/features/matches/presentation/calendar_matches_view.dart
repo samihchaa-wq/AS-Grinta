@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:as_grinta/app/shell/module_navigation.dart';
@@ -25,6 +26,7 @@ import 'package:as_grinta/features/matches/presentation/widgets/admin_match_opti
 import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -50,6 +52,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   _CalendarDisplayMode _displayMode = _CalendarDisplayMode.scroll;
   DateTime _monthCursor = DateTime(DateTime.now().year, DateTime.now().month);
   final Map<String, Future<List<HistoricalMatchResult>>> _historyLoads = {};
+  bool _subscribing = false;
 
   @override
   void didUpdateWidget(covariant CalendarMatchesView oldWidget) {
@@ -95,65 +98,129 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     await _refreshModernMatches();
   }
 
-  Future<void> _copyCalendarLink(Uri uri) async {
-    await Clipboard.setData(ClipboardData(text: uri.toString()));
+  /// Copie le lien ; un presse-papiers refusé ne doit jamais empêcher la
+  /// suite (ouverture de l'abonnement, message).
+  Future<bool> _copyCalendarLink(Uri uri) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: uri.toString()));
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
-  Future<void> _openAppleCalendar(Uri httpsUri) async {
-    // Le lien webcal est copié plutôt que le lien https : collé dans Safari,
-    // le https proposait « Ajouter tous les événements », une copie unique
-    // qui ne se met jamais à jour. Le webcal ouvre toujours l'abonnement.
-    final webcalUri = httpsUri.replace(scheme: 'webcal');
-    await _copyCalendarLink(webcalUri);
-    try {
-      await launchUrl(webcalUri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      // Some iOS/PWA combinations report a handled URL without displaying the
-      // subscription screen. The HTTPS feed is already copied as a reliable
-      // manual fallback.
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        duration: Duration(seconds: 8),
-        content: Text(
-          'Si Apple Calendrier ne propose pas l’abonnement, le lien est copié : Calendrier > Calendriers > Ajouter > Ajouter un calendrier avec abonnement.',
-        ),
+  /// Lance [uri] tout de suite, sans rien attendre avant : appelé après un
+  /// await, Safari sur iPhone ne voyait plus le geste de l'utilisateur et
+  /// bloquait l'ouverture sans aucune erreur. Sur le web, [webWindowName]
+  /// « _self » ouvre le lien dans la page en cours plutôt que dans une
+  /// nouvelle fenêtre, que l'iPhone peut aussi bloquer en silence.
+  void _launchNow(Uri uri, {String? webWindowName}) {
+    final launch = kIsWeb
+        ? launchUrl(uri, webOnlyWindowName: webWindowName)
+        : launchUrl(uri, mode: LaunchMode.externalApplication);
+    unawaited(launch.catchError((Object _) => false));
+  }
+
+  Uri _subscribePageUri(Uri httpsUri) {
+    final base = AppConfig.publicAppUrl.endsWith('/')
+        ? AppConfig.publicAppUrl
+        : '${AppConfig.publicAppUrl}/';
+    return Uri.parse(
+      '${base}abonnement-calendrier.html'
+      '#feed=${Uri.encodeComponent(httpsUri.toString())}',
+    );
+  }
+
+  /// Message avec un bouton : depuis Flutter 3.38, un SnackBar doté d'une
+  /// action reste affiché tant qu'on ne le ferme pas, et bloque les messages
+  /// suivants. Il est donc rendu temporaire, avec une croix pour le fermer.
+  void _showActionMessage(
+    String message, {
+    required String actionLabel,
+    required VoidCallback onAction,
+    Duration duration = const Duration(seconds: 8),
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: duration,
+        persist: false,
+        showCloseIcon: true,
+        content: Text(message),
+        action: SnackBarAction(label: actionLabel, onPressed: onAction),
       ),
+    );
+  }
+
+  void _openSubscribePage(Uri httpsUri) =>
+      _launchNow(_subscribePageUri(httpsUri), webWindowName: '_self');
+
+  Future<void> _openAppleCalendar(Uri httpsUri) async {
+    // Le lien webcal ouvre l'abonnement ; le https, collé dans Safari,
+    // proposait « Ajouter tous les événements », une copie unique qui ne se
+    // met jamais à jour.
+    final webcalUri = httpsUri.replace(scheme: 'webcal');
+    // Dans la page en cours seulement sur les appareils Apple, qui savent
+    // ouvrir un webcal : ailleurs (Firefox sans agenda associé), l'app serait
+    // remplacée par une page d'erreur.
+    final applePlatform = defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
+    _launchNow(webcalUri, webWindowName: applePlatform ? '_self' : null);
+    final copied = await _copyCalendarLink(webcalUri);
+    if (!mounted) return;
+    _showActionMessage(
+      copied
+          ? 'Apple Calendrier ne propose pas « S’abonner » ? Ouvre la page d’abonnement, ou colle le lien copié dans Calendrier > Calendriers > Ajouter > Ajouter un calendrier avec abonnement.'
+          : 'Apple Calendrier ne propose pas « S’abonner » ? Ouvre la page d’abonnement.',
+      actionLabel: 'Ouvrir',
+      onAction: () => _openSubscribePage(httpsUri),
+      duration: const Duration(seconds: 20),
     );
   }
 
   Future<void> _useGoogleCalendar(Uri httpsUri) async {
-    await _copyCalendarLink(httpsUri);
+    final copied = await _copyCalendarLink(httpsUri);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        duration: Duration(seconds: 8),
-        content: Text(
-          'Lien copié. L’appli Google Agenda ne permet pas l’abonnement : ouvre calendar.google.com dans un navigateur (sur téléphone, en version ordinateur), puis Autres agendas > + > À partir de l’URL.',
+    if (copied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 8),
+          content: Text(
+            'Lien copié. L’appli Google Agenda ne permet pas l’abonnement : ouvre calendar.google.com dans un navigateur (sur téléphone, en version ordinateur), puis Autres agendas > + > À partir de l’URL.',
+          ),
         ),
-      ),
+      );
+      return;
+    }
+    _showActionMessage(
+      'Copie impossible. Ouvre la page d’abonnement pour copier le lien, puis ajoute-le dans Google Agenda en version web : Autres agendas > + > À partir de l’URL.',
+      actionLabel: 'Ouvrir',
+      onAction: () => _openSubscribePage(httpsUri),
     );
   }
 
   Future<void> _useOutlookCalendar(Uri httpsUri) async {
-    await _copyCalendarLink(httpsUri);
-    try {
-      await launchUrl(
-        Uri.parse('https://outlook.live.com/calendar/0/view/month'),
-        mode: LaunchMode.externalApplication,
-      );
-    } catch (_) {
-      // The copied URL is sufficient if Outlook cannot be opened directly.
-    }
+    // Outlook s'ouvre depuis le bouton du message, par un nouvel appui :
+    // ouvert avant la copie, l'onglet Outlook prenait la main et le
+    // navigateur refusait la copie ; ouvert après, Safari pouvait le bloquer.
+    final copied = await _copyCalendarLink(httpsUri);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        duration: Duration(seconds: 8),
-        content: Text(
-          'Lien copié. Dans Outlook : Ajouter un calendrier > S’abonner à partir du web, puis colle le lien.',
+    if (copied) {
+      _showActionMessage(
+        'Lien copié. Dans Outlook : Ajouter un calendrier > S’abonner à partir du web, puis colle le lien.',
+        actionLabel: 'Outlook',
+        onAction: () => _launchNow(
+          Uri.parse('https://outlook.live.com/calendar/0/view/month'),
         ),
-      ),
+        duration: const Duration(seconds: 20),
+      );
+      return;
+    }
+    _showActionMessage(
+      'Copie impossible. Ouvre la page d’abonnement pour copier le lien, puis dans Outlook : Ajouter un calendrier > S’abonner à partir du web.',
+      actionLabel: 'Ouvrir',
+      onAction: () => _openSubscribePage(httpsUri),
     );
   }
 
@@ -216,11 +283,20 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                   ),
                   trailing: const Icon(Icons.content_copy_rounded),
                   onTap: () => choose(() async {
-                    await _copyCalendarLink(httpsUri);
+                    final copied = await _copyCalendarLink(httpsUri);
                     if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Lien du calendrier copié.')),
+                    if (copied) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Lien du calendrier copié.'),
+                        ),
+                      );
+                      return;
+                    }
+                    _showActionMessage(
+                      'Copie impossible sur cet appareil. La page d’abonnement affiche le lien.',
+                      actionLabel: 'Ouvrir',
+                      onAction: () => _openSubscribePage(httpsUri),
                     );
                   }),
                 ),
@@ -233,6 +309,10 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   }
 
   Future<void> _subscribeCurrentSeason() async {
+    // Plusieurs appuis pendant le chargement empilaient autant de fenêtres
+    // de choix identiques.
+    if (_subscribing) return;
+    _subscribing = true;
     try {
       final client = ref.read(supabaseClientProvider);
       final rawToken = await client.rpc(
@@ -254,6 +334,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    } finally {
+      _subscribing = false;
     }
   }
 
