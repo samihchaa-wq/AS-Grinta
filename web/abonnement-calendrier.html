@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <title>Calendrier AS Grinta</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 24px 16px; background: #041224; color: #f2f4f8; line-height: 1.45; }
+    main { max-width: 520px; margin: 0 auto; background: #0d2340; border-radius: 16px; padding: 24px; }
+    h1 { font-size: 22px; margin: 0 0 12px; }
+    h2 { font-size: 17px; margin: 24px 0 6px; }
+    a.btn, button { display: block; width: 100%; box-sizing: border-box; text-align: center; background: #f2f4f8; color: #041224; text-decoration: none; padding: 14px; border: 0; border-radius: 12px; font: inherit; font-weight: 600; margin: 12px 0; cursor: pointer; }
+    code { display: block; word-break: break-all; background: #041224; padding: 10px; border-radius: 8px; font-size: 13px; }
+    .warn { background: #3a2a0a; border-radius: 10px; padding: 10px 12px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Calendrier AS Grinta</h1>
+  <p id="invalid" hidden>Ce lien de calendrier n'est pas valide. Ouvre l'app, onglet Calendrier, puis le bouton d'abonnement.</p>
+  <div id="content" hidden>
+    <p>Ce lien sert à <strong>s'abonner</strong> : les nouveaux matchs et les changements arriveront tout seuls dans ton agenda.</p>
+    <p class="warn">Ne choisis jamais « Importer » ou « Ajouter tous les événements » : les matchs seraient copiés une seule fois, sans mise à jour.</p>
+
+    <h2>iPhone, iPad, Mac</h2>
+    <a class="btn" id="apple" href="#">S'abonner dans Apple Calendrier</a>
+
+    <h2>Android (Google Agenda)</h2>
+    <p>L'appli Google Agenda ne permet pas l'abonnement. Copie le lien, ouvre <strong>calendar.google.com</strong> dans le navigateur (sur téléphone : menu ⋮ &gt; « Version pour ordinateur »), puis Autres agendas &gt; + &gt; À partir de l'URL.</p>
+    <button type="button" id="copy">Copier le lien</button>
+    <code id="feed"></code>
+
+    <h2>Outlook</h2>
+    <p>Ajouter un calendrier &gt; S'abonner à partir du web, puis colle le même lien.</p>
+  </div>
+</main>
+<script src="abonnement-calendrier.js"></script>
+</body>
+</html>
