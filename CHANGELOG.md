@@ -6,6 +6,13 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- statistiques : toucher le nom d'un joueur, dans l'onglet Joueurs comme
+  dans l'onglet Prono, ouvre sa fiche joueur. On y trouve son poste, son
+  nombre de matchs au club, ses chiffres par période (saison, précédente,
+  carrière) avec son rang au club, son bilan victoires/nuls/défaites, sa
+  forme sur les cinq derniers matchs et la liste de ses derniers matchs
+  suivis dans l'application. Ailleurs (classement des pronos dans le
+  Calendrier), les noms ne sont pas cliquables ;
 - liste d'attente : enregistrer l'effectif d'un match ne fige plus que les
   joueurs qu'un admin a réellement déplacés. Jusqu'ici, chaque enregistrement
   figeait aussi tous les joueurs déjà disponibles : ceux qui répondaient
