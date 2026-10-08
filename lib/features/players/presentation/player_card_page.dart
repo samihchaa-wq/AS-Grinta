@@ -7,7 +7,9 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
+import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
+import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/players/data/player_card_repository.dart';
@@ -41,6 +43,7 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
       ref.invalidate(statisticsPeriodProvider(period));
     }
     ref.invalidate(playerCardDetailsProvider(key));
+    ref.invalidate(playerCardBadgesProvider);
     await ref.read(playerCardDetailsProvider(key).future);
   }
 
@@ -109,7 +112,6 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
             photoUrl: info.photoUrl,
             profileId: info.profileId,
             isGoalkeeper: isGoalkeeper,
-            careerMatches: careerRow?.matchesPlayed,
           ),
           const SizedBox(height: 16),
           GrintaSecondaryTabs<StatisticsPeriod>(
@@ -159,6 +161,13 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
             )
           else
             _MatchList(matches: info.recentMatches),
+          // Un joueur d'effectif sans compte ne peut pas gagner de badge.
+          if (info.profileId != null) ...[
+            const SizedBox(height: 20),
+            const _SectionTitle('Badges'),
+            const SizedBox(height: 10),
+            _BadgeSection(profileId: info.profileId!),
+          ],
         ],
       ),
     );
@@ -177,14 +186,6 @@ bool _isSamePlayer(PlayerStatistics player, PlayerCardKey key) {
 String _normalize(String value) =>
     value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
 
-/// Rang « compétition » du joueur sur une valeur : 1 + le nombre de joueurs
-/// strictement devant lui.
-int _clubRank(List<PlayerStatistics> players, int Function(PlayerStatistics) of,
-    PlayerStatistics player) {
-  final mine = of(player);
-  return 1 + players.where((p) => of(p) > mine).length;
-}
-
 String _ordinal(int rank) => rank == 1 ? '1er' : '${rank}e';
 
 String _decimal(double value) => value.toStringAsFixed(2).replaceAll('.', ',');
@@ -195,14 +196,12 @@ class _Hero extends ConsumerWidget {
     required this.photoUrl,
     required this.profileId,
     required this.isGoalkeeper,
-    required this.careerMatches,
   });
 
   final String name;
   final String? photoUrl;
   final String? profileId;
   final bool isGoalkeeper;
-  final int? careerMatches;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -244,104 +243,49 @@ class _Hero extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.accent,
-                      ),
-                      child: PlayerAvatar(
-                        photoUrl: photoUrl,
-                        name: name,
-                        isGoalkeeper: isGoalkeeper,
-                        size: 84,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name.toUpperCase(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: _display,
-                              fontSize: 30,
-                              height: 1.05,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          _Chip(
-                            label: isGoalkeeper ? 'Gardien' : 'Joueur de champ',
-                            highlighted: true,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (badge != null)
-                      SizedBox(
-                        width: 48,
-                        height:
-                            48 * badgeEmblemHeightRatio(hasStar: badge.hasStar),
-                        child: FittedBox(
-                          child: BadgeEmblem(
-                            emoji: badge.emoji,
-                            imageUrl: badge.imageUrl,
-                            color: badge.color,
-                            baremeLabel: badge.valueLabel,
-                            descriptor: badge.descriptor,
-                            showStar: badge.hasStar,
-                            starCount: badge.stars,
-                            size: 96,
-                          ),
-                        ),
-                      ),
-                  ],
+                // Même avatar que sur les compositions d'équipe.
+                PlayerAvatar(
+                  photoUrl: photoUrl,
+                  name: name,
+                  isGoalkeeper: isGoalkeeper,
+                  size: 96,
                 ),
-                const SizedBox(height: 16),
-                Divider(height: 1, color: Colors.white.withValues(alpha: .12)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/as_grinta_logo.webp',
-                      width: 22,
-                      height: 22,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    name.toUpperCase(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: _display,
+                      fontSize: 30,
+                      height: 1.05,
+                      color: AppTheme.textPrimary,
                     ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            const TextSpan(
-                              text: 'AS La Grinta',
-                              style: TextStyle(
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            if (careerMatches != null)
-                              TextSpan(
-                                text: ' · $careerMatches '
-                                    '${careerMatches == 1 ? 'match' : 'matchs'}',
-                              ),
-                          ],
-                        ),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
+                  ),
+                ),
+                if (badge != null) ...[
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: _heroBadgeWidth,
+                    height: _heroBadgeWidth *
+                        badgeEmblemHeightRatio(hasStar: badge.hasStar),
+                    child: FittedBox(
+                      child: BadgeEmblem(
+                        emoji: badge.emoji,
+                        imageUrl: badge.imageUrl,
+                        color: badge.color,
+                        baremeLabel: badge.valueLabel,
+                        descriptor: badge.descriptor,
+                        showStar: badge.hasStar,
+                        starCount: badge.stars,
+                        size: 192,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -351,32 +295,23 @@ class _Hero extends ConsumerWidget {
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({required this.label, this.highlighted = false});
+/// Le badge arboré est l'élément fort de l'en-tête : plus d'une fois la
+/// taille de la photo.
+const _heroBadgeWidth = 104.0;
 
-  final String label;
-  final bool highlighted;
+/// Or, argent et bronze pour les trois premiers du club sur une statistique.
+const _gold = Color(0xFFFFD84A);
+// Plus sombre que le blanc des autres rangs, pour que les deux ne se
+// confondent pas.
+const _silver = Color(0xFFAEBACA);
+const _bronze = Color(0xFFDB9A5B);
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: highlighted
-            ? AppTheme.accent
-            : AppTheme.background.withValues(alpha: .45),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: highlighted ? AppTheme.background : AppTheme.textSecondary,
-        ),
-      ),
-    );
-  }
-}
+Color _medalColor(int? rank) => switch (rank) {
+      1 => _gold,
+      2 => _silver,
+      3 => _bronze,
+      _ => AppTheme.textPrimary,
+    };
 
 class _StatGrid extends StatelessWidget {
   const _StatGrid({required this.player, required this.data});
@@ -388,60 +323,79 @@ class _StatGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final players = data.players;
     final matches = player.matchesPlayed ?? 0;
-    final wins = player.wins ?? 0;
+    final tracksAssists = statisticsShowsAssistsColumn(data);
 
-    String? rankOf(int value, int Function(PlayerStatistics) of) {
-      if (value <= 0) return null;
-      return '${_ordinal(_clubRank(players, of, player))} du club';
+    double winRate(PlayerStatistics p) {
+      final played = p.matchesPlayed ?? 0;
+      return played == 0 ? 0 : (p.wins ?? 0) * 100 / played;
     }
 
-    final tiles = <Widget>[
-      _StatTile(value: '$matches', label: 'Matchs'),
-      _StatTile(
-        value: '${player.goals}',
-        label: 'Buts',
-        color: AppTheme.accent,
-        note: rankOf(player.goals, (p) => p.goals),
+    double goalsPerMatch(PlayerStatistics p) {
+      final played = p.matchesPlayed ?? 0;
+      return played == 0 ? 0 : p.goals / played;
+    }
+
+    // Une valeur nulle ne classe personne : sans cela, une saison où personne
+    // n'a encore fait de passe décisive sacrerait tout l'effectif « 1er ».
+    int? rankOf(num Function(PlayerStatistics) of) {
+      final mine = of(player);
+      if (mine <= 0) return null;
+      return 1 + players.where((p) => of(p) > mine).length;
+    }
+
+    _StatTile tile(
+      String label,
+      String value,
+      num Function(PlayerStatistics) of, {
+      bool ranked = true,
+    }) {
+      final rank = ranked ? rankOf(of) : null;
+      return _StatTile(value: value, label: label, rank: rank);
+    }
+
+    final tiles = <_StatTile>[
+      tile('Matchs', '$matches', (p) => p.matchesPlayed ?? 0),
+      tile(
+        'Victoires',
+        matches == 0 ? '–' : '${winRate(player).round()} %',
+        winRate,
       ),
-      if (statisticsShowsAssistsColumn(data))
-        _StatTile(
-          value: '${player.assists}',
-          label: 'Passes D.',
-          note: rankOf(player.assists, (p) => p.assists),
-        )
-      else
-        _StatTile(value: '${player.teamCleanSheets}', label: 'CS équipe'),
-      _StatTile(
-        value: '${player.hdm ?? 0}',
-        label: 'Homme du match',
-        color: AppTheme.reward,
-        note: rankOf(player.hdm ?? 0, (p) => p.hdm ?? 0),
+      tile('Buts', '${player.goals}', (p) => p.goals),
+      // Les passes ne sont suivies que depuis leur mise en service : sur une
+      // période antérieure, un zéro ferait croire à un manque de saisie.
+      tile(
+        'Passes D.',
+        tracksAssists ? '${player.assists}' : '–',
+        (p) => p.assists,
+        ranked: tracksAssists,
       ),
-      if (player.isGoalkeeper)
-        _StatTile(value: '${player.cleanSheets}', label: 'Clean sheets')
-      else
-        _StatTile(
-          value: matches == 0 ? '–' : _decimal(player.goals / matches),
-          label: 'Buts / match',
-        ),
-      _StatTile(
-        value: matches == 0 ? '–' : '${(wins * 100 / matches).round()} %',
-        label: 'Victoires',
+      tile('Homme du match', '${player.hdm ?? 0}', (p) => p.hdm ?? 0),
+      tile(
+        'Buts / match',
+        matches == 0 ? '–' : _decimal(goalsPerMatch(player)),
+        goalsPerMatch,
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const gap = 8.0;
-        final width = (constraints.maxWidth - 2 * gap) / 3;
-        return Wrap(
-          spacing: gap,
-          runSpacing: gap,
-          children: [
-            for (final tile in tiles) SizedBox(width: width, child: tile),
-          ],
+    const gap = 8.0;
+    Widget row(List<_StatTile> items) => IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(width: gap),
+                Expanded(child: items[i]),
+              ],
+            ],
+          ),
         );
-      },
+
+    return Column(
+      children: [
+        row(tiles.sublist(0, 3)),
+        const SizedBox(height: gap),
+        row(tiles.sublist(3)),
+      ],
     );
   }
 }
@@ -450,17 +404,19 @@ class _StatTile extends StatelessWidget {
   const _StatTile({
     required this.value,
     required this.label,
-    this.color,
-    this.note,
+    required this.rank,
   });
 
   final String value;
   final String label;
-  final Color? color;
-  final String? note;
+
+  /// Rang au club sur cette statistique ; `null` quand il n'a pas de sens
+  /// (valeur nulle, statistique non suivie sur la période).
+  final int? rank;
 
   @override
   Widget build(BuildContext context) {
+    final rank = this.rank;
     return Container(
       constraints: const BoxConstraints(minHeight: 96),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
@@ -476,7 +432,7 @@ class _StatTile extends StatelessWidget {
                 fontFamily: _display,
                 fontSize: 28,
                 height: 1.1,
-                color: color ?? AppTheme.textPrimary,
+                color: _medalColor(rank),
               ),
             ),
           ),
@@ -490,17 +446,17 @@ class _StatTile extends StatelessWidget {
               color: AppTheme.textFaint,
             ),
           ),
-          if (note != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              note!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.primaryBright,
-              ),
+          const SizedBox(height: 4),
+          Text(
+            rank == null ? '–' : '${_ordinal(rank)} du club',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              color: rank != null && rank <= 3
+                  ? _medalColor(rank)
+                  : AppTheme.primaryBright,
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -847,6 +803,101 @@ class _Contribution extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BadgeSection extends ConsumerWidget {
+  const _BadgeSection({required this.profileId});
+
+  final String profileId;
+
+  static const _columns = 4;
+  static const _gap = 10.0;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final badges = ref.watch(playerCardBadgesProvider(profileId));
+    return badges.when(
+      loading: () => GrintaSkeleton.rows(itemCount: 2),
+      error: (error, _) => _InlineNote(humanizeError(error)),
+      data: (list) {
+        if (list.isEmpty) {
+          return const _InlineNote('Aucun badge gagné pour l’instant.');
+        }
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: _cardDecoration,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width =
+                  (constraints.maxWidth - (_columns - 1) * _gap) / _columns;
+              return Wrap(
+                spacing: _gap,
+                runSpacing: 14,
+                children: [
+                  for (final badge in list)
+                    SizedBox(
+                      width: width,
+                      child: _BadgeTile(badge: badge, size: width),
+                    ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BadgeTile extends StatelessWidget {
+  const _BadgeTile({required this.badge, required this.size});
+
+  final ArmoireBadge badge;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final def = badge.def;
+    return Semantics(
+      button: true,
+      label: def.name,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => showBadgeDetailSheet(context, def, showLadder: false),
+        child: Column(
+          children: [
+            BadgeEmblem(
+              emoji: def.emoji,
+              imageUrl: def.imageUrl,
+              color: def.color,
+              baremeLabel: baremeLabelFor(def.metric, badge.displayValue),
+              descriptor: badgeDescriptorFor(
+                code: def.code,
+                metric: def.metric,
+                category: def.category,
+                name: def.name,
+              ),
+              showStar: def.hasStar,
+              starCount: badge.stars,
+              size: size,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              def.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                height: 1.15,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
