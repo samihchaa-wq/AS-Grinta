@@ -306,6 +306,9 @@ void main() {
 
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
     expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
+    // Recopier le calcul du serveur n'est pas une décision de l'admin : rien
+    // n'est figé, la liste d'attente reste automatique.
+    expect(repository.lastChangedPlayerIds, isEmpty);
   });
 
   testWidgets('convoquer depuis la liste d’attente demande confirmation', (
@@ -338,6 +341,8 @@ void main() {
     await _pumpFrames(tester, count: 20);
     expect(find.text('Liste d’attente (0)'), findsOneWidget);
     expect(repository.lastDecisions?['sp3'], ConvocationStatus.convoked);
+    // Seul le joueur déplacé par l'admin est signalé comme décision figée.
+    expect(repository.lastChangedPlayerIds, {'sp3'});
   });
 
   testWidgets('un joueur absent convoqué ne demande aucune confirmation', (
@@ -848,6 +853,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   final MatchConvocations convocations;
   MatchConvocations _state;
   Map<String, ConvocationStatus>? lastDecisions;
+  Set<String>? lastChangedPlayerIds;
   final List<(String, String)> overrides = [];
 
   @override
@@ -884,9 +890,11 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
     required String matchId,
     required int squadSizeLimit,
     required Map<String, ConvocationStatus> decisions,
+    Set<String> changedPlayerIds = const {},
     String? reason,
   }) async {
     lastDecisions = Map<String, ConvocationStatus>.from(decisions);
+    lastChangedPlayerIds = Set<String>.from(changedPlayerIds);
     // Le serveur renvoie l'effectif tel qu'il vient de l'écrire : sans cette
     // fidélité, le faux dépôt renverrait l'écran à son état de départ.
     _state = _publishedWith(_state, decisions);

@@ -6,6 +6,13 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- liste d'attente : enregistrer l'effectif d'un match ne fige plus que les
+  joueurs qu'un admin a réellement déplacés. Jusqu'ici, chaque enregistrement
+  figeait aussi tous les joueurs déjà disponibles : ceux qui répondaient
+  ensuite se partageaient les seules places restantes, quel que soit leur
+  rang. Le surplus passe désormais en attente selon l'ordre de la liste, même
+  si un joueur déjà convoqué doit céder sa place à une réponse plus tardive.
+  Ce joueur ne reçoit pas de notification ;
 - fiches de match (passées, archivées, à venir, version admin) : plus de
   barre en haut. L'écusson, le titre « Fiche du match » et le bouton
   d'actualisation disparaissent ; le bandeau du match se place à droite de la

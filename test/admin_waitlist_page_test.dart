@@ -252,6 +252,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
     required String matchId,
     required int squadSizeLimit,
     required Map<String, ConvocationStatus> decisions,
+    Set<String> changedPlayerIds = const {},
     String? reason,
   }) {
     throw UnimplementedError();

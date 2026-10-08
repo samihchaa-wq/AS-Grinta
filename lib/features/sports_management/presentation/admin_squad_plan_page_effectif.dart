@@ -237,6 +237,29 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     };
   }
 
+  /// Joueurs que l'admin a déplacés depuis la dernière réponse du serveur.
+  ///
+  /// Les autres décisions envoyées ne font que recopier ce que le serveur a
+  /// calculé : les figer bloquerait des places et empêcherait la liste
+  /// d'attente de s'appliquer aux joueurs qui répondent plus tard. Un joueur
+  /// disponible encore sans décision côté serveur arrive en attente par
+  /// défaut à l'écran, ce qui n'est pas non plus un choix de l'admin.
+  Set<String> _effectifChangedPlayerIds(MatchConvocations convocations) {
+    return {
+      for (final player in convocations.players)
+        if (!player.isGuest &&
+            !player.isCoach &&
+            player.seasonPlayerId.isNotEmpty &&
+            _desiredEffectifStatus(player) != ConvocationStatus.notApplicable &&
+            _desiredEffectifStatus(player) != player.convocationStatus &&
+            !(player.isAvailable &&
+                player.convocationStatus == ConvocationStatus.notApplicable &&
+                _desiredEffectifStatus(player) ==
+                    ConvocationStatus.notConvoked))
+          player.seasonPlayerId,
+    };
+  }
+
   /// Écrit l'effectif tel qu'il est à l'écran.
   ///
   /// Rien n'est rechargé : la réponse du serveur suffit à remettre l'écran à
@@ -269,6 +292,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 matchId: convocations.matchId,
                 squadSizeLimit: limit,
                 decisions: _effectifDecisions(convocations),
+                changedPlayerIds: _effectifChangedPlayerIds(convocations),
                 reason: 'Effectif enregistré depuis le match',
               );
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
