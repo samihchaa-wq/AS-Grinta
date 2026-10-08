@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
+import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -269,4 +270,58 @@ final playerCardRepositoryProvider = Provider<PlayerCardRepository>((ref) {
 final playerCardDetailsProvider =
     FutureProvider.autoDispose.family<PlayerCardDetails, PlayerCardKey>(
   (ref, key) => ref.watch(playerCardRepositoryProvider).fetch(key),
+);
+
+/// Badges gagnés par un autre membre, tels qu'on peut les montrer sur sa
+/// fiche.
+///
+/// Les badges secrets restent cachés : « Traître », par exemple, dévoilerait
+/// un pari contre l'équipe que les métriques de badges protègent justement
+/// des autres membres. Le chiffre personnel d'un badge (cumul réel, record de
+/// saison) n'est lisible que par son titulaire : un palier affiche donc son
+/// propre seuil, et un titre n'affiche pas de chiffre.
+List<ArmoireBadge> publicEarnedBadges({
+  required List<BadgeDef> catalog,
+  required Map<String, DateTime> earnedAt,
+}) {
+  return [
+    for (final def in catalog)
+      if (earnedAt.containsKey(def.code) && !def.secret)
+        ArmoireBadge(
+          def: def,
+          state: BadgeState.validated,
+          displayValue: def.kind == 'tier' ? def.threshold : null,
+          awardedAt: earnedAt[def.code],
+        ),
+  ]..sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
+}
+
+/// Les badges gagnés par le titulaire du compte [profileId].
+///
+/// Sur sa propre fiche, le joueur retrouve exactement ses badges validés de
+/// l'armoire, secrets, chiffres et étoiles compris.
+final playerCardBadgesProvider =
+    FutureProvider.autoDispose.family<List<ArmoireBadge>, String>(
+  (ref, profileId) async {
+    final client = ref.watch(supabaseClientProvider);
+    final badges = ref.watch(badgeRepositoryProvider);
+    if (client.auth.currentUser?.id == profileId) {
+      return (await badges.fetchArmoire(profileId)).validated;
+    }
+    final catalog = await badges.fetchCatalog();
+    final rows = await client
+        .from('profile_badges')
+        .select('awarded_at, badges(code)')
+        .eq('profile_id', profileId);
+    final earnedAt = <String, DateTime>{};
+    for (final raw in rows as List) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      final badge = row['badges'];
+      final code = badge is Map ? badge['code']?.toString() : null;
+      if (code == null) continue;
+      earnedAt[code] =
+          DateTime.tryParse(row['awarded_at']?.toString() ?? '') ?? DateTime(0);
+    }
+    return publicEarnedBadges(catalog: catalog, earnedAt: earnedAt);
+  },
 );
