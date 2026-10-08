@@ -199,6 +199,27 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     await _setEffectifStatus(player, ConvocationStatus.notApplicable);
   }
 
+  /// Remet les listes à jour après la réponse de l'admin à son propre match.
+  Future<void> _reloadAfterOwnAnswer(String matchId) async {
+    // Une décision encore en attente d'écriture serait perdue par le
+    // rechargement : on la fait partir d'abord.
+    if (_effectifAutosave?.isActive ?? false) {
+      await _persistEffectif();
+    }
+    if (!mounted || _selectedMatchId != matchId) return;
+    // Seules les listes sont relues : un rechargement complet effacerait une
+    // composition en cours de préparation.
+    try {
+      final convocations = await ref
+          .read(sportWaitlistRepositoryProvider)
+          .fetchMatchConvocations(matchId);
+      if (!mounted || _selectedMatchId != matchId) return;
+      _applyConvocations(convocations, adoptDecisions: true);
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
+    }
+  }
+
   /// Programme l'écriture de l'effectif juste après le geste de l'admin.
   ///
   /// Le court délai évite d'écrire une fois par doigt qui glisse : plusieurs
@@ -588,9 +609,19 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final countedConvoked = _convokedPlayersAgainstLimit.length;
     final over = countedConvoked > limit;
 
+    final matchId = _selectedMatchId;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // L'admin est aussi joueur : il répond ici comme tout le monde. Le
+        // bloc se masque de lui-même quand la réponse n'est plus possible.
+        if (matchId != null && !_postMatch)
+          MatchAvailabilitySelector(
+            matchId: matchId,
+            bottomSpacing: 14,
+            onSaved: () => unawaited(_reloadAfterOwnAnswer(matchId)),
+          ),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),

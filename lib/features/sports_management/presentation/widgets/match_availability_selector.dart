@@ -19,6 +19,7 @@ class MatchAvailabilitySelector extends ConsumerStatefulWidget {
     this.topSpacing = 0,
     this.bottomSpacing = 0,
     this.showManageShortcut = false,
+    this.onSaved,
   });
 
   final String matchId;
@@ -30,6 +31,10 @@ class MatchAvailabilitySelector extends ConsumerStatefulWidget {
   /// composition » vers la gestion du match. Réservé à l'admin : c'est
   /// l'appelant (qui connaît le rôle) qui l'active.
   final bool showManageShortcut;
+
+  /// Appelé après l'enregistrement d'une réponse, pour qu'un écran qui tient
+  /// sa propre copie des listes (l'effectif de l'admin) se remette à jour.
+  final VoidCallback? onSaved;
 
   @override
   ConsumerState<MatchAvailabilitySelector> createState() =>
@@ -182,6 +187,7 @@ class _MatchAvailabilitySelectorState
       await ref.read(myMatchAvailabilityProvider(widget.matchId).future);
 
       if (!mounted) return;
+      widget.onSaved?.call();
       final label = _statusLabel(status);
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('$label enregistré.')));
@@ -190,6 +196,7 @@ class _MatchAvailabilitySelectorState
         ..invalidate(myMatchAvailabilityProvider(widget.matchId))
         ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
       if (!mounted) return;
+      widget.onSaved?.call();
       final label = _statusLabel(status);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -204,6 +211,7 @@ class _MatchAvailabilitySelectorState
         ..invalidate(myMatchAvailabilityProvider(widget.matchId))
         ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
       if (!mounted) return;
+      widget.onSaved?.call();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(

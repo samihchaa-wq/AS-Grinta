@@ -165,6 +165,11 @@ class MatchLineupPage extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.sectionGap),
                     if (showInfo) MatchInfoTab(matchId: matchId),
                     if (showEffectif)
+                      MatchAvailabilitySelector(
+                        matchId: matchId,
+                        bottomSpacing: AppSpacing.sectionGap,
+                      ),
+                    if (showEffectif)
                       MatchAvailabilityBoardCard(
                         matchId: matchId,
                         showAfterComposition: true,
