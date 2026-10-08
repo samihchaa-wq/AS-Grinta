@@ -35,10 +35,16 @@ abstract interface class SportWaitlistRepository {
     String? reason,
   });
 
+  /// Écrit l'effectif du match.
+  ///
+  /// [changedPlayerIds] désigne les joueurs que l'admin a réellement déplacés
+  /// depuis la dernière lecture. Seules ces décisions sont figées ; les autres
+  /// restent automatiques et suivent l'ordre de la liste d'attente.
   Future<MatchConvocations> publishEffectif({
     required String matchId,
     required int squadSizeLimit,
     required Map<String, ConvocationStatus> decisions,
+    Set<String> changedPlayerIds = const {},
     String? reason,
   });
 
@@ -169,6 +175,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
     required String matchId,
     required int squadSizeLimit,
     required Map<String, ConvocationStatus> decisions,
+    Set<String> changedPlayerIds = const {},
     String? reason,
   }) async {
     final response = await _client.rpc(
@@ -177,6 +184,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
         matchId: matchId,
         squadSizeLimit: squadSizeLimit,
         decisions: decisions,
+        changedPlayerIds: changedPlayerIds,
         reason: reason,
       ),
     );
@@ -208,6 +216,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
     required String matchId,
     required int squadSizeLimit,
     required Map<String, ConvocationStatus> decisions,
+    required Set<String> changedPlayerIds,
     String? reason,
   }) {
     return {
@@ -218,6 +227,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
           {
             'season_player_id': decision.key,
             'status': decision.value.wireValue,
+            'changed': changedPlayerIds.contains(decision.key),
           },
       ],
       'p_reason': _clean(reason),
