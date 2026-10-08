@@ -10,6 +10,7 @@ import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
+import 'package:as_grinta/features/players/presentation/player_card_link.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:as_grinta/features/statistics/presentation/team_statistics_panel.dart';
@@ -47,70 +48,74 @@ class _StatsHubPageState extends State<StatsHubPage> {
       // mêmes panneaux montés ailleurs (Prono, Calendrier) rendent le nom seul.
       body: BadgeDisplayScope(
         showBadges: true,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.screenGutter,
-                AppSpacing.contentGap,
-                AppSpacing.screenGutter,
-                AppSpacing.contentGap,
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<_StatsSection>(
-                  expandedInsets: EdgeInsets.zero,
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(
-                      value: _StatsSection.players,
-                      label: Text('Joueurs'),
-                    ),
-                    ButtonSegment(
-                      value: _StatsSection.team,
-                      label: Text('Équipe'),
-                    ),
-                    ButtonSegment(
-                      value: _StatsSection.rankings,
-                      label: Text('Prono'),
-                    ),
-                  ],
-                  selected: {_section},
-                  onSelectionChanged: (value) {
-                    setState(() => _section = value.first);
-                  },
+        // Partout dans le module, toucher un nom ouvre la fiche du joueur.
+        child: PlayerCardLinkScope(
+          enabled: true,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenGutter,
+                  AppSpacing.contentGap,
+                  AppSpacing.screenGutter,
+                  AppSpacing.contentGap,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<_StatsSection>(
+                    expandedInsets: EdgeInsets.zero,
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(
+                        value: _StatsSection.players,
+                        label: Text('Joueurs'),
+                      ),
+                      ButtonSegment(
+                        value: _StatsSection.team,
+                        label: Text('Équipe'),
+                      ),
+                      ButtonSegment(
+                        value: _StatsSection.rankings,
+                        label: Text('Prono'),
+                      ),
+                    ],
+                    selected: {_section},
+                    onSelectionChanged: (value) {
+                      setState(() => _section = value.first);
+                    },
+                  ),
                 ),
               ),
-            ),
-            if (hasPeriod)
-              GrintaSecondaryTabs<StatisticsPeriod>(
-                segments: const [
-                  ButtonSegment(
-                    value: StatisticsPeriod.current,
-                    label: Text('Actuelle'),
-                  ),
-                  ButtonSegment(
-                    value: StatisticsPeriod.previous,
-                    label: Text('Précédente'),
-                  ),
-                  ButtonSegment(
-                    value: StatisticsPeriod.allTime,
-                    label: Text('Toutes'),
-                  ),
-                ],
-                selected: {_period},
-                onSelectionChanged: (value) {
-                  setState(() => _period = value.first);
+              if (hasPeriod)
+                GrintaSecondaryTabs<StatisticsPeriod>(
+                  segments: const [
+                    ButtonSegment(
+                      value: StatisticsPeriod.current,
+                      label: Text('Actuelle'),
+                    ),
+                    ButtonSegment(
+                      value: StatisticsPeriod.previous,
+                      label: Text('Précédente'),
+                    ),
+                    ButtonSegment(
+                      value: StatisticsPeriod.allTime,
+                      label: Text('Toutes'),
+                    ),
+                  ],
+                  selected: {_period},
+                  onSelectionChanged: (value) {
+                    setState(() => _period = value.first);
+                  },
+                ),
+              Expanded(
+                child: switch (_section) {
+                  _StatsSection.rankings => const RankingsPanel(),
+                  _StatsSection.players => _PlayersPanel(period: _period),
+                  _StatsSection.team => TeamStatisticsPanel(period: _period),
                 },
               ),
-            Expanded(
-              child: switch (_section) {
-                _StatsSection.rankings => const RankingsPanel(),
-                _StatsSection.players => _PlayersPanel(period: _period),
-                _StatsSection.team => TeamStatisticsPanel(period: _period),
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -397,20 +402,27 @@ StickyTableRow _playersRow(
     );
   }
 
-  Widget pinned = Padding(
-    padding: grintaTablePinnedRowPadding,
-    child: Row(
-      children: [
-        GrintaTableRankCell(rank: rank),
-        Expanded(
-          child: NameWithBadges(
-            profileId: player.profileId,
-            name: player.playerName,
-            badgeSize: _playerBadgeSize,
-            alignBadgesEnd: true,
+  Widget pinned = PlayerCardLink(
+    playerKey: (
+      profileId: player.profileId,
+      fullName: player.fullName,
+      isGoalkeeper: player.isGoalkeeper,
+    ),
+    child: Padding(
+      padding: grintaTablePinnedRowPadding,
+      child: Row(
+        children: [
+          GrintaTableRankCell(rank: rank),
+          Expanded(
+            child: NameWithBadges(
+              profileId: player.profileId,
+              name: player.playerName,
+              badgeSize: _playerBadgeSize,
+              alignBadgesEnd: true,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 
