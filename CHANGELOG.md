@@ -11,8 +11,7 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   statistiques suivent l'ordre Matchs, % Victoires, Buts, Passes D., HDM,
   Buts / match, chacune avec le rang du joueur au club ; le chiffre passe en
   or, argent ou bronze pour les trois premiers. Nouveau module « Badges »
-  qui reprend les badges gagnés (les badges secrets n'apparaissent que sur
-  sa propre fiche) ;
+  qui reprend tous les badges gagnés, secrets compris ;
 - statistiques : toucher le nom d'un joueur, dans l'onglet Joueurs comme
   dans l'onglet Prono, ouvre sa fiche joueur. On y trouve son poste, son
   nombre de matchs au club, ses chiffres par période (saison, précédente,

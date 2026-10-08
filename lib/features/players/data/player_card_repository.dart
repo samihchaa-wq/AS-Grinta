@@ -275,18 +275,17 @@ final playerCardDetailsProvider =
 /// Badges gagnés par un autre membre, tels qu'on peut les montrer sur sa
 /// fiche.
 ///
-/// Les badges secrets restent cachés : « Traître », par exemple, dévoilerait
-/// un pari contre l'équipe que les métriques de badges protègent justement
-/// des autres membres. Le chiffre personnel d'un badge (cumul réel, record de
-/// saison) n'est lisible que par son titulaire : un palier affiche donc son
-/// propre seuil, et un titre n'affiche pas de chiffre.
+/// Tous les badges gagnés apparaissent, secrets compris : un secret ne l'est
+/// que tant qu'il n'est pas gagné. Le chiffre personnel d'un badge (cumul
+/// réel, record de saison) n'est lisible que par son titulaire : un palier
+/// affiche donc son propre seuil, et un titre n'affiche pas de chiffre.
 List<ArmoireBadge> publicEarnedBadges({
   required List<BadgeDef> catalog,
   required Map<String, DateTime> earnedAt,
 }) {
   return [
     for (final def in catalog)
-      if (earnedAt.containsKey(def.code) && !def.secret)
+      if (earnedAt.containsKey(def.code))
         ArmoireBadge(
           def: def,
           state: BadgeState.validated,

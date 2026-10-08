@@ -81,7 +81,7 @@ void main() {
   });
 
   group('badges visibles sur la fiche d’un autre membre', () {
-    test('seuls les badges gagnés et non secrets apparaissent', () {
+    test('tous les badges gagnés apparaissent, secrets compris', () {
       final badges = publicEarnedBadges(
         catalog: [
           _badge('matches_50', kind: 'tier', threshold: 50, sortOrder: 2),
@@ -96,7 +96,10 @@ void main() {
         },
       );
 
-      expect(badges.map((b) => b.def.code), ['ballon_or', 'matches_50']);
+      expect(
+        badges.map((b) => b.def.code),
+        ['ballon_or', 'traitre', 'matches_50'],
+      );
       // Le cumul réel n'est lisible que par le titulaire : un palier montre
       // son seuil, un titre aucun chiffre.
       expect(badges.last.displayValue, 50);
