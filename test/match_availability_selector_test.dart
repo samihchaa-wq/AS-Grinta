@@ -36,6 +36,22 @@ void main() {
     expect(find.text('Présent enregistré.'), findsOneWidget);
   });
 
+  testWidgets('prévient l’écran qui l’accueille après une réponse', (
+    tester,
+  ) async {
+    final repository = _FakeAvailabilityRepository();
+    var saved = 0;
+    await tester.pumpWidget(
+      _harness(repository, onSaved: () => saved += 1),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Présent'));
+    await tester.pumpAndSettle();
+
+    expect(saved, 1);
+  });
+
   testWidgets('records Absent immediately without a private reason', (
     tester,
   ) async {
@@ -86,14 +102,20 @@ void main() {
   });
 }
 
-Widget _harness(MatchAvailabilityRepository repository, {bool enabled = true}) {
+Widget _harness(
+  MatchAvailabilityRepository repository, {
+  bool enabled = true,
+  VoidCallback? onSaved,
+}) {
   return ProviderScope(
     overrides: [
       sportsManagementEnabledProvider.overrideWithValue(enabled),
       matchAvailabilityRepositoryProvider.overrideWithValue(repository),
     ],
-    child: const MaterialApp(
-      home: Scaffold(body: MatchAvailabilitySelector(matchId: 'match-1')),
+    child: MaterialApp(
+      home: Scaffold(
+        body: MatchAvailabilitySelector(matchId: 'match-1', onSaved: onSaved),
+      ),
     ),
   );
 }

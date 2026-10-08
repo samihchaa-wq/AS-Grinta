@@ -10,6 +10,7 @@ import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
+import 'package:as_grinta/features/sports_management/domain/match_availability.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ void main() {
     required int pastMatches,
     required int upcomingMatches,
     String? focusMatchId,
+    MatchAvailability? Function(String matchId)? availability,
   }) async {
     await tester.binding.setSurfaceSize(const Size(420, 860));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -44,14 +46,17 @@ void main() {
             (ref) => _StaticMatchesController(ref, matches),
           ),
           isAdminViewProvider.overrideWithValue(false),
-          sportsManagementEnabledProvider.overrideWithValue(false),
+          sportsManagementEnabledProvider
+              .overrideWithValue(availability != null),
           clubEventsProvider.overrideWith(
             (ref) => Stream.value(const <ClubEvent>[]),
           ),
           allHistoricalMatchesProvider.overrideWith(
             (ref) => Stream.value(const []),
           ),
-          myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
+          myMatchAvailabilityProvider.overrideWith(
+            (ref, id) async => availability?.call(id),
+          ),
         ],
         child: MaterialApp(
           home: Scaffold(body: MergedMatchesView(focusMatchId: focusMatchId)),
@@ -145,6 +150,36 @@ void main() {
     final card = tester.getRect(find.text('Clubpast1'));
     expect(card.top, greaterThanOrEqualTo(header.bottom));
     expect(card.top - header.bottom, lessThan(120));
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets(
+      'un match à venir ouvert aux réponses propose Présent et Absent '
+      'directement dans le calendrier', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 0,
+      upcomingMatches: 1,
+      availability: (id) => MatchAvailability(
+        matchId: id,
+        participantId: 'participant-1',
+        seasonPlayerId: 'player-1',
+        isEligible: true,
+        status: MatchAvailabilityStatus.noResponse,
+        privateComment: null,
+        updatedAt: null,
+        availabilityState: 'open',
+        opensAt: DateTime.now().subtract(const Duration(days: 1)),
+        kickoffAt: DateTime.now().add(const Duration(days: 7)),
+        canRespond: true,
+        compositionState: 'none',
+      ),
+    );
+
+    expect(find.text('Clubnext1'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Présent'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, 'Absent'), findsOneWidget);
 
     await disposeCalendar(tester);
   });
