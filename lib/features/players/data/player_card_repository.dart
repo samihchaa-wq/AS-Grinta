@@ -48,6 +48,11 @@ class PlayerMatchLine {
       : grintaScore == opponentScore
           ? 'N'
           : 'D';
+
+  /// Score dans l'ordre domicile – extérieur, comme la fiche du match : une
+  /// victoire 5-0 à l'extérieur s'écrit 0-5.
+  String get scoreLabel =>
+      isHome ? '$grintaScore-$opponentScore' : '$opponentScore-$grintaScore';
 }
 
 /// Ce que la fiche affiche en plus des statistiques par période : l'identité

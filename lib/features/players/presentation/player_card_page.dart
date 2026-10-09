@@ -19,6 +19,7 @@ import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 const _display = 'Oswald';
 
@@ -302,16 +303,8 @@ class _Hero extends ConsumerWidget {
                       ),
                       if (nickname != null) ...[
                         const SizedBox(height: 6),
-                        const Text(
-                          'SURNOM',
-                          style: TextStyle(
-                            fontSize: 10,
-                            letterSpacing: 1,
-                            color: AppTheme.textFaint,
-                          ),
-                        ),
                         Text(
-                          nickname,
+                          '« $nickname »',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
@@ -788,6 +781,18 @@ class _MatchRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = _type;
     final resultColor = _resultColor(match.result);
+    // Ouvre le récapitulatif du match, comme une carte du calendrier ; la
+    // flèche retour ramène ici.
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () => context.push('/matches/${match.matchId}'),
+        child: _content(type, resultColor),
+      ),
+    );
+  }
+
+  Widget _content(({String label, Color color})? type, Color resultColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       child: Row(
@@ -889,7 +894,7 @@ class _MatchRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              '${match.grintaScore}-${match.opponentScore}',
+              match.scoreLabel,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: _display,

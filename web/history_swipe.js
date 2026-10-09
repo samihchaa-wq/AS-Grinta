@@ -11,7 +11,15 @@
   var isIOS = /iPad|iPhone|iPod/.test(ua) ||
       (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  if (!isIOS || !('ontouchstart' in window)) return;
+  // Android : selon le téléphone (boutons de navigation, certains
+  // navigateurs, application installée), glisser depuis le bord gauche ne
+  // revient pas en arrière. On offre le même geste qu'iPhone, retour
+  // seulement : le bord droit garde son comportement habituel. Quand le
+  // système capte lui-même le geste, la page reçoit un touchcancel et ne
+  // fait rien : pas de double retour.
+  var isAndroid = /Android/i.test(ua);
+
+  if (!(isIOS || isAndroid) || !('ontouchstart' in window)) return;
 
   var edgeWidth = 24;
   var triggerDistance = 64;
@@ -38,7 +46,7 @@
 
     if (point.x <= edgeWidth) {
       edge = 'left';
-    } else if (point.x >= width - edgeWidth) {
+    } else if (isIOS && point.x >= width - edgeWidth) {
       edge = 'right';
     } else {
       reset();
