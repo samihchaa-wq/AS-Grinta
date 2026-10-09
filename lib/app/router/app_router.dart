@@ -21,6 +21,8 @@ import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
+import 'package:as_grinta/features/players/presentation/player_card_link.dart';
+import 'package:as_grinta/features/players/presentation/player_card_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
@@ -239,6 +241,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     child: StatsHubPage(initialSection: section),
                   );
                 },
+              ),
+              GoRoute(
+                path: '/stats/joueur',
+                builder: (context, state) => PlayerCardPage(
+                  playerKey: playerCardKeyFromUri(state.uri),
+                ),
               ),
             ],
           ),

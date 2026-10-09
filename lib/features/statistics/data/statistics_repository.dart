@@ -26,6 +26,7 @@ class PlayerStatistics {
     required this.rank,
     required this.displayOrder,
     required this.playerName,
+    this.fullName = '',
     required this.profileId,
     required this.isGoalkeeper,
     required this.matchesPlayed,
@@ -44,6 +45,11 @@ class PlayerStatistics {
   final int rank;
   final int displayOrder;
   final String playerName;
+
+  /// Le nom complet tel que la vue le publie, avant mise en forme. C'est par
+  /// lui (avec le poste) que la vue relie un joueur d'une période à l'autre :
+  /// il identifie aussi les joueurs d'effectif sans compte.
+  final String fullName;
 
   /// L'identifiant du compte lié à ce joueur (pour afficher ses badges).
   /// `null` si le joueur d'effectif n'a pas de compte.
@@ -228,6 +234,7 @@ class StatisticsRepository {
           rank: rank,
           displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
           playerName: name,
+          fullName: fullName,
           profileId: map['profile_id']?.toString(),
           isGoalkeeper: map['is_goalkeeper'] == true,
           matchesPlayed: matches,

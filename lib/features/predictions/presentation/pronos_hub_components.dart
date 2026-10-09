@@ -216,6 +216,14 @@ StickyTableRow _leaderboardRow(
       ],
     ),
   );
+  // Le classement ne connaît que le compte : la fiche retrouve le joueur
+  // d'effectif qui y est rattaché.
+  if (profileId != null) {
+    pinned = PlayerCardLink(
+      playerKey: (profileId: profileId, fullName: '', isGoalkeeper: false),
+      child: pinned,
+    );
+  }
 
   Widget scrollable = Padding(
     padding: grintaTableScrollableRowPadding,
