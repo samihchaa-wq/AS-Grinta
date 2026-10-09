@@ -6,6 +6,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- notifications : les interrupteurs des notifications réglables (rappel
+  pronostic, vote Homme du match, composition, badge, changement de
+  disponibilité côté admin) deviennent des cloches, vertes quand la
+  notification est activée et grises sinon, comme celle des notifications
+  essentielles ;
 - fiche joueur : l'en-tête affiche le vrai prénom (« François », plus en
   majuscules), et en dessous « Surnom » suivi du surnom s'il existe, le tout
   centré entre la photo et le badge. Le badge arboré est réduit à la hauteur
