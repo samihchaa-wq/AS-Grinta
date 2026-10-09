@@ -1,7 +1,9 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_notification_bell.dart';
 import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
@@ -29,75 +31,24 @@ class NotificationsPage extends ConsumerWidget {
             await ref.read(adminAvailabilityChangeNotificationProvider.future);
           }
         },
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          children: const [
-            _PushActivationCard(),
-            _MandatoryNotificationsCard(),
-            SizedBox(height: 12),
-            _OptionalNotificationsCard(),
-            _AdminAvailabilityNotificationCard(),
-            _NotificationActionsRow(),
-            _AdminKillSwitchCard(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MandatoryNotificationsCard extends StatelessWidget {
-  const _MandatoryNotificationsCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Notifications essentielles',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w400),
-            ),
-            const SizedBox(height: 12),
-            _line(
-              Icons.event_available_outlined,
-              'Ouverture des disponibilités',
-            ),
-            _line(Icons.how_to_reg_outlined, 'Passage en convoqué'),
-            _line(Icons.hourglass_top_rounded, 'Passage en liste d’attente'),
-            _line(Icons.event_busy_outlined, 'Match annulé'),
-            _line(
-              Icons.update_outlined,
-              'Match reporté ou horaire modifié',
-              bottomPadding: 0,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _line(IconData icon, String title, {double bottomPadding = 10}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: Row(
-        children: [
-          Icon(icon, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w400),
-            ),
+        // Même taille de texte partout : celle des lignes de la liste des
+        // notifications essentielles.
+        child: ListTileTheme(
+          data: ListTileThemeData(
+            titleTextStyle: Theme.of(context).textTheme.bodyMedium,
           ),
-        ],
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: const [
+              _EssentialNotificationsCard(),
+              SizedBox(height: 12),
+              _OptionalNotificationsCard(),
+              _NotificationActionsRow(),
+              _AdminKillSwitchCard(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -113,55 +64,61 @@ class _OptionalNotificationsCard extends ConsumerWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: preferencesAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: GrintaProgressIndicator()),
-          ),
-          error: (_, __) => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('Impossible de charger tes préférences.'),
-          ),
-          data: (preferences) => Column(
-            children: [
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Rappel pronostic (jour du match)'),
-                value: preferences.predictionNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(predictionNotifications: value),
-                ),
+        child: Column(
+          children: [
+            preferencesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: GrintaProgressIndicator()),
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Vote Homme du match'),
-                value: preferences.motmVoteNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(motmVoteNotifications: value),
-                ),
+              error: (_, __) => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('Impossible de charger tes préférences.'),
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Composition en ligne'),
-                value: preferences.compositionNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(compositionNotifications: value),
-                ),
+              data: (preferences) => Column(
+                children: [
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Rappel pronostic'),
+                    value: preferences.predictionNotifications,
+                    onChanged: (value) => _update(
+                      context,
+                      ref,
+                      preferences.copyWith(predictionNotifications: value),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Vote Homme du match'),
+                    value: preferences.motmVoteNotifications,
+                    onChanged: (value) => _update(
+                      context,
+                      ref,
+                      preferences.copyWith(motmVoteNotifications: value),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Composition en ligne'),
+                    value: preferences.compositionNotifications,
+                    onChanged: (value) => _update(
+                      context,
+                      ref,
+                      preferences.copyWith(compositionNotifications: value),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Badge débloqué'),
+                    value: preferences.badgeNotifications,
+                    onChanged: (value) => _updateBadges(context, ref, value),
+                  ),
+                ],
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Badge débloqué'),
-                value: preferences.badgeNotifications,
-                onChanged: (value) => _updateBadges(context, ref, value),
-              ),
-            ],
-          ),
+            ),
+            // Réglage réservé aux administrateurs : invisible pour les autres.
+            const _AdminAvailabilityNotificationTile(),
+          ],
         ),
       ),
     );
@@ -212,16 +169,16 @@ final adminAvailabilityChangeNotificationProvider =
   return profile['notify_admin_availability_change'] != false;
 });
 
-class _AdminAvailabilityNotificationCard extends ConsumerStatefulWidget {
-  const _AdminAvailabilityNotificationCard();
+class _AdminAvailabilityNotificationTile extends ConsumerStatefulWidget {
+  const _AdminAvailabilityNotificationTile();
 
   @override
-  ConsumerState<_AdminAvailabilityNotificationCard> createState() =>
-      _AdminAvailabilityNotificationCardState();
+  ConsumerState<_AdminAvailabilityNotificationTile> createState() =>
+      _AdminAvailabilityNotificationTileState();
 }
 
-class _AdminAvailabilityNotificationCardState
-    extends ConsumerState<_AdminAvailabilityNotificationCard> {
+class _AdminAvailabilityNotificationTileState
+    extends ConsumerState<_AdminAvailabilityNotificationTile> {
   bool _updating = false;
 
   Future<void> _toggle(bool enabled) async {
@@ -253,28 +210,20 @@ class _AdminAvailabilityNotificationCardState
     final preferenceAsync =
         ref.watch(adminAvailabilityChangeNotificationProvider);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Card(
-        child: preferenceAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: GrintaProgressIndicator()),
-          ),
-          error: (_, __) => const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Impossible de charger le réglage administrateur.'),
-          ),
-          data: (enabled) => SwitchListTile.adaptive(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            title: const Text('Changement de disponibilité d’un joueur'),
-            subtitle: const Text(
-              'Quand un joueur passe de Présent à Absent ou inversement.',
-            ),
-            value: enabled,
-            onChanged: _updating ? null : _toggle,
-          ),
-        ),
+    return preferenceAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: GrintaProgressIndicator()),
+      ),
+      error: (_, __) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text('Impossible de charger le réglage administrateur.'),
+      ),
+      data: (enabled) => SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Changement de disponibilité d’un joueur'),
+        value: enabled,
+        onChanged: _updating ? null : _toggle,
       ),
     );
   }
@@ -543,125 +492,104 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
   }
 }
 
-class _PushActivationCard extends ConsumerStatefulWidget {
-  const _PushActivationCard();
+/// Encadré unique : état des notifications sur cet appareil (cloche) et
+/// liste des notifications essentielles, toujours envoyées.
+class _EssentialNotificationsCard extends ConsumerStatefulWidget {
+  const _EssentialNotificationsCard();
 
   @override
-  ConsumerState<_PushActivationCard> createState() =>
-      _PushActivationCardState();
+  ConsumerState<_EssentialNotificationsCard> createState() =>
+      _EssentialNotificationsCardState();
 }
 
-class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
+class _EssentialNotificationsCardState
+    extends ConsumerState<_EssentialNotificationsCard> {
   bool _busy = false;
 
-  Future<void> _enable() async {
+  Future<void> _toggle(bool currentlySubscribed) async {
     setState(() => _busy = true);
-    var message = 'Notifications activées sur cet appareil.';
-    try {
-      final enabled =
-          await ref.read(pushSubscriptionsRepositoryProvider).enable();
-      if (!enabled) message = 'Autorisation refusée par le navigateur.';
-    } catch (_) {
-      message = 'Impossible d’activer les notifications.';
+    String message;
+    if (currentlySubscribed) {
+      message = 'Notifications désactivées sur cet appareil.';
+      try {
+        await ref.read(pushSubscriptionsRepositoryProvider).disable();
+      } catch (_) {
+        message = 'Impossible de désactiver les notifications.';
+      }
+    } else {
+      message = 'Notifications activées sur cet appareil.';
+      try {
+        final enabled =
+            await ref.read(pushSubscriptionsRepositoryProvider).enable();
+        if (!enabled) message = 'Autorisation refusée par le navigateur.';
+      } catch (_) {
+        message = 'Impossible d’activer les notifications.';
+      }
     }
     ref.invalidate(pushStatusProvider);
     if (!mounted) return;
     setState(() => _busy = false);
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Future<void> _disable() async {
-    setState(() => _busy = true);
-    var message = 'Notifications désactivées sur cet appareil.';
-    try {
-      await ref.read(pushSubscriptionsRepositoryProvider).disable();
-    } catch (_) {
-      message = 'Impossible de désactiver les notifications.';
-    }
-    ref.invalidate(pushStatusProvider);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Widget _busyIndicator() {
-    return const SizedBox(
-      width: 18,
-      height: 18,
-      child: GrintaProgressIndicator(strokeWidth: 2),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final statusAsync = ref.watch(pushStatusProvider);
+    final status = statusAsync.valueOrNull;
+    final supported = status?.supported ?? false;
+    final subscribed = supported && status!.subscribed;
+    final unavailable = statusAsync.hasError || (status != null && !supported);
 
-    return statusAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const _CompactPushStatus(
-        icon: Icons.notifications_off_outlined,
-        label: 'Notifications push indisponibles',
-      ),
-      data: (status) {
-        if (!status.supported) {
-          return const _CompactPushStatus(
-            icon: Icons.notifications_off_outlined,
-            label: 'Notifications indisponibles sur cet appareil',
-          );
-        }
-
-        if (status.subscribed) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Card(
-              child: ListTile(
-                leading: const Icon(Icons.notifications_active_outlined),
-                title: const Text('Notifications actives sur cet appareil'),
-                trailing: _busy
-                    ? _busyIndicator()
-                    : TextButton(
-                        onPressed: _disable,
-                        child: const Text('Désactiver'),
-                      ),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Notifications essentielles',
+                    style: TextStyle(color: AppTheme.textPrimary),
+                  ),
+                ),
+                SizedBox.square(
+                  dimension: 40,
+                  child: NotificationBellButton(
+                    active: subscribed,
+                    busy: _busy || statusAsync.isLoading,
+                    onPressed: supported ? () => _toggle(subscribed) : null,
+                    label: subscribed
+                        ? 'Désactiver les notifications sur cet appareil'
+                        : 'Activer les notifications sur cet appareil',
+                  ),
+                ),
+              ],
+            ),
+            if (unavailable)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Indisponibles sur cet appareil',
+                  style: TextStyle(color: AppTheme.textFaint),
+                ),
               ),
-            ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Card(
-            child: ListTile(
-              leading: const Icon(Icons.notifications_outlined),
-              title: const Text('Notifications désactivées'),
-              trailing: _busy
-                  ? _busyIndicator()
-                  : TextButton(
-                      onPressed: _enable,
-                      child: const Text('Activer'),
-                    ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _CompactPushStatus extends StatelessWidget {
-  const _CompactPushStatus({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        child: ListTile(leading: Icon(icon), title: Text(label)),
+            const SizedBox(height: 4),
+            for (final title in const [
+              'Ouverture des disponibilités',
+              'Passage en convoqué',
+              'Passage en liste d’attente',
+              'Match annulé',
+              'Match reporté ou horaire modifié',
+            ])
+              Padding(
+                padding: const EdgeInsets.only(top: 6, right: 12),
+                child: Text(title),
+              ),
+          ],
+        ),
       ),
     );
   }

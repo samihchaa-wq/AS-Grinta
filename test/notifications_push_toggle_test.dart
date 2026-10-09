@@ -78,26 +78,26 @@ Future<void> _pumpNotifications(
 }
 
 void main() {
-  group('carte des notifications de cet appareil', () {
-    testWidgets('un appareil abonné peut être désactivé', (tester) async {
+  group('cloche des notifications de cet appareil', () {
+    final activeBell = find.byIcon(Icons.notifications_rounded);
+    final inactiveBell = find.byIcon(Icons.notifications_none_rounded);
+
+    testWidgets('un appareil abonné affiche la cloche active', (tester) async {
       final repository = _FakePushSubscriptions(subscribed: true);
       await _pumpNotifications(tester, repository);
 
-      expect(
-        find.text('Notifications actives sur cet appareil'),
-        findsOneWidget,
-      );
-      expect(find.widgetWithText(TextButton, 'Désactiver'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Activer'), findsNothing);
+      expect(find.text('Notifications essentielles'), findsOneWidget);
+      expect(activeBell, findsOneWidget);
+      expect(inactiveBell, findsNothing);
     });
 
     testWidgets(
-      'appuyer sur Désactiver désabonne et bascule la carte',
+      'appuyer sur la cloche active désabonne et la passe en gris',
       (tester) async {
         final repository = _FakePushSubscriptions(subscribed: true);
         await _pumpNotifications(tester, repository);
 
-        await tester.tap(find.widgetWithText(TextButton, 'Désactiver'));
+        await tester.tap(activeBell);
         await tester.pumpAndSettle();
 
         expect(repository.disableCalls, 1);
@@ -106,10 +106,10 @@ void main() {
           find.text('Notifications désactivées sur cet appareil.'),
           findsOneWidget,
         );
-        // Sans cette bascule, le bouton resterait affiché alors que
+        // Sans cette bascule, la cloche resterait verte alors que
         // l'appareil n'est plus abonné.
-        expect(find.widgetWithText(TextButton, 'Activer'), findsOneWidget);
-        expect(find.widgetWithText(TextButton, 'Désactiver'), findsNothing);
+        expect(inactiveBell, findsOneWidget);
+        expect(activeBell, findsNothing);
       },
     );
 
@@ -122,7 +122,7 @@ void main() {
         );
         await _pumpNotifications(tester, repository);
 
-        await tester.tap(find.widgetWithText(TextButton, 'Désactiver'));
+        await tester.tap(activeBell);
         await tester.pumpAndSettle();
 
         expect(repository.disableCalls, 1);
@@ -131,21 +131,25 @@ void main() {
           find.text('Impossible de désactiver les notifications.'),
           findsOneWidget,
         );
-        // L'appareil est toujours abonné : la carte ne doit pas prétendre
+        // L'appareil est toujours abonné : la cloche ne doit pas prétendre
         // le contraire.
-        expect(find.widgetWithText(TextButton, 'Désactiver'), findsOneWidget);
+        expect(activeBell, findsOneWidget);
       },
     );
 
     testWidgets(
-      'un appareil non abonné garde le bouton d’activation',
+      'appuyer sur la cloche grise abonne et la passe en vert',
       (tester) async {
         final repository = _FakePushSubscriptions(subscribed: false);
         await _pumpNotifications(tester, repository);
 
-        expect(find.text('Notifications désactivées'), findsOneWidget);
-        expect(find.widgetWithText(TextButton, 'Activer'), findsOneWidget);
-        expect(find.widgetWithText(TextButton, 'Désactiver'), findsNothing);
+        expect(inactiveBell, findsOneWidget);
+        await tester.tap(inactiveBell);
+        await tester.pumpAndSettle();
+
+        expect(repository.enableCalls, 1);
+        expect(activeBell, findsOneWidget);
+        expect(inactiveBell, findsNothing);
       },
     );
   });

@@ -79,20 +79,46 @@ class _MatchLiveNotificationBellState
   @override
   Widget build(BuildContext context) {
     final subscribed = widget.subscribed;
-    final color = subscribed ? AppTheme.success : AppTheme.textFaint;
-
-    return Semantics(
-      button: true,
-      toggled: subscribed,
+    return NotificationBellButton(
+      active: subscribed,
+      busy: _busy,
+      onPressed: _toggle,
       label: subscribed
           ? 'Désactiver les alertes de buts'
           : 'Activer les alertes de buts',
+    );
+  }
+}
+
+/// Cloche de notification partagée : verte quand active, grise sinon.
+/// Utilisée sur les cartes de match et dans la page Notifications pour
+/// garder exactement le même rendu partout.
+class NotificationBellButton extends StatelessWidget {
+  const NotificationBellButton({
+    super.key,
+    required this.active,
+    required this.busy,
+    required this.onPressed,
+    required this.label,
+  });
+
+  final bool active;
+  final bool busy;
+  final VoidCallback? onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppTheme.success : AppTheme.textFaint;
+
+    return Semantics(
+      button: true,
+      toggled: active,
+      label: label,
       child: IconButton(
-        tooltip: subscribed
-            ? 'Désactiver les alertes de buts'
-            : 'Activer les alertes de buts',
-        onPressed: _busy ? null : _toggle,
-        icon: _busy
+        tooltip: label,
+        onPressed: busy ? null : onPressed,
+        icon: busy
             ? SizedBox.square(
                 dimension: 18,
                 child: CircularProgressIndicator(
@@ -101,7 +127,7 @@ class _MatchLiveNotificationBellState
                 ),
               )
             : Icon(
-                subscribed
+                active
                     ? Icons.notifications_rounded
                     : Icons.notifications_none_rounded,
                 color: color,
