@@ -158,7 +158,7 @@ void main() {
           ],
         },
         details: PlayerCardDetails(
-          displayName: 'Karim',
+          firstName: 'Karim',
           photoUrl: null,
           profileId: null,
           recentMatches: [
@@ -168,7 +168,7 @@ void main() {
         ),
       );
 
-      expect(find.text('KARIM'), findsOneWidget);
+      expect(find.text('Karim'), findsOneWidget);
       // Ni poste ni ligne « AS La Grinta · N matchs » dans l'en-tête.
       expect(find.text('Joueur de champ'), findsNothing);
       expect(find.textContaining('AS La Grinta'), findsNothing);
@@ -221,7 +221,7 @@ void main() {
           ],
         },
         details: const PlayerCardDetails(
-          displayName: 'Karim',
+          firstName: 'Karim',
           photoUrl: null,
           profileId: null,
           recentMatches: [],
@@ -260,7 +260,7 @@ void main() {
               ),
             playerCardDetailsProvider(profileKey).overrideWith(
               (ref) async => const PlayerCardDetails(
-                displayName: 'Karim',
+                firstName: 'Karim',
                 photoUrl: null,
                 profileId: 'p-karim',
                 recentMatches: [],
@@ -298,7 +298,7 @@ void main() {
           StatisticsPeriod.allTime: [_player('Karim Ben', played: 3)],
         },
         details: const PlayerCardDetails(
-          displayName: 'Karim',
+          firstName: 'Karim',
           photoUrl: null,
           profileId: null,
           recentMatches: [],
@@ -308,12 +308,33 @@ void main() {
       expect(find.text('Aucun match sur cette période.'), findsOneWidget);
     });
 
+    testWidgets('l’en-tête montre le vrai prénom, puis le surnom à part',
+        (tester) async {
+      await pumpPage(
+        tester,
+        players: {
+          StatisticsPeriod.allTime: [_player('Karim Ben', played: 3)],
+        },
+        details: const PlayerCardDetails(
+          firstName: 'FRANÇOIS',
+          nickname: 'Ibra',
+          photoUrl: null,
+          profileId: null,
+          recentMatches: [],
+        ),
+      );
+
+      expect(find.text('François'), findsOneWidget);
+      expect(find.text('SURNOM'), findsOneWidget);
+      expect(find.text('Ibra'), findsOneWidget);
+    });
+
     testWidgets('un membre qui ne joue pas n’a pas de fiche', (tester) async {
       await pumpPage(
         tester,
         players: const {},
         details: const PlayerCardDetails(
-          displayName: null,
+          firstName: null,
           photoUrl: null,
           profileId: null,
           recentMatches: [],

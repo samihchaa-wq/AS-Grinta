@@ -79,8 +79,20 @@ Future<void> _pumpNotifications(
 
 void main() {
   group('cloche des notifications de cet appareil', () {
-    final activeBell = find.byIcon(Icons.notifications_rounded);
-    final inactiveBell = find.byIcon(Icons.notifications_none_rounded);
+    // Les notifications réglables ont aussi leur cloche : on ne regarde que
+    // celle de l'encadré du haut.
+    final essentialCard = find.ancestor(
+      of: find.text('Notifications essentielles'),
+      matching: find.byType(Card),
+    );
+    final activeBell = find.descendant(
+      of: essentialCard,
+      matching: find.byIcon(Icons.notifications_rounded),
+    );
+    final inactiveBell = find.descendant(
+      of: essentialCard,
+      matching: find.byIcon(Icons.notifications_none_rounded),
+    );
 
     testWidgets('un appareil abonné affiche la cloche active', (tester) async {
       final repository = _FakePushSubscriptions(subscribed: true);
@@ -153,6 +165,37 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    'chaque notification réglable a sa cloche, verte une fois activée',
+    (tester) async {
+      await _pumpNotifications(
+        tester,
+        _FakePushSubscriptions(subscribed: true),
+      );
+
+      for (final title in const [
+        'Rappel pronostic',
+        'Vote Homme du match',
+        'Composition en ligne',
+        'Badge débloqué',
+      ]) {
+        final row = find.ancestor(
+          of: find.text(title),
+          matching: find.byType(Row),
+        );
+        expect(
+          find.descendant(
+            of: row.first,
+            matching: find.byIcon(Icons.notifications_rounded),
+          ),
+          findsOneWidget,
+          reason: title,
+        );
+      }
+      expect(find.byType(Switch), findsNothing);
+    },
+  );
 
   group('coupure générale des notifications (administrateur)', () {
     late List<bool> pauseCalls;

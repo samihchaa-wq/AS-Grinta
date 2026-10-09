@@ -63,7 +63,8 @@ class _OptionalNotificationsCard extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        // Mêmes marges que l'encadré du haut : les cloches s'alignent.
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
         child: Column(
           children: [
             preferencesAsync.when(
@@ -77,9 +78,8 @@ class _OptionalNotificationsCard extends ConsumerWidget {
               ),
               data: (preferences) => Column(
                 children: [
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Rappel pronostic'),
+                  _BellToggleTile(
+                    title: 'Rappel pronostic',
                     value: preferences.predictionNotifications,
                     onChanged: (value) => _update(
                       context,
@@ -87,9 +87,8 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                       preferences.copyWith(predictionNotifications: value),
                     ),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Vote Homme du match'),
+                  _BellToggleTile(
+                    title: 'Vote Homme du match',
                     value: preferences.motmVoteNotifications,
                     onChanged: (value) => _update(
                       context,
@@ -97,9 +96,8 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                       preferences.copyWith(motmVoteNotifications: value),
                     ),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Composition en ligne'),
+                  _BellToggleTile(
+                    title: 'Composition en ligne',
                     value: preferences.compositionNotifications,
                     onChanged: (value) => _update(
                       context,
@@ -107,9 +105,8 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                       preferences.copyWith(compositionNotifications: value),
                     ),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Badge débloqué'),
+                  _BellToggleTile(
+                    title: 'Badge débloqué',
                     value: preferences.badgeNotifications,
                     onChanged: (value) => _updateBadges(context, ref, value),
                   ),
@@ -158,6 +155,62 @@ class _OptionalNotificationsCard extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+/// Une notification réglable : son nom et une cloche, verte quand elle est
+/// activée, grise sinon — comme celle des notifications essentielles.
+class _BellToggleTile extends StatefulWidget {
+  const _BellToggleTile({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final bool value;
+
+  /// `null` désactive la cloche.
+  final Future<void> Function(bool value)? onChanged;
+
+  @override
+  State<_BellToggleTile> createState() => _BellToggleTileState();
+}
+
+class _BellToggleTileState extends State<_BellToggleTile> {
+  bool _busy = false;
+
+  Future<void> _toggle() async {
+    setState(() => _busy = true);
+    try {
+      await widget.onChanged!(!widget.value);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final onChanged = widget.onChanged;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(widget.title)),
+          SizedBox.square(
+            dimension: 40,
+            child: NotificationBellButton(
+              active: widget.value,
+              busy: _busy,
+              onPressed: onChanged == null ? null : _toggle,
+              label: widget.value
+                  ? 'Désactiver « ${widget.title} »'
+                  : 'Activer « ${widget.title} »',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -219,9 +272,8 @@ class _AdminAvailabilityNotificationTileState
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Text('Impossible de charger le réglage administrateur.'),
       ),
-      data: (enabled) => SwitchListTile.adaptive(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Changement de disponibilité d’un joueur'),
+      data: (enabled) => _BellToggleTile(
+        title: 'Changement de disponibilité d’un joueur',
         value: enabled,
         onChanged: _updating ? null : _toggle,
       ),
@@ -579,10 +631,8 @@ class _EssentialNotificationsCardState
             const SizedBox(height: 4),
             for (final title in const [
               'Ouverture des disponibilités',
-              'Passage en convoqué',
-              'Passage en liste d’attente',
-              'Match annulé',
-              'Match reporté ou horaire modifié',
+              'Passage en convoqué ou en liste d’attente',
+              'Match annulé, reporté ou modifié',
             ])
               Padding(
                 padding: const EdgeInsets.only(top: 6, right: 12),

@@ -85,14 +85,14 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
     final careerRow = allTime.asData?.value.players
         .where((p) => _isSamePlayer(p, key))
         .firstOrNull;
-    if (info.displayName == null && careerRow == null && allTime.hasValue) {
+    if (info.firstName == null && careerRow == null && allTime.hasValue) {
       return const _Message(
         title: 'Pas de fiche joueur',
         message: 'Ce membre n’a encore joué aucun match avec l’équipe.',
       );
     }
 
-    final name = info.displayName ??
+    final name = info.firstName ??
         careerRow?.playerName ??
         capitalizePersonName(key.fullName);
     final isGoalkeeper = careerRow?.isGoalkeeper ?? key.isGoalkeeper;
@@ -110,6 +110,7 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
         children: [
           _Hero(
             name: name,
+            nickname: info.nickname,
             photoUrl: info.photoUrl,
             profileId: info.profileId,
             isGoalkeeper: isGoalkeeper,
@@ -191,21 +192,34 @@ String _ordinal(int rank) => rank == 1 ? '1er' : '${rank}e';
 
 String _decimal(double value) => value.toStringAsFixed(2).replaceAll('.', ',');
 
+final _nameWordStart = RegExp(r"(^|[ '’-])(\p{L})", unicode: true);
+
+/// « FRANÇOIS » ou « françois » deviennent « François » ; « jean-pierre »,
+/// « Jean-Pierre ».
+String _properCaseName(String value) =>
+    value.trim().toLowerCase().replaceAllMapped(
+          _nameWordStart,
+          (match) => '${match[1]}${match[2]!.toUpperCase()}',
+        );
+
 class _Hero extends ConsumerWidget {
   const _Hero({
     required this.name,
+    required this.nickname,
     required this.photoUrl,
     required this.profileId,
     required this.isGoalkeeper,
   });
 
   final String name;
+  final String? nickname;
   final String? photoUrl;
   final String? profileId;
   final bool isGoalkeeper;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final nickname = this.nickname;
     final badge = profileId == null
         ? null
         : ref
@@ -251,27 +265,58 @@ class _Hero extends ConsumerWidget {
                   photoUrl: photoUrl,
                   name: name,
                   isGoalkeeper: isGoalkeeper,
-                  size: 96,
+                  size: _heroPhotoSize,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    name.toUpperCase(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontFamily: _display,
-                      fontSize: 30,
-                      height: 1.05,
-                      color: AppTheme.textPrimary,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Une seule ligne, réduite au besoin : un prénom ne se
+                      // coupe pas au milieu.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _properCaseName(name),
+                          maxLines: 1,
+                          style: const TextStyle(
+                            fontFamily: _display,
+                            fontSize: 30,
+                            height: 1.05,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ),
+                      if (nickname != null) ...[
+                        const SizedBox(height: 6),
+                        const Text(
+                          'SURNOM',
+                          style: TextStyle(
+                            fontSize: 10,
+                            letterSpacing: 1,
+                            color: AppTheme.textFaint,
+                          ),
+                        ),
+                        Text(
+                          nickname,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if (badge != null) ...[
                   const SizedBox(width: 12),
+                  // Aussi haut que la photo, pas plus.
                   SizedBox(
-                    width: _heroBadgeWidth,
-                    height: _heroBadgeWidth *
+                    height: _heroPhotoSize,
+                    width: _heroPhotoSize /
                         badgeEmblemHeightRatio(hasStar: badge.hasStar),
                     child: FittedBox(
                       child: BadgeEmblem(
@@ -296,9 +341,8 @@ class _Hero extends ConsumerWidget {
   }
 }
 
-/// Le badge arboré est l'élément fort de l'en-tête : plus d'une fois la
-/// taille de la photo.
-const _heroBadgeWidth = 104.0;
+/// Photo du joueur dans l'en-tête ; le badge arboré prend la même hauteur.
+const _heroPhotoSize = 96.0;
 
 /// Or, argent et bronze pour les trois premiers du club sur une statistique.
 const _gold = Color(0xFFFFD84A);
