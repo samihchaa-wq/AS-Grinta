@@ -44,7 +44,6 @@ class NotificationsPage extends ConsumerWidget {
               _EssentialNotificationsCard(),
               SizedBox(height: 12),
               _OptionalNotificationsCard(),
-              _AdminAvailabilityNotificationCard(),
               _NotificationActionsRow(),
               _AdminKillSwitchCard(),
             ],
@@ -65,55 +64,61 @@ class _OptionalNotificationsCard extends ConsumerWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: preferencesAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: GrintaProgressIndicator()),
-          ),
-          error: (_, __) => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Text('Impossible de charger tes préférences.'),
-          ),
-          data: (preferences) => Column(
-            children: [
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Rappel pronostic (jour du match)'),
-                value: preferences.predictionNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(predictionNotifications: value),
-                ),
+        child: Column(
+          children: [
+            preferencesAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: GrintaProgressIndicator()),
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Vote Homme du match'),
-                value: preferences.motmVoteNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(motmVoteNotifications: value),
-                ),
+              error: (_, __) => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('Impossible de charger tes préférences.'),
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Composition en ligne'),
-                value: preferences.compositionNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(compositionNotifications: value),
-                ),
+              data: (preferences) => Column(
+                children: [
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Rappel pronostic'),
+                    value: preferences.predictionNotifications,
+                    onChanged: (value) => _update(
+                      context,
+                      ref,
+                      preferences.copyWith(predictionNotifications: value),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Vote Homme du match'),
+                    value: preferences.motmVoteNotifications,
+                    onChanged: (value) => _update(
+                      context,
+                      ref,
+                      preferences.copyWith(motmVoteNotifications: value),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Composition en ligne'),
+                    value: preferences.compositionNotifications,
+                    onChanged: (value) => _update(
+                      context,
+                      ref,
+                      preferences.copyWith(compositionNotifications: value),
+                    ),
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Badge débloqué'),
+                    value: preferences.badgeNotifications,
+                    onChanged: (value) => _updateBadges(context, ref, value),
+                  ),
+                ],
               ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Badge débloqué'),
-                value: preferences.badgeNotifications,
-                onChanged: (value) => _updateBadges(context, ref, value),
-              ),
-            ],
-          ),
+            ),
+            // Réglage réservé aux administrateurs : invisible pour les autres.
+            const _AdminAvailabilityNotificationTile(),
+          ],
         ),
       ),
     );
@@ -164,16 +169,16 @@ final adminAvailabilityChangeNotificationProvider =
   return profile['notify_admin_availability_change'] != false;
 });
 
-class _AdminAvailabilityNotificationCard extends ConsumerStatefulWidget {
-  const _AdminAvailabilityNotificationCard();
+class _AdminAvailabilityNotificationTile extends ConsumerStatefulWidget {
+  const _AdminAvailabilityNotificationTile();
 
   @override
-  ConsumerState<_AdminAvailabilityNotificationCard> createState() =>
-      _AdminAvailabilityNotificationCardState();
+  ConsumerState<_AdminAvailabilityNotificationTile> createState() =>
+      _AdminAvailabilityNotificationTileState();
 }
 
-class _AdminAvailabilityNotificationCardState
-    extends ConsumerState<_AdminAvailabilityNotificationCard> {
+class _AdminAvailabilityNotificationTileState
+    extends ConsumerState<_AdminAvailabilityNotificationTile> {
   bool _updating = false;
 
   Future<void> _toggle(bool enabled) async {
@@ -205,28 +210,20 @@ class _AdminAvailabilityNotificationCardState
     final preferenceAsync =
         ref.watch(adminAvailabilityChangeNotificationProvider);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Card(
-        child: preferenceAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: GrintaProgressIndicator()),
-          ),
-          error: (_, __) => const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Impossible de charger le réglage administrateur.'),
-          ),
-          data: (enabled) => SwitchListTile.adaptive(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-            title: const Text('Changement de disponibilité d’un joueur'),
-            subtitle: const Text(
-              'Quand un joueur passe de Présent à Absent ou inversement.',
-            ),
-            value: enabled,
-            onChanged: _updating ? null : _toggle,
-          ),
-        ),
+    return preferenceAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: GrintaProgressIndicator()),
+      ),
+      error: (_, __) => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Text('Impossible de charger le réglage administrateur.'),
+      ),
+      data: (enabled) => SwitchListTile.adaptive(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Changement de disponibilité d’un joueur'),
+        value: enabled,
+        onChanged: _updating ? null : _toggle,
       ),
     );
   }
