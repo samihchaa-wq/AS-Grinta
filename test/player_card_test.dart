@@ -107,6 +107,63 @@ void main() {
     });
   });
 
+  group('seuil de classement des moyennes', () {
+    List<PlayerStatistics> squad(int mostPlayed) =>
+        [_player('Karim Ben', played: mostPlayed)];
+
+    test('toutes saisons : 20 matchs', () {
+      expect(
+        averageRankingMinMatches(
+          StatisticsPeriod.allTime,
+          teamMatches: null,
+          players: squad(40),
+        ),
+        20,
+      );
+    });
+
+    test('saison précédente : 5 matchs', () {
+      expect(
+        averageRankingMinMatches(
+          StatisticsPeriod.previous,
+          teamMatches: null,
+          players: squad(20),
+        ),
+        5,
+      );
+    });
+
+    test('saison en cours : aucun seuil jusqu’à 5 matchs d’équipe', () {
+      expect(
+        averageRankingMinMatches(
+          StatisticsPeriod.current,
+          teamMatches: 5,
+          players: squad(5),
+        ),
+        0,
+      );
+      expect(
+        averageRankingMinMatches(
+          StatisticsPeriod.current,
+          teamMatches: 6,
+          players: squad(3),
+        ),
+        5,
+      );
+    });
+
+    test('saison en cours : le joueur le plus présent sert de minimum', () {
+      expect(
+        averageRankingMinMatches(
+          StatisticsPeriod.current,
+          teamMatches: null,
+          players: squad(7),
+        ),
+        5,
+      );
+    });
+  });
+
   group('page', () {
     const key = (profileId: null, fullName: 'Karim Ben', isGoalkeeper: false);
 
@@ -329,6 +386,65 @@ void main() {
       expect(find.text('Ibra'), findsOneWidget);
     });
 
+    testWidgets(
+        'un joueur trop peu présent n’est pas classé sur les moyennes, '
+        'et ne prend pas la tête aux autres', (tester) async {
+      await pumpPage(
+        tester,
+        players: {
+          StatisticsPeriod.current: [
+            _player('Karim Ben', played: 10, goals: 5, wins: 6),
+            // Un seul match, gagné, un but : 100 % et 1 but par match.
+            _player('Steve Lo', played: 1, goals: 1, wins: 1),
+          ],
+        },
+        details: const PlayerCardDetails(
+          firstName: 'Karim',
+          photoUrl: null,
+          profileId: null,
+          recentMatches: [],
+        ),
+      );
+
+      String rankLine(String label) {
+        final tile = find
+            .ancestor(of: find.text(label), matching: find.byType(Column))
+            .first;
+        return tester
+            .widgetList<Text>(
+              find.descendant(of: tile, matching: find.byType(Text)),
+            )
+            .last
+            .data!;
+      }
+
+      expect(rankLine('VICTOIRES'), '1er du club');
+      expect(rankLine('BUTS / MATCH'), '1er du club');
+    });
+
+    testWidgets('sous le seuil de matchs, les moyennes affichent N/A',
+        (tester) async {
+      await pumpPage(
+        tester,
+        players: {
+          StatisticsPeriod.current: [
+            _player('Karim Ben', played: 1, goals: 1, wins: 1),
+            _player('Steve Lo', played: 10, goals: 5, wins: 6),
+          ],
+        },
+        details: const PlayerCardDetails(
+          firstName: 'Karim',
+          photoUrl: null,
+          profileId: null,
+          recentMatches: [],
+        ),
+      );
+
+      // La valeur reste affichée ; seul le rang devient N/A.
+      expect(find.text('100 %'), findsOneWidget);
+      expect(find.text('N/A'), findsNWidgets(2));
+    });
+
     testWidgets('un membre qui ne joue pas n’a pas de fiche', (tester) async {
       await pumpPage(
         tester,
@@ -352,6 +468,7 @@ PlayerStatistics _player(
   int goals = 0,
   int assists = 0,
   int hdm = 0,
+  int? wins,
 }) =>
     PlayerStatistics(
       period: StatisticsPeriod.current,
@@ -363,9 +480,9 @@ PlayerStatistics _player(
       profileId: null,
       isGoalkeeper: false,
       matchesPlayed: played,
-      wins: played ~/ 2,
-      draws: 1,
-      losses: played - played ~/ 2 - 1,
+      wins: wins ?? played ~/ 2,
+      draws: wins == null ? 1 : 0,
+      losses: wins == null ? played - played ~/ 2 - 1 : played - wins,
       goals: goals,
       assists: assists,
       hdm: hdm,

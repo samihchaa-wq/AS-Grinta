@@ -6,6 +6,14 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche joueur : « Derniers matchs » montre les 5 derniers matchs amicaux
+  ou de championnat, même s'ils s'étendent sur la saison précédente ; les
+  matchs « entre nous » n'y figurent plus. Le rang au club sur le % de
+  victoires et les buts par match n'est donné qu'à partir d'un nombre de
+  matchs joués (20 en carrière, 5 sur la saison précédente, 5 sur la saison
+  en cours une fois que l'équipe a joué plus de 5 matchs) ; en dessous, la
+  fiche affiche N/A, et le joueur ne compte pas dans le classement des
+  autres ;
 - notifications : les interrupteurs des notifications réglables (rappel
   pronostic, vote Homme du match, composition, badge, changement de
   disponibilité côté admin) deviennent des cloches, vertes quand la
