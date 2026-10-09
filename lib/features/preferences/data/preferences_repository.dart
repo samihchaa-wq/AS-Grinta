@@ -17,7 +17,11 @@ class AppPreferences {
   /// Prévenir à l'ouverture du vote Homme du match et à son résultat.
   final bool motmVoteNotifications;
 
-  /// Prévenir lorsqu'un joueur passe de la liste d'attente aux convoqués.
+  /// Ancien réglage « Passage en convoqué ». Le passage convoqué ↔ liste
+  /// d'attente est désormais une notification essentielle, toujours envoyée :
+  /// la valeur n'est plus proposée ni lue par le serveur, mais reste dans le
+  /// contrat de update_my_notification_preferences pour les anciennes
+  /// versions de l'application.
   final bool convocationNotifications;
 
   /// Prévenir à la mise en ligne de la composition d'un match.

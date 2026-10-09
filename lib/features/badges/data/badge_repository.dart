@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -93,6 +94,46 @@ class BadgeDef {
       );
 }
 
+/// Un membre du club qui possède un badge.
+class BadgeHolder {
+  const BadgeHolder({required this.profileId, required this.name});
+
+  final String profileId;
+  final String name;
+}
+
+/// Regroupe les lignes `profile_badges` (avec badge et profil joints) par code
+/// de badge. Fonction pure, testable sans base de données.
+Map<String, List<BadgeHolder>> groupBadgeHolders(
+  List<Map<String, dynamic>> rows,
+) {
+  final byCode = <String, Map<String, BadgeHolder>>{};
+  for (final row in rows) {
+    final badge = row['badges'];
+    final code = badge is Map ? badge['code']?.toString() : null;
+    final profileId = row['profile_id']?.toString();
+    if (code == null || profileId == null) continue;
+    final profile = row['profiles'];
+    final name = _holderName(profile is Map ? profile : const {});
+    byCode.putIfAbsent(code, () => {})[profileId] =
+        BadgeHolder(profileId: profileId, name: name);
+  }
+  return {
+    for (final entry in byCode.entries)
+      entry.key: entry.value.values.toList()
+        ..sort((a, b) => compareBadgeNames(a.name, b.name)),
+  };
+}
+
+// Même priorité que la fiche joueur : surnom, puis prénom.
+String _holderName(Map<dynamic, dynamic> profile) {
+  for (final candidate in [profile['surnom'], profile['first_name']]) {
+    final name = capitalizePersonName(candidate?.toString() ?? '');
+    if (name.isNotEmpty) return name;
+  }
+  return 'Joueur';
+}
+
 /// Une entrée de l'armoire : un badge + son état pour la personne.
 class ArmoireBadge {
   const ArmoireBadge({
@@ -104,10 +145,16 @@ class ArmoireBadge {
     this.awardedAt,
     this.stars = 1,
     this.isNew = false,
+    this.knownToClub = false,
   });
 
   final BadgeDef def;
   final BadgeState state;
+
+  /// Badge pas encore gagné par la personne, mais déjà obtenu par au moins un
+  /// membre du club : il n'est plus un mystère. L'armoire le montre en noir
+  /// et blanc, avec son nom, au lieu d'une simple carte « Mystère ».
+  final bool knownToClub;
 
   /// Vrai si le badge est gagné mais pas encore consulté (affiche une pastille
   /// qui disparaît au clic).
@@ -225,6 +272,7 @@ Armoire buildArmoire({
   required Map<String, int> metrics,
   required Map<String, int> displayMetrics,
   required Map<String, int> starCounts,
+  Set<String> clubEarnedCodes = const {},
 }) {
   final byCode = {for (final b in catalog) b.code: b};
   bool isNewBadge(String code) =>
@@ -290,7 +338,11 @@ Armoire buildArmoire({
       if (nextUnowned.secret) {
         // Badge secret pas encore gagné : reste masqué (« ??? ») dans la
         // section « À débloquer », sans dévoiler son nom ni sa condition.
-        locked.add(ArmoireBadge(def: nextUnowned, state: BadgeState.locked));
+        locked.add(ArmoireBadge(
+          def: nextUnowned,
+          state: BadgeState.locked,
+          knownToClub: clubEarnedCodes.contains(nextUnowned.code),
+        ));
       } else {
         inProgress.add(ArmoireBadge(
           def: nextUnowned,
@@ -315,7 +367,11 @@ Armoire buildArmoire({
         isNew: isNewBadge(b.code),
       ));
     } else {
-      locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
+      locked.add(ArmoireBadge(
+        def: b,
+        state: BadgeState.locked,
+        knownToClub: clubEarnedCodes.contains(b.code),
+      ));
     }
   }
 
@@ -360,7 +416,23 @@ class BadgeRepository {
         .toList();
   }
 
-  Future<Armoire> fetchArmoire(String profileId) async {
+  /// Qui possède quel badge, pour tout le club : code du badge → titulaires,
+  /// par ordre alphabétique. Les badges gagnés sont lisibles par tout membre
+  /// connecté (c'est déjà ce qu'affiche la fiche d'un joueur).
+  Future<Map<String, List<BadgeHolder>>> fetchClubHolders() async {
+    final rows = await _client.from('profile_badges').select(
+          'profile_id, badges(code), '
+          'profiles!profile_badges_profile_id_fkey(first_name, surnom)',
+        );
+    return groupBadgeHolders([
+      for (final r in rows as List) Map<String, dynamic>.from(r as Map),
+    ]);
+  }
+
+  Future<Armoire> fetchArmoire(
+    String profileId, {
+    Set<String> clubEarnedCodes = const {},
+  }) async {
     final catalog = await fetchCatalog();
 
     // Badges directement attribués (paliers + custom).
@@ -433,6 +505,7 @@ class BadgeRepository {
       metrics: metrics,
       displayMetrics: displayMetrics,
       starCounts: starCounts,
+      clubEarnedCodes: clubEarnedCodes,
     );
   }
 
@@ -456,6 +529,12 @@ final badgeCatalogProvider =
   return ref.watch(badgeRepositoryProvider).fetchCatalog();
 });
 
+/// Titulaires de chaque badge dans le club (code → joueurs).
+final badgeHoldersProvider =
+    FutureProvider.autoDispose<Map<String, List<BadgeHolder>>>((ref) async {
+  return ref.watch(badgeRepositoryProvider).fetchClubHolders();
+});
+
 /// Armoire de la personne connectée.
 final myArmoireProvider = FutureProvider.autoDispose<Armoire>((ref) async {
   final client = ref.watch(supabaseClientProvider);
@@ -463,5 +542,12 @@ final myArmoireProvider = FutureProvider.autoDispose<Armoire>((ref) async {
   if (uid == null) {
     return const Armoire(validated: [], inProgress: [], locked: []);
   }
-  return ref.watch(badgeRepositoryProvider).fetchArmoire(uid);
+  final holders = await ref.watch(badgeHoldersProvider.future);
+  return ref.watch(badgeRepositoryProvider).fetchArmoire(
+    uid,
+    clubEarnedCodes: {
+      for (final entry in holders.entries)
+        if (entry.value.isNotEmpty) entry.key,
+    },
+  );
 });

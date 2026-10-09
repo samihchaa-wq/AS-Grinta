@@ -12,6 +12,7 @@ import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
+import 'package:as_grinta/features/badges/presentation/locked_badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -64,6 +65,7 @@ class ArmoirePage extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          ref.invalidate(badgeHoldersProvider);
           ref.invalidate(myArmoireProvider);
           ref.invalidate(myFeaturedCodesProvider);
           await ref.read(myArmoireProvider.future);
@@ -224,8 +226,10 @@ class _BadgeGrid extends StatelessWidget {
 
   final List<ArmoireBadge> badges;
 
-  /// Grille « Badges mystères » : les badges pas encore gagnés restent masqués et
-  /// les mystères gagnés n'affichent que leur emblème, sans nom.
+  /// Grille « Badges mystères » : les badges que personne n'a encore gagnés
+  /// restent masqués, ceux déjà gagnés par un membre du club apparaissent en
+  /// noir et blanc, et les mystères gagnés n'affichent que leur emblème, sans
+  /// nom.
   final bool discover;
   final Set<String>? featuredCodes;
   final void Function(String code, bool nowFeatured)? onToggleFeatured;
@@ -278,6 +282,43 @@ class _BadgeTile extends ConsumerWidget {
             (_gridColumns - 1) * _gridSpacing) /
         _gridColumns;
     final emblem = tile < 87 ? tile : 87.0;
+
+    if (locked && badge.knownToClub) {
+      // Déjà gagné par quelqu'un du club : on le montre, en noir et blanc
+      // et sous cadenas, et on peut l'ouvrir pour lire sa condition.
+      return SizedBox(
+        width: tile,
+        child: GestureDetector(
+          onTap: () => showBadgeDetailSheet(
+            context,
+            badge.def,
+            owned: false,
+            showLadder: false,
+            showHolders: true,
+          ),
+          child: LockedBadgeEmblem(
+            size: emblem,
+            emblem: BadgeEmblem(
+              emoji: badge.def.emoji,
+              imageUrl: badge.def.imageUrl,
+              color: badge.def.color,
+              baremeLabel: baremeLabelFor(
+                badge.def.metric,
+                badge.def.threshold,
+              ),
+              descriptor: badgeDescriptorFor(
+                code: badge.def.code,
+                metric: badge.def.metric,
+                category: badge.def.category,
+                name: badge.def.name,
+              ),
+              showStar: badge.def.hasStar,
+              size: emblem,
+            ),
+          ),
+        ),
+      );
+    }
 
     if (locked) {
       return SizedBox(
@@ -340,6 +381,7 @@ class _BadgeTile extends ConsumerWidget {
                 badge.def,
                 isFeatured: featured,
                 showLadder: false,
+                showHolders: true,
                 onToggleFeatured: canFeature
                     ? () => onToggleFeatured!(badge.def.code, !featured)
                     : null,

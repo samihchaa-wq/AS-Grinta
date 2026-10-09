@@ -6,6 +6,23 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- liste d'attente : un joueur qui passe des convoqués à la liste d'attente
+  reçoit « Tu passes en liste d'attente », sur le modèle de « Tu es
+  convoqué ». Les deux notifications (convoqué ↔ liste d'attente) deviennent
+  essentielles : elles partent toujours et ne se règlent plus une par une.
+  Seuls le coupe-circuit général et la désactivation complète sur l'appareil
+  les arrêtent ;
+- armoire à badges : un badge mystère déjà gagné par au moins un membre du
+  club n'est plus caché. Il apparaît en noir et blanc, sous cadenas, et
+  s'ouvre comme les autres badges pour lire son nom et sa condition. Le
+  détail d'un badge, dans l'armoire comme sur une fiche joueur, liste les
+  joueurs qui l'ont obtenu ;
+- fiche joueur : « Bilan avec lui » devient « Bilan ». Dans « Derniers
+  matchs », buts, passes décisives et Homme du match reprennent les icônes
+  des compositions (ballon, crampon, couronne) ;
+- compositions : l'emoji 👟 des passes décisives est remplacé par un vrai
+  crampon dessiné (tige blanche, liseré jaune, semelle à crampons), lisible
+  sur le terrain comme sur fond sombre ;
 - fiche joueur : en-tête allégé (photo comme sur les compositions, sans
   poste ni nombre de matchs) et badge arboré nettement plus grand. Les six
   statistiques suivent l'ordre Matchs, % Victoires, Buts, Passes D., HDM,
@@ -25,7 +42,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   ensuite se partageaient les seules places restantes, quel que soit leur
   rang. Le surplus passe désormais en attente selon l'ordre de la liste, même
   si un joueur déjà convoqué doit céder sa place à une réponse plus tardive.
-  Ce joueur ne reçoit pas de notification ;
+  Ce joueur est prévenu par la notification « Tu passes en liste
+  d'attente » ;
 - fiches de match (passées, archivées, à venir, version admin) : plus de
   barre en haut. L'écusson, le titre « Fiche du match » et le bouton
   d'actualisation disparaissent ; le bandeau du match se place à droite de la

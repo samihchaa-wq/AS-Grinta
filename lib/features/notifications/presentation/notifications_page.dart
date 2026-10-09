@@ -70,6 +70,8 @@ class _MandatoryNotificationsCard extends StatelessWidget {
               Icons.event_available_outlined,
               'Ouverture des disponibilités',
             ),
+            _line(Icons.how_to_reg_outlined, 'Passage en convoqué'),
+            _line(Icons.hourglass_top_rounded, 'Passage en liste d’attente'),
             _line(Icons.event_busy_outlined, 'Match annulé'),
             _line(
               Icons.update_outlined,
@@ -140,16 +142,6 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                   context,
                   ref,
                   preferences.copyWith(motmVoteNotifications: value),
-                ),
-              ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Passage en convoqué'),
-                value: preferences.convocationNotifications,
-                onChanged: (value) => _update(
-                  context,
-                  ref,
-                  preferences.copyWith(convocationNotifications: value),
                 ),
               ),
               SwitchListTile.adaptive(
@@ -336,6 +328,10 @@ const _testNotificationOptions = <_TestNotificationOption>[
   _TestNotificationOption('availability_open', 'Disponibilités ouvertes'),
   _TestNotificationOption('availability_manual', 'Relance disponibilité'),
   _TestNotificationOption('convocation_promoted', 'Passage en convoqué'),
+  _TestNotificationOption(
+    'convocation_demoted',
+    'Passage en liste d’attente',
+  ),
   _TestNotificationOption('composition_published', 'Composition en ligne'),
   _TestNotificationOption('prediction_j5', 'Pronostic'),
   _TestNotificationOption('match_cancelled', 'Match annulé'),

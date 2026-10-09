@@ -93,6 +93,11 @@ select is(
   'passage en convoqué reconnu'
 );
 select is(
+  public.send_test_push_kind('convocation_demoted')->>'reason',
+  'no_subscription',
+  'passage en liste d''attente reconnu'
+);
+select is(
   public.send_test_push_kind('prediction_j5')->>'reason',
   'no_subscription',
   'rappel pronostic reconnu'
