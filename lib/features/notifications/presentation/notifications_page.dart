@@ -631,10 +631,8 @@ class _EssentialNotificationsCardState
             const SizedBox(height: 4),
             for (final title in const [
               'Ouverture des disponibilités',
-              'Passage en convoqué',
-              'Passage en liste d’attente',
-              'Match annulé',
-              'Match reporté ou horaire modifié',
+              'Passage en convoqué ou en liste d’attente',
+              'Match annulé, reporté ou modifié',
             ])
               Padding(
                 padding: const EdgeInsets.only(top: 6, right: 12),
