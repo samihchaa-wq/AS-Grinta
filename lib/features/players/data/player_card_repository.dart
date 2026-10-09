@@ -54,7 +54,8 @@ class PlayerMatchLine {
 /// du joueur dans l'effectif et ses derniers matchs suivis dans l'application.
 class PlayerCardDetails {
   const PlayerCardDetails({
-    required this.displayName,
+    required this.firstName,
+    this.nickname,
     required this.photoUrl,
     required this.profileId,
     required this.recentMatches,
@@ -62,7 +63,11 @@ class PlayerCardDetails {
 
   /// `null` quand aucune fiche d'effectif ne correspond (par exemple un
   /// pronostiqueur qui ne joue pas).
-  final String? displayName;
+  final String? firstName;
+
+  /// Surnom du compte relié, `null` s'il n'y en a pas ou s'il répète le
+  /// prénom.
+  final String? nickname;
   final String? photoUrl;
   final String? profileId;
 
@@ -129,7 +134,7 @@ class PlayerCardRepository {
 
     if (matching.isEmpty) {
       return PlayerCardDetails(
-        displayName: null,
+        firstName: null,
         photoUrl: null,
         profileId: key.profileId,
         recentMatches: const [],
@@ -141,8 +146,14 @@ class PlayerCardRepository {
         ? Map<String, dynamic>.from(latest['profiles'] as Map)
         : const <String, dynamic>{};
 
+    final firstName = _firstName(latest, profile);
+    final nickname = capitalizePersonName(profile['surnom']?.toString() ?? '');
     return PlayerCardDetails(
-      displayName: _displayName(latest, profile),
+      firstName: firstName,
+      nickname:
+          nickname.isEmpty || nickname.toLowerCase() == firstName.toLowerCase()
+              ? null
+              : nickname,
       photoUrl: _firstNonEmpty(profile['photo_url'], latest['photo_url']),
       profileId: latest['profile_id']?.toString() ?? key.profileId,
       recentMatches: await _recentMatches([
@@ -236,11 +247,10 @@ class PlayerCardRepository {
     );
   }
 
-  // Même priorité que l'effectif : surnom, puis prénom du compte, puis prénom
+  // Le vrai prénom (le surnom s'affiche à part) : celui du compte, puis celui
   // saisi par l'admin.
-  String _displayName(Map<String, dynamic> row, Map<String, dynamic> profile) {
+  String _firstName(Map<String, dynamic> row, Map<String, dynamic> profile) {
     for (final candidate in [
-      profile['surnom'],
       profile['first_name'],
       row['first_name'],
       row['last_name'],

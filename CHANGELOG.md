@@ -6,6 +6,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche joueur : l'en-tête affiche le vrai prénom (« François », plus en
+  majuscules), et en dessous « Surnom » suivi du surnom s'il existe, le tout
+  centré entre la photo et le badge. Le badge arboré est réduit à la hauteur
+  de la photo ;
 - liste d'attente : un joueur qui passe des convoqués à la liste d'attente
   reçoit « Tu passes en liste d'attente », sur le modèle de « Tu es
   convoqué ». Les deux notifications (convoqué ↔ liste d'attente) deviennent
