@@ -221,6 +221,8 @@ void main() {
           recentMatches: [
             _match('FC Les Lilas', 4, 1, goals: 2, motm: true),
             _match('AC Vincennes', 0, 2),
+            // Gagné 5-0 à l'extérieur : l'équipe qui reçoit est écrite d'abord.
+            _match('Toulouse Métropole', 5, 0, isHome: false),
           ],
         ),
       );
@@ -263,9 +265,71 @@ void main() {
 
       expect(find.text('FC Les Lilas'), findsOneWidget);
       expect(find.text('4-1'), findsOneWidget);
+      expect(find.text('0-5'), findsOneWidget);
+      expect(find.text('5-0'), findsNothing);
       expect(find.text('👑'), findsOneWidget);
       // Joueur sans compte : pas de module Badges.
       expect(find.text('BADGES'), findsNothing);
+    });
+
+    testWidgets('toucher un match ouvre sa fiche, le retour ramène ici',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(420, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => const PlayerCardPage(playerKey: key),
+          ),
+          GoRoute(
+            path: '/matches/:matchId',
+            builder: (_, state) => Scaffold(
+              appBar: AppBar(),
+              body: Text('fiche ${state.pathParameters['matchId']}'),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            for (final period in StatisticsPeriod.values)
+              statisticsPeriodProvider(period).overrideWith(
+                (ref) async => StatisticsPeriodData(
+                  period: period,
+                  label: period.fallbackLabel,
+                  players: [_player('Karim Ben', played: 3)],
+                ),
+              ),
+            playerCardDetailsProvider(key).overrideWith(
+              (ref) async => PlayerCardDetails(
+                firstName: 'Karim',
+                photoUrl: null,
+                profileId: null,
+                recentMatches: [_match('m-42', 2, 1)],
+              ),
+            ),
+            statisticsBadgeEmblemsProvider.overrideWith(
+              (ref) async => const <String, List<StatisticsBadgeEmblemData>>{},
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.dark,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('m-42'));
+      await tester.pumpAndSettle();
+      expect(find.text('fiche m-42'), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(find.text('DERNIERS MATCHS'), findsOneWidget);
     });
 
     testWidgets('une valeur nulle ne donne ni rang ni podium', (tester) async {
@@ -365,7 +429,8 @@ void main() {
       expect(find.text('Aucun match sur cette période.'), findsOneWidget);
     });
 
-    testWidgets('l’en-tête montre le vrai prénom, puis le surnom à part',
+    testWidgets(
+        'l’en-tête montre le vrai prénom, puis le surnom entre guillemets',
         (tester) async {
       await pumpPage(
         tester,
@@ -382,8 +447,8 @@ void main() {
       );
 
       expect(find.text('François'), findsOneWidget);
-      expect(find.text('SURNOM'), findsOneWidget);
-      expect(find.text('Ibra'), findsOneWidget);
+      expect(find.text('SURNOM'), findsNothing);
+      expect(find.text('«\u00A0Ibra\u00A0»'), findsOneWidget);
     });
 
     testWidgets(
@@ -519,6 +584,7 @@ PlayerMatchLine _match(
   int adverse, {
   int goals = 0,
   bool motm = false,
+  bool isHome = true,
 }) =>
     PlayerMatchLine(
       matchId: opponent,
@@ -526,7 +592,7 @@ PlayerMatchLine _match(
       opponentName: opponent,
       grintaScore: grinta,
       opponentScore: adverse,
-      isHome: true,
+      isHome: isHome,
       matchType: 'championnat',
       goals: goals,
       assists: 0,

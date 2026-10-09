@@ -36,6 +36,7 @@ flutter:
   assets:
     - assets/images/module_backgrounds/
     - assets/images/as_grinta_logo.webp
+    - assets/images/icons/
     - assets/images/jerseys/
     - assets/audio/wrapped.mp3
 

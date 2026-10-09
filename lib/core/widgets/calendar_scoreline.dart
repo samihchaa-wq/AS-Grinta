@@ -459,7 +459,7 @@ abstract final class CalendarCardSpacing {
   static const double line = 14;
 
   /// Espace entre deux cartes.
-  static const double betweenCards = 18;
+  static const double betweenCards = 28;
 
   /// Marge haute et basse des bandeaux foncés (date, adresse).
   static const double band = 12;

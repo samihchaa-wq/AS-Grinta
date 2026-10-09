@@ -6,6 +6,15 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche joueur : le surnom s'affiche entre guillemets (« Poulain ») au lieu
+  de « SURNOM Poulain » ; dans « Derniers matchs », le score s'écrit dans
+  l'ordre domicile – extérieur (une victoire 5-0 à l'extérieur devient 0-5)
+  et toucher un match ouvre sa fiche, la flèche retour ramenant à la fiche
+  joueur ;
+- passes décisives : nouveau crampon cerclé, blanc sur fond transparent ;
+- calendrier : plus d'espace entre deux cartes de match ;
+- Android : glisser depuis le bord gauche de l'écran revient à la page
+  précédente, comme sur iPhone ;
 - fiche joueur : « Derniers matchs » montre les 5 derniers matchs amicaux
   ou de championnat, même s'ils s'étendent sur la saison précédente ; les
   matchs « entre nous » n'y figurent plus. Le rang au club sur le % de
