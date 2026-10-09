@@ -71,7 +71,7 @@ class PlayerCardDetails {
   final String? photoUrl;
   final String? profileId;
 
-  /// Du plus récent au plus ancien.
+  /// Matchs amicaux et de championnat, du plus récent au plus ancien.
   final List<PlayerMatchLine> recentMatches;
 }
 
@@ -80,7 +80,8 @@ class PlayerCardRepository {
 
   final SupabaseClient _client;
 
-  static const recentMatchLimit = 10;
+  /// Les derniers matchs officiels, d'une saison à l'autre si besoin.
+  static const recentMatchLimit = 5;
 
   Future<PlayerCardDetails> fetch(PlayerCardKey key) async {
     final rows = await _client.from('season_players').select('''
@@ -207,6 +208,8 @@ class PlayerCardRepository {
         ''')
         .inFilter('id', matchIds.toList())
         .inFilter('status', ['termine', 'archive'])
+        // Les matchs « entre nous » ne comptent pas dans la forme.
+        .inFilter('match_type', ['amical', 'championnat'])
         .order('match_date', ascending: false)
         .limit(recentMatchLimit);
 

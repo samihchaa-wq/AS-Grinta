@@ -67,6 +67,15 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
     final periodData = ref.watch(statisticsPeriodProvider(_period));
     final allTime =
         ref.watch(statisticsPeriodProvider(StatisticsPeriod.allTime));
+    // Sert au seuil de classement de la saison en cours : il ne s'applique
+    // qu'une fois passés les premiers matchs de l'équipe.
+    final teamMatches = _period == StatisticsPeriod.current
+        ? ref
+            .watch(teamStatisticsPeriodProvider(StatisticsPeriod.current))
+            .asData
+            ?.value
+            .matchesPlayed
+        : null;
 
     if (details.isLoading && !details.hasValue) {
       return Padding(
@@ -147,7 +156,11 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
               }
               return Column(
                 children: [
-                  _StatGrid(player: row, data: data),
+                  _StatGrid(
+                    player: row,
+                    data: data,
+                    teamMatches: teamMatches,
+                  ),
                   const SizedBox(height: 8),
                   _RecordCard(player: row, recent: info.recentMatches),
                 ],
@@ -358,11 +371,44 @@ Color _medalColor(int? rank) => switch (rank) {
       _ => AppTheme.textPrimary,
     };
 
+/// Matchs joués exigés pour figurer au classement des moyennes (% de
+/// victoires, buts par match) : sans ce seuil, un joueur venu une seule fois
+/// et reparti vainqueur serait « 1er du club ».
+///
+/// Toutes saisons : 20 matchs. Saison précédente : 5. Saison en cours : aucun
+/// tant que l'équipe a joué 5 matchs ou moins, 5 ensuite. [teamMatches] est
+/// le nombre de matchs de l'équipe sur la saison en cours, quand on le
+/// connaît ; à défaut, le joueur le plus présent en donne un minimum.
+int averageRankingMinMatches(
+  StatisticsPeriod period, {
+  required int? teamMatches,
+  required Iterable<PlayerStatistics> players,
+}) {
+  switch (period) {
+    case StatisticsPeriod.allTime:
+      return 20;
+    case StatisticsPeriod.previous:
+      return 5;
+    case StatisticsPeriod.current:
+      var played = teamMatches ?? 0;
+      for (final p in players) {
+        final matches = p.matchesPlayed ?? 0;
+        if (matches > played) played = matches;
+      }
+      return played > 5 ? 5 : 0;
+  }
+}
+
 class _StatGrid extends StatelessWidget {
-  const _StatGrid({required this.player, required this.data});
+  const _StatGrid({
+    required this.player,
+    required this.data,
+    required this.teamMatches,
+  });
 
   final PlayerStatistics player;
   final StatisticsPeriodData data;
+  final int? teamMatches;
 
   @override
   Widget build(BuildContext context) {
@@ -380,12 +426,25 @@ class _StatGrid extends StatelessWidget {
       return played == 0 ? 0 : p.goals / played;
     }
 
+    final minMatches = averageRankingMinMatches(
+      data.period,
+      teamMatches: teamMatches,
+      players: players,
+    );
+    bool eligible(PlayerStatistics p) => (p.matchesPlayed ?? 0) >= minMatches;
+
     // Une valeur nulle ne classe personne : sans cela, une saison où personne
     // n'a encore fait de passe décisive sacrerait tout l'effectif « 1er ».
-    int? rankOf(num Function(PlayerStatistics) of) {
+    int? rankOf(
+      num Function(PlayerStatistics) of, {
+      bool Function(PlayerStatistics)? among,
+    }) {
       final mine = of(player);
       if (mine <= 0) return null;
-      return 1 + players.where((p) => of(p) > mine).length;
+      return 1 +
+          players
+              .where((p) => (among == null || among(p)) && of(p) > mine)
+              .length;
     }
 
     _StatTile tile(
@@ -398,9 +457,30 @@ class _StatGrid extends StatelessWidget {
       return _StatTile(value: value, label: label, rank: rank);
     }
 
+    // Moyennes : seuls les joueurs assez présents sont classés, entre eux.
+    _StatTile averageTile(
+      String label,
+      String value,
+      num Function(PlayerStatistics) of,
+    ) {
+      if (!eligible(player)) {
+        return _StatTile(
+          value: value,
+          label: label,
+          rank: null,
+          rankNote: 'N/A',
+        );
+      }
+      return _StatTile(
+        value: value,
+        label: label,
+        rank: rankOf(of, among: eligible),
+      );
+    }
+
     final tiles = <_StatTile>[
       tile('Matchs', '$matches', (p) => p.matchesPlayed ?? 0),
-      tile(
+      averageTile(
         'Victoires',
         matches == 0 ? '–' : '${winRate(player).round()} %',
         winRate,
@@ -415,7 +495,7 @@ class _StatGrid extends StatelessWidget {
         ranked: tracksAssists,
       ),
       tile('Homme du match', '${player.hdm ?? 0}', (p) => p.hdm ?? 0),
-      tile(
+      averageTile(
         'Buts / match',
         matches == 0 ? '–' : _decimal(goalsPerMatch(player)),
         goalsPerMatch,
@@ -450,10 +530,15 @@ class _StatTile extends StatelessWidget {
     required this.value,
     required this.label,
     required this.rank,
+    this.rankNote,
   });
 
   final String value;
   final String label;
+
+  /// Remplace la ligne de rang quand le joueur n'est pas classé (« N/A » :
+  /// pas assez de matchs joués).
+  final String? rankNote;
 
   /// Rang au club sur cette statistique ; `null` quand il n'a pas de sens
   /// (valeur nulle, statistique non suivie sur la période).
@@ -493,7 +578,7 @@ class _StatTile extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            rank == null ? '–' : '${_ordinal(rank)} du club',
+            rankNote ?? (rank == null ? '–' : '${_ordinal(rank)} du club'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 11,
