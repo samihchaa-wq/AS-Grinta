@@ -90,7 +90,8 @@ void main() {
     expect(doubled.knownToClub, isFalse);
   });
 
-  test('les titulaires sont regroupés par badge, sans doublon, par ordre '
+  test(
+      'les titulaires sont regroupés par badge, sans doublon, par ordre '
       'alphabétique', () {
     final holders = groupBadgeHolders([
       {
