@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/storage/profile_photo_urls.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
+import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
@@ -631,7 +632,7 @@ class AssistBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        const Text('👟', style: TextStyle(fontSize: 11, height: 1)),
+        const AssistBootIcon(size: 11),
         if (assists > 1)
           Positioned(
             top: -5,

@@ -4,19 +4,24 @@ import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_editor.dart';
 import 'package:as_grinta/features/badges/presentation/badge_text_editor.dart';
+import 'package:as_grinta/features/badges/presentation/locked_badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Ouvre la feuille de détail d'un badge : sa description, tout son barème
 /// (chaque palier + sa description) et, pour l'admin, les actions d'édition
 /// et d'attribution. [showLadder] à false n'affiche que le badge lui-même,
-/// sans les autres paliers de sa famille.
+/// sans les autres paliers de sa famille. [owned] à false montre l'emblème en
+/// noir et blanc, sous cadenas ; [showHolders] ajoute la liste des membres du
+/// club qui l'ont obtenu.
 void showBadgeDetailSheet(
   BuildContext context,
   BadgeDef badge, {
   VoidCallback? onAward,
   bool isFeatured = false,
   bool showLadder = true,
+  bool owned = true,
+  bool showHolders = false,
   VoidCallback? onToggleFeatured,
 }) {
   showModalBottomSheet<void>(
@@ -30,6 +35,8 @@ void showBadgeDetailSheet(
       onAward: onAward,
       isFeatured: isFeatured,
       showLadder: showLadder,
+      owned: owned,
+      showHolders: showHolders,
       onToggleFeatured: onToggleFeatured,
     ),
   );
@@ -42,6 +49,8 @@ class BadgeDetailSheet extends ConsumerWidget {
     this.onAward,
     this.isFeatured = false,
     this.showLadder = true,
+    this.owned = true,
+    this.showHolders = false,
     this.onToggleFeatured,
   });
 
@@ -49,7 +58,13 @@ class BadgeDetailSheet extends ConsumerWidget {
   final VoidCallback? onAward;
   final bool isFeatured;
   final bool showLadder;
+  final bool owned;
+  final bool showHolders;
   final VoidCallback? onToggleFeatured;
+
+  /// Un badge pas encore gagné s'affiche en noir et blanc, sous cadenas.
+  Widget _maybeLocked(Widget emblem) =>
+      owned ? emblem : LockedBadgeEmblem(emblem: emblem, size: 123);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -121,7 +136,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          BadgeEmblem(
+                          _maybeLocked(BadgeEmblem(
                             emoji: currentBadge.emoji,
                             imageUrl: currentBadge.imageUrl,
                             color: currentBadge.color,
@@ -137,7 +152,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                             ),
                             showStar: currentBadge.hasStar,
                             size: 123,
-                          ),
+                          )),
                           if (canEdit)
                             Positioned(
                               right: -8,
@@ -205,6 +220,10 @@ class BadgeDetailSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
               ],
+              if (showHolders) ...[
+                const SizedBox(height: 18),
+                _BadgeHolders(code: currentBadge.code),
+              ],
               if (onToggleFeatured != null) ...[
                 const SizedBox(height: 20),
                 SizedBox(
@@ -247,6 +266,74 @@ class BadgeDetailSheet extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Les membres du club qui ont obtenu le badge.
+class _BadgeHolders extends ConsumerWidget {
+  const _BadgeHolders({required this.code});
+
+  final String code;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final holdersAsync = ref.watch(badgeHoldersProvider);
+    final textTheme = Theme.of(context).textTheme;
+    return holdersAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => Text(
+        'Impossible de charger les joueurs qui l’ont obtenu.',
+        style: textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
+      ),
+      data: (byCode) {
+        final holders = byCode[code] ?? const <BadgeHolder>[];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              holders.isEmpty
+                  ? 'Personne ne l’a encore obtenu'
+                  : holders.length == 1
+                      ? 'Obtenu par 1 joueur'
+                      : 'Obtenu par ${holders.length} joueurs',
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w400,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            if (holders.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final holder in holders)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceHigh,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppTheme.outline.withValues(alpha: .4),
+                        ),
+                      ),
+                      child: Text(
+                        holder.name,
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

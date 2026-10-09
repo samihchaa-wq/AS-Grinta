@@ -206,7 +206,7 @@ void main() {
 
       expect(find.text('FC Les Lilas'), findsOneWidget);
       expect(find.text('4-1'), findsOneWidget);
-      expect(find.text('HDM'), findsOneWidget);
+      expect(find.text('👑'), findsOneWidget);
       // Joueur sans compte : pas de module Badges.
       expect(find.text('BADGES'), findsNothing);
     });

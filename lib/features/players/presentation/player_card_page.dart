@@ -6,6 +6,7 @@ import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
+import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
@@ -485,7 +486,7 @@ class _RecordCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(child: _SectionTitle('Bilan avec lui')),
+              const Expanded(child: _SectionTitle('Bilan')),
               for (final match in form) ...[
                 const SizedBox(width: 6),
                 _ResultSquare(result: match.result),
@@ -734,25 +735,20 @@ class _MatchRow extends StatelessWidget {
               ],
             ),
           ),
+          // Mêmes icônes que la composition d'un match terminé.
           if (match.goals > 0)
-            _Contribution(icon: Icons.sports_soccer, count: match.goals),
+            _Contribution(icon: const GoalIcon(size: 13), count: match.goals),
           if (match.assists > 0)
             _Contribution(
-                icon: Icons.assistant_direction, count: match.assists),
+              icon: const AssistBootIcon(size: 13),
+              count: match.assists,
+            ),
           if (match.isManOfTheMatch)
-            Container(
-              margin: const EdgeInsets.only(left: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppTheme.accent,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Text(
-                'HDM',
-                style: TextStyle(
-                  fontSize: 9,
-                  color: AppTheme.background,
-                ),
+            const Padding(
+              padding: EdgeInsets.only(left: 6),
+              child: Tooltip(
+                message: 'Homme du match',
+                child: ManOfTheMatchIcon(size: 15),
               ),
             ),
           const SizedBox(width: 8),
@@ -783,7 +779,7 @@ class _MatchRow extends StatelessWidget {
 class _Contribution extends StatelessWidget {
   const _Contribution({required this.icon, required this.count});
 
-  final IconData icon;
+  final Widget icon;
   final int count;
 
   @override
@@ -793,7 +789,7 @@ class _Contribution extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppTheme.textSecondary),
+          icon,
           const SizedBox(width: 2),
           Text(
             '$count',
@@ -866,7 +862,8 @@ class _BadgeTile extends StatelessWidget {
       label: def.name,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => showBadgeDetailSheet(context, def, showLadder: false),
+        onTap: () => showBadgeDetailSheet(context, def,
+            showLadder: false, showHolders: true),
         child: Column(
           children: [
             BadgeEmblem(
