@@ -13,6 +13,15 @@ nécessitent toutefois que le Web Push soit autorisé sur l’appareil.
 - **Date du match modifiée** : les disponibilités sont remises à `no_response`
   lorsqu’elles doivent être redemandées.
 - **Heure du match modifiée** : les disponibilités existantes sont conservées.
+- **Liste d’attente** : « Tu passes en liste d’attente » part à chaque entrée
+  en liste d’attente, quelle qu’en soit l’origine : joueur déjà placé en
+  attente quand l’effectif est publié pour la première fois, réponse
+  « Présent » après la publication qui tombe directement en attente,
+  convoqué qui perd sa place.
+- **Convocation** : « Tu es convoqué » part quand un joueur passe de la liste
+  d’attente aux convoqués. Entrer directement chez les convoqués (première
+  publication ou réponse tardive) ne déclenche rien : c’est le résultat
+  attendu.
 
 Il n’existe plus de rappel automatique de disponibilité à J-3 ou J-1.
 Le rappel manuel du staff reste disponible.
@@ -44,8 +53,46 @@ Les réglages utilisateur actuels couvrent notamment :
   d’une exécution manquée) ni après T-15.
 - **Homme du match** : le même réglage couvre l’ouverture du vote et son
   résultat.
-- **Convocations** : notification lorsqu’un joueur passe de la liste d’attente
-  vers les convoqués selon le workflow actuel.
+- **Composition en ligne** : envoyée aux convoqués (à tout le club pour un
+  match « entre nous »).
+- **Badge débloqué**.
+- **Changement de disponibilité d’un joueur** (administrateurs) : un joueur
+  passe de présent à absent ou l’inverse.
+
+L’ancien réglage « Passage en convoqué » n’est plus proposé ni lu : la
+convocation et la liste d’attente sont devenues essentielles.
+
+## Écran Notifications
+
+- La cloche de l’encadré « Notifications essentielles » abonne ou désabonne
+  **cet appareil**. Désabonné, l’appareil ne reçoit plus rien, pas même les
+  notifications réglables.
+- Les cloches réglables valent pour le compte, sur tous ses appareils. Quand
+  cet appareil ne reçoit rien (désabonné, ou incapable de recevoir), elles
+  sont grises et inactives, avec la mention « Coupées sur cet appareil » pour
+  un appareil désabonné. Le réglage du compte est conservé et réapparaît dès
+  le réabonnement.
+- La cloche du haut reflète l’abonnement du navigateur. À chaque ouverture
+  de l’application (lancement, connexion, retour au premier plan), cet
+  abonnement est réenregistré sans rien demander : il est rattaché au compte
+  connecté et redevient l’appareil le plus récent. Sans cela, la cloche
+  pouvait rester verte alors que le serveur ne connaissait plus l’appareil
+  (autre compte connecté sur le même téléphone, sixième appareil ayant
+  remplacé le plus ancien).
+
+## Journal de livraison
+
+`push_delivery_log` garde une ligne par appareil et par envoi : succès ou
+échec, code renvoyé par Apple ou Google, nombre d’essais. Les envois à
+contenu préparé y figurent aussi, sous leur type (`convocation_promoted`,
+`convocation_demoted`, `composition_published`, `motm_result_general`,
+`motm_result_winner`, `badge_unlocked`) ; les messages libres et changements
+de disponibilité sous `custom`, les tests sous `test`. Les badges et
+messages libres n’ont pas de match.
+
+« Livré » signifie accepté par Apple ou Google, pas affiché : un téléphone
+injoignable plus de 24 heures, ou dont les notifications sont coupées dans
+ses propres réglages, ne l’affichera pas.
 
 ## Vote Homme du match
 

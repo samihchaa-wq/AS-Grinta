@@ -72,6 +72,9 @@ class _FakePushRepository implements PushSubscriptionsRepository {
   Future<bool> enable() async => false;
 
   @override
+  Future<bool> resync() async => false;
+
+  @override
   Future<bool> isSubscribed() async => true;
 
   @override

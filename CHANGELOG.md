@@ -6,6 +6,25 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- liste d'attente : un joueur est prévenu (« Tu passes en liste
+  d'attente ») dès qu'il entre en liste d'attente, et plus seulement quand
+  il perd une place de convoqué. Cela vaut pour les joueurs déjà en attente
+  à la première publication de l'effectif et pour une réponse « Présent »
+  qui tombe directement en attente. Entrer directement chez les convoqués
+  reste silencieux ; passer de la liste d'attente aux convoqués envoie
+  toujours « Tu es convoqué » ;
+- notifications : quand cet appareil ne reçoit rien (cloche du haut grise),
+  les cloches réglables passent en gris, inactives, avec « Coupées sur cet
+  appareil ». Elles restaient vertes alors que rien n'arrivait ;
+- notifications : l'abonnement de l'appareil est réenregistré à chaque
+  ouverture de l'application. La cloche du haut ne peut plus rester verte
+  pour un téléphone que le serveur ne connaît plus (autre compte connecté
+  sur ce téléphone, appareil remplacé par un plus récent) ;
+- notifications : convocation, liste d'attente, composition, résultat Homme
+  du match, badges, messages libres et tests laissent désormais une trace de
+  livraison par appareil, comme les autres notifications. Un refus d'Apple
+  ou de Google ne passe plus inaperçu ;
+
 - fiche joueur : le surnom s'affiche entre guillemets (« Poulain ») au lieu
   de « SURNOM Poulain » ; dans « Derniers matchs », le score s'écrit dans
   l'ordre domicile – extérieur (une victoire 5-0 à l'extérieur devient 0-5)

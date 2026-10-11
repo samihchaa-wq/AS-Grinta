@@ -8,6 +8,7 @@ import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
 import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,28 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Session restaurée au lancement ou nouvelle connexion : l'abonnement
+    // aux notifications de cet appareil est recollé au compte connecté.
+    ref.listenManual<bool>(
+      authControllerProvider.select((state) => state.isAuthenticated),
+      (previous, next) {
+        if (next && previous != true) unawaited(_resyncPushSubscription());
+      },
+      fireImmediately: true,
+    );
+  }
+
+  /// La cloche des notifications reflète l'abonnement du navigateur, que le
+  /// serveur peut avoir perdu (autre compte connecté sur ce téléphone, appareil
+  /// remplacé…). Le réenregistrer à chaque ouverture évite qu'elle reste verte
+  /// alors que plus rien n'arrive. Sans abonnement, rien n'est demandé.
+  Future<void> _resyncPushSubscription() async {
+    try {
+      await ref.read(pushSubscriptionsRepositoryProvider).resync();
+    } catch (_) {
+      // Au mieux : l'échec ne change rien pour l'utilisateur, le prochain
+      // lancement réessaiera.
+    }
   }
 
   @override
@@ -42,6 +65,11 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       // arrière-plan, il ne faut donc pas dépendre d'un événement manqué.
       ref.invalidate(sharedDataSignalProvider);
       unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
+      // Une application installée sur iPhone reprend souvent sans relancer :
+      // le retour au premier plan compte comme une ouverture.
+      if (ref.read(authControllerProvider).isAuthenticated) {
+        unawaited(_resyncPushSubscription());
+      }
     }
   }
 

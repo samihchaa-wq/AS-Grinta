@@ -54,19 +54,51 @@ class NotificationsPage extends ConsumerWidget {
   }
 }
 
+/// Ce que cet appareil peut recevoir, d'après la cloche du haut.
+enum _DeviceReception { unknown, receives, switchedOff, unavailable }
+
+/// Les réglages ci-dessous valent pour le compte, mais rien n'arrive sur un
+/// appareil désabonné ou qui ne sait pas recevoir de notifications. Les
+/// laisser verts ferait croire le contraire.
+final _deviceReceptionProvider = Provider.autoDispose<_DeviceReception>((ref) {
+  final statusAsync = ref.watch(pushStatusProvider);
+  if (statusAsync.hasError) return _DeviceReception.unavailable;
+  final status = statusAsync.valueOrNull;
+  if (status == null) return _DeviceReception.unknown;
+  if (!status.supported) return _DeviceReception.unavailable;
+  return status.subscribed
+      ? _DeviceReception.receives
+      : _DeviceReception.switchedOff;
+});
+
 class _OptionalNotificationsCard extends ConsumerWidget {
   const _OptionalNotificationsCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preferencesAsync = ref.watch(appPreferencesProvider);
+    // Un appareil qui ne sait pas recevoir est déjà signalé par l'encadré du
+    // haut : seules les cloches passent en gris ici.
+    final deviceNote =
+        ref.watch(_deviceReceptionProvider) == _DeviceReception.switchedOff
+            ? 'Coupées sur cet appareil'
+            : null;
 
     return Card(
       child: Padding(
         // Mêmes marges que l'encadré du haut : les cloches s'alignent.
         padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (deviceNote != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12, bottom: 4),
+                child: Text(
+                  deviceNote,
+                  style: const TextStyle(color: AppTheme.textFaint),
+                ),
+              ),
             preferencesAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
@@ -159,8 +191,10 @@ class _OptionalNotificationsCard extends ConsumerWidget {
 }
 
 /// Une notification réglable : son nom et une cloche, verte quand elle est
-/// activée, grise sinon — comme celle des notifications essentielles.
-class _BellToggleTile extends StatefulWidget {
+/// activée, grise sinon — comme celle des notifications essentielles. Quand
+/// cet appareil ne reçoit rien, la cloche est grise et inactive : le réglage
+/// du compte est conservé et réapparaît dès que l'appareil est réabonné.
+class _BellToggleTile extends ConsumerStatefulWidget {
   const _BellToggleTile({
     required this.title,
     required this.value,
@@ -174,10 +208,10 @@ class _BellToggleTile extends StatefulWidget {
   final Future<void> Function(bool value)? onChanged;
 
   @override
-  State<_BellToggleTile> createState() => _BellToggleTileState();
+  ConsumerState<_BellToggleTile> createState() => _BellToggleTileState();
 }
 
-class _BellToggleTileState extends State<_BellToggleTile> {
+class _BellToggleTileState extends ConsumerState<_BellToggleTile> {
   bool _busy = false;
 
   Future<void> _toggle() async {
@@ -191,7 +225,11 @@ class _BellToggleTileState extends State<_BellToggleTile> {
 
   @override
   Widget build(BuildContext context) {
-    final onChanged = widget.onChanged;
+    final reception = ref.watch(_deviceReceptionProvider);
+    final deviceOff = reception == _DeviceReception.switchedOff ||
+        reception == _DeviceReception.unavailable;
+    final onChanged = deviceOff ? null : widget.onChanged;
+    final active = widget.value && !deviceOff;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -200,12 +238,14 @@ class _BellToggleTileState extends State<_BellToggleTile> {
           SizedBox.square(
             dimension: 40,
             child: NotificationBellButton(
-              active: widget.value,
+              active: active,
               busy: _busy,
               onPressed: onChanged == null ? null : _toggle,
-              label: widget.value
-                  ? 'Désactiver « ${widget.title} »'
-                  : 'Activer « ${widget.title} »',
+              label: deviceOff
+                  ? '« ${widget.title} » : coupée sur cet appareil'
+                  : active
+                      ? 'Désactiver « ${widget.title} »'
+                      : 'Activer « ${widget.title} »',
             ),
           ),
         ],

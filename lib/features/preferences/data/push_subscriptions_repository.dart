@@ -22,6 +22,10 @@ abstract interface class PushSubscriptionsRepository {
   /// Demande la permission puis enregistre l'abonnement.
   Future<bool> enable();
 
+  /// Réenregistre côté serveur l'abonnement que l'appareil possède déjà, sans
+  /// rien demander. Retourne false si l'appareil n'est pas abonné.
+  Future<bool> resync();
+
   /// Désabonne le navigateur et supprime l'abonnement enregistré.
   Future<void> disable();
 }
@@ -50,7 +54,25 @@ class SupabasePushSubscriptionsRepository
 
     final json = await pushSubscribe(pushVapidPublicKey);
     if (json == null) return false;
+    return _register(json);
+  }
 
+  /// La cloche lit l'abonnement du navigateur, pas celui du serveur, et les
+  /// deux peuvent diverger : un autre compte s'est connecté sur ce téléphone
+  /// sans déconnexion, un sixième appareil a remplacé le plus ancien… La
+  /// cloche reste alors verte alors que plus rien n'arrive. Réenregistrer
+  /// l'abonnement existant est sans effet de bord : il est rattaché au compte
+  /// connecté et repasse en tête des appareils récents.
+  @override
+  Future<bool> resync() async {
+    if (_client.auth.currentUser == null) return false;
+
+    final json = await pushCurrentSubscription();
+    if (json == null) return false;
+    return _register(json);
+  }
+
+  Future<bool> _register(String json) async {
     final subscription = Map<String, dynamic>.from(jsonDecode(json) as Map);
     final endpoint = subscription['endpoint']?.toString() ?? '';
     final keys = Map<String, dynamic>.from(
