@@ -9,6 +9,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - Homme du match : la notification d'ouverture du vote annonce le score
   final (« Fin du match » — « AS Grinta 2 - 1 Positive Vibration » — « Pense
   à voter pour l'Homme du match. »), équipe à domicile en premier ;
+- notifications : sur iPhone, l'icône de l'application affiche une pastille
+  avec le nombre de notifications reçues depuis la dernière ouverture ;
+  ouvrir l'application la remet à zéro ;
 - liste d'attente : un joueur est prévenu (« Tu passes en liste
   d'attente ») dès qu'il entre en liste d'attente, et plus seulement quand
   il perd une place de convoqué. Cela vaut pour les joueurs déjà en attente

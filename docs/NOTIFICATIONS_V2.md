@@ -80,6 +80,18 @@ convocation et la liste d’attente sont devenues essentielles.
   (autre compte connecté sur le même téléphone, sixième appareil ayant
   remplacé le plus ancien).
 
+## Pastille de l’icône
+
+Sur iPhone (application installée sur l’écran d’accueil), l’icône porte le
+nombre de notifications reçues depuis la dernière ouverture de l’application.
+L’ouvrir ou la ramener au premier plan remet ce chiffre à zéro. Une
+notification reçue pendant que l’application est affichée ne compte pas.
+
+Le compte est tenu par chaque appareil : ouvrir l’application sur l’un ne
+remet pas à zéro les autres, et une notification jamais arrivée sur
+l’appareil n’y est pas comptée. Android n’affiche pas de chiffre, seulement
+le point que le téléphone pose de lui-même.
+
 ## Journal de livraison
 
 `push_delivery_log` garde une ligne par appareil et par envoi : succès ou
