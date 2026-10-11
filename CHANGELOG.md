@@ -6,6 +6,9 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- Homme du match : la notification d'ouverture du vote annonce le score
+  final (« Fin du match » — « AS Grinta 2 - 1 Positive Vibration » — « Pense
+  à voter pour l'Homme du match. »), équipe à domicile en premier ;
 - liste d'attente : un joueur est prévenu (« Tu passes en liste
   d'attente ») dès qu'il entre en liste d'attente, et plus seulement quand
   il perd une place de convoqué. Cela vaut pour les joueurs déjà en attente

@@ -110,7 +110,14 @@ La clôture produit ensuite le résultat du vote.
 ### Notification d’ouverture
 
 Les utilisateurs concernés ayant activé le réglage HDM reçoivent la notification
-d’ouverture du vote.
+d’ouverture du vote. Elle annonce aussi le score final, équipe à domicile en
+premier :
+
+> **Fin du match**
+> AS Grinta 2 - 1 Positive Vibration
+> Pense à voter pour l’Homme du match.
+
+Sans adversaire ou sans score enregistré, seule la phrase de vote reste.
 
 ### Notification de résultat
 
