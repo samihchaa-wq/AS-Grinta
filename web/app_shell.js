@@ -183,10 +183,33 @@
     }
   };
 
+  // Pastille de l'icône : ouvrir l'application la remet à zéro. Le compteur
+  // tenu par le service worker (web/sw.js) repart de zéro avec elle.
+  function clearAppIconBadge() {
+    if (document.visibilityState !== 'visible') return;
+    try {
+      if (typeof navigator.clearAppBadge === 'function') {
+        navigator.clearAppBadge().catch(function () {});
+      }
+    } catch (_) {}
+    try {
+      if (!window.caches || !('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.getRegistration().then(function (registration) {
+        if (!registration) return;
+        var key = new URL('asg-badge-count', registration.scope).href;
+        return caches.open('as-grinta-badge').then(function (cache) {
+          return cache.delete(key);
+        });
+      }).catch(function () {});
+    } catch (_) {}
+  }
+
+  clearAppIconBadge();
   checkDeploymentVersion();
   setInterval(checkDeploymentVersion, deploymentCheckIntervalMs);
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
+      clearAppIconBadge();
       checkDeploymentVersion();
       return;
     }
