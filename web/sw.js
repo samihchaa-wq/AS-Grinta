@@ -29,12 +29,21 @@ self.addEventListener('message', (event) => {
   }
 });
 
+// Pastille de l'icône : nombre de notifications reçues depuis la dernière
+// ouverture de l'application. Le compteur vit dans un cache dédié, que les
+// mises à jour ne vident pas, et l'application le remet à zéro quand elle
+// passe au premier plan (web/app_shell.js).
+const BADGE_CACHE = 'as-grinta-badge';
+const BADGE_KEY = 'asg-badge-count';
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
       await Promise.all(
-        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name)),
+        names
+          .filter((name) => name !== CACHE_NAME && name !== BADGE_CACHE)
+          .map((name) => caches.delete(name)),
       );
       await self.clients.claim();
     })(),
@@ -118,6 +127,37 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// Deux notifications arrivées ensemble ne doivent pas lire le même ancien
+// chiffre : les mises à jour du compteur passent l'une après l'autre.
+let badgeUpdates = Promise.resolve();
+
+function bumpAppBadge() {
+  badgeUpdates = badgeUpdates.then(async () => {
+    // Application ouverte et visible : la notification est vue tout de suite,
+    // elle ne compte pas.
+    const windows = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true,
+    });
+    if (windows.some((client) => client.visibilityState === 'visible')) return;
+
+    const cache = await caches.open(BADGE_CACHE);
+    const key = new URL(BADGE_KEY, self.registration.scope).href;
+    const stored = await cache.match(key);
+    const previous = stored ? parseInt(await stored.text(), 10) : 0;
+    const count = (Number.isFinite(previous) && previous > 0 ? previous : 0) + 1;
+    await cache.put(key, new Response(String(count)));
+
+    // Chiffre affiché par iPhone (application installée). Android et les
+    // navigateurs sans pastille l'ignorent.
+    const nav = self.navigator;
+    if (nav && typeof nav.setAppBadge === 'function') {
+      await nav.setAppBadge(count);
+    }
+  }).catch(() => {});
+  return badgeUpdates;
+}
+
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -126,15 +166,18 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'AS La Grinta', {
-      body: data.body || '',
-      icon: 'icons/Icon-192.png',
-      // Android dessine le badge de la barre d'état avec sa seule
-      // transparence : un logo sur fond plein y devient un carré uni.
-      badge: 'icons/notification-badge-96.png',
-      tag: data.tag || undefined,
-      data: { url: data.url || '.' },
-    }),
+    Promise.all([
+      self.registration.showNotification(data.title || 'AS La Grinta', {
+        body: data.body || '',
+        icon: 'icons/Icon-192.png',
+        // Android dessine le badge de la barre d'état avec sa seule
+        // transparence : un logo sur fond plein y devient un carré uni.
+        badge: 'icons/notification-badge-96.png',
+        tag: data.tag || undefined,
+        data: { url: data.url || '.' },
+      }),
+      bumpAppBadge(),
+    ]),
   );
 });
 
