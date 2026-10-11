@@ -105,7 +105,7 @@ Les notifications automatiques actuelles comprennent notamment :
 - ouverture des disponibilités ;
 - changements importants d’un match ;
 - rappel de pronostic le jour du match à 16 h si activé et nécessaire ;
-- promotion depuis la liste d’attente vers les convoqués si activée ;
+- entrée en liste d’attente, et passage de la liste d’attente aux convoqués ;
 - ouverture du vote HDM si activée ;
 - résultat du vote HDM sous le même réglage utilisateur.
 

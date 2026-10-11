@@ -58,6 +58,7 @@ jobs:
         shell: bash
         run: |
           deno test \
+            supabase/functions/send-push/delivery_log_test.ts \
             supabase/functions/send-push/delivery_policy_test.ts \
             supabase/functions/send-push/request_security_test.ts \
             supabase/functions/register-account/password_policy_test.ts \

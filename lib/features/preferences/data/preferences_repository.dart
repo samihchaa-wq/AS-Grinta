@@ -11,7 +11,8 @@ class AppPreferences {
     this.badgeNotifications = true,
   });
 
-  /// Prévenir à J−5 lorsqu'un pronostic n'est pas encore rempli.
+  /// Prévenir le jour du match à 16 h lorsqu'un pronostic n'est pas encore
+  /// rempli.
   final bool predictionNotifications;
 
   /// Prévenir à l'ouverture du vote Homme du match et à son résultat.

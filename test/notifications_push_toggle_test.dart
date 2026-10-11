@@ -21,9 +21,16 @@ class _FakePushSubscriptions implements PushSubscriptionsRepository {
   final bool failOnDisable;
   int disableCalls = 0;
   int enableCalls = 0;
+  int resyncCalls = 0;
 
   @override
   Future<bool> isSupported() async => true;
+
+  @override
+  Future<bool> resync() async {
+    resyncCalls += 1;
+    return subscribed;
+  }
 
   @override
   Future<bool> isSubscribed() async => subscribed;
@@ -45,8 +52,9 @@ class _FakePushSubscriptions implements PushSubscriptionsRepository {
 
 Future<void> _pumpNotifications(
   WidgetTester tester,
-  _FakePushSubscriptions repository,
-) async {
+  _FakePushSubscriptions repository, {
+  bool supported = true,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -55,7 +63,10 @@ Future<void> _pumpNotifications(
         // la carte se met à jour après l'action, et pas seulement que
         // l'action a été appelée.
         pushStatusProvider.overrideWith(
-          (ref) async => (supported: true, subscribed: repository.subscribed),
+          (ref) async => (
+            supported: supported,
+            subscribed: supported && repository.subscribed,
+          ),
         ),
         appPreferencesProvider.overrideWith(
           (ref) async => const AppPreferences(),
@@ -196,6 +207,102 @@ void main() {
       expect(find.byType(Switch), findsNothing);
     },
   );
+
+  group('cloches réglables quand cet appareil ne reçoit rien', () {
+    const optionalTitles = [
+      'Rappel pronostic',
+      'Vote Homme du match',
+      'Composition en ligne',
+      'Badge débloqué',
+    ];
+
+    Finder bellRow(String title) =>
+        find.ancestor(of: find.text(title), matching: find.byType(Row)).first;
+
+    IconButton bellOf(WidgetTester tester, String title) =>
+        tester.widget<IconButton>(
+          find.descendant(
+            of: bellRow(title),
+            matching: find.byType(IconButton),
+          ),
+        );
+
+    testWidgets(
+      'appareil désabonné : cloches grises, inactives, et la raison affichée',
+      (tester) async {
+        await _pumpNotifications(
+          tester,
+          _FakePushSubscriptions(subscribed: false),
+        );
+
+        expect(find.text('Coupées sur cet appareil'), findsOneWidget);
+        for (final title in optionalTitles) {
+          // Le réglage du compte reste activé, mais rien n'arrivera ici :
+          // une cloche verte le ferait croire.
+          expect(
+            find.descendant(
+              of: bellRow(title),
+              matching: find.byIcon(Icons.notifications_none_rounded),
+            ),
+            findsOneWidget,
+            reason: title,
+          );
+          expect(bellOf(tester, title).onPressed, isNull, reason: title);
+        }
+      },
+    );
+
+    testWidgets(
+      'réabonner l\'appareil rend aux cloches leur couleur et leur action',
+      (tester) async {
+        final repository = _FakePushSubscriptions(subscribed: false);
+        await _pumpNotifications(tester, repository);
+
+        final essentialCard = find.ancestor(
+          of: find.text('Notifications essentielles'),
+          matching: find.byType(Card),
+        );
+        await tester.tap(
+          find.descendant(
+            of: essentialCard,
+            matching: find.byIcon(Icons.notifications_none_rounded),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Coupées sur cet appareil'), findsNothing);
+        for (final title in optionalTitles) {
+          expect(
+            find.descendant(
+              of: bellRow(title),
+              matching: find.byIcon(Icons.notifications_rounded),
+            ),
+            findsOneWidget,
+            reason: title,
+          );
+          expect(bellOf(tester, title).onPressed, isNotNull, reason: title);
+        }
+      },
+    );
+
+    testWidgets(
+      'appareil incapable de recevoir : cloches grises, raison dite une fois',
+      (tester) async {
+        await _pumpNotifications(
+          tester,
+          _FakePushSubscriptions(subscribed: false),
+          supported: false,
+        );
+
+        // L'encadré du haut le dit déjà : pas de seconde mention.
+        expect(find.text('Indisponibles sur cet appareil'), findsOneWidget);
+        expect(find.text('Coupées sur cet appareil'), findsNothing);
+        for (final title in optionalTitles) {
+          expect(bellOf(tester, title).onPressed, isNull, reason: title);
+        }
+      },
+    );
+  });
 
   group('coupure générale des notifications (administrateur)', () {
     late List<bool> pauseCalls;

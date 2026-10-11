@@ -2,6 +2,7 @@
 // Appelée par la base via pg_net avec le jeton interne x-push-token.
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
+import { optionalMatchId, targetedDeliveryLogKind } from "./delivery_log.ts";
 import {
   executePushDelivery,
   PUSH_DELIVERY_TTL_SECONDS,
@@ -22,7 +23,7 @@ type SubscriptionRow = {
 };
 
 type DeliveryLogRow = {
-  match_id: string;
+  match_id: string | null;
   kind: string;
   profile_id: string | null;
   endpoint_host: string | null;
@@ -42,6 +43,7 @@ type PushRequestBody = {
   title?: string;
   message?: string;
   url?: string;
+  log_kind?: string;
 };
 
 const sportsAvailabilityKinds = new Set([
@@ -65,12 +67,15 @@ function errorMessage(error: unknown): string {
 }
 
 // Envoie un contenu fixe à un ensemble explicite de profils (canal de test,
-// alerte admin), sans passer par le pipeline générique de dispatch/log.
+// alerte admin, contenu préparé par la base), sans passer par le pipeline
+// générique de dispatch. Chaque appareil laisse une ligne dans le journal de
+// livraison, sous le type et le match indiqués.
 async function sendFixedPayloadToProfiles(
   supabase: ReturnType<typeof createClient>,
   profileIds: string[],
   payload: { title: string; body: string; url: string; tag: string },
   vapid: { public: string; private: string },
+  log: { kind: string; matchId: string | null },
 ): Promise<{ attempted: number; sent: number; failed: number }> {
   if (profileIds.length === 0) return { attempted: 0, sent: 0, failed: 0 };
   const { data: subs } = await supabase
@@ -87,6 +92,7 @@ async function sendFixedPayloadToProfiles(
   );
   const message = JSON.stringify(payload);
   const dead: string[] = [];
+  const deliveries: DeliveryLogRow[] = [];
   let sent = 0;
   await Promise.all(targets.map(async (sub) => {
     const outcome = await executePushDelivery(() =>
@@ -98,10 +104,47 @@ async function sendFixedPayloadToProfiles(
     );
     if (outcome.success) {
       sent += 1;
-    } else if (outcome.failureClass === "expired") {
+      deliveries.push({
+        match_id: log.matchId,
+        kind: log.kind,
+        profile_id: sub.profile_id ?? null,
+        endpoint_host: endpointHost(sub.endpoint),
+        success: true,
+        status_code: outcome.statusCode ?? 201,
+        error_message: null,
+        attempts: outcome.attempts,
+      });
+      return;
+    }
+    if (outcome.failureClass === "expired") {
       dead.push(sub.endpoint);
     }
+    const failure = errorMessage(outcome.error);
+    deliveries.push({
+      match_id: log.matchId,
+      kind: log.kind,
+      profile_id: sub.profile_id ?? null,
+      endpoint_host: endpointHost(sub.endpoint),
+      success: false,
+      status_code: outcome.statusCode,
+      error_message: failure,
+      attempts: outcome.attempts,
+    });
+    console.error("send-push targeted delivery failure", {
+      kind: log.kind,
+      profileId: sub.profile_id ?? null,
+      endpointHost: endpointHost(sub.endpoint),
+      statusCode: outcome.statusCode,
+      failureClass: outcome.failureClass,
+      attempts: outcome.attempts,
+      message: failure,
+    });
   }));
+  // Le journal ne doit jamais faire échouer un envoi déjà parti.
+  if (deliveries.length > 0) {
+    const { error } = await supabase.from("push_delivery_log").insert(deliveries);
+    if (error) console.error("send-push targeted log failure", error);
+  }
   if (dead.length > 0) {
     await supabase.rpc("internal_push_prune", { p_endpoints: dead });
   }
@@ -350,6 +393,7 @@ Deno.serve(async (req: Request) => {
         tag: "admin-pending-signup",
       },
       { public: config.vapid_public, private: config.vapid_private },
+      { kind: "admin_pending_signup", matchId: null },
     );
     return Response.json(result);
   }
@@ -371,6 +415,7 @@ Deno.serve(async (req: Request) => {
         tag: "test-push",
       },
       { public: config.vapid_public, private: config.vapid_private },
+      { kind: "test", matchId: null },
     );
     return Response.json(result);
   }
@@ -379,7 +424,8 @@ Deno.serve(async (req: Request) => {
   // d'un administrateur, convocation, composition, résultat HDM, badges…
   // Le titre et le texte viennent de la RPC, qui a déjà vérifié les droits et
   // borné leur longueur. L'écran à ouvrir est facultatif : une route de
-  // l'application, sinon l'accueil.
+  // l'application, sinon l'accueil. Le type et le match servent seulement au
+  // journal de livraison.
   if (body.kind === "custom") {
     const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
     const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -400,6 +446,10 @@ Deno.serve(async (req: Request) => {
         tag: `custom-${Date.now()}`,
       },
       { public: config.vapid_public, private: config.vapid_private },
+      {
+        kind: targetedDeliveryLogKind(body.log_kind),
+        matchId: optionalMatchId(body.match_id),
+      },
     );
     return Response.json(result);
   }
