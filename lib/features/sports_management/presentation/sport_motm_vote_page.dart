@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
@@ -463,8 +464,9 @@ class _MessageCard extends StatelessWidget {
   }
 }
 
-/// Exploit du joueur affiché dans la liste de vote : buts pour les joueurs de
-/// champ, clean sheet ou non pour le gardien.
+/// Exploit du joueur affiché dans la liste de vote, avec les icônes de la
+/// composition d'un match terminé : ballon et nombre de buts, puis crampon et
+/// nombre de passes décisives. Rien quand le joueur n'a ni but ni passe.
 class _CandidateExploit extends StatelessWidget {
   const _CandidateExploit({required this.candidate});
 
@@ -472,26 +474,56 @@ class _CandidateExploit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (candidate.isGoalkeeper) {
-      final cleanSheet = candidate.cleanSheet;
-      if (cleanSheet == null) return const SizedBox.shrink();
-      return Text(
-        cleanSheet ? 'Clean sheet' : 'A encaissé',
-        style: TextStyle(
-          color: cleanSheet ? const Color(0xFF52D08A) : Colors.white,
-          fontWeight: FontWeight.w400,
-          fontSize: 13,
-        ),
-      );
-    }
     final goals = candidate.goals;
-    return Text(
-      goals <= 1 ? '$goals but' : '$goals buts',
-      style: TextStyle(
-        color: goals > 0 ? const Color(0xFFCAB5FF) : Colors.white,
-        fontWeight: FontWeight.w400,
-        fontSize: 13,
+    final assists = candidate.assists;
+    if (goals <= 0 && assists <= 0) return const SizedBox.shrink();
+    return Semantics(
+      label: [
+        if (goals > 0) AppFormats.counted(goals, 'but'),
+        if (assists > 0)
+          AppFormats.counted(assists, 'passe décisive', 'passes décisives'),
+      ].join(', '),
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (goals > 0)
+              _ExploitCount(icon: const GoalIcon(size: 16), count: goals),
+            if (goals > 0 && assists > 0) const SizedBox(width: 12),
+            if (assists > 0)
+              _ExploitCount(
+                icon: const AssistBootIcon(size: 16),
+                count: assists,
+              ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _ExploitCount extends StatelessWidget {
+  const _ExploitCount({required this.icon, required this.count});
+
+  final Widget icon;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        icon,
+        const SizedBox(width: 4),
+        Text(
+          '$count',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w400,
+            fontSize: 13,
+          ),
+        ),
+      ],
     );
   }
 }
