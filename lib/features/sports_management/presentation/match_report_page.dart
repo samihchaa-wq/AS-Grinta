@@ -671,9 +671,6 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
           onRemoveFromSquad: _removeFromSquad,
           onFormationChanged: _changeFormation,
           formationBusy: _saving,
-          header: _SquadHint(
-            starters: lineup.entriesFor(MatchCompositionZone.field).length,
-          ),
         ),
       ],
     );
@@ -687,37 +684,6 @@ class _MatchReportViewState extends ConsumerState<MatchReportView>
       editable: _editable && !_saving,
       onChanged: _updateGoal,
       onReorder: _reorderGoals,
-    );
-  }
-}
-
-class _SquadHint extends StatelessWidget {
-  const _SquadHint({required this.starters});
-
-  final int starters;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                starters == 0
-                    ? 'Personne n’est encore sur le terrain. Choisis un '
-                        'dispositif, puis glisse les joueurs du banc sur le '
-                        'terrain.'
-                    : 'Terrain = titulaires, banc = remplaçants. Appuie sur un '
-                        'joueur du banc pour le retirer du match.',
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

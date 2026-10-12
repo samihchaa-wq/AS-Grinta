@@ -6,6 +6,16 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche joueur : le prénom et le surnom se placent à égale distance de la
+  photo et du badge. Une photo détourée (fond transparent) ne remplit pas
+  son carré : seule la partie visible de la photo compte désormais ;
+- fiche joueur : dans les derniers matchs, le score d'un match nul est en
+  orange, comme une victoire en vert et une défaite en rouge ;
+- compte rendu de match : l'onglet Effectif n'affiche plus de texte
+  d'explication sur le terrain et le banc, et Faits du match n'affiche plus
+  « Maintiens un but pour changer son ordre » (le geste reste possible) ;
+- compte rendu de match : la passe décisive porte le crampon de la
+  composition au lieu de la poignée de main ;
 - Homme du match : la liste de vote affiche, pour chaque joueur, les icônes
   de la composition (ballon et nombre de buts, puis crampon et nombre de
   passes décisives) au lieu de « 0 but », « Clean sheet » ou « A

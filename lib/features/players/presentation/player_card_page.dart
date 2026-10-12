@@ -14,6 +14,7 @@ import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/players/data/player_card_repository.dart';
+import 'package:as_grinta/features/players/presentation/hero_photo_margin.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
@@ -231,6 +232,20 @@ class _Hero extends ConsumerWidget {
   final String? profileId;
   final bool isGoalkeeper;
 
+  /// Part vide, à droite, du carré de la photo telle qu'elle s'affiche (voir
+  /// [photoClearRightShare]). Tant que la photo n'est pas là, ou sans photo,
+  /// l'avatar montre ses initiales dans un carré plus petit, centré.
+  double _photoClearRight(WidgetRef ref) {
+    const initials = (1 - _heroInitialsScale) / 2;
+    final url = photoUrl?.trim();
+    if (url == null || url.isEmpty) return initials;
+    return ref.watch(heroPhotoClearRightProvider(url)).when(
+          data: (share) => share ?? 0,
+          loading: () => initials,
+          error: (_, __) => initials,
+        );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nickname = this.nickname;
@@ -280,41 +295,50 @@ class _Hero extends ConsumerWidget {
                   name: name,
                   isGoalkeeper: isGoalkeeper,
                   size: _heroPhotoSize,
+                  fallbackScale: _heroInitialsScale,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Une seule ligne, réduite au besoin : un prénom ne se
-                      // coupe pas au milieu.
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          _properCaseName(name),
-                          maxLines: 1,
-                          style: const TextStyle(
-                            fontFamily: _display,
-                            fontSize: 30,
-                            height: 1.05,
-                            color: AppTheme.textPrimary,
+                  // Le prénom se centre entre ce qui se voit de la photo et
+                  // le badge : une photo détourée ne remplit pas son carré.
+                  child: Transform.translate(
+                    offset: Offset(
+                      -_photoClearRight(ref) * _heroPhotoSize / 2,
+                      0,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Une seule ligne, réduite au besoin : un prénom ne se
+                        // coupe pas au milieu.
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _properCaseName(name),
+                            maxLines: 1,
+                            style: const TextStyle(
+                              fontFamily: _display,
+                              fontSize: 30,
+                              height: 1.05,
+                              color: AppTheme.textPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                      if (nickname != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          '« $nickname »',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: AppTheme.textSecondary,
+                        if (nickname != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            '« $nickname »',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
                 if (badge != null) ...[
@@ -349,6 +373,9 @@ class _Hero extends ConsumerWidget {
 
 /// Photo du joueur dans l'en-tête ; le badge arboré prend la même hauteur.
 const _heroPhotoSize = 96.0;
+
+/// Taille des initiales d'un joueur sans photo, par rapport à [_heroPhotoSize].
+const _heroInitialsScale = .84;
 
 /// Or, argent et bronze pour les trois premiers du club sur une statistique.
 const _gold = Color(0xFFFFD84A);
@@ -698,6 +725,11 @@ Color _resultColor(String result) => switch (result) {
       _ => AppTheme.textFaint,
     };
 
+/// Couleur du score dans la liste des derniers matchs : orange pour un nul,
+/// comme une victoire en vert et une défaite en rouge.
+Color _scoreColor(String result) =>
+    result == 'N' ? AppTheme.warning : _resultColor(result);
+
 class _ResultSquare extends StatelessWidget {
   const _ResultSquare({required this.result});
 
@@ -780,7 +812,7 @@ class _MatchRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = _type;
-    final resultColor = _resultColor(match.result);
+    final resultColor = _scoreColor(match.result);
     // Ouvre le récapitulatif du match, comme une carte du calendrier ; la
     // flèche retour ramène ici.
     return Material(
@@ -899,8 +931,7 @@ class _MatchRow extends StatelessWidget {
               style: TextStyle(
                 fontFamily: _display,
                 fontSize: 16,
-                color:
-                    match.result == 'N' ? AppTheme.textSecondary : resultColor,
+                color: resultColor,
               ),
             ),
           ),
