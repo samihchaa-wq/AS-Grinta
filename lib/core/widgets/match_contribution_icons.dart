@@ -4,15 +4,24 @@ import 'package:flutter/material.dart';
 /// match terminé et la fiche joueur : ⚽ pour un but, un crampon pour une
 /// passe décisive, 👑 pour l'Homme du match.
 
-/// Ballon d'un but.
+/// Ballon d'un but, ajusté dans un carré de côté [size] : un emoji dessiné à
+/// une taille de police donnée déborde de cette taille, et le ballon
+/// paraissait plus gros que le crampon voisin à taille égale.
 class GoalIcon extends StatelessWidget {
-  const GoalIcon({super.key, this.size = 11});
+  const GoalIcon({super.key, this.size = 13});
 
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    return Text('⚽', style: TextStyle(fontSize: size, height: 1));
+    return SizedBox.square(
+      dimension: size,
+      child: FittedBox(
+        // Sans hauteur de ligne forcée, la boîte du texte englobe tout le
+        // dessin de l'emoji : rien ne dépasse du carré.
+        child: Text('⚽', style: TextStyle(fontSize: size)),
+      ),
+    );
   }
 }
 
@@ -32,9 +41,10 @@ class ManOfTheMatchIcon extends StatelessWidget {
 /// noir : sur fond transparent, le trait blanc se perdait dans les bandes
 /// claires du terrain et sur les photos des joueurs.
 ///
-/// [size] est la hauteur, comme la taille de police d'un emoji voisin.
+/// [size] est le côté du carré, le même que celui de [GoalIcon] : à taille
+/// égale, ballon et crampon ont la même taille à l'écran.
 class AssistBootIcon extends StatelessWidget {
-  const AssistBootIcon({super.key, this.size = 11});
+  const AssistBootIcon({super.key, this.size = 13});
 
   final double size;
 

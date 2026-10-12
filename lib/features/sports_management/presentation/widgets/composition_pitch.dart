@@ -507,13 +507,13 @@ class CompositionPlayerTile extends StatelessWidget {
                 if (entry.goals > 0)
                   Positioned(
                     left: 0,
-                    top: 40,
+                    top: 37,
                     child: GoalBadge(goals: entry.goals),
                   ),
                 if (entry.assists > 0)
                   Positioned(
                     left: 0,
-                    top: 53,
+                    top: 51,
                     child: AssistBadge(assists: entry.assists),
                   ),
                 // La photo (52) est centrée en bas d'une case de 60 × 64 :
@@ -591,7 +591,7 @@ class GoalBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
+        const GoalIcon(size: 13),
         if (goals > 1)
           Positioned(
             top: -5,
@@ -632,7 +632,7 @@ class AssistBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        const AssistBootIcon(size: 11),
+        const AssistBootIcon(size: 13),
         if (assists > 1)
           Positioned(
             top: -5,

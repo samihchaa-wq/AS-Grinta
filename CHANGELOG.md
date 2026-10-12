@@ -6,6 +6,12 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- Homme du match : la liste de vote affiche, pour chaque joueur, les icônes
+  de la composition (ballon et nombre de buts, puis crampon et nombre de
+  passes décisives) au lieu de « 0 but », « Clean sheet » ou « A
+  encaissé » ; un joueur sans but ni passe n'affiche plus rien. Le crampon
+  de passe décisive a désormais la même taille que le ballon, sur le
+  terrain comme sur la fiche joueur ;
 - Homme du match : la notification d'ouverture du vote annonce le score
   final (« Fin du match » — « AS Grinta 2 - 1 Positive Vibration » — « Pense
   à voter pour l'Homme du match. »), équipe à domicile en premier ;

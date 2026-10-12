@@ -25,6 +25,7 @@ class SportMotmCandidate {
     required this.isSelf,
     required this.canChoose,
     required this.goals,
+    required this.assists,
     required this.cleanSheet,
     required this.votesCount,
     required this.isWinner,
@@ -39,6 +40,7 @@ class SportMotmCandidate {
       isSelf: json['is_self'] == true,
       canChoose: json['can_choose'] == true,
       goals: (json['goals'] as num?)?.toInt() ?? 0,
+      assists: (json['assists'] as num?)?.toInt() ?? 0,
       cleanSheet:
           json['clean_sheet'] is bool ? json['clean_sheet'] as bool : null,
       votesCount: (json['votes_count'] as num?)?.toInt(),
@@ -55,6 +57,9 @@ class SportMotmCandidate {
 
   /// Buts marqués par le joueur sur ce match.
   final int goals;
+
+  /// Passes décisives données par le joueur sur ce match.
+  final int assists;
 
   /// Clean sheet du gardien : true/false une fois le match validé, null sinon
   /// (ou pour un joueur de champ).

@@ -265,6 +265,17 @@ select is(
   'true',
   'un permanent présent peut voter'
 );
+select ok(
+  not exists (
+    select 1
+    from jsonb_array_elements(
+      public.get_match_motm_vote(current_setting('test.motm_match')::uuid)
+        -> 'candidates'
+    ) candidate
+    where jsonb_typeof(candidate -> 'assists') is distinct from 'number'
+  ),
+  'chaque candidat porte ses passes décisives'
+);
 select throws_ok(
   $$select public.cast_match_motm_vote(
     current_setting('test.motm_match')::uuid,
