@@ -22,7 +22,55 @@ Uint8List _photo(int width, int height) {
   return Uint8List.fromList(img.encodeJpg(image, quality: 92));
 }
 
+/// Photo détourée : un disque opaque sur fond transparent.
+Uint8List _cutout(int side) {
+  final image = img.Image(width: side, height: side, numChannels: 4);
+  final center = side / 2;
+  for (var y = 0; y < side; y++) {
+    for (var x = 0; x < side; x++) {
+      final inside = (x - center) * (x - center) + (y - center) * (y - center) <
+          (side / 3) * (side / 3);
+      image.setPixelRgba(x, y, 200, 40, 40, inside ? 255 : 0);
+    }
+  }
+  return Uint8List.fromList(img.encodePng(image));
+}
+
+bool _isPng(Uint8List bytes) =>
+    bytes.length > 4 &&
+    bytes[1] == 0x50 &&
+    bytes[2] == 0x4E &&
+    bytes[3] == 0x47;
+
 void main() {
+  group('encodeAvatar', () {
+    test('une photo opaque part en JPEG', () {
+      final image = img.decodeImage(_photo(64, 64))!;
+      final bytes = encodeAvatar(image);
+      expect(bytes.sublist(0, 3), [0xFF, 0xD8, 0xFF]);
+    });
+
+    test('une photo détourée part en PNG et garde sa transparence', () {
+      final image = img.decodeImage(_cutout(64))!;
+      final bytes = encodeAvatar(image);
+
+      expect(_isPng(bytes), isTrue);
+      final decoded = img.decodeImage(bytes)!;
+      expect(decoded.getPixel(0, 0).a, 0);
+      expect(decoded.getPixel(32, 32).a, 255);
+    });
+  });
+
+  test('unpremultiplyAlpha rend leur couleur aux pixels semi-transparents', () {
+    final image = img.Image(width: 1, height: 1, numChannels: 4)
+      // Rouge 200 à moitié transparent, tel que rawRgba le livre : 200 × 128
+      // / 255 ≈ 100.
+      ..setPixelRgba(0, 0, 100, 0, 0, 128);
+    final pixel = unpremultiplyAlpha(image).getPixel(0, 0);
+    expect(pixel.r, closeTo(199, 1));
+    expect(pixel.a, 128);
+  });
+
   group('downscaleAvatar', () {
     test('une photo trop grande est ramenée à la taille de stockage', () {
       final source = _photo(800, 800);
@@ -58,6 +106,16 @@ void main() {
 
       expect(prepared.reencoded, isFalse);
       expect(prepared.bytes, same(source));
+    });
+
+    test('une photo détourée trop grande reste transparente', () {
+      final prepared = downscaleAvatar(_cutout(800));
+
+      expect(prepared.reencoded, isTrue);
+      expect(_isPng(prepared.bytes), isTrue);
+      final decoded = img.decodeImage(prepared.bytes)!;
+      expect(decoded.width, avatarStorageSide);
+      expect(decoded.getPixel(0, 0).a, 0);
     });
 
     test('des octets illisibles sont laissés à la validation d’envoi', () {

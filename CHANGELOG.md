@@ -36,7 +36,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   l'ordre domicile – extérieur (une victoire 5-0 à l'extérieur devient 0-5)
   et toucher un match ouvre sa fiche, la flèche retour ramenant à la fiche
   joueur ;
-- passes décisives : nouveau crampon cerclé, blanc sur fond transparent ;
+- passes décisives : le crampon cerclé blanc est posé sur un disque noir,
+  pour rester lisible sur le terrain et sur les photos ;
+- photos de profil : une photo à fond transparent (joueur détouré) garde sa
+  transparence au lieu de prendre un fond blanc ; elle est alors enregistrée
+  en PNG, les photos ordinaires restant en JPEG ;
 - calendrier : plus d'espace entre deux cartes de match ;
 - Android : glisser depuis le bord gauche de l'écran revient à la page
   précédente, comme sur iPhone ;
