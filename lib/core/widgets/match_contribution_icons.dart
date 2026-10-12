@@ -28,9 +28,9 @@ class ManOfTheMatchIcon extends StatelessWidget {
   }
 }
 
-/// Crampon d'une passe décisive, dans son cercle, en blanc sur fond
-/// transparent : un trait noir disparaîtrait sur le bleu nuit de la fiche
-/// joueur comme sur le vert du terrain.
+/// Crampon d'une passe décisive, dans son cercle, en blanc sur un disque
+/// noir : sur fond transparent, le trait blanc se perdait dans les bandes
+/// claires du terrain et sur les photos des joueurs.
 ///
 /// [size] est la hauteur, comme la taille de police d'un emoji voisin.
 class AssistBootIcon extends StatelessWidget {
@@ -40,11 +40,19 @@ class AssistBootIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/icons/assist_boot.png',
-      width: size,
-      height: size,
-      filterQuality: FilterQuality.medium,
+    // Le cercle blanc du dessin occupe toute l'image : le disque noir, de la
+    // même taille, ne déborde pas autour.
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        shape: BoxShape.circle,
+      ),
+      child: Image.asset(
+        'assets/images/icons/assist_boot.png',
+        width: size,
+        height: size,
+        filterQuality: FilterQuality.medium,
+      ),
     );
   }
 }
