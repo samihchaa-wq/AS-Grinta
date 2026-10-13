@@ -14,11 +14,15 @@ const String kMatchLiveClearChoiceId = '__clear__';
 /// Retourne le participantId choisi, [kMatchLiveExtraChoiceId] si le choix
 /// supplémentaire est retenu, [kMatchLiveClearChoiceId] si l'attribution
 /// existante est effacée, ou `null` si annulé.
+///
+/// [playerLeading] remplace l'icône [icon] devant chaque joueur, pour une
+/// image qui n'est pas une icône (le crampon de la passe décisive).
 Future<String?> pickMatchLiveScorer(
   BuildContext context, {
   required List<MatchCompositionEntry> candidates,
   String title = 'Qui a marqué ?',
   IconData icon = Icons.sports_soccer,
+  Widget? playerLeading,
   String? extraChoiceLabel,
   IconData extraChoiceIcon = Icons.help_outline,
   String? clearChoiceLabel,
@@ -84,7 +88,7 @@ Future<String?> pickMatchLiveScorer(
                   itemBuilder: (context, index) {
                     final entry = sorted[index];
                     return ListTile(
-                      leading: Icon(icon),
+                      leading: playerLeading ?? Icon(icon),
                       title: Text(entry.displayName),
                       onTap: () =>
                           Navigator.of(context).pop(entry.participantId),

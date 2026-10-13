@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/match_goal_action.dart';
@@ -59,17 +60,6 @@ class MatchGoalActionsEditor extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (editable)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-            child: Text(
-              'Maintiens un but pour changer son ordre.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppTheme.textSecondary),
-            ),
-          ),
         ReorderableListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -166,7 +156,7 @@ class _GoalActionCard extends StatelessWidget {
   List<Widget> _buildAsGrintaRows(BuildContext context) {
     return [
       _AttributionTile(
-        icon: Icons.sports_soccer_rounded,
+        icon: const _TileIcon(Icons.sports_soccer_rounded),
         label: 'Buteur',
         value: goal.isOwnGoal
             ? 'CSC adverse'
@@ -177,7 +167,7 @@ class _GoalActionCard extends StatelessWidget {
       ),
       if (goal.canCarryAssist)
         _AttributionTile(
-          icon: Icons.handshake_rounded,
+          icon: const AssistBootIcon(size: 17),
           label: 'Passe décisive',
           value: switch (goal.assistKind) {
             MatchGoalAssistKind.player => goal.assistName ?? 'Non attribué',
@@ -194,7 +184,7 @@ class _GoalActionCard extends StatelessWidget {
 
   Widget _buildOpponentRow(BuildContext context) {
     return _AttributionTile(
-      icon: Icons.flag_rounded,
+      icon: const _TileIcon(Icons.flag_rounded),
       label: 'Origine du but',
       value: goal.isOwnGoal ? 'CSC AS Grinta' : 'But de $opponentName',
       muted: false,
@@ -237,7 +227,7 @@ class _GoalActionCard extends StatelessWidget {
       context,
       candidates: candidates,
       title: 'Qui a fait la passe ?',
-      icon: Icons.handshake_rounded,
+      playerLeading: const AssistBootIcon(size: 22),
       extraChoiceLabel: 'Aucune passe décisive',
       extraChoiceIcon: Icons.block_rounded,
       clearChoiceLabel: 'Passeur inconnu',
@@ -401,7 +391,7 @@ class _AttributionTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final String value;
   final bool muted;
@@ -425,7 +415,7 @@ class _AttributionTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
             child: Row(
               children: [
-                Icon(icon, size: 17, color: AppTheme.textSecondary),
+                icon,
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -470,5 +460,16 @@ class _AttributionTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _TileIcon extends StatelessWidget {
+  const _TileIcon(this.icon);
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(icon, size: 17, color: AppTheme.textSecondary);
   }
 }

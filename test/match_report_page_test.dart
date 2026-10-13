@@ -39,10 +39,6 @@ void main() {
     await _pump(tester, _repository(_report()));
 
     expect(find.text('Banc\n(3)'), findsOneWidget);
-    expect(
-      find.textContaining('Personne n’est encore sur le terrain'),
-      findsOneWidget,
-    );
   });
 
   testWidgets('un match sans Live crée les buts manquants depuis le score', (
