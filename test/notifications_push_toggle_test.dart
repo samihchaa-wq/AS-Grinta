@@ -7,6 +7,7 @@ import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Le navigateur ne sait ni s'abonner ni se désabonner dans un test : cette
 /// doublure tient l'état de l'abonnement à sa place, et compte les appels
@@ -89,6 +90,9 @@ Future<void> _pumpNotifications(
 }
 
 void main() {
+  // Éteindre la cloche retient le choix sur l'appareil.
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   group('cloche des notifications de cet appareil', () {
     // Les notifications réglables ont aussi leur cloche : on ne regarde que
     // celle de l'encadré du haut.
@@ -125,6 +129,8 @@ void main() {
 
         expect(repository.disableCalls, 1);
         expect(repository.subscribed, isFalse);
+        // Choix du joueur : le bandeau du haut ne le contredira pas.
+        expect(await readPushOptOut(), isTrue);
         expect(
           find.text('Notifications désactivées sur cet appareil.'),
           findsOneWidget,

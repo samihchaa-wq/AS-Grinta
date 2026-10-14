@@ -81,6 +81,8 @@ insert into reviewed_open_definers (fonction, motif) values
    'ignore un appelant anonyme, tronque ses entrées et se limite à 20 écritures par minute'),
   ('register_push_subscription(text,text,text,text)',
    'n’enregistre que l’abonnement du demandeur, profil actif exigé'),
+  ('report_my_push_device(text,text,jsonb)',
+   'n’écrit que l’abonnement et les accusés du demandeur, profil actif exigé'),
   ('set_badge_featured(text,boolean)',
    'ne modifie que les badges déjà détenus par le demandeur'),
   ('update_my_app_preferences(boolean,boolean,boolean)',

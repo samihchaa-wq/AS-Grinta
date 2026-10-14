@@ -8,3 +8,7 @@ Future<String?> pushSubscribe(String vapidPublicKey) async => null;
 Future<String?> pushCurrentSubscription() async => null;
 
 Future<String?> pushUnsubscribe() async => null;
+
+Future<String> pushDisplayReceipts() async => '[]';
+
+Future<void> pushForgetDisplayReceipts(String sentJson) async {}

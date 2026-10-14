@@ -36,13 +36,26 @@ self.addEventListener('message', (event) => {
 const BADGE_CACHE = 'as-grinta-badge';
 const BADGE_KEY = 'asg-badge-count';
 
+// Accusés d'affichage : Apple et Google confirment avoir pris en charge une
+// notification, jamais qu'elle s'est affichée. Le service worker note donc
+// chaque notification que le téléphone a accepté de montrer ; l'application
+// transmet ces accusés au serveur à sa prochaine ouverture
+// (web/app_shell.js). Une notification envoyée sans accusé, alors que le
+// joueur a rouvert l'application depuis, n'a pas été affichée.
+const RECEIPTS_CACHE = 'as-grinta-push-receipts';
+const RECEIPTS_KEY = 'asg-push-receipts';
+const RECEIPTS_MAX = 50;
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       const names = await caches.keys();
       await Promise.all(
         names
-          .filter((name) => name !== CACHE_NAME && name !== BADGE_CACHE)
+          .filter((name) =>
+            name !== CACHE_NAME &&
+            name !== BADGE_CACHE &&
+            name !== RECEIPTS_CACHE)
           .map((name) => caches.delete(name)),
       );
       await self.clients.claim();
@@ -158,6 +171,31 @@ function bumpAppBadge() {
   return badgeUpdates;
 }
 
+// Même file d'attente que la pastille : deux notifications arrivées ensemble
+// ne doivent pas écraser l'accusé l'une de l'autre.
+let receiptUpdates = Promise.resolve();
+
+function recordDisplayReceipt(tag) {
+  receiptUpdates = receiptUpdates.then(async () => {
+    const cache = await caches.open(RECEIPTS_CACHE);
+    const key = new URL(RECEIPTS_KEY, self.registration.scope).href;
+    const stored = await cache.match(key);
+    let receipts = [];
+    if (stored) {
+      try {
+        const parsed = JSON.parse(await stored.text());
+        if (Array.isArray(parsed)) receipts = parsed;
+      } catch (_) {}
+    }
+    receipts.push({ tag: tag || 'sans-tag', at: new Date().toISOString() });
+    await cache.put(
+      key,
+      new Response(JSON.stringify(receipts.slice(-RECEIPTS_MAX))),
+    );
+  }).catch(() => {});
+  return receiptUpdates;
+}
+
 self.addEventListener('push', (event) => {
   let data = {};
   try {
@@ -175,7 +213,7 @@ self.addEventListener('push', (event) => {
         badge: 'icons/notification-badge-96.png',
         tag: data.tag || undefined,
         data: { url: data.url || '.' },
-      }),
+      }).then(() => recordDisplayReceipt(data.tag)),
       bumpAppBadge(),
     ]),
   );

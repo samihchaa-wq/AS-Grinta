@@ -80,6 +80,41 @@ convocation et la liste d’attente sont devenues essentielles.
   (autre compte connecté sur le même téléphone, sixième appareil ayant
   remplacé le plus ancien).
 
+- La cloche n’est verte que si le téléphone autorise aussi l’affichage. Un
+  joueur qui coupe les notifications dans les réglages de son téléphone garde
+  son abonnement : Apple et Google acceptent toujours les envois, mais rien
+  ne s’affiche. La cloche passe alors en gris.
+- Un bandeau en haut de l’application prévient le joueur quand cet appareil
+  ne recevra rien sans qu’il l’ait choisi :
+  - « Notifications bloquées » : le téléphone refuse l’affichage. Seul le
+    joueur peut le lever, dans les réglages du téléphone ;
+  - « Notifications désactivées » : l’appareil n’est pas abonné, par exemple
+    après une déconnexion (qui désabonne l’appareil) ou un abonnement perdu
+    par le navigateur. « Activer » le réabonne en un geste.
+
+  « Non merci », ou éteindre la cloche de l’écran Notifications, enregistre
+  le choix sur cet appareil (`asg-push-opted-out`) : le bandeau ne revient
+  plus jusqu’à ce que le joueur réactive les notifications. Une déconnexion
+  n’est pas un choix et ne pose pas ce marqueur.
+
+## Accusés d’affichage
+
+« Accepté » dans `push_delivery_log` veut seulement dire qu’Apple ou Google
+s’en charge, jamais que le téléphone l’a montrée. Pour le savoir :
+
+- le service worker note chaque notification réellement affichée (son
+  étiquette et l’heure) dans le cache `as-grinta-push-receipts`, 50 au plus ;
+- à chaque ouverture, l’application transmet ces accusés et l’autorisation
+  d’affichage du téléphone par `report_my_push_device`, puis les oublie ;
+- le serveur range l’autorisation sur l’abonnement
+  (`push_subscriptions.notification_permission`, `device_reported_at`) et les
+  accusés dans `private.push_display_receipts` (90 jours).
+
+Une notification envoyée et acceptée, sans accusé de ce joueur alors qu’il a
+rouvert l’application depuis, n’a pas été affichée sur son téléphone.
+L’étiquette de l’accusé est celle de la notification (`tag`), par exemple
+`sport-<match>-availability-open`.
+
 ## Pastille de l’icône
 
 Sur iPhone (application installée sur l’écran d’accueil), l’icône porte le

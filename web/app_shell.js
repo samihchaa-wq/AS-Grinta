@@ -302,6 +302,42 @@
       await subscription.unsubscribe();
       return json;
     },
+    // Accusés d'affichage notés par le service worker (web/sw.js). Ils sont
+    // lus, envoyés au serveur, puis oubliés un par un : un accusé arrivé
+    // pendant l'envoi au serveur reste pour la fois suivante.
+    receipts: async function () {
+      try {
+        const cache = await caches.open('as-grinta-push-receipts');
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) return '[]';
+        const stored = await cache.match(
+          new URL('asg-push-receipts', registration.scope).href
+        );
+        if (!stored) return '[]';
+        const parsed = JSON.parse(await stored.text());
+        return JSON.stringify(Array.isArray(parsed) ? parsed : []);
+      } catch (_) {
+        return '[]';
+      }
+    },
+    forgetReceipts: async function (sentJson) {
+      try {
+        const sent = JSON.parse(sentJson);
+        if (!Array.isArray(sent) || sent.length === 0) return;
+        const done = new Set(sent.map(function (r) { return r.tag + '|' + r.at; }));
+        const cache = await caches.open('as-grinta-push-receipts');
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) return;
+        const key = new URL('asg-push-receipts', registration.scope).href;
+        const stored = await cache.match(key);
+        if (!stored) return;
+        const parsed = JSON.parse(await stored.text());
+        const left = (Array.isArray(parsed) ? parsed : []).filter(function (r) {
+          return !done.has(r.tag + '|' + r.at);
+        });
+        await cache.put(key, new Response(JSON.stringify(left)));
+      } catch (_) {}
+    },
   };
 
   // Sélecteur dédié aux images de badges. On écoute uniquement l'événement
