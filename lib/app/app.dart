@@ -8,6 +8,7 @@ import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
 import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/notifications/presentation/push_device_banner.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -70,6 +71,8 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       if (ref.read(authControllerProvider).isAuthenticated) {
         unawaited(_resyncPushSubscription());
       }
+      // Le joueur revient peut-être des réglages du téléphone.
+      ref.invalidate(pushStatusProvider);
     }
   }
 
@@ -90,6 +93,9 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
     final router = ref.watch(appRouterProvider);
     final onlineAsync = ref.watch(onlineStatusProvider);
     final isOnline = onlineAsync.valueOrNull ?? true;
+    final isAuthenticated = ref.watch(
+      authControllerProvider.select((state) => state.isAuthenticated),
+    );
     final baseTheme = AppTheme.dark;
 
     return MaterialApp.router(
@@ -175,6 +181,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
                         ),
                       ),
                     ),
+                  if (isAuthenticated) const PushDeviceBanner(),
                   Expanded(child: child ?? const SizedBox.shrink()),
                 ],
               ),

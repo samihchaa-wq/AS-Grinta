@@ -605,6 +605,8 @@ class _EssentialNotificationsCardState
       message = 'Notifications désactivées sur cet appareil.';
       try {
         await ref.read(pushSubscriptionsRepositoryProvider).disable();
+        // Choix du joueur : le bandeau du haut ne doit pas le contredire.
+        await writePushOptOut(true);
       } catch (_) {
         message = 'Impossible de désactiver les notifications.';
       }
@@ -613,7 +615,10 @@ class _EssentialNotificationsCardState
       try {
         final enabled =
             await ref.read(pushSubscriptionsRepositoryProvider).enable();
-        if (!enabled) message = 'Autorisation refusée par le navigateur.';
+        if (!enabled) {
+          message = 'Notifications bloquées sur ce téléphone : autorise-les '
+              'dans ses réglages, puis réessaie.';
+        }
       } catch (_) {
         message = 'Impossible d’activer les notifications.';
       }

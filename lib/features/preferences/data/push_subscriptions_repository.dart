@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/push/push_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Gère l'abonnement du navigateur aux notifications push et sa copie
@@ -39,10 +40,15 @@ class SupabasePushSubscriptionsRepository
   @override
   Future<bool> isSupported() => pushSupported();
 
+  /// Abonné ET autorisé. Un joueur qui coupe les notifications dans les
+  /// réglages du téléphone garde son abonnement : Apple et Google acceptent
+  /// toujours les envois, mais rien ne s'affiche. La cloche ne doit alors pas
+  /// rester verte.
   @override
   Future<bool> isSubscribed() async {
     final current = await pushCurrentSubscription();
-    return current != null;
+    if (current == null) return false;
+    return await pushPermission() == 'granted';
   }
 
   /// Demande la permission puis enregistre l'abonnement. Retourne false si
@@ -54,7 +60,9 @@ class SupabasePushSubscriptionsRepository
 
     final json = await pushSubscribe(pushVapidPublicKey);
     if (json == null) return false;
-    return _register(json);
+    final registered = await _register(json);
+    if (registered) await writePushOptOut(false);
+    return registered;
   }
 
   /// La cloche lit l'abonnement du navigateur, pas celui du serveur, et les
@@ -68,8 +76,34 @@ class SupabasePushSubscriptionsRepository
     if (_client.auth.currentUser == null) return false;
 
     final json = await pushCurrentSubscription();
-    if (json == null) return false;
-    return _register(json);
+    final registered = json != null && await _register(json);
+    await _reportDevice(json);
+    return registered;
+  }
+
+  /// Dit au serveur si ce téléphone autorise encore les notifications et
+  /// lesquelles il a réellement affichées depuis la dernière ouverture. Sans
+  /// ce retour, un envoi accepté par Apple ou Google passe pour reçu même
+  /// quand le téléphone ne l'a jamais montré.
+  Future<void> _reportDevice(String? subscriptionJson) async {
+    final receipts = await pushDisplayReceipts();
+    String? endpoint;
+    if (subscriptionJson != null) {
+      final subscription =
+          Map<String, dynamic>.from(jsonDecode(subscriptionJson) as Map);
+      endpoint = subscription['endpoint']?.toString();
+    }
+    if (endpoint == null && receipts == '[]') return;
+
+    await _client.rpc(
+      'report_my_push_device',
+      params: {
+        'p_endpoint': endpoint,
+        'p_permission': await pushPermission(),
+        'p_receipts': jsonDecode(receipts),
+      },
+    );
+    await pushForgetDisplayReceipts(receipts);
   }
 
   Future<bool> _register(String json) async {
@@ -123,3 +157,54 @@ final pushStatusProvider = FutureProvider<({bool supported, bool subscribed})>(
     return (supported: true, subscribed: await repository.isSubscribed());
   },
 );
+
+/// Ce que l'application doit signaler au joueur sur cet appareil.
+enum PushDeviceAlert {
+  /// Rien à signaler : l'appareil reçoit, ne sait pas recevoir, ou le joueur
+  /// a choisi de ne rien recevoir ici.
+  none,
+
+  /// Le téléphone bloque l'affichage dans ses réglages. Apple et Google
+  /// acceptent encore les envois, le joueur ne voit rien.
+  blocked,
+
+  /// L'appareil n'est pas abonné alors que le joueur ne l'a pas choisi :
+  /// après une déconnexion, ou un abonnement perdu par le navigateur.
+  notEnabled,
+}
+
+const _pushOptOutKey = 'asg-push-opted-out';
+
+/// Le joueur a choisi de ne rien recevoir sur cet appareil (cloche éteinte ou
+/// « Non merci »). Une déconnexion n'est pas un choix : elle désabonne
+/// l'appareil sans poser ce marqueur.
+Future<bool> readPushOptOut() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_pushOptOutKey) ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> writePushOptOut(bool value) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pushOptOutKey, value);
+  } catch (_) {
+    // Au pire, le bandeau réapparaît à la prochaine ouverture.
+  }
+}
+
+/// Recalculé à chaque relecture de l'état de la cloche.
+final pushDeviceAlertProvider = FutureProvider<PushDeviceAlert>((ref) async {
+  final status = await ref.watch(pushStatusProvider.future);
+  if (!status.supported || status.subscribed) return PushDeviceAlert.none;
+  if (await readPushOptOut()) return PushDeviceAlert.none;
+
+  // Refus : seul le joueur peut le lever, dans les réglages. Sinon, un appui
+  // sur « Activer » suffit (le navigateur redemande si besoin).
+  return await pushPermission() == 'denied'
+      ? PushDeviceAlert.blocked
+      : PushDeviceAlert.notEnabled;
+});

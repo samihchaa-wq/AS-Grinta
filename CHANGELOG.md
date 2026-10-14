@@ -6,6 +6,14 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- notifications : la cloche n'est plus verte quand le téléphone bloque
+  l'affichage des notifications dans ses réglages. Un bandeau en haut de
+  l'application prévient le joueur quand son appareil ne recevra rien sans
+  qu'il l'ait choisi (affichage bloqué par le téléphone, ou appareil
+  désabonné après une déconnexion) et le réabonne en un geste. Chaque
+  téléphone signale aussi au serveur les notifications qu'il a réellement
+  affichées : un envoi accepté par Apple ou Google mais jamais montré se voit
+  enfin ;
 - fiche joueur : le prénom et le surnom se placent à égale distance de la
   photo et du badge. Une photo détourée (fond transparent) ne remplit pas
   son carré : seule la partie visible de la photo compte désormais ;

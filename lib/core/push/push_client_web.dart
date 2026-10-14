@@ -16,6 +16,12 @@ external JSPromise<JSString> _current();
 @JS('asGrintaPush.unsubscribe')
 external JSPromise<JSString> _unsubscribe();
 
+@JS('asGrintaPush.receipts')
+external JSPromise<JSString> _receipts();
+
+@JS('asGrintaPush.forgetReceipts')
+external JSPromise<JSAny?> _forgetReceipts(JSString sentJson);
+
 Future<bool> pushSupported() async {
   try {
     return _support().toDart;
@@ -57,4 +63,20 @@ Future<String?> pushUnsubscribe() async {
   } catch (_) {
     return null;
   }
+}
+
+/// Accusés d'affichage notés par le service worker, en JSON (`[]` si aucun).
+Future<String> pushDisplayReceipts() async {
+  try {
+    return (await _receipts().toDart).toDart;
+  } catch (_) {
+    return '[]';
+  }
+}
+
+/// Oublie les accusés déjà transmis au serveur.
+Future<void> pushForgetDisplayReceipts(String sentJson) async {
+  try {
+    await _forgetReceipts(sentJson.toJS).toDart;
+  } catch (_) {}
 }
