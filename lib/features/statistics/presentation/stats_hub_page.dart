@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
@@ -19,16 +20,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _StatsSection { rankings, players, team }
 
-class StatsHubPage extends StatefulWidget {
+class StatsHubPage extends ConsumerStatefulWidget {
   const StatsHubPage({super.key, this.initialSection});
 
   final String? initialSection;
 
   @override
-  State<StatsHubPage> createState() => _StatsHubPageState();
+  ConsumerState<StatsHubPage> createState() => _StatsHubPageState();
 }
 
-class _StatsHubPageState extends State<StatsHubPage> {
+class _StatsHubPageState extends ConsumerState<StatsHubPage> {
   late _StatsSection _section = switch (widget.initialSection) {
     'rankings' => _StatsSection.rankings,
     'team' => _StatsSection.team,
@@ -36,8 +37,19 @@ class _StatsHubPageState extends State<StatsHubPage> {
   };
   StatisticsPeriod _period = StatisticsPeriod.current;
 
+  // Change à chaque appui sur l'onglet Statistiques : le panneau est recréé,
+  // ce qui remet son tri à zéro et remonte le tableau en haut.
+  int _resetGeneration = 0;
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(statsResetRequestProvider, (previous, next) {
+      setState(() {
+        _section = _StatsSection.players;
+        _period = StatisticsPeriod.current;
+        _resetGeneration++;
+      });
+    });
     final hasPeriod = _section != _StatsSection.rankings;
     return Scaffold(
       appBar: GrintaAppBar(
@@ -108,6 +120,7 @@ class _StatsHubPageState extends State<StatsHubPage> {
                   },
                 ),
               Expanded(
+                key: ValueKey<int>(_resetGeneration),
                 child: switch (_section) {
                   _StatsSection.rankings => const RankingsPanel(),
                   _StatsSection.players => _PlayersPanel(period: _period),
