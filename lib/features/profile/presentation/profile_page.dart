@@ -66,7 +66,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 700;
-          final avatarSize = compact ? 68.0 : 76.0;
+          final avatarSize = compact ? 74.0 : 82.0;
           final sectionGap = compact ? 12.0 : 16.0;
           final fieldGap = compact ? 6.0 : 8.0;
 
@@ -98,24 +98,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.surfaceHigh,
-                              border: Border.all(
-                                color: AppTheme.primaryBright.withValues(
-                                  alpha: .36,
-                                ),
-                              ),
-                            ),
-                            child: PlayerAvatar(
-                              photoUrl: profile?.photoUrl,
-                              name: profile?.displayName ?? '',
-                              lastName: profile?.lastName,
-                              size: avatarSize,
-                            ),
+                          // Photo affichée seule, sans pastille ronde autour :
+                          // les photos de joueurs sont détourées.
+                          PlayerAvatar(
+                            photoUrl: profile?.photoUrl,
+                            name: profile?.displayName ?? '',
+                            lastName: profile?.lastName,
+                            size: avatarSize,
                           ),
                           Positioned(
                             right: -2,

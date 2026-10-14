@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
@@ -94,6 +95,35 @@ void main() {
     await tester.tap(find.text('B'));
     await tester.pumpAndSettle();
     expect(playerOrder(tester), ['Karim', 'Julien', 'Maxime']);
+  });
+
+  testWidgets(
+      'toucher l’onglet Statistiques ramène à Joueurs, saison actuelle, '
+      'sans tri', (tester) async {
+    repository.players[StatisticsPeriod.current] = [
+      _player('Karim', played: 12, goals: 1),
+      _player('Maxime', played: 10, goals: 9),
+      _player('Julien', played: 8, goals: 4),
+    ];
+    repository.players[StatisticsPeriod.previous] = [
+      _player('Maxime', played: 20, goals: 11),
+    ];
+
+    await pumpStats(tester);
+    await tester.tap(find.text('B'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Précédente'));
+    await tester.pumpAndSettle();
+    expect(find.text('Karim'), findsNothing);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(StatsHubPage)),
+    );
+    container.read(statsResetRequestProvider.notifier).state++;
+    await tester.pumpAndSettle();
+
+    // Saison actuelle, ordre d'origine : le tri par buts a été oublié.
+    expect(playerOrder(tester), ['Karim', 'Maxime', 'Julien']);
   });
 
   testWidgets('une saison sans match validé l’annonce clairement',

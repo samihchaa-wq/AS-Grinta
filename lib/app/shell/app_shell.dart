@@ -126,6 +126,7 @@ class _AppShellState extends ConsumerState<AppShell>
     if (widget.navigationShell.currentIndex != 1 || _uri.path != '/stats') {
       _goBranchWithoutHistory(1);
     }
+    ref.read(statsResetRequestProvider.notifier).state++;
   }
 
   void _selectDestination(int index) {
