@@ -11,6 +11,7 @@ import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
@@ -263,7 +264,8 @@ class SharedDataRefreshCoordinator {
       ..invalidate(myFeaturedCodesProvider)
       ..invalidate(featuredBadgesProvider)
       ..invalidate(statisticsBadgeEmblemsProvider)
-      ..invalidate(hasUnseenBadgeProvider);
+      ..invalidate(hasUnseenBadgeProvider)
+      ..invalidate(unreadNotificationCountProvider);
   }
 }
 

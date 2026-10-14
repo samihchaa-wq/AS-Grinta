@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_inbox_repository.dart';
+import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
@@ -82,8 +83,13 @@ Future<void> _pumpNotifications(
         seasonWrappedStateProvider.overrideWith(
           (ref) async => const SeasonWrappedState.unavailable(),
         ),
+        notificationInboxRepositoryProvider.overrideWithValue(
+          _EmptyInbox(),
+        ),
       ],
-      child: const MaterialApp(home: NotificationsPage()),
+      child: const MaterialApp(
+        home: NotificationsPage(initialTab: NotificationsTab.settings),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -339,8 +345,13 @@ void main() {
             seasonWrappedStateProvider.overrideWith(
               (ref) async => const SeasonWrappedState.unavailable(),
             ),
+            notificationInboxRepositoryProvider.overrideWithValue(
+              _EmptyInbox(),
+            ),
           ],
-          child: const MaterialApp(home: NotificationsPage()),
+          child: const MaterialApp(
+            home: NotificationsPage(initialTab: NotificationsTab.settings),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -393,4 +404,19 @@ void main() {
       );
     });
   });
+}
+
+/// Historique vide : l'onglet Historique reste monté derrière les réglages.
+class _EmptyInbox implements NotificationInboxRepository {
+  @override
+  Future<List<NotificationHistoryEntry>> fetchHistory() async => const [];
+
+  @override
+  Future<int> unreadCount() async => 0;
+
+  @override
+  Future<int> markAllRead() async => 0;
+
+  @override
+  Future<void> delete(int id) async {}
 }

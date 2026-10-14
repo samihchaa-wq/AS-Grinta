@@ -32,15 +32,11 @@ class MorePage extends ConsumerWidget {
             profile: authState.profile,
             onTap: () => context.push('/profile'),
           ),
-          const _SectionLabel('Mon compte'),
-          _SettingsGroup(
-            children: [
-              _SettingsTile(
-                icon: Icons.notifications_none_outlined,
-                title: 'Notifications',
-                onTap: () => context.push('/notifications'),
-              ),
-              if (sportsEnabled) ...[
+          // Les notifications s'ouvrent depuis la cloche de l'en-tête.
+          if (sportsEnabled) ...[
+            const _SectionLabel('Mon compte'),
+            _SettingsGroup(
+              children: [
                 _SettingsTile(
                   icon: Icons.event_busy_outlined,
                   title: 'Indisponibilité',
@@ -54,8 +50,8 @@ class MorePage extends ConsumerWidget {
                   ),
                 ),
               ],
-            ],
-          ),
+            ),
+          ],
           if (isRealAdmin) ...[
             const _SectionLabel('Club · admin'),
             _SettingsGroup(

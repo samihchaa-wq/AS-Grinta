@@ -3,6 +3,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:flutter/material.dart';
@@ -68,7 +69,10 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
             matchId: widget.matchId,
             candidateParticipantId: candidateId,
           );
-      ref.invalidate(sportMotmVoteProvider(widget.matchId));
+      ref
+        ..invalidate(sportMotmVoteProvider(widget.matchId))
+        // L'ouverture du vote devient lue.
+        ..invalidate(unreadNotificationCountProvider);
       if (mounted) {
         setState(() => _selectedCandidateId = null);
         ScaffoldMessenger.of(context).showSnackBar(

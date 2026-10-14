@@ -64,6 +64,11 @@ convocation et la liste d’attente sont devenues essentielles.
 
 ## Écran Notifications
 
+L’écran s’ouvre depuis la cloche placée à côté du trophée, dans l’en-tête du
+Calendrier et des Statistiques (il ne figure plus dans la roue dentée). Il a
+deux onglets : « Historique », ouvert par défaut, et « Paramètres »
+(`/notifications?onglet=parametres`), décrit ci-dessous.
+
 - La cloche de l’encadré « Notifications essentielles » abonne ou désabonne
   **cet appareil**. Désabonné, l’appareil ne reçoit plus rien, pas même les
   notifications réglables.
@@ -115,17 +120,60 @@ rouvert l’application depuis, n’a pas été affichée sur son téléphone.
 L’étiquette de l’accusé est celle de la notification (`tag`), par exemple
 `sport-<match>-availability-open`.
 
+## Historique
+
+- Chaque notification envoyée par le club est rangée pour chacun de ses
+  destinataires (`private.notification_history`), par `send-push` au moment
+  de l’envoi, après le coupe-circuit : rien n’est rangé pendant une pause.
+- Elle y entre même si aucun téléphone ne l’a affichée : notifications
+  bloquées, appareil désabonné ou joueur sans appareil. Les fonctions qui
+  préparent les envois rendent pour cela la liste des destinataires sans
+  passer par les téléphones (`recipient_profile_ids`). Le message libre d’un
+  administrateur et la relance manuelle des disponibilités visent aussi les
+  joueurs sans téléphone ; l’écran d’envoi continue d’annoncer combien ont un
+  téléphone abonné.
+- Une notification coupée dans les réglages du joueur n’est pas envoyée,
+  donc pas rangée. Les notifications d’essai (`send_test_push_kind`,
+  `record_history = false`, et l’ancien `send_test_push`) n’y entrent jamais.
+- La plus récente en premier, 90 jours au plus. Glisser une ligne vers la
+  gauche la supprime définitivement, sur tous les appareils du joueur.
+- L’historique a démarré vide le jour de sa mise en ligne : le texte des
+  notifications envoyées avant n’était gardé nulle part.
+
+### Non lues
+
+Le chiffre de la cloche compte les notifications non lues. Une notification
+devient lue :
+
+- quand le joueur ouvre l’écran (toutes deviennent lues) ;
+- quand il fait ce qu’elle demandait, même sans ouvrir l’écran :
+
+  | Action du joueur | Notifications du match marquées lues |
+  | --- | --- |
+  | Répondre Présent ou Absent (y compris par une période d’indisponibilité qu’il déclare) | ouverture des disponibilités, relance, match reporté |
+  | Remplir son pronostic | rappel de pronostic |
+  | Voter pour l’Homme du match | ouverture du vote |
+
+  Une réponse posée par le staff, ou le retour à « pas de réponse » quand une
+  période d’indisponibilité est annulée, ne compte pas. Une notification qui
+  part alors que le joueur a déjà fait l’action arrive directement lue.
+
+Toucher la notification sur le téléphone ne suffit pas à la marquer lue.
+
 ## Pastille de l’icône
 
 Sur iPhone (application installée sur l’écran d’accueil), l’icône porte le
-nombre de notifications reçues depuis la dernière ouverture de l’application.
-L’ouvrir ou la ramener au premier plan remet ce chiffre à zéro. Une
-notification reçue pendant que l’application est affichée ne compte pas.
+même chiffre que la cloche : le nombre de notifications non lues du compte.
+`send-push` glisse ce nombre dans chaque notification (`app_badge`) et le
+service worker le pose sur l’icône ; l’application le remet à jour à chaque
+changement (ouverture de l’écran, action du joueur, retour au premier plan)
+et l’efface à la déconnexion. La cloche peut afficher « 9+ » quand l’icône
+affiche le nombre exact.
 
-Le compte est tenu par chaque appareil : ouvrir l’application sur l’un ne
-remet pas à zéro les autres, et une notification jamais arrivée sur
-l’appareil n’y est pas comptée. Android n’affiche pas de chiffre, seulement
-le point que le téléphone pose de lui-même.
+Le chiffre ne se met à jour sur un appareil qu’à sa prochaine notification
+ou à sa prochaine ouverture : lire sur un téléphone ne corrige pas tout de
+suite l’icône d’un autre. Android n’affiche pas de chiffre, seulement le
+point que le téléphone pose de lui-même.
 
 ## Journal de livraison
 

@@ -92,8 +92,9 @@ void main() {
 
     expect(find.text('MON COMPTE'), findsOneWidget);
     expect(find.text('CLUB · ADMIN'), findsOneWidget);
+    // Les notifications s'ouvrent désormais depuis la cloche de l'en-tête.
+    expect(find.text('Notifications'), findsNothing);
     for (final title in [
-      'Notifications',
       'Indisponibilité',
       'Liste d’attente',
       'Équipes & stades',
@@ -106,13 +107,13 @@ void main() {
     // Les deux groupes sont chacun une seule carte.
     expect(
       find.ancestor(
-          of: find.text('Notifications'), matching: find.byType(Card)),
+          of: find.text('Indisponibilité'), matching: find.byType(Card)),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: find.ancestor(
-          of: find.text('Notifications'),
+          of: find.text('Indisponibilité'),
           matching: find.byType(Card),
         ),
         matching: find.text('Liste d’attente'),
@@ -128,8 +129,10 @@ void main() {
 
     expect(find.text('Julien Martin'), findsOneWidget);
     expect(find.text('@julien · Utilisateur'), findsOneWidget);
-    expect(find.text('MON COMPTE'), findsOneWidget);
-    expect(find.text('Notifications'), findsOneWidget);
+    // Sans gestion sportive, le groupe « Mon compte » n'a plus de ligne :
+    // il disparaît plutôt que de laisser une carte vide.
+    expect(find.text('MON COMPTE'), findsNothing);
+    expect(find.text('Notifications'), findsNothing);
     expect(find.text('Se déconnecter'), findsOneWidget);
 
     expect(find.text('CLUB · ADMIN'), findsNothing);
