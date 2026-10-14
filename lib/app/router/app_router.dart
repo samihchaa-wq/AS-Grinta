@@ -22,7 +22,9 @@ import 'package:as_grinta/features/matches/presentation/upcoming_match_predictio
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/players/presentation/player_card_link.dart';
+import 'package:as_grinta/features/players/data/player_stat_ranking.dart';
 import 'package:as_grinta/features/players/presentation/player_card_page.dart';
+import 'package:as_grinta/features/players/presentation/player_stat_ranking_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
@@ -250,6 +252,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/stats/joueur',
                 builder: (context, state) => PlayerCardPage(
+                  playerKey: playerCardKeyFromUri(state.uri),
+                ),
+              ),
+              GoRoute(
+                path: '/stats/joueur/classement',
+                builder: (context, state) => PlayerStatRankingPage(
+                  stat: PlayerStat.fromSlug(state.uri.queryParameters['stat']),
+                  initialPeriod: statisticsPeriodFromKey(
+                    state.uri.queryParameters['periode'],
+                  ),
                   playerKey: playerCardKeyFromUri(state.uri),
                 ),
               ),

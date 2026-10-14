@@ -207,6 +207,7 @@ class StickyHeaderTableCard extends StatefulWidget {
     this.onRefresh,
     this.minWidth = grintaTableMinWidth,
     this.pinnedWidth = grintaTablePinnedWidth,
+    this.controller,
     super.key,
   });
 
@@ -214,6 +215,9 @@ class StickyHeaderTableCard extends StatefulWidget {
   final Widget scrollableHeader;
   final List<StickyTableRow> rows;
   final Future<void> Function()? onRefresh;
+
+  /// Défilement vertical des lignes, pour amener une ligne précise à l'écran.
+  final ScrollController? controller;
   final double minWidth;
   final double pinnedWidth;
 
@@ -250,6 +254,7 @@ class _StickyHeaderTableCardState extends State<StickyHeaderTableCard> {
           );
 
           Widget list = ListView.builder(
+            controller: widget.controller,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 6),
             itemCount: widget.rows.length,
