@@ -8,6 +8,15 @@ import {
   PUSH_DELIVERY_TTL_SECONDS,
 } from "./delivery_policy.ts";
 import {
+  historyKind,
+  historyRecipients,
+  payloadForProfile,
+  payloadText,
+  profileIdList,
+  shouldRecordHistory,
+  unreadCounts,
+} from "./history.ts";
+import {
   readBoundedJson,
   RequestBodyTooLargeError,
   safeNotificationUrl,
@@ -44,6 +53,15 @@ type PushRequestBody = {
   message?: string;
   url?: string;
   log_kind?: string;
+  record_history?: boolean;
+};
+
+type HistoryEntry = {
+  kind: string;
+  matchId: string | null;
+  profileIds: string[];
+  payload: Record<string, unknown>;
+  dedupeKey?: string | null;
 };
 
 const sportsAvailabilityKinds = new Set([
@@ -66,18 +84,65 @@ function errorMessage(error: unknown): string {
   return String(error).slice(0, 500);
 }
 
+// Range l'envoi dans l'historique de chaque destinataire et rend leur nombre
+// de notifications non lues. L'historique ne doit jamais empêcher un envoi :
+// en cas d'échec, la notification part sans nombre (la pastille de l'icône
+// reste alors inchangée).
+async function recordHistory(
+  supabase: ReturnType<typeof createClient>,
+  entry: HistoryEntry,
+): Promise<Map<string, number>> {
+  if (entry.profileIds.length === 0) return new Map();
+  try {
+    const { data, error } = await supabase.rpc(
+      "internal_record_notification_history",
+      {
+        p_kind: entry.kind,
+        p_match_id: entry.matchId,
+        p_profile_ids: entry.profileIds,
+        p_title: payloadText(entry.payload.title),
+        p_body: payloadText(entry.payload.body),
+        p_url: payloadText(entry.payload.url),
+        p_tag: payloadText(entry.payload.tag),
+        p_dedupe_key: entry.dedupeKey ?? null,
+      },
+    );
+    if (error) {
+      console.error("send-push history failure", { kind: entry.kind, error });
+      return new Map();
+    }
+    return unreadCounts(data);
+  } catch (error) {
+    console.error("send-push history failure", {
+      kind: entry.kind,
+      message: errorMessage(error),
+    });
+    return new Map();
+  }
+}
+
 // Envoie un contenu fixe à un ensemble explicite de profils (canal de test,
 // alerte admin, contenu préparé par la base), sans passer par le pipeline
 // générique de dispatch. Chaque appareil laisse une ligne dans le journal de
-// livraison, sous le type et le match indiqués.
+// livraison, sous le type et le match indiqués. Avec `history`, l'envoi est
+// aussi rangé dans l'historique de chaque profil, téléphone abonné ou non.
 async function sendFixedPayloadToProfiles(
   supabase: ReturnType<typeof createClient>,
   profileIds: string[],
   payload: { title: string; body: string; url: string; tag: string },
   vapid: { public: string; private: string },
   log: { kind: string; matchId: string | null },
+  history: { kind: string } | null = null,
 ): Promise<{ attempted: number; sent: number; failed: number }> {
   if (profileIds.length === 0) return { attempted: 0, sent: 0, failed: 0 };
+  const unread = history
+    ? await recordHistory(supabase, {
+      kind: history.kind,
+      matchId: log.matchId,
+      profileIds: profileIdList(profileIds),
+      payload,
+    })
+    : new Map<string, number>();
   const { data: subs } = await supabase
     .from("push_subscriptions")
     .select("profile_id, endpoint, p256dh, auth")
@@ -90,7 +155,6 @@ async function sendFixedPayloadToProfiles(
     vapid.public,
     vapid.private,
   );
-  const message = JSON.stringify(payload);
   const dead: string[] = [];
   const deliveries: DeliveryLogRow[] = [];
   let sent = 0;
@@ -98,7 +162,7 @@ async function sendFixedPayloadToProfiles(
     const outcome = await executePushDelivery(() =>
       webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        message,
+        payloadForProfile(payload, sub.profile_id, unread),
         { TTL: PUSH_DELIVERY_TTL_SECONDS, urgency: "high" },
       )
     );
@@ -268,6 +332,16 @@ Deno.serve(async (req: Request) => {
       }
     };
 
+    // Rangé au moment de l'envoi (le texte d'un but peut encore changer
+    // avant), pour toutes les cibles encore inscrites, téléphone ou non.
+    const unread = await recordHistory(supabase, {
+      kind: historyKind(logKind),
+      matchId: matchId || null,
+      profileIds: historyRecipients(dispatch, subscriptions),
+      payload: dispatch.payload ?? {},
+      dedupeKey: `live:${notificationId}`,
+    });
+
     if (subscriptions.length === 0) {
       await markDelivery(0, 0, 0);
       return Response.json({
@@ -285,7 +359,6 @@ Deno.serve(async (req: Request) => {
       config.vapid_private,
     );
 
-    const payload = JSON.stringify(dispatch.payload);
     const dead: string[] = [];
     const deliveries: DeliveryLogRow[] = [];
     let sent = 0;
@@ -298,7 +371,7 @@ Deno.serve(async (req: Request) => {
               endpoint: sub.endpoint,
               keys: { p256dh: sub.p256dh, auth: sub.auth },
             },
-            payload,
+            payloadForProfile(dispatch.payload ?? {}, sub.profile_id, unread),
             { TTL: PUSH_DELIVERY_TTL_SECONDS, urgency: "high" },
           )
         );
@@ -394,12 +467,14 @@ Deno.serve(async (req: Request) => {
       },
       { public: config.vapid_public, private: config.vapid_private },
       { kind: "admin_pending_signup", matchId: null },
+      { kind: "admin_pending_signup" },
     );
     return Response.json(result);
   }
 
   // Canal de test : envoie une notification fixe UNIQUEMENT aux profils passés
-  // (l'admin lui-même), pour valider le rendu sans déranger l'équipe.
+  // (l'admin lui-même), pour valider le rendu sans déranger l'équipe. Jamais
+  // rangé dans l'historique.
   if (body.kind === "test") {
     const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
     if (profileIds.length === 0) {
@@ -424,8 +499,9 @@ Deno.serve(async (req: Request) => {
   // d'un administrateur, convocation, composition, résultat HDM, badges…
   // Le titre et le texte viennent de la RPC, qui a déjà vérifié les droits et
   // borné leur longueur. L'écran à ouvrir est facultatif : une route de
-  // l'application, sinon l'accueil. Le type et le match servent seulement au
-  // journal de livraison.
+  // l'application, sinon l'accueil. Le type et le match servent au journal de
+  // livraison et à l'historique ; une notification d'essai demande à ne pas
+  // être rangée (record_history = false).
   if (body.kind === "custom") {
     const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
     const title = typeof body.title === "string" ? body.title.trim() : "";
@@ -450,6 +526,7 @@ Deno.serve(async (req: Request) => {
         kind: targetedDeliveryLogKind(body.log_kind),
         matchId: optionalMatchId(body.match_id),
       },
+      shouldRecordHistory(body) ? { kind: historyKind(body.log_kind) } : null,
     );
     return Response.json(result);
   }
@@ -504,6 +581,21 @@ Deno.serve(async (req: Request) => {
   };
 
   const subscriptions: SubscriptionRow[] = dispatch.subscriptions ?? [];
+
+  // Sans titre, rien n'est à envoyer (rappel d'un match « entre nous », vote
+  // déjà fermé…) : rien n'est rangé non plus.
+  const unread = payloadText(dispatch.payload?.title)
+    ? await recordHistory(supabase, {
+      kind: historyKind(body.kind),
+      matchId: optionalMatchId(body.match_id),
+      profileIds: historyRecipients(dispatch, subscriptions),
+      payload: dispatch.payload,
+      dedupeKey: isSportsAvailability && body.notification_event_id
+        ? `sport_event:${body.notification_event_id}`
+        : null,
+    })
+    : new Map<string, number>();
+
   if (subscriptions.length === 0) {
     await markSportsDelivery(0, 0, 0);
     return Response.json({ attempted: 0, sent: 0, failed: 0, pruned: 0 });
@@ -515,7 +607,6 @@ Deno.serve(async (req: Request) => {
     config.vapid_private,
   );
 
-  const payload = JSON.stringify(dispatch.payload);
   const dead: string[] = [];
   const deliveries: DeliveryLogRow[] = [];
   let sent = 0;
@@ -528,7 +619,7 @@ Deno.serve(async (req: Request) => {
             endpoint: sub.endpoint,
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
-          payload,
+          payloadForProfile(dispatch.payload, sub.profile_id, unread),
           { TTL: PUSH_DELIVERY_TTL_SECONDS, urgency: "high" },
         )
       );

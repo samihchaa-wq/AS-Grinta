@@ -968,6 +968,77 @@ select ok(
   'une notification sans action attendue reste non lue'
 );
 
+-- Une notification qui part après l'action (la fonction d'envoi passe après
+-- coup) est rangée directement comme lue.
+select public.internal_record_notification_history(
+  'availability_open',
+  current_setting('test.history_match')::uuid,
+  array[
+    'c7000000-0000-0000-0000-000000000002',
+    'c7000000-0000-0000-0000-000000000003'
+  ]::uuid[],
+  'Disponibilité', 'Es-tu dispo ?', 'matches', 'late-open', 'late:open'
+);
+
+select ok(
+  (
+    select read_at is not null
+    from private.notification_history
+    where profile_id = 'c7000000-0000-0000-0000-000000000002'
+      and dedupe_key = 'late:open'
+  ),
+  'Alice a déjà répondu : la disponibilité arrive déjà lue'
+);
+
+select ok(
+  (
+    select read_at is null
+    from private.notification_history
+    where profile_id = 'c7000000-0000-0000-0000-000000000003'
+      and dedupe_key = 'late:open'
+  ),
+  'la réponse posée par le staff pour Bruno ne compte pas : non lue'
+);
+
+select public.internal_record_notification_history(
+  'prediction_j5',
+  current_setting('test.history_match')::uuid,
+  array['c7000000-0000-0000-0000-000000000002']::uuid[],
+  'Pronostic', 'Pense à ton prono', 'matches', 'late-prono', 'late:prono'
+);
+
+select public.internal_record_notification_history(
+  'motm_open',
+  current_setting('test.history_match')::uuid,
+  array[
+    'c7000000-0000-0000-0000-000000000002',
+    'c7000000-0000-0000-0000-000000000003'
+  ]::uuid[],
+  'Fin du match', 'Vote', 'matches', 'late-motm', 'late:motm'
+);
+
+select is(
+  (
+    select count(*)
+    from private.notification_history
+    where profile_id = 'c7000000-0000-0000-0000-000000000002'
+      and dedupe_key in ('late:prono', 'late:motm')
+      and read_at is not null
+  ),
+  2::bigint,
+  'pronostic rempli et vote déjà fait : rappel et ouverture du vote arrivent lus'
+);
+
+select ok(
+  (
+    select read_at is null
+    from private.notification_history
+    where profile_id = 'c7000000-0000-0000-0000-000000000003'
+      and dedupe_key = 'late:motm'
+  ),
+  'Bruno n’a pas voté : l’ouverture du vote arrive non lue'
+);
+
 -- ---------------------------------------------------------------------------
 -- 5. Suppression du compte : l'historique part avec lui.
 -- ---------------------------------------------------------------------------

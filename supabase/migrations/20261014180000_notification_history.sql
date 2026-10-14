@@ -139,8 +139,11 @@ begin
       for key share;
     end if;
 
+    -- La notification part après coup (la fonction d'envoi passe après la
+    -- transaction qui l'a déclenchée) : si le joueur a déjà fait ce qu'elle
+    -- demande, elle est rangée directement comme lue.
     insert into private.notification_history (
-      profile_id, kind, match_id, title, body, url, tag, dedupe_key
+      profile_id, kind, match_id, title, body, url, tag, dedupe_key, read_at
     )
     select
       recipient.profile_id,
@@ -150,7 +153,39 @@ begin
       v_body,
       v_url,
       v_tag,
-      v_dedupe_key
+      v_dedupe_key,
+      case
+        when v_match_id is null then null
+        when v_kind in (
+          'availability_open',
+          'availability_manual',
+          'match_rescheduled_date'
+        ) and exists (
+          select 1
+          from public.match_sport_participants participant
+          join public.season_players player
+            on player.id = participant.season_player_id
+          where participant.match_id = v_match_id
+            and player.profile_id = recipient.profile_id
+            and participant.availability_status <> 'no_response'
+            -- Comme pour le déclencheur : seule la réponse du joueur compte,
+            -- pas celle que le staff a posée pour lui.
+            and participant.availability_updated_by = recipient.profile_id
+        ) then now()
+        when v_kind = 'prediction_j5' and exists (
+          select 1
+          from public.match_predictions prediction
+          where prediction.match_id = v_match_id
+            and prediction.profile_id = recipient.profile_id
+            and prediction.is_filled
+        ) then now()
+        when v_kind = 'motm_open' and exists (
+          select 1
+          from public.match_sport_motm_votes vote
+          where vote.match_id = v_match_id
+            and vote.voter_profile_id = recipient.profile_id
+        ) then now()
+      end
     from unnest(v_profile_ids) as recipient(profile_id)
     on conflict (profile_id, dedupe_key) where dedupe_key is not null
     do nothing;
