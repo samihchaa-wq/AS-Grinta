@@ -6,6 +6,18 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- notifications : une cloche à côté du trophée ouvre l'écran Notifications,
+  en deux onglets. « Historique » liste toutes les notifications envoyées
+  par le club au joueur, la plus récente en premier, même celles que son
+  téléphone n'a pas affichées (notifications bloquées, appareil désabonné ou
+  sans abonnement) ; glisser une ligne vers la gauche la supprime, sur tous
+  ses appareils. « Paramètres » reprend l'ancien écran des réglages, qui
+  quitte la roue dentée. Un petit chiffre sur la cloche compte les
+  notifications non lues ; il disparaît quand le joueur ouvre l'écran ou
+  fait ce que la notification demandait (répondre à la disponibilité,
+  remplir son prono, voter pour l'Homme du match). L'historique garde
+  90 jours et démarre vide : les notifications envoyées avant cette version
+  n'y figurent pas. Les envois d'essai n'y entrent jamais ;
 - notifications : la cloche n'est plus verte quand le téléphone bloque
   l'affichage des notifications dans ses réglages. Un bandeau en haut de
   l'application prévient le joueur quand son appareil ne recevra rien sans
@@ -34,8 +46,7 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   final (« Fin du match » — « AS Grinta 2 - 1 Positive Vibration » — « Pense
   à voter pour l'Homme du match. »), équipe à domicile en premier ;
 - notifications : sur iPhone, l'icône de l'application affiche une pastille
-  avec le nombre de notifications reçues depuis la dernière ouverture ;
-  ouvrir l'application la remet à zéro ;
+  avec le nombre de notifications non lues, le même que la cloche ;
 - liste d'attente : un joueur est prévenu (« Tu passes en liste
   d'attente ») dès qu'il entre en liste d'attente, et plus seulement quand
   il perd une place de convoqué. Cela vaut pour les joueurs déjà en attente

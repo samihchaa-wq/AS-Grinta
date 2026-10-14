@@ -15,7 +15,11 @@ Audit préparatoire réalisé sur le projet de production le 20 juillet 2026, sa
 | RPC | Contrôle attendu | Motif de `SECURITY DEFINER` |
 |---|---|---|
 | `complete_password_change()` | identité courante | mise à jour contrôlée du profil après Auth |
+| `delete_my_notification(bigint)` | identité courante, profil actif | supprimer une ligne de l’historique du demandeur sans exposer la table privée |
+| `get_my_notification_history(integer)` | identité courante ; vide pour un profil non actif | lire l’historique privé du demandeur (90 jours) |
 | `get_my_profile()` | identité courante | lecture du profil malgré les restrictions de colonnes |
+| `get_my_unread_notification_count()` | identité courante ; zéro pour un profil non actif | compter les non-lues de la cloche et de la pastille de l’icône |
+| `mark_my_notifications_read()` | identité courante, profil actif | marquer comme lu l’historique du demandeur à l’ouverture de l’écran |
 | `match_prediction_participant_count(uuid)` | profil actif, résultat agrégé | compter sans révéler les pronostics adverses |
 | `profile_badge_metrics(uuid)` | métriques agrégées uniquement | agréger des tables internes, dont `season_awards` |
 | `register_push_subscription(text,text,text,text)` | identité courante | écrire une souscription privée sans exposer la table |

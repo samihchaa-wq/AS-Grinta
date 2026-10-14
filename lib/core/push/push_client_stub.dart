@@ -12,3 +12,7 @@ Future<String?> pushUnsubscribe() async => null;
 Future<String> pushDisplayReceipts() async => '[]';
 
 Future<void> pushForgetDisplayReceipts(String sentJson) async {}
+
+Future<void> pushSetAppBadge(int count) async {}
+
+void pushListenReceived(void Function() callback) {}

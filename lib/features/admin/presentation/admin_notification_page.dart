@@ -85,7 +85,15 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
               );
       if (!mounted) return;
       final skippedCount = selectedCount - targetedCount;
-      if (skippedCount > 0) {
+      if (targetedCount == 0) {
+        _showMessage(
+          selectedCount > 1
+              ? 'Message ajouté à l’historique des $selectedCount personnes. '
+                  'Aucune n’a activé les notifications sur son téléphone.'
+              : 'Message ajouté à son historique. Cette personne n’a pas '
+                  'activé les notifications sur son téléphone.',
+        );
+      } else if (skippedCount > 0) {
         _showMessage(
           'Envoi lancé pour $targetedCount '
           '${targetedCount > 1 ? 'personnes' : 'personne'}. '
@@ -263,8 +271,9 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Seules les personnes ayant autorisé les notifications sur '
-                  'leur téléphone la recevront.',
+                  'Chaque destinataire la retrouvera dans son historique. Sur '
+                  'le téléphone, seules les personnes ayant autorisé les '
+                  'notifications la recevront.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],

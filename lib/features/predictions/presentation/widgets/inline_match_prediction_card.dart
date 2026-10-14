@@ -5,6 +5,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/match_encounter_route.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
+import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
@@ -240,7 +241,9 @@ class _InlineMatchPredictionCardState
           );
       ref
         ..invalidate(inlineMatchPredictionProvider(widget.matchId))
-        ..invalidate(matchDetailsProvider(widget.matchId));
+        ..invalidate(matchDetailsProvider(widget.matchId))
+        // Le rappel de pronostic devient lu.
+        ..invalidate(unreadNotificationCountProvider);
       await ref.read(predictionsControllerProvider.notifier).load();
       if (mounted) {
         ScaffoldMessenger.of(

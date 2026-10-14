@@ -12,6 +12,7 @@ L’application peut conserver :
 - badges et sélections mises en avant ;
 - liens avec les effectifs et les feuilles de match ;
 - abonnements Web Push et journaux techniques de livraison ;
+- historique des notifications reçues (titre, texte, écran ouvert, date d’envoi et de lecture), conservé 90 jours ;
 - bulletins Homme du match, isolés des lectures client et administrateur ordinaires ;
 - indisponibilités déclarées, avec leur période et leur raison en texte libre.
 
@@ -40,6 +41,8 @@ Lors d’un remplacement ou d’une suppression, le nettoyage des anciens objets
 ## Notifications
 
 La désinscription retire l’abonnement du navigateur concerné. La suppression d’un compte doit également supprimer ou rendre inexploitables les abonnements qui lui sont rattachés selon les contraintes courantes.
+
+L’historique des notifications garde, pour chaque joueur, le texte de chaque notification envoyée par le club, même si aucun téléphone ne l’a affichée. Il est conservé 90 jours : au-delà, une ligne n’est plus jamais rendue et elle est supprimée au fil des envois suivants. Le joueur peut supprimer une ligne lui-même ; la suppression vaut pour tous ses appareils. La suppression du compte efface tout son historique (cascade sur le profil). Les notifications d’essai n’y sont jamais rangées.
 
 Les journaux de livraison ne doivent jamais contenir les secrets Web Push du navigateur. Ils ne doivent conserver que les informations techniques nécessaires au diagnostic et à l’idempotence prévues par le schéma actuel.
 

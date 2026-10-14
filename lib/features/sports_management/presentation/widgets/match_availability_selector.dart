@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability.dart';
@@ -178,7 +179,9 @@ class _MatchAvailabilitySelectorState
           );
       ref
         ..invalidate(myMatchAvailabilityProvider(widget.matchId))
-        ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
+        ..invalidate(matchAvailabilityBoardProvider(widget.matchId))
+        // Répondre marque comme lue la notification qui le demandait.
+        ..invalidate(unreadNotificationCountProvider);
       await ref.read(myMatchAvailabilityProvider(widget.matchId).future);
 
       if (!mounted) return;
@@ -188,7 +191,9 @@ class _MatchAvailabilitySelectorState
     } on MatchAvailabilityWriteConfirmedButRefreshFailed {
       ref
         ..invalidate(myMatchAvailabilityProvider(widget.matchId))
-        ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
+        ..invalidate(matchAvailabilityBoardProvider(widget.matchId))
+        // Répondre marque comme lue la notification qui le demandait.
+        ..invalidate(unreadNotificationCountProvider);
       if (!mounted) return;
       final label = _statusLabel(status);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -202,7 +207,9 @@ class _MatchAvailabilitySelectorState
     } on MatchAvailabilityWriteOutcomeUnknown {
       ref
         ..invalidate(myMatchAvailabilityProvider(widget.matchId))
-        ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
+        ..invalidate(matchAvailabilityBoardProvider(widget.matchId))
+        // Répondre marque comme lue la notification qui le demandait.
+        ..invalidate(unreadNotificationCountProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

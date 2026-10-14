@@ -134,6 +134,9 @@ select is(
 
 reset role;
 
+-- Depuis l'historique des notifications, la relance est créée même sans
+-- abonnement (pour arriver dans l'historique du joueur), une seule fois par
+-- délai de dix minutes.
 select is(
   (
     select count(*)
@@ -141,9 +144,15 @@ select is(
     where match_id = current_setting('test.push_targeting_match')::uuid
       and kind = 'availability_manual'
   ),
-  0::bigint,
-  'aucun événement manuel fantôme ni cooldown ne sont créés sans abonnement'
+  1::bigint,
+  'sans abonnement, une seule relance est créée pour l’historique, délai compris'
 );
+
+-- Dix minutes plus tard.
+update public.sport_availability_notification_events
+set requested_at = requested_at - interval '11 minutes'
+where match_id = current_setting('test.push_targeting_match')::uuid
+  and kind = 'availability_manual';
 
 insert into public.push_subscriptions (
   profile_id,
@@ -160,6 +169,13 @@ values (
   'pgTAP'
 );
 
+-- Le message admin vers un profil sans appareil part désormais (pour son
+-- historique) : il lui faut le jeton d'envoi, comme en production.
+select vault.create_secret('test-token', 'push_internal_token')
+where not exists (
+  select 1 from vault.secrets secret where secret.name = 'push_internal_token'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"8f300000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -174,16 +190,16 @@ select is(
     'Relance après activation push'
   ) #>> '{created_count}',
   '1',
-  'le même joueur devient immédiatement relançable après activation push'
+  'le même joueur redevient relançable après activation push, délai écoulé'
 );
 
-select throws_ok(
-  $$select public.admin_send_custom_push(
+select is(
+  public.admin_send_custom_push(
     'Test ciblage',
     'Ce profil n’a aucun appareil abonné.',
     array['8f300000-0000-0000-0000-000000000003'::uuid]
-  )$$,
-  '22023',
+  ),
+  0,
   'un profil sans abonnement push n’est pas compté comme destinataire custom'
 );
 
@@ -196,8 +212,8 @@ select is(
     where match_id = current_setting('test.push_targeting_match')::uuid
       and kind = 'availability_manual'
   ),
-  1::bigint,
-  'une seule relance manuelle réelle est historisée après activation push'
+  2::bigint,
+  'une seule relance manuelle réelle s’ajoute après activation push'
 );
 
 select * from finish();

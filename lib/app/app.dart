@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:as_grinta/app/router/app_router.dart';
 import 'package:as_grinta/core/network/connectivity_service.dart';
+import 'package:as_grinta/core/push/push_client.dart';
 import 'package:as_grinta/core/sync/shared_data_sync.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
 import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/notifications/presentation/push_device_banner.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +35,21 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       authControllerProvider.select((state) => state.isAuthenticated),
       (previous, next) {
         if (next && previous != true) unawaited(_resyncPushSubscription());
+      },
+      fireImmediately: true,
+    );
+    // Notification reçue pendant que l'application est ouverte : la cloche
+    // se met à jour sans attendre le prochain retour au premier plan.
+    pushListenReceived(() {
+      if (mounted) ref.invalidate(unreadNotificationCountProvider);
+    });
+    // L'icône de l'application porte le même chiffre que la cloche (zéro
+    // hors connexion : la pastille du compte précédent disparaît).
+    ref.listenManual<AsyncValue<int>>(
+      unreadNotificationCountProvider,
+      (_, next) {
+        final count = next.valueOrNull;
+        if (count != null) unawaited(pushSetAppBadge(count));
       },
       fireImmediately: true,
     );

@@ -183,33 +183,10 @@
     }
   };
 
-  // Pastille de l'icône : ouvrir l'application la remet à zéro. Le compteur
-  // tenu par le service worker (web/sw.js) repart de zéro avec elle.
-  function clearAppIconBadge() {
-    if (document.visibilityState !== 'visible') return;
-    try {
-      if (typeof navigator.clearAppBadge === 'function') {
-        navigator.clearAppBadge().catch(function () {});
-      }
-    } catch (_) {}
-    try {
-      if (!window.caches || !('serviceWorker' in navigator)) return;
-      navigator.serviceWorker.getRegistration().then(function (registration) {
-        if (!registration) return;
-        var key = new URL('asg-badge-count', registration.scope).href;
-        return caches.open('as-grinta-badge').then(function (cache) {
-          return cache.delete(key);
-        });
-      }).catch(function () {});
-    } catch (_) {}
-  }
-
-  clearAppIconBadge();
   checkDeploymentVersion();
   setInterval(checkDeploymentVersion, deploymentCheckIntervalMs);
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
-      clearAppIconBadge();
       checkDeploymentVersion();
       return;
     }
@@ -338,7 +315,37 @@
         await cache.put(key, new Response(JSON.stringify(left)));
       } catch (_) {}
     },
+    // Pastille de l'icône : le nombre de notifications non lues, le même que
+    // la cloche de l'application. Zéro l'efface. Le service worker la met
+    // aussi à jour à chaque notification reçue (web/sw.js).
+    setBadge: async function (count) {
+      try {
+        if (Number.isInteger(count) && count > 0) {
+          if (typeof navigator.setAppBadge === 'function') {
+            await navigator.setAppBadge(count);
+          }
+        } else if (typeof navigator.clearAppBadge === 'function') {
+          await navigator.clearAppBadge();
+        }
+      } catch (_) {}
+    },
+    // Notification reçue pendant que l'application est ouverte : la cloche
+    // se met à jour sans attendre. Un seul abonné, remplacé à chaque appel.
+    onReceived: function (callback) {
+      pushReceivedCallback = typeof callback === 'function' ? callback : null;
+    },
   };
+
+  var pushReceivedCallback = null;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (event) {
+      if (!event.data || event.data.type !== 'ASG_PUSH_RECEIVED') return;
+      if (!pushReceivedCallback) return;
+      try {
+        pushReceivedCallback();
+      } catch (_) {}
+    });
+  }
 
   // Sélecteur dédié aux images de badges. On écoute uniquement l'événement
   // "change" du vrai input HTML : sur Safari/iOS en PWA, le chemin générique

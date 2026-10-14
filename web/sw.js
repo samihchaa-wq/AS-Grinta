@@ -29,13 +29,6 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Pastille de l'icône : nombre de notifications reçues depuis la dernière
-// ouverture de l'application. Le compteur vit dans un cache dédié, que les
-// mises à jour ne vident pas, et l'application le remet à zéro quand elle
-// passe au premier plan (web/app_shell.js).
-const BADGE_CACHE = 'as-grinta-badge';
-const BADGE_KEY = 'asg-badge-count';
-
 // Accusés d'affichage : Apple et Google confirment avoir pris en charge une
 // notification, jamais qu'elle s'est affichée. Le service worker note donc
 // chaque notification que le téléphone a accepté de montrer ; l'application
@@ -54,7 +47,6 @@ self.addEventListener('activate', (event) => {
         names
           .filter((name) =>
             name !== CACHE_NAME &&
-            name !== BADGE_CACHE &&
             name !== RECEIPTS_CACHE)
           .map((name) => caches.delete(name)),
       );
@@ -140,35 +132,42 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Deux notifications arrivées ensemble ne doivent pas lire le même ancien
-// chiffre : les mises à jour du compteur passent l'une après l'autre.
-let badgeUpdates = Promise.resolve();
+// Pastille de l'icône : le serveur glisse dans chaque notification le nombre
+// de notifications non lues du joueur (app_badge), le même que la cloche de
+// l'application. Sans ce nombre (essai, ancien serveur), la pastille ne
+// bouge pas. L'application la remet aussi à jour elle-même à chaque
+// changement (web/app_shell.js, asGrintaPush.setBadge). L'ancien compteur
+// propre à l'appareil (cache as-grinta-badge) est effacé à l'activation.
+function applyServerBadge(value) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    return Promise.resolve();
+  }
+  const nav = self.navigator;
+  if (!nav) return Promise.resolve();
+  let update = null;
+  if (value === 0) {
+    if (typeof nav.clearAppBadge === 'function') update = nav.clearAppBadge();
+  } else if (typeof nav.setAppBadge === 'function') {
+    update = nav.setAppBadge(value);
+  }
+  return Promise.resolve(update).catch(() => {});
+}
 
-function bumpAppBadge() {
-  badgeUpdates = badgeUpdates.then(async () => {
-    // Application ouverte et visible : la notification est vue tout de suite,
-    // elle ne compte pas.
+// Application ouverte : elle met à jour sa cloche tout de suite.
+async function notifyOpenWindows(data) {
+  try {
     const windows = await self.clients.matchAll({
       type: 'window',
       includeUncontrolled: true,
     });
-    if (windows.some((client) => client.visibilityState === 'visible')) return;
-
-    const cache = await caches.open(BADGE_CACHE);
-    const key = new URL(BADGE_KEY, self.registration.scope).href;
-    const stored = await cache.match(key);
-    const previous = stored ? parseInt(await stored.text(), 10) : 0;
-    const count = (Number.isFinite(previous) && previous > 0 ? previous : 0) + 1;
-    await cache.put(key, new Response(String(count)));
-
-    // Chiffre affiché par iPhone (application installée). Android et les
-    // navigateurs sans pastille l'ignorent.
-    const nav = self.navigator;
-    if (nav && typeof nav.setAppBadge === 'function') {
-      await nav.setAppBadge(count);
+    for (const client of windows) {
+      if (typeof client.postMessage === 'function') {
+        client.postMessage({ type: 'ASG_PUSH_RECEIVED', tag: data.tag || null });
+      }
     }
-  }).catch(() => {});
-  return badgeUpdates;
+  } catch (_) {
+    // Une fenêtre fermée entre-temps ne doit pas faire échouer la réception.
+  }
 }
 
 // Même file d'attente que la pastille : deux notifications arrivées ensemble
@@ -214,7 +213,8 @@ self.addEventListener('push', (event) => {
         tag: data.tag || undefined,
         data: { url: data.url || '.' },
       }).then(() => recordDisplayReceipt(data.tag)),
-      bumpAppBadge(),
+      applyServerBadge(data.app_badge),
+      notifyOpenWindows(data),
     ]),
   );
 });
