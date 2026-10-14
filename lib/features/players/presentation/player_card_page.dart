@@ -14,6 +14,7 @@ import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/players/data/player_card_repository.dart';
+import 'package:as_grinta/features/players/data/player_stat_ranking.dart';
 import 'package:as_grinta/features/players/presentation/hero_photo_margin.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
@@ -94,7 +95,7 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
 
     final info = details.requireValue;
     final careerRow = allTime.asData?.value.players
-        .where((p) => _isSamePlayer(p, key))
+        .where((p) => isPlayerOfCard(p, key))
         .firstOrNull;
     if (info.firstName == null && careerRow == null && allTime.hasValue) {
       return const _Message(
@@ -152,13 +153,14 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
             error: (error, _) => _InlineNote(humanizeError(error)),
             data: (data) {
               final row =
-                  data.players.where((p) => _isSamePlayer(p, key)).firstOrNull;
+                  data.players.where((p) => isPlayerOfCard(p, key)).firstOrNull;
               if (row == null) {
                 return const _InlineNote('Aucun match sur cette période.');
               }
               return Column(
                 children: [
                   _StatGrid(
+                    playerKey: key,
                     player: row,
                     data: data,
                     teamMatches: teamMatches,
@@ -191,21 +193,7 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
   }
 }
 
-/// Le compte identifie le joueur quand on le connaît ; sinon, comme la vue
-/// des statistiques, le nom complet et le poste.
-bool _isSamePlayer(PlayerStatistics player, PlayerCardKey key) {
-  if (key.profileId != null && player.profileId == key.profileId) return true;
-  if (key.fullName.isEmpty) return false;
-  return _normalize(player.fullName) == _normalize(key.fullName) &&
-      player.isGoalkeeper == key.isGoalkeeper;
-}
-
-String _normalize(String value) =>
-    value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
-
 String _ordinal(int rank) => rank == 1 ? '1er' : '${rank}e';
-
-String _decimal(double value) => value.toStringAsFixed(2).replaceAll('.', ',');
 
 final _nameWordStart = RegExp(r"(^|[ '’-])(\p{L})", unicode: true);
 
@@ -421,11 +409,13 @@ int averageRankingMinMatches(
 
 class _StatGrid extends StatelessWidget {
   const _StatGrid({
+    required this.playerKey,
     required this.player,
     required this.data,
     required this.teamMatches,
   });
 
+  final PlayerCardKey playerKey;
   final PlayerStatistics player;
   final StatisticsPeriodData data;
   final int? teamMatches;
@@ -433,18 +423,7 @@ class _StatGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final players = data.players;
-    final matches = player.matchesPlayed ?? 0;
     final tracksAssists = statisticsShowsAssistsColumn(data);
-
-    double winRate(PlayerStatistics p) {
-      final played = p.matchesPlayed ?? 0;
-      return played == 0 ? 0 : (p.wins ?? 0) * 100 / played;
-    }
-
-    double goalsPerMatch(PlayerStatistics p) {
-      final played = p.matchesPlayed ?? 0;
-      return played == 0 ? 0 : p.goals / played;
-    }
 
     final minMatches = averageRankingMinMatches(
       data.period,
@@ -456,70 +435,57 @@ class _StatGrid extends StatelessWidget {
     // Une valeur nulle ne classe personne : sans cela, une saison où personne
     // n'a encore fait de passe décisive sacrerait tout l'effectif « 1er ».
     int? rankOf(
-      num Function(PlayerStatistics) of, {
+      PlayerStat stat, {
       bool Function(PlayerStatistics)? among,
     }) {
-      final mine = of(player);
+      final mine = stat.valueOf(player);
       if (mine <= 0) return null;
       return 1 +
           players
-              .where((p) => (among == null || among(p)) && of(p) > mine)
+              .where(
+                (p) => (among == null || among(p)) && stat.valueOf(p) > mine,
+              )
               .length;
     }
 
-    _StatTile tile(
-      String label,
-      String value,
-      num Function(PlayerStatistics) of, {
-      bool ranked = true,
-    }) {
-      final rank = ranked ? rankOf(of) : null;
-      return _StatTile(value: value, label: label, rank: rank);
-    }
+    // Toucher une case ouvre le classement complet de la statistique.
+    VoidCallback openRanking(PlayerStat stat) => () => context.push(
+          playerStatRankingLocation(
+            key: playerKey,
+            stat: stat,
+            period: data.period,
+          ),
+        );
+
+    _StatTile tile(PlayerStat stat) => _StatTile(
+          value: stat.display(player),
+          label: stat.label,
+          rank: rankOf(stat),
+          onTap: openRanking(stat),
+        );
 
     // Moyennes : seuls les joueurs assez présents sont classés, entre eux.
-    _StatTile averageTile(
-      String label,
-      String value,
-      num Function(PlayerStatistics) of,
-    ) {
-      if (!eligible(player)) {
-        return _StatTile(
-          value: value,
-          label: label,
-          rank: null,
-          rankNote: 'N/A',
+    _StatTile averageTile(PlayerStat stat) => _StatTile(
+          value: stat.display(player),
+          label: stat.label,
+          rank: eligible(player) ? rankOf(stat, among: eligible) : null,
+          rankNote: eligible(player) ? null : 'N/A',
+          onTap: openRanking(stat),
         );
-      }
-      return _StatTile(
-        value: value,
-        label: label,
-        rank: rankOf(of, among: eligible),
-      );
-    }
 
     final tiles = <_StatTile>[
-      tile('Matchs', '$matches', (p) => p.matchesPlayed ?? 0),
-      averageTile(
-        'Victoires',
-        matches == 0 ? '–' : '${winRate(player).round()} %',
-        winRate,
-      ),
-      tile('Buts', '${player.goals}', (p) => p.goals),
+      tile(PlayerStat.matches),
+      averageTile(PlayerStat.winRate),
+      tile(PlayerStat.goals),
       // Les passes ne sont suivies que depuis leur mise en service : sur une
-      // période antérieure, un zéro ferait croire à un manque de saisie.
-      tile(
-        'Passes D.',
-        tracksAssists ? '${player.assists}' : '–',
-        (p) => p.assists,
-        ranked: tracksAssists,
-      ),
-      tile('Homme du match', '${player.hdm ?? 0}', (p) => p.hdm ?? 0),
-      averageTile(
-        'Buts / match',
-        matches == 0 ? '–' : _decimal(goalsPerMatch(player)),
-        goalsPerMatch,
-      ),
+      // période antérieure, un zéro ferait croire à un manque de saisie, et
+      // il n'y a pas de classement à ouvrir.
+      if (tracksAssists)
+        tile(PlayerStat.assists)
+      else
+        _StatTile(value: '–', label: PlayerStat.assists.label, rank: null),
+      tile(PlayerStat.manOfTheMatch),
+      averageTile(PlayerStat.goalsPerMatch),
     ];
 
     const gap = 8.0;
@@ -551,10 +517,14 @@ class _StatTile extends StatelessWidget {
     required this.label,
     required this.rank,
     this.rankNote,
+    this.onTap,
   });
 
   final String value;
   final String label;
+
+  /// Ouvre le classement complet ; `null` quand il n'y en a pas.
+  final VoidCallback? onTap;
 
   /// Remplace la ligne de rang quand le joueur n'est pas classé (« N/A » :
   /// pas assez de matchs joués).
@@ -567,47 +537,66 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rank = this.rank;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 96),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-      decoration: _cardDecoration,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontFamily: _display,
-                fontSize: 28,
-                height: 1.1,
-                color: _medalColor(rank),
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label.toUpperCase(),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              letterSpacing: .5,
-              color: AppTheme.textFaint,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            rankNote ?? (rank == null ? '–' : '${_ordinal(rank)} du club'),
-            textAlign: TextAlign.center,
+    final column = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
             style: TextStyle(
-              fontSize: 11,
-              color: rank != null && rank <= 3
-                  ? _medalColor(rank)
-                  : AppTheme.primaryBright,
+              fontFamily: _display,
+              fontSize: 28,
+              height: 1.1,
+              color: _medalColor(rank),
             ),
           ),
-        ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label.toUpperCase(),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 11,
+            letterSpacing: .5,
+            color: AppTheme.textFaint,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          rankNote ?? (rank == null ? '–' : '${_ordinal(rank)} du club'),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11,
+            color: rank != null && rank <= 3
+                ? _medalColor(rank)
+                : AppTheme.primaryBright,
+          ),
+        ),
+      ],
+    );
+    Widget box({Decoration? decoration}) => Container(
+          constraints: const BoxConstraints(minHeight: 96),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+          decoration: decoration,
+          child: column,
+        );
+
+    final onTap = this.onTap;
+    if (onTap == null) return box(decoration: _cardDecoration);
+    // Le fond de la case est porté par le Material : l'effet du toucher se
+    // dessine dessus, au lieu de disparaître sous un fond opaque.
+    return Semantics(
+      button: true,
+      hint: 'Voir le classement',
+      child: Material(
+        color: _cardDecoration.color,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          side: _cardDecoration.border!.top,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(onTap: onTap, child: box()),
       ),
     );
   }
