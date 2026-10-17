@@ -134,7 +134,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _loading = false;
       });
       if (selected != null) {
-        ref.invalidate(upcomingMatchFixtureProvider(selected));
+        ref
+          ..invalidate(matchCoreProvider(selected))
+          ..invalidate(upcomingMatchFixtureProvider(selected));
         await _loadWorkspace(selected);
       }
     } catch (error) {
@@ -376,7 +378,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         : ref.watch(matchInfoProvider(_selectedMatchId!)).valueOrNull;
     final isInternal = matchInfo?.isInternal ?? false;
     final kickoffAt = matchInfo?.kickoffAt ?? _convocations?.kickoffAt;
-    final tooFarAway = isMatchTooFarAway(kickoffAt);
+    final tooFarAway = isMatchTooFarAway(
+      kickoffAt,
+      availabilityOpensAt: matchInfo?.availabilityOpensAt,
+    );
     final liveTooEarly = isMatchLiveTooEarly(kickoffAt);
     final predictionClosed = isMatchPredictionClosed(kickoffAt);
     final step = tooFarAway

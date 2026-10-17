@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
+import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -64,6 +65,7 @@ class MatchPredictionItem {
     required this.actualScoreGrinta,
     required this.actualScoreOpponent,
     this.predictionsClosedAt,
+    this.availabilityOpensAt,
   });
 
   final String matchId;
@@ -81,7 +83,14 @@ class MatchPredictionItem {
   final int? actualScoreOpponent;
   final DateTime? predictionsClosedAt;
 
-  DateTime get opensAt => matchFeaturesOpenAt(kickoffAt);
+  /// Ouverture des disponibilités du match, quand le joueur peut la lire : le
+  /// prono s'ouvre en même temps si c'est avant J-6.
+  final DateTime? availabilityOpensAt;
+
+  DateTime get opensAt => matchEffectiveFeaturesOpenAt(
+        kickoffAt,
+        availabilityOpensAt: availabilityOpensAt,
+      );
   DateTime get closesAt => matchPredictionClosesAt(kickoffAt);
 
   bool isClosedAt(DateTime now) =>
@@ -140,7 +149,8 @@ class PredictionsRepository {
       odds_victoire_as_grinta,
       odds_nul,
       odds_victoire_adverse
-    )
+    ),
+    match_sport_workflows(availability_opens_at)
   ''';
 
   static const _predictionSelect =
@@ -252,6 +262,9 @@ class PredictionsRepository {
       predictionsClosedAt: DateTime.tryParse(
         '${matchMap['predictions_closed_at'] ?? ''}',
       )?.toLocal(),
+      availabilityOpensAt: embeddedAvailabilityOpensAt(
+        matchMap['match_sport_workflows'],
+      ),
     );
   }
 

@@ -63,6 +63,39 @@ void main() {
     test('sans coup d’envoi connu, la fiche reste complète', () {
       expect(isMatchTooFarAway(null, now: opensAt), isFalse);
     });
+
+    test('des disponibilités ouvertes avant J-6 ouvrent la fiche', () {
+      // Disponibilités ouvertes « maintenant », dix jours avant le match.
+      final early = DateTime.utc(2026, 7, 28, 8, 32);
+      expect(
+        matchEffectiveFeaturesOpenAt(kickoff, availabilityOpensAt: early),
+        early,
+      );
+      expect(
+        isMatchTooFarAway(
+          kickoff,
+          availabilityOpensAt: early,
+          now: early.subtract(const Duration(minutes: 1)),
+        ),
+        isTrue,
+      );
+      expect(
+        isMatchTooFarAway(kickoff, availabilityOpensAt: early, now: early),
+        isFalse,
+      );
+    });
+
+    test('des disponibilités ouvertes après J-6 ne retardent pas la fiche', () {
+      final late = DateTime.utc(2026, 8, 5, 10);
+      expect(
+        matchEffectiveFeaturesOpenAt(kickoff, availabilityOpensAt: late),
+        opensAt,
+      );
+      expect(
+        isMatchTooFarAway(kickoff, availabilityOpensAt: late, now: opensAt),
+        isFalse,
+      );
+    });
   });
 
   group('frontière Prono / Live', () {

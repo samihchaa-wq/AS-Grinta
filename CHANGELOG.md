@@ -6,6 +6,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche du match : quand un admin ouvre les disponibilités avant J-6
+  (« maintenant » ou à une date choisie), les onglets Effectif, Compo et
+  Prono apparaissent dès cette ouverture, au lieu d'attendre J-6 à 12 h. Le
+  prono est accepté à partir du même moment. Une ouverture plus tardive que
+  J-6 ne retarde rien ;
 - notifications : une cloche à côté du trophée ouvre l'écran Notifications,
   en deux onglets. « Historique » liste toutes les notifications envoyées
   par le club au joueur, la plus récente en premier, même celles que son

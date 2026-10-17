@@ -30,7 +30,15 @@ class MatchLineupPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final queryParameters = GoRouterState.of(context).uri.queryParameters;
-    if (queryParameters['infoOnly'] == 'true') {
+    final matchInfo = ref.watch(matchInfoProvider(matchId)).valueOrNull;
+    final tooFarAway = isMatchTooFarAway(
+      matchInfo?.kickoffAt,
+      availabilityOpensAt: matchInfo?.availabilityOpensAt,
+    );
+    // Le calendrier demande la fiche réduite avant J-6 : des disponibilités
+    // déjà ouvertes donnent droit à la fiche complète.
+    if (queryParameters['infoOnly'] == 'true' &&
+        (matchInfo == null || tooFarAway)) {
       return _MatchInfoOnlyPage(matchId: matchId);
     }
 
@@ -50,12 +58,10 @@ class MatchLineupPage extends ConsumerWidget {
       _ => 'effectif',
     };
     final isAdmin = ref.watch(isAdminViewProvider);
-    final matchInfo = ref.watch(matchInfoProvider(matchId)).valueOrNull;
     final isInternal = matchInfo?.isInternal ?? false;
 
     // Une seule frontière temporelle : à T-15 le prono disparaît au moment
     // exact où le Live devient disponible.
-    final tooFarAway = isMatchTooFarAway(matchInfo?.kickoffAt);
     final liveTooEarly = isMatchLiveTooEarly(matchInfo?.kickoffAt);
     final predictionClosed = isMatchPredictionClosed(matchInfo?.kickoffAt);
 
@@ -72,7 +78,8 @@ class MatchLineupPage extends ConsumerWidget {
       );
     }
 
-    // Avant J-6 à midi, seul l'onglet Info est disponible. À partir de T-15,
+    // Avant J-6 à midi, seul l'onglet Info est disponible, sauf si les
+    // disponibilités ont été ouvertes plus tôt. À partir de T-15,
     // une URL directe vers Prono est redirigée vers Live plutôt que d'afficher
     // un module désormais fermé.
     final resolvedSection = tooFarAway
@@ -98,6 +105,7 @@ class MatchLineupPage extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref
+              ..invalidate(matchCoreProvider(matchId))
               ..invalidate(upcomingMatchFixtureProvider(matchId))
               ..invalidate(publishedMatchCompositionProvider(matchId))
               ..invalidate(matchAvailabilityBoardProvider(matchId))
@@ -203,6 +211,7 @@ class _MatchInfoOnlyPage extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref
+              ..invalidate(matchCoreProvider(matchId))
               ..invalidate(upcomingMatchFixtureProvider(matchId))
               ..invalidate(matchInfoProvider(matchId));
             await Future.wait([

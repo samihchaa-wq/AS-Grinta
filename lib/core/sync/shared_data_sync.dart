@@ -252,6 +252,9 @@ class SharedDataRefreshCoordinator {
   void _invalidateSharedCaches() {
     _invalidateSportsCaches();
     _ref
+      // Date, adresse et ouverture des disponibilités du match : l'admin les
+      // change en modifiant le match, jamais par un signal purement sportif.
+      ..invalidate(matchCoreProvider)
       ..invalidate(matchInfoProvider)
       ..invalidate(inlineMatchPredictionProvider)
       ..invalidate(statisticsPeriodProvider)
