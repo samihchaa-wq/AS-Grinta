@@ -349,7 +349,9 @@ class MatchesController extends StateNotifier<MatchesState> {
         allSeasons: state.includesAllSeasons,
         forceRefresh: true,
       );
-      _ref.invalidate(matchInfoProvider(id));
+      _ref
+        ..invalidate(matchCoreProvider(id))
+        ..invalidate(matchInfoProvider(id));
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
     }

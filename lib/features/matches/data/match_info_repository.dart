@@ -20,11 +20,16 @@ class MatchCore {
     this.matchType = 'championnat',
     this.championshipRound,
     this.jerseyNote,
+    this.availabilityOpensAt,
   });
 
   final DateTime? kickoffAt;
   final String? address;
   final DateTime? meetingAt;
+
+  /// Ouverture des disponibilités choisie pour ce match. Absente quand le
+  /// joueur ne peut pas lire le suivi sportif : la fiche s'ouvre alors à J-6.
+  final DateTime? availabilityOpensAt;
   final String? opponentId;
   final String status;
   final String location;
@@ -93,11 +98,15 @@ class MatchInfo {
     this.matchType = 'championnat',
     this.championshipRound,
     this.jerseyNote,
+    this.availabilityOpensAt,
   });
 
   final DateTime? kickoffAt;
   final String? address;
   final DateTime? meetingAt;
+
+  /// Voir [MatchCore.availabilityOpensAt].
+  final DateTime? availabilityOpensAt;
   final List<MatchEncounter> lastEncounters;
   final String matchType;
   final int? championshipRound;
@@ -143,6 +152,7 @@ MatchInfo _infoFromCore(
     matchType: core.matchType,
     championshipRound: core.championshipRound,
     jerseyNote: core.jerseyNote,
+    availabilityOpensAt: core.availabilityOpensAt,
   );
 }
 
@@ -155,7 +165,8 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
       .from('matches')
       .select(
         'kickoff_at, match_date, match_time, meeting_at, status, location, address, '
-        'opponent_id, match_type, championship_round, jersey_note, opponents(name, address)',
+        'opponent_id, match_type, championship_round, jersey_note, opponents(name, address), '
+        'match_sport_workflows(availability_opens_at)',
       )
       .eq('id', matchId)
       .maybeSingle();
@@ -187,8 +198,21 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
     matchType: (match['match_type'] ?? 'championnat').toString(),
     championshipRound: (match['championship_round'] as num?)?.toInt(),
     jerseyNote: _clean(match['jersey_note']),
+    availabilityOpensAt: embeddedAvailabilityOpensAt(
+      match['match_sport_workflows'],
+    ),
   );
 });
+
+/// Lit `match_sport_workflows(availability_opens_at)` embarqué dans une ligne
+/// de `matches`. Le suivi sportif est réservé aux joueurs du match et aux
+/// admins : pour les autres, il arrive vide et la règle J-6 s'applique.
+DateTime? embeddedAvailabilityOpensAt(Object? workflow) {
+  final row =
+      workflow is List ? (workflow.isEmpty ? null : workflow.first) : workflow;
+  if (row is! Map) return null;
+  return DateTime.tryParse('${row['availability_opens_at'] ?? ''}')?.toLocal();
+}
 
 /// Version légère utilisée par la structure de la fiche (onglets, temporalité,
 /// admin). Elle n'effectue aucune lecture de l'historique des confrontations.
@@ -239,5 +263,6 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
     matchType: baseInfo.matchType,
     championshipRound: baseInfo.championshipRound,
     jerseyNote: baseInfo.jerseyNote,
+    availabilityOpensAt: baseInfo.availabilityOpensAt,
   );
 });

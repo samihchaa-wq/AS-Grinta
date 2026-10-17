@@ -25,7 +25,8 @@ La documentation explique le contrat attendu mais ne remplace jamais une vérifi
 - Le module `sports_management` est en production.
 - Le module **Live** est actuel et utilisé : sessions, chronomètre, événements, remplacements et validation du récapitulatif font partie du produit.
 - Un match entre dans « Prochain match » à **J-6 à 12 h**, heure Europe/Paris.
-- Les disponibilités ouvrent à **J-6 à 12 h**.
+- Les disponibilités ouvrent à **J-6 à 12 h** par défaut ; un admin peut les ouvrir plus tôt ou plus tard.
+- Effectif, Composition et Prono s'ouvrent à **J-6 à 12 h**, ou dès l'ouverture des disponibilités si elle est plus tôt.
 - Les pronostics ferment à **T-15**.
 - Le Live ouvre à **T-15**.
 - Effectif et Composition sont gelés à **T-15**.

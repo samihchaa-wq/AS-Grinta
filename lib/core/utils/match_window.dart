@@ -41,6 +41,21 @@ DateTime matchFeaturesOpenAt(DateTime kickoffAt) {
   return localOpenDate.subtract(_parisOffsetForLocalNoon(localOpenDate));
 }
 
+/// Instant réel d'ouverture de l'effectif, de la composition et du prono :
+/// J-6 à 12 h, ou plus tôt quand un admin a ouvert les disponibilités avant
+/// (« maintenant » ou une date choisie). Une ouverture des disponibilités
+/// plus tardive ne retarde jamais la fiche. Même règle côté Supabase
+/// (private.match_predictions_open_at).
+DateTime matchEffectiveFeaturesOpenAt(
+  DateTime kickoffAt, {
+  DateTime? availabilityOpensAt,
+}) {
+  final standard = matchFeaturesOpenAt(kickoffAt);
+  if (availabilityOpensAt == null) return standard;
+  final early = availabilityOpensAt.toUtc();
+  return early.isBefore(standard) ? early : standard;
+}
+
 /// Instant commun d'ouverture du Live et de fermeture des pronostics.
 DateTime matchLiveOpensAt(DateTime kickoffAt) =>
     kickoffAt.toUtc().subtract(kMatchLiveOpensBeforeKickoff);
@@ -62,10 +77,19 @@ DateTime matchExpectedValidationAt(
 ///
 /// Un coup d'envoi inconnu est considéré comme ouvert : mieux vaut afficher
 /// la fiche complète que de la vider sur une donnée manquante.
-bool isMatchTooFarAway(DateTime? kickoffAt, {DateTime? now}) {
+bool isMatchTooFarAway(
+  DateTime? kickoffAt, {
+  DateTime? availabilityOpensAt,
+  DateTime? now,
+}) {
   if (kickoffAt == null) return false;
   final reference = (now ?? DateTime.now()).toUtc();
-  return reference.isBefore(matchFeaturesOpenAt(kickoffAt));
+  return reference.isBefore(
+    matchEffectiveFeaturesOpenAt(
+      kickoffAt,
+      availabilityOpensAt: availabilityOpensAt,
+    ),
+  );
 }
 
 /// `true` tant que le module Live doit rester masqué et inaccessible.

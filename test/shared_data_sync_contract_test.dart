@@ -23,6 +23,7 @@ void main() {
       );
 
       for (final provider in <String>[
+        'matchCoreProvider',
         'matchDetailsProvider',
         'matchInfoProvider',
         'inlineMatchPredictionProvider',
