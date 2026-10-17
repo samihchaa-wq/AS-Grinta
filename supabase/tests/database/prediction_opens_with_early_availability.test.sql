@@ -177,12 +177,18 @@ select lives_ok(
 reset role;
 
 -- Le garde-fou de la table applique la même règle aux écritures du serveur.
+-- La création d'un match prépare déjà une ligne vide par joueur : l'écriture
+-- la complète si elle existe.
 select set_config('request.jwt.claims', '', true);
 
 select lives_ok(
   format(
     'insert into public.match_predictions(match_id, profile_id, predicted_score_as_grinta, predicted_score_adverse, is_filled)
-     values (%L::uuid, %L::uuid, 1, 1, true)',
+     values (%L::uuid, %L::uuid, 1, 1, true)
+     on conflict (match_id, profile_id) do update
+     set predicted_score_as_grinta = excluded.predicted_score_as_grinta,
+         predicted_score_adverse = excluded.predicted_score_adverse,
+         is_filled = true',
     current_setting('test.early_now'),
     '9e100000-0000-0000-0000-000000000001'
   ),
@@ -192,7 +198,11 @@ select lives_ok(
 select throws_ok(
   format(
     'insert into public.match_predictions(match_id, profile_id, predicted_score_as_grinta, predicted_score_adverse, is_filled)
-     values (%L::uuid, %L::uuid, 1, 1, true)',
+     values (%L::uuid, %L::uuid, 1, 1, true)
+     on conflict (match_id, profile_id) do update
+     set predicted_score_as_grinta = excluded.predicted_score_as_grinta,
+         predicted_score_adverse = excluded.predicted_score_adverse,
+         is_filled = true',
     current_setting('test.far_automatic'),
     '9e100000-0000-0000-0000-000000000001'
   ),
