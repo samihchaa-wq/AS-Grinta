@@ -189,6 +189,7 @@ for x in list(range(0, 80)) + list(range(601, W)):
 top_field = yy < rt[None, :]
 
 model = np.where(top_field[..., None], top_model(xx, yy), lower_model(xx, yy))
+base_model = model.copy()  # fond seul (sans croix ni ombre du ballon), sert à la vectorisation
 # champ du haut : fond lisse + nouvelle croix (devant le fond, derrière la banderole)
 ca = cross[..., 3:4] * top_field[..., None]
 model = model * (1 - ca) + cross[..., :3] * 255 * ca
@@ -213,3 +214,11 @@ X0, Y0c, L = params.get("crop", [20, 20, 640])
 crop = full.crop((X0, Y0c, X0 + L, Y0c + L))
 crop.save(out / "icon_native.png")
 print("ok", crop.size)
+
+# --- 7. données pour la vectorisation
+np.savez_compressed(
+    out / "vector_data.npz",
+    comp=comp, base=base_model.astype(np.float32), keep=keep, top_field=top_field,
+    col_color=col_color, slope=slope, ref_y=ref_y, ribbon_side=ribbon_side,
+    rt=rt, ribbon_bottom=ribbon_bottom, ball=np.array([BX, BY, BR]), coef=np.array(coef),
+)

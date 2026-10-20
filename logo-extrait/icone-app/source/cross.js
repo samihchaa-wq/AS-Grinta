@@ -4,10 +4,10 @@
 const { crossPath2D, f } = require('./geo');
 const [cx, cy, D, rot, W, H] = process.argv.slice(2).map(Number);
 const { band, pommels } = crossPath2D(D);
-const thick = 0.085 * D; // épaissit le trait pour retrouver la croix plus massive du blason
+const thick = 0.025 * D; // léger épaississement du trait de référence
 const shape = (fill) =>
   `<path d="${band}" fill="${fill}" fill-rule="evenodd" stroke="${fill}" stroke-width="${f(thick)}" stroke-linejoin="round"/>` +
-  pommels.map((p) => `<circle cx="${p.cx}" cy="${p.cy}" r="${f(D * 0.1)}" fill="${fill}"/>`).join('');
+  pommels.map((p) => `<circle cx="${p.cx}" cy="${p.cy}" r="${f(D * 0.088)}" fill="${fill}"/>`).join('');
 process.stdout.write(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
 <defs>
   <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="${f(D * 0.012)}"/></filter>
