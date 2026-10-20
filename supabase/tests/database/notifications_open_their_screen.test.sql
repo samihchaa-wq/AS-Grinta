@@ -120,6 +120,25 @@ select is(
   'matches?match=f0e40000-0000-0000-0000-000000000001',
   'un match reporté ouvre le calendrier sur le match'
 );
+-- Un match annulé n'a plus de fiche à ouvrir : sa carte du calendrier
+-- annonce l'annulation.
+select is(
+  public.internal_push_dispatch(
+    'match_cancelled',
+    'f0e40000-0000-0000-0000-000000000001'
+  ) #>> '{payload,url}',
+  'matches?match=f0e40000-0000-0000-0000-000000000001',
+  'un match annulé ouvre le calendrier sur le match'
+);
+-- L'horaire modifié, lui, garde l'onglet Info de la fiche.
+select is(
+  public.internal_push_dispatch(
+    'match_rescheduled_time',
+    'f0e40000-0000-0000-0000-000000000001'
+  ) #>> '{payload,url}',
+  'matches/f0e40000-0000-0000-0000-000000000001/lineup?section=info',
+  'un horaire modifié garde l''onglet Info du match'
+);
 select is(
   public.internal_sport_push_dispatch(
     'convocation_promoted',

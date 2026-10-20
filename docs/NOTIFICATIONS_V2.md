@@ -250,10 +250,11 @@ Toucher une notification ouvre l’écran qu’elle annonce :
 | Notification | Écran |
 | --- | --- |
 | Ouverture des disponibilités, relance, match reporté | Calendrier, sur la carte du match (choix Présent / Absent) |
+| Match annulé | Calendrier, sur la carte du match, qui annonce l’annulation |
 | Convocation | Fiche du match, Effectif |
 | Composition en ligne | Fiche du match, Composition |
 | Rappel pronostic | Fiche du match, Prono |
-| Match annulé, horaire modifié | Fiche du match, Info |
+| Horaire modifié | Fiche du match, Info |
 | Coup d’envoi, buts, fin de match (Live) | Fiche du match, Live |
 | Ouverture du vote Homme du match | Vote Homme du match |
 | Résultat Homme du match | Fiche du match terminé |
@@ -264,6 +265,9 @@ Toucher une notification ouvre l’écran qu’elle annonce :
 
 La fiche du match reste soumise à ses règles habituelles : un onglet qui n’est
 plus disponible (Prono après T-15, par exemple) bascule sur l’onglet prévu.
+Un match annulé n’a plus de fiche : une notification antérieure à
+l’annulation, ou un ancien « Match annulé » qui ouvrait l’onglet Info, mène au
+calendrier, sur la carte du match.
 L’adresse est contrôlée par `send-push` : seule une route de l’application est
 acceptée, toute autre valeur ouvre l’accueil.
 

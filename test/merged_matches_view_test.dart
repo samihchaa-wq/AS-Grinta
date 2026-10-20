@@ -199,6 +199,35 @@ void main() {
 
     await disposeCalendar(tester);
   });
+
+  testWidgets(
+      'ouvert depuis la notification « Match annulé », le calendrier montre '
+      'le match annulé au milieu des autres', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 12,
+      upcomingMatches: 12,
+      focusMatchId: 'cancelled',
+      extraMatches: [
+        _match(
+          'cancelled',
+          DateTime.now().add(const Duration(days: 7 * 6 + 3)),
+          finished: false,
+          cancelled: true,
+        ),
+      ],
+    );
+
+    final header = headerRect(tester, 'À venir');
+    final card = tester.getRect(find.text('Clubcancelled'));
+    expect(card.top, greaterThanOrEqualTo(header.bottom));
+    expect(card.top - header.bottom, lessThan(120));
+    expect(find.text('Match annulé'), findsOneWidget);
+    // Les autres matchs restent affichés autour de lui.
+    expect(find.text('Clubnext7'), findsOneWidget);
+
+    await disposeCalendar(tester);
+  });
 }
 
 MatchModel _match(

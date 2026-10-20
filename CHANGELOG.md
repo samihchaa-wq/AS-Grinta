@@ -12,6 +12,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   sa couleur, et ouvrait une fiche de match à venir. La mention, déjà présente
   avant la date sous la forme « Annulé », passe aussi dans un rouge plus
   lisible ;
+- notifications : « Match annulé » ouvre le calendrier, sur la carte du match
+  annulé, au milieu des autres matchs, au lieu de l'onglet Info de sa fiche.
+  Les « Match annulé » déjà reçus, et toute notification sur ce match envoyée
+  avant l'annulation, mènent aussi au calendrier ;
 - fiche du match : quand un admin ouvre les disponibilités avant J-6
   (« maintenant » ou à une date choisie), les onglets Effectif, Compo et
   Prono apparaissent dès cette ouverture, au lieu d'attendre J-6 à 12 h. Le
