@@ -1,170 +1,282 @@
-// Génère l'icône d'application AS La Grinta en SVG (plein cadre, sans bordure de blason).
-// Usage : node make_svg.js <mode: any|maskable> <fontPath> > out.svg
-const mode = process.argv[2] || 'any';
-const fontPath = process.argv[3];
+// Icône d'application AS La Grinta, plein cadre (les bords de l'icône remplacent
+// la bordure du blason).
+// Usage : node make_svg.js [--maskable] [--cross=right|center] [--font800=path] [--embed]
+// Police : Montserrat ExtraBold (Google Fonts, licence OFL), passée avec --font800=chemin.ttf ;
+// --embed l'intègre dans le SVG pour qu'il s'affiche partout sans installation.
+const fs = require('fs');
+const args = Object.fromEntries(
+  process.argv.slice(2).map((a) => {
+    const [k, v] = a.replace(/^--/, '').split('=');
+    return [k, v === undefined ? true : v];
+  })
+);
 const S = 1024;
+const maskable = !!args.maskable;
+const crossPos = args.cross || 'right';
 
-const BLUE_TOP = '#0733B4';
-const BLUE_BOTTOM = '#04227F';
-const GOLD = '#D9B24A';
-const GOLD_DARK = '#A9832B';
-const NAVY = '#030D31';
-const WHITE = '#F4F6F9';
+const C = {
+  blueHi: '#1E4FE0',
+  blue: '#0A36BE',
+  blueLo: '#041C78',
+  gold: '#DCAE45',
+  goldHi: '#F2CF72',
+  goldLo: '#A97A22',
+  goldDeep: '#7E5B16',
+  navy: '#0A1540',
+  navyDeep: '#030A26',
+  white: '#FFFFFF',
+};
 
-// En mode « maskable », Android peut rogner l'icône en cercle : on ramène
-// le contenu dans la zone sûre (cercle de 80 %) tout en gardant le fond plein cadre.
-const k = mode === 'maskable' ? 0.80 : 1;
-const tr = (inner) =>
-  `<g transform="translate(${S / 2} ${S / 2}) scale(${k}) translate(${-S / 2} ${-S / 2})">${inner}</g>`;
+// ---------------------------------------------------------------- outils
+const f = (n) => Number(n.toFixed(2));
+const norm = (p) => {
+  const l = Math.hypot(...p);
+  return p.map((c) => c / l);
+};
+const lerp = (p, q, t) => p.map((c, i) => c + (q[i] - c) * t);
+const dot = (a, b) => a.reduce((s, c, i) => s + c * b[i], 0);
+const mix = (h1, h2, t) => {
+  const a = h1.match(/\w\w/g).map((x) => parseInt(x, 16));
+  const b = h2.match(/\w\w/g).map((x) => parseInt(x, 16));
+  return '#' + a.map((c, i) => Math.round(c + (b[i] - c) * Math.min(1, Math.max(0, t))).toString(16).padStart(2, '0')).join('');
+};
 
-// ---------- Croix occitane (évidée, pommetée, 2 pommettes par branche comme l'original)
-function occitanCross(cx, cy, size, rot) {
-  const L = size / 2; // longueur d'une branche
-  const tipX = 0.46 * L;
-  const tipY = -0.98 * L;
-  const arm = `M0 0 Q ${-0.06 * L} ${-0.55 * L} ${-tipX} ${tipY} Q 0 ${-0.74 * L} ${tipX} ${tipY} Q ${0.06 * L} ${-0.55 * L} 0 0 Z`;
-  const sw = 0.12 * size;
-  const r = 0.075 * size;
-  let arms = '';
-  for (let i = 0; i < 4; i++) {
-    arms += `<g transform="rotate(${i * 90})">
-      <path d="${arm}" fill="none" stroke="${GOLD}" stroke-width="${sw}" stroke-linejoin="round"/>
-      <circle cx="${-tipX}" cy="${tipY}" r="${r}" fill="${GOLD}"/>
-      <circle cx="${tipX}" cy="${tipY}" r="${r}" fill="${GOLD}"/>
-    </g>`;
-  }
-  // ombre portée légère, comme le relief de l'original
-  return `<g transform="translate(${cx} ${cy}) rotate(${rot})">
-    <g transform="translate(${size * 0.018} ${size * 0.028})" opacity="0.45" style="filter:brightness(0)">${arms}</g>
-    ${arms}
+// ---------------------------------------------------------------- mise en page
+const L = {
+  cross: crossPos === 'center' ? { x: 512, y: 174, size: 245, rot: 0 } : { x: 772, y: 150, size: 300, rot: 18 },
+  band: { x0: 92, x1: 932, top: 332, h: 150, arch: 30 },
+  tailDrop: 44,
+  tailInset: 44,
+  tailEnd: 14,
+  year: { y: 558 },
+  ball: { x: 512, y: 850, r: 250 },
+};
+
+// Bandes : proportions mesurées sur le blason d'origine (bleu, or, bleu, or large, bleu, or, bleu).
+const stripeWidths = [55, 54, 69, 170, 67, 55, 57];
+const stripes = (() => {
+  const total = stripeWidths.reduce((a, b) => a + b, 0);
+  let x = 0;
+  const out = [];
+  stripeWidths.forEach((w, i) => {
+    const ww = (w / total) * S;
+    if (i % 2 === 1) out.push({ x, w: ww });
+    x += ww;
+  });
+  return out;
+})();
+
+// ---------------------------------------------------------------- croix occitane
+function occitanCross({ x, y, size, rot }) {
+  const R = size / 2;
+  const tipX = 0.54 * R;
+  const tipY = -0.93 * R;
+  const arm = `M ${f(-0.045 * R)} ${f(-0.06 * R)} Q ${f(-0.1 * R)} ${f(-0.55 * R)} ${f(-tipX)} ${f(tipY)} Q 0 ${f(-0.66 * R)} ${f(tipX)} ${f(tipY)} Q ${f(0.1 * R)} ${f(-0.55 * R)} ${f(0.045 * R)} ${f(-0.06 * R)} Z`;
+  const sw = 0.098 * size;
+  const pr = 0.074 * size;
+  const shape = (fill, stroke) => {
+    let g = '';
+    for (let i = 0; i < 4; i++) {
+      g += `<g transform="rotate(${i * 90})"><path d="${arm}" fill="none" stroke="${stroke}" stroke-width="${f(sw)}" stroke-linejoin="round" stroke-linecap="round"/>`;
+      g += `<circle cx="${f(-tipX)}" cy="${f(tipY)}" r="${f(pr)}" fill="${fill}"/><circle cx="${f(tipX)}" cy="${f(tipY)}" r="${f(pr)}" fill="${fill}"/></g>`;
+    }
+    return g;
+  };
+  return `<g transform="translate(${x} ${y}) rotate(${rot})">
+    <g filter="url(#softShadow)" opacity="0.55" transform="translate(${f(size * 0.02)} ${f(size * 0.045)})">${shape(C.navyDeep, C.navyDeep)}</g>
+    <g transform="translate(${f(size * 0.008)} ${f(size * 0.018)})">${shape(C.goldDeep, C.goldDeep)}</g>
+    <g filter="url(#bevel)">${shape('url(#goldGrad)', 'url(#goldGrad)')}</g>
   </g>`;
 }
 
-// ---------- Ballon (icosaèdre tronqué projeté sur la sphère : vrai motif de ballon)
-function ball(cx, cy, R, tiltX = -18, tiltY = 12, spin = 8) {
+// ---------------------------------------------------------------- ballon
+// Icosaèdre tronqué projeté sur la sphère, éclairé face par face.
+function ball({ x, y, r: R }) {
   const phi = (1 + Math.sqrt(5)) / 2;
   const V = [];
-  for (const a of [-1, 1]) for (const b of [-phi, phi]) {
-    V.push([0, a, b], [a, b, 0], [b, 0, a]);
-  }
-  const norm = (p) => { const l = Math.hypot(...p); return p.map((c) => c / l); };
-  const lerp = (p, q, t) => p.map((c, i) => c + (q[i] - c) * t);
-  const dist = (p, q) => Math.hypot(...p.map((c, i) => c - q[i]));
-  const edgeLen = 2;
-  const nbrs = V.map((v, i) => V.map((u, j) => j).filter((j) => j !== i && Math.abs(dist(v, V[j]) - edgeLen) < 1e-6));
-  // rotation : un pentagone face à nous, puis légère inclinaison
-  const rot = (p) => {
-    let [x, y, z] = p;
-    // aligner V[0]=(0,-1,-phi) sur l'axe z
-    const v0 = norm(V[2 * 0 + 0]);
-    const ang = Math.atan2(v0[1], -v0[2]);
-    let c = Math.cos(ang), s = Math.sin(ang);
-    [y, z] = [y * c + z * s * -1 * -1, -y * s + z * c];
-    const r = (deg) => (deg * Math.PI) / 180;
-    // inclinaisons
-    c = Math.cos(r(tiltX)); s = Math.sin(r(tiltX)); [y, z] = [y * c - z * s, y * s + z * c];
-    c = Math.cos(r(tiltY)); s = Math.sin(r(tiltY)); [x, z] = [x * c + z * s, -x * s + z * c];
-    c = Math.cos(r(spin)); s = Math.sin(r(spin)); [x, y] = [x * c - y * s, x * s + y * c];
-    return [x, y, z];
+  for (const a of [-1, 1]) for (const b of [-phi, phi]) V.push([0, a, b], [a, b, 0], [b, 0, a]);
+  const near = (p, q) => Math.abs(Math.hypot(...p.map((c, i) => c - q[i])) - 2) < 1e-6;
+  const nbrs = V.map((v, i) => V.map((_, j) => j).filter((j) => j !== i && near(v, V[j])));
+
+  // Orientation : un pentagone presque de face, légèrement incliné.
+  const rad = (d) => (d * Math.PI) / 180;
+  const front = norm(V[0]);
+  const rotate = (p) => {
+    // aligne « front » sur +z
+    let [px, py, pz] = p;
+    const ay = Math.atan2(front[0], front[2]);
+    let c = Math.cos(-ay), s = Math.sin(-ay);
+    [px, pz] = [px * c + pz * s, -px * s + pz * c];
+    const f2 = [front[0] * Math.cos(-ay) + front[2] * Math.sin(-ay), front[1], -front[0] * Math.sin(-ay) + front[2] * Math.cos(-ay)];
+    const ax = Math.atan2(f2[1], f2[2]);
+    c = Math.cos(ax); s = Math.sin(ax);
+    [py, pz] = [py * c - pz * s, py * s + pz * c];
+    for (const [axis, deg] of [['x', -16], ['y', 14], ['z', 10]]) {
+      c = Math.cos(rad(deg)); s = Math.sin(rad(deg));
+      if (axis === 'x') [py, pz] = [py * c - pz * s, py * s + pz * c];
+      if (axis === 'y') [px, pz] = [px * c + pz * s, -px * s + pz * c];
+      if (axis === 'z') [px, py] = [px * c - py * s, px * s + py * c];
+    }
+    return [px, py, pz];
   };
+
   const faces = [];
-  // pentagones
-  V.forEach((v, i) => {
-    const pts = nbrs[i].map((j) => lerp(v, V[j], 1 / 3));
-    faces.push({ pts, dark: true });
-  });
-  // hexagones
-  for (let i = 0; i < 12; i++) for (const j of nbrs[i]) for (const k2 of nbrs[i]) {
-    if (!(i < j && j < k2)) continue;
-    if (!nbrs[j].includes(k2)) continue;
-    const [a, b, c] = [V[i], V[j], V[k2]];
-    faces.push({ pts: [lerp(a, b, 1 / 3), lerp(a, b, 2 / 3), lerp(b, c, 1 / 3), lerp(b, c, 2 / 3), lerp(c, a, 1 / 3), lerp(c, a, 2 / 3)], dark: false });
-  }
-  let out = '';
-  for (const f of faces) {
-    const center = norm(f.pts.reduce((acc, p) => acc.map((c, i) => c + p[i]), [0, 0, 0]));
-    // ordonner les sommets autour du centre
-    const ref = norm(f.pts[0].map((c, i) => c - center[i] * 0));
-    const u = norm(f.pts[0].map((c, i) => c - center[i] * f.pts[0].reduce((s2, cc, ii) => s2 + cc * center[ii], 0)));
-    const w = [center[1] * u[2] - center[2] * u[1], center[2] * u[0] - center[0] * u[2], center[0] * u[1] - center[1] * u[0]];
-    f.pts.sort((p, q) => Math.atan2(p.reduce((s2, c, i) => s2 + c * w[i], 0), p.reduce((s2, c, i) => s2 + c * u[i], 0)) - Math.atan2(q.reduce((s2, c, i) => s2 + c * w[i], 0), q.reduce((s2, c, i) => s2 + c * u[i], 0)));
-    const rc = rot(center);
-    
-    // contour échantillonné sur la sphère (arêtes courbes)
+  V.forEach((v, i) => faces.push({ pts: nbrs[i].map((j) => lerp(v, V[j], 1 / 3)), dark: true }));
+  for (let i = 0; i < 12; i++)
+    for (const j of nbrs[i])
+      for (const k of nbrs[i]) {
+        if (!(i < j && j < k) || !nbrs[j].includes(k)) continue;
+        const [a, b, c] = [V[i], V[j], V[k]];
+        faces.push({ pts: [lerp(a, b, 1 / 3), lerp(a, b, 2 / 3), lerp(b, c, 1 / 3), lerp(b, c, 2 / 3), lerp(c, a, 1 / 3), lerp(c, a, 2 / 3)], dark: false });
+      }
+
+  const light = norm([-0.5, 0.62, 0.62]);
+  const paths = [];
+  for (const face of faces) {
+    const cen = norm(face.pts.reduce((acc, p) => acc.map((c, i) => c + p[i]), [0, 0, 0]));
+    const u = norm(face.pts[0].map((c, i) => c - cen[i] * dot(face.pts[0], cen)));
+    const w = [cen[1] * u[2] - cen[2] * u[1], cen[2] * u[0] - cen[0] * u[2], cen[0] * u[1] - cen[1] * u[0]];
+    const ang = (p) => Math.atan2(dot(p, w), dot(p, u));
+    face.pts.sort((p, q) => ang(p) - ang(q));
     const poly = [];
-    const n2 = f.pts.length;
-    for (let e = 0; e < n2; e++) {
-      const p = f.pts[e], q = f.pts[(e + 1) % n2];
-      for (let t = 0; t < 16; t++) poly.push(rot(norm(lerp(p, q, t / 16))));
+    const n = face.pts.length;
+    // panneaux légèrement « gonflés » : sommets un peu rentrés pour arrondir les coutures
+    for (let e = 0; e < n; e++) {
+      const p = face.pts[e], q = face.pts[(e + 1) % n];
+      for (let t = 0; t < 14; t++) poly.push(rotate(norm(lerp(p, q, t / 14))));
     }
     if (Math.max(...poly.map((p) => p[2])) <= 0) continue;
-    for (const p of poly) if (p[2] < 0) { const l = Math.hypot(p[0], p[1]); p[0] /= l; p[1] /= l; p[2] = 0; }
-    const d = poly.map((p, idx) => `${idx ? 'L' : 'M'}${(p[0] * R).toFixed(1)} ${(-p[1] * R).toFixed(1)}`).join(' ') + 'Z';
-    f.d = d; f.z = rc[2];
-    out += '';
-    f.visible = true;
+    for (const p of poly) if (p[2] < 0) {
+      const l = Math.hypot(p[0], p[1]);
+      p[0] /= l; p[1] /= l; p[2] = 0;
+    }
+    const rc = rotate(cen);
+    const lam = Math.max(0, dot(rc, light));
+    const fill = face.dark ? mix('#020822', '#26356E', lam * 0.85) : mix('#B3BDD0', '#FFFFFF', Math.pow(lam, 0.55) * 1.12);
+    const d = poly.map((p, i) => `${i ? 'L' : 'M'}${f(p[0] * R)} ${f(-p[1] * R)}`).join('') + 'Z';
+    paths.push({ z: rc[2], d, fill });
   }
-  const vis = faces.filter((f) => f.visible).sort((a, b) => a.z - b.z);
-  out = vis.map((f) => `<path d="${f.d}" fill="${f.dark ? NAVY : 'none'}" stroke="${NAVY}" stroke-width="${R * 0.022}" stroke-linejoin="round"/>`).join('');
-  return `<g transform="translate(${cx} ${cy})">
-    <circle r="${R * 1.07}" fill="${WHITE}"/>
-    <circle r="${R}" fill="url(#ballShade)"/>
-    <g clip-path="url(#ballClip)">${out}<circle r="${R}" fill="url(#ballShadow)"/><circle r="${R}" fill="url(#ballGloss)"/></g>
-    <circle r="${R}" fill="none" stroke="${NAVY}" stroke-width="${R * 0.05}"/>
+  paths.sort((a, b) => a.z - b.z);
+  const faceSvg = paths
+    .map((p) => `<path d="${p.d}" fill="${p.fill}" stroke="#0B1336" stroke-width="${f(R * 0.02)}" stroke-linejoin="round"/>`)
+    .join('');
+
+  return `<g transform="translate(${x} ${y})">
+    <ellipse cx="0" cy="${f(R * 0.1)}" rx="${f(R * 1.05)}" ry="${f(R * 1.05)}" fill="${C.navyDeep}" opacity="0.55" filter="url(#bigShadow)"/>
+    <circle r="${f(R * 1.045)}" fill="#E9EEF6"/>
+    <g clip-path="url(#ballClip)">
+      <circle r="${R}" fill="#FFFFFF"/>
+      ${faceSvg}
+      <circle r="${R}" fill="url(#ballShade)"/>
+      <ellipse cx="${f(-R * 0.36)}" cy="${f(-R * 0.42)}" rx="${f(R * 0.42)}" ry="${f(R * 0.26)}" transform="rotate(-38 ${f(-R * 0.36)} ${f(-R * 0.42)})" fill="#FFFFFF" opacity="0.32" filter="url(#glow)"/>
+    </g>
+    <circle r="${R}" fill="none" stroke="${C.navyDeep}" stroke-width="${f(R * 0.032)}"/>
   </g>`;
 }
 
-// ---------- Mise en page
-const bandTop = 318;
-const bandH = 150;
-const arch = 26; // courbure de la banderole (bord haut et bas légèrement cintrés)
-const stripeTop = bandTop + bandH - 20;
-
-const stripes = [];
-const n = 7;
-const w = S / n;
-for (let i = 1; i < n; i += 2) {
-  stripes.push(`<rect x="${(i * w).toFixed(1)}" y="${stripeTop}" width="${w.toFixed(1)}" height="${S - stripeTop + 200}" fill="${GOLD}"/>`);
+// ---------------------------------------------------------------- banderole
+function ribbon() {
+  const { x0, x1, top, h, arch } = L.band;
+  const cx = (x0 + x1) / 2;
+  const yAt = (base, x) => {
+    // quadratique : bords à base+arch, milieu à base
+    const t = (x - x0) / (x1 - x0);
+    return base + arch * (1 - 4 * t * (1 - t)) * 1;
+  };
+  const panelTop = `M ${x0} ${top + arch} Q ${cx} ${top - arch} ${x1} ${top + arch}`;
+  const panel = `${panelTop} L ${x1} ${top + h + arch} Q ${cx} ${top + h - arch} ${x0} ${top + h + arch} Z`;
+  const pt = top + arch;
+  const pb = top + h + arch;
+  const dy = L.tailDrop;
+  const ins = L.tailInset;
+  const e = L.tailEnd;
+  const notch = 30;
+  // pans arrière (gauche puis droite), avec queue d'aronde près du bord
+  const tailL = `M ${x0 + ins} ${pt + dy} L ${e} ${pt + dy} L ${e + notch} ${pt + dy + h / 2} L ${e} ${pb + dy} L ${x0 + ins} ${pb + dy} Z`;
+  const tailR = `M ${x1 - ins} ${pt + dy} L ${S - e} ${pt + dy} L ${S - e - notch} ${pt + dy + h / 2} L ${S - e} ${pb + dy} L ${x1 - ins} ${pb + dy} Z`;
+  const foldL = `M ${x0} ${pb} L ${x0 + ins} ${pb} L ${x0 + ins} ${pb + dy} Z`;
+  const foldR = `M ${x1} ${pb} L ${x1 - ins} ${pb} L ${x1 - ins} ${pb + dy} Z`;
+  // ligne de base du texte, parallèle à la courbe de la banderole
+  const base = top + h / 2 + 34;
+  const textArc = `M ${x0 - 60} ${base + arch + 6} Q ${cx} ${base - arch - 6} ${x1 + 60} ${base + arch + 6}`;
+  return `
+    <g filter="url(#bigShadow)" opacity="0.6"><path d="${panel}" fill="${C.navyDeep}" transform="translate(0 16)"/><path d="${tailL}" fill="${C.navyDeep}" transform="translate(0 12)"/><path d="${tailR}" fill="${C.navyDeep}" transform="translate(0 12)"/></g>
+    <path d="${tailL}" fill="url(#tailGrad)"/>
+    <path d="${tailR}" fill="url(#tailGrad)"/>
+    <path d="${foldL}" fill="#5E6C86"/>
+    <path d="${foldR}" fill="#5E6C86"/>
+    <path d="${panel}" fill="url(#bandGrad)"/>
+    <path d="${panel}" fill="none" stroke="${C.navy}" stroke-opacity="0.18" stroke-width="3"/>
+    <path d="${panelTop}" fill="none" stroke="#FFFFFF" stroke-width="4" transform="translate(0 4)" opacity="0.9"/>
+    <path id="textArc" d="${textArc}" fill="none"/>
+    <text font-family="GrintaTitle" font-weight="800" font-size="104" fill="${C.navy}" letter-spacing="1" text-anchor="middle">
+      <textPath href="#textArc" startOffset="50%">AS LA GRINTA</textPath>
+    </text>`;
 }
 
-const bandPath = (top, h) =>
-  `M -200 ${top + arch} Q ${S / 2} ${top - arch} ${S + 200} ${top + arch} L ${S + 200} ${top + h + arch} Q ${S / 2} ${top + h - arch} -200 ${top + h + arch} Z`;
+// ---------------------------------------------------------------- assemblage
+function content() {
+  const stripeTop = L.band.top + 60;
+  const stripeSvg = stripes
+    .map((s) => `<rect x="${f(s.x)}" y="${stripeTop}" width="${f(s.w)}" height="${S - stripeTop + 300}" fill="url(#stripeGrad)"/>
+      <rect x="${f(s.x)}" y="${stripeTop}" width="3" height="${S}" fill="${C.goldLo}" opacity="0.7"/>
+      <rect x="${f(s.x + s.w - 3)}" y="${stripeTop}" width="3" height="${S}" fill="${C.goldLo}" opacity="0.7"/>`)
+    .join('');
+  return `
+    ${stripeSvg}
+    <rect width="${S}" height="${S}" fill="url(#vignette)"/>
+    ${occitanCross(L.cross)}
+    ${ribbon()}
+    <text x="${S / 2}" y="${L.year.y}" font-family="GrintaTitle" font-weight="800" font-size="62" fill="${C.navy}" text-anchor="middle" letter-spacing="3">2020</text>
+    ${ball(L.ball)}`;
+}
 
-const content = `
-  ${stripes.join('\n')}
-  ${occitanCross(730, 168, 240, 18)}
-  <path d="${bandPath(bandTop + 10, bandH)}" fill="${NAVY}" opacity="0.35"/>
-  <path d="${bandPath(bandTop, bandH)}" fill="url(#bandShade)"/>
-  <path id="textArc" d="M -40 ${bandTop + bandH / 2 + 52} Q ${S / 2} ${bandTop + bandH / 2 + 52 - 2 * arch} ${S + 40} ${bandTop + bandH / 2 + 52}" fill="none"/>
-  <text font-family="Grinta" font-weight="700" font-size="128" fill="${NAVY}" letter-spacing="4" text-anchor="middle">
-    <textPath href="#textArc" startOffset="50%">AS LA GRINTA</textPath>
-  </text>
-  <text x="${S / 2}" y="${stripeTop + 92}" font-family="Grinta" font-weight="700" font-size="74" fill="${NAVY}" text-anchor="middle" letter-spacing="3">2020</text>
-  ${ball(S / 2, 838, 268)}
-`;
+const k = maskable ? 0.8 : 1;
+const fontFace = (name, weight, path) => {
+  if (!path) return '';
+  const src = args.embed ? `data:font/ttf;base64,${fs.readFileSync(path).toString('base64')}` : `file://${path}`;
+  return `@font-face{font-family:${name};font-weight:${weight};src:url(${src})}`;
+};
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">
   <defs>
-    <style>@font-face{font-family:Grinta;font-weight:700;src:url('file://${fontPath}')}</style>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${BLUE_TOP}"/><stop offset="1" stop-color="${BLUE_BOTTOM}"/>
+    <style>${fontFace('GrintaTitle', 800, args.font800)}</style>
+    <radialGradient id="bg" cx="0.5" cy="0.18" r="0.95">
+      <stop offset="0" stop-color="${C.blueHi}"/><stop offset="0.55" stop-color="${C.blue}"/><stop offset="1" stop-color="${C.blueLo}"/>
+    </radialGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.42" r="0.78">
+      <stop offset="0.6" stop-color="${C.navyDeep}" stop-opacity="0"/><stop offset="1" stop-color="${C.navyDeep}" stop-opacity="0.38"/>
+    </radialGradient>
+    <linearGradient id="stripeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${C.goldLo}"/><stop offset="0.12" stop-color="${C.gold}"/><stop offset="1" stop-color="#C99B3C"/>
     </linearGradient>
-    <linearGradient id="bandShade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.75" stop-color="${WHITE}"/><stop offset="1" stop-color="#D5DBE5"/>
+    <linearGradient id="goldGrad" x1="-150" y1="-150" x2="150" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="${C.goldHi}"/><stop offset="0.5" stop-color="${C.gold}"/><stop offset="1" stop-color="${C.goldLo}"/>
     </linearGradient>
-    <radialGradient id="ballShade" cx="0.38" cy="0.32" r="0.8">
-      <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.7" stop-color="#ECEFF4"/><stop offset="1" stop-color="#B9C2D2"/>
+    <linearGradient id="bandGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="0.6" stop-color="#F3F5F9"/><stop offset="1" stop-color="#CBD3E0"/>
+    </linearGradient>
+    <linearGradient id="tailGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C3CBD9"/><stop offset="1" stop-color="#8F9BB2"/>
+    </linearGradient>
+    <radialGradient id="ballShade" cx="0.36" cy="0.3" r="0.82">
+      <stop offset="0.45" stop-color="${C.navyDeep}" stop-opacity="0"/><stop offset="0.85" stop-color="${C.navyDeep}" stop-opacity="0.22"/><stop offset="1" stop-color="${C.navyDeep}" stop-opacity="0.5"/>
     </radialGradient>
-    <radialGradient id="ballGloss" cx="0.35" cy="0.25" r="0.7">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="ballShadow" cx="0.4" cy="0.35" r="0.75">
-      <stop offset="0.55" stop-color="${NAVY}" stop-opacity="0"/><stop offset="1" stop-color="${NAVY}" stop-opacity="0.45"/>
-    </radialGradient>
-    <clipPath id="ballClip"><circle r="268"/></clipPath>
+    <clipPath id="ballClip"><circle r="${L.ball.r}"/></clipPath>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="bigShadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="bevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur"/>
+      <feSpecularLighting in="blur" surfaceScale="4" specularConstant="0.8" specularExponent="26" lighting-color="#FFF6D8" result="spec">
+        <feDistantLight azimuth="235" elevation="48"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn"/>
+      <feComposite in="SourceGraphic" in2="specIn" operator="arithmetic" k1="0" k2="1" k3="0.4" k4="0"/>
+    </filter>
   </defs>
   <rect width="${S}" height="${S}" fill="url(#bg)"/>
-  ${tr(content)}
+  <g transform="translate(${S / 2} ${S / 2}) scale(${k}) translate(${-S / 2} ${-S / 2})">${content()}</g>
 </svg>`;
 
 process.stdout.write(svg);
