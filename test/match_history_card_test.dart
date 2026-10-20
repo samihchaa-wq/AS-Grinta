@@ -50,6 +50,32 @@ void main() {
     },
   );
 
+  testWidgets(
+    'un match annulé dont la date est passée ne se clique pas et annonce '
+    'son annulation',
+    (tester) async {
+      await pumpCard(
+        tester,
+        MatchModel(
+          id: 'match',
+          seasonId: 'season',
+          opponentId: 'opponent',
+          kickoffAt: DateTime.utc(2026, 10, 20, 19),
+          isHome: false,
+          plannedDurationMinutes: 90,
+          status: 'annule',
+          grintaScore: null,
+          opponentScore: null,
+          matchType: 'amical',
+          opponentName: 'TOAC Foot Loisir 2',
+        ),
+      );
+
+      expect(find.text('Match annulé'), findsOneWidget);
+      expect(find.byType(InkWell), findsNothing);
+    },
+  );
+
   testWidgets('un match terminé affiche son adresse', (tester) async {
     const address =
         'Complexe Sportif de Toulouse INP - 223 Rue des Arts - 31670 - Labège';

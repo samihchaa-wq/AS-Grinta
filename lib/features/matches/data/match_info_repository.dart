@@ -99,6 +99,7 @@ class MatchInfo {
     this.championshipRound,
     this.jerseyNote,
     this.availabilityOpensAt,
+    this.isCancelled = false,
   });
 
   final DateTime? kickoffAt;
@@ -111,6 +112,9 @@ class MatchInfo {
   final String matchType;
   final int? championshipRound;
   final String? jerseyNote;
+
+  /// Un match annulé n'a plus de fiche : elle renvoie au calendrier.
+  final bool isCancelled;
 
   DateTime? get effectiveMeetingAt => kickoffAt == null
       ? null
@@ -153,6 +157,7 @@ MatchInfo _infoFromCore(
     championshipRound: core.championshipRound,
     jerseyNote: core.jerseyNote,
     availabilityOpensAt: core.availabilityOpensAt,
+    isCancelled: core.isCancelled,
   );
 }
 
@@ -264,5 +269,6 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
     championshipRound: baseInfo.championshipRound,
     jerseyNote: baseInfo.jerseyNote,
     availabilityOpensAt: baseInfo.availabilityOpensAt,
+    isCancelled: baseInfo.isCancelled,
   );
 });

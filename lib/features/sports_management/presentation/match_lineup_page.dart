@@ -31,6 +31,12 @@ class MatchLineupPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final queryParameters = GoRouterState.of(context).uri.queryParameters;
     final matchInfo = ref.watch(matchInfoProvider(matchId)).valueOrNull;
+    // Un match annulé n'a plus de fiche : une notification ou un lien
+    // antérieur à l'annulation mène au calendrier, sur sa carte qui
+    // l'annonce.
+    if (matchInfo?.isCancelled ?? false) {
+      return _CancelledMatchRedirect(matchId: matchId);
+    }
     final tooFarAway = isMatchTooFarAway(
       matchInfo?.kickoffAt,
       availabilityOpensAt: matchInfo?.availabilityOpensAt,
@@ -196,6 +202,30 @@ class MatchLineupPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Ouvre le calendrier sur la carte du match annulé, à la place de sa fiche.
+class _CancelledMatchRedirect extends StatefulWidget {
+  const _CancelledMatchRedirect({required this.matchId});
+
+  final String matchId;
+
+  @override
+  State<_CancelledMatchRedirect> createState() =>
+      _CancelledMatchRedirectState();
+}
+
+class _CancelledMatchRedirectState extends State<_CancelledMatchRedirect> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.go('/matches?match=${widget.matchId}');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold();
 }
 
 class _MatchInfoOnlyPage extends ConsumerWidget {

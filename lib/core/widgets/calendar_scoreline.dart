@@ -403,6 +403,28 @@ class CalendarCenteredTitle extends StatelessWidget {
   }
 }
 
+/// Mention placée sous l'affiche d'un match annulé, avant comme après sa date
+/// prévue : la carte ne s'ouvre plus, c'est elle qui annonce l'annulation.
+class CalendarCancelledLabel extends StatelessWidget {
+  const CalendarCancelledLabel({super.key});
+
+  static const String text = 'Match annulé';
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      // Rouge clair plutôt que la couleur de la bordure : sur le fond rouge
+      // sombre de la carte, la bordure ne serait pas assez contrastée.
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: AppTheme.error,
+            fontWeight: FontWeight.w400,
+          ),
+    );
+  }
+}
+
 /// Place le bouton d'administration (crayon) dans le coin haut droit d'une
 /// carte, à hauteur de la date, sans empiéter sur la largeur de l'affiche :
 /// le score reste ainsi centré même quand le bouton est présent.
