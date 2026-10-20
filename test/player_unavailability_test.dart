@@ -126,6 +126,9 @@ class _UnavailableAvailabilityRepository
     implements MatchAvailabilityRepository {
   @override
   Future<MatchAvailability> fetchMyAvailability(String matchId) async {
+    // Le rappel ne s'affiche qu'avant le coup d'envoi : avec une date fixe,
+    // le test échouait dès qu'elle était passée. Le match reste donc à venir.
+    final kickoffAt = DateTime.now().toUtc().add(const Duration(days: 3));
     return MatchAvailability(
       matchId: 'match-1',
       participantId: 'participant-1',
@@ -135,13 +138,21 @@ class _UnavailableAvailabilityRepository
       privateComment: 'Vacances en famille',
       updatedAt: DateTime.utc(2026, 10, 10, 12),
       availabilityState: 'open',
-      opensAt: DateTime.utc(2026, 10, 14, 10),
-      kickoffAt: DateTime.utc(2026, 10, 20, 18),
+      opensAt: kickoffAt.subtract(const Duration(days: 6)),
+      kickoffAt: kickoffAt,
       canRespond: false,
       compositionState: 'none',
       unavailabilityReason: 'Vacances en famille',
-      unavailabilityStartsOn: DateTime(2026, 10, 12),
-      unavailabilityEndsOn: DateTime(2026, 10, 25),
+      unavailabilityStartsOn: DateTime(
+        kickoffAt.year,
+        kickoffAt.month,
+        kickoffAt.day - 8,
+      ),
+      unavailabilityEndsOn: DateTime(
+        kickoffAt.year,
+        kickoffAt.month,
+        kickoffAt.day + 5,
+      ),
     );
   }
 
