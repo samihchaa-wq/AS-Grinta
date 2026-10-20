@@ -43,7 +43,7 @@ const mix = (h1, h2, t) => {
 
 // ---------------------------------------------------------------- mise en page
 const L = {
-  cross: crossPos === 'center' ? { x: 512, y: 174, size: 245, rot: 0 } : { x: 772, y: 150, size: 300, rot: 18 },
+  cross: crossPos === 'center' ? { x: 512, y: 173, size: 286, rot: 0 } : { x: 772, y: 150, size: 300, rot: 18 },
   band: { x0: 92, x1: 932, top: 332, h: 150, arch: 30 },
   tailDrop: 44,
   tailInset: 44,
@@ -67,25 +67,71 @@ const stripes = (() => {
 })();
 
 // ---------------------------------------------------------------- croix occitane
+// Croix « vidée, cléchée et pommetée de 12 pièces » : chaque branche se termine
+// par trois pointes surmontées d'une boule (deux coins + une pointe au centre).
+// Coordonnées d'une branche (vers le haut), en unités du rayon D (centre → pointe).
 function occitanCross({ x, y, size, rot }) {
-  const R = size / 2;
-  const tipX = 0.54 * R;
-  const tipY = -0.93 * R;
-  const arm = `M ${f(-0.045 * R)} ${f(-0.06 * R)} Q ${f(-0.1 * R)} ${f(-0.55 * R)} ${f(-tipX)} ${f(tipY)} Q 0 ${f(-0.66 * R)} ${f(tipX)} ${f(tipY)} Q ${f(0.1 * R)} ${f(-0.55 * R)} ${f(0.045 * R)} ${f(-0.06 * R)} Z`;
-  const sw = 0.098 * size;
-  const pr = 0.074 * size;
-  const shape = (fill, stroke) => {
-    let g = '';
-    for (let i = 0; i < 4; i++) {
-      g += `<g transform="rotate(${i * 90})"><path d="${arm}" fill="none" stroke="${stroke}" stroke-width="${f(sw)}" stroke-linejoin="round" stroke-linecap="round"/>`;
-      g += `<circle cx="${f(-tipX)}" cy="${f(tipY)}" r="${f(pr)}" fill="${fill}"/><circle cx="${f(tipX)}" cy="${f(tipY)}" r="${f(pr)}" fill="${fill}"/></g>`;
-    }
-    return g;
+  const D = size / 2.25;
+  const P = (pt) => `${f(pt[0] * D)} ${f(pt[1] * D)}`;
+  const turn = (pt, k) => {
+    let [px, py] = pt;
+    for (let i = 0; i < k; i++) [px, py] = [-py, px];
+    return [px, py];
   };
+  const mirror = ([px, py]) => [-px, py];
+  // contour extérieur : demi-branche gauche, du creux entre deux branches jusqu'à la pointe centrale
+  const outerHalf = [
+    ['C', [-0.202, -0.444], [-0.351, -0.639], [-0.408, -0.696]],
+    ['L', [-0.442, -0.741]],
+    ['L', [-0.391, -0.749]],
+    ['C', [-0.2, -0.779], [-0.087, -0.89], [-0.033, -0.958]],
+    ['L', [0, -1.0]],
+  ];
+  const outerJoin = [-0.161, -0.161];
+  // contour intérieur (le vide qui laisse voir le fond)
+  const innerHalf = [
+    ['C', [-0.058, -0.197], [-0.094, -0.49], [-0.252, -0.679]],
+    ['C', [-0.252, -0.679], [-0.12, -0.708], [0, -0.837]],
+  ];
+  const innerJoin = [-0.05, -0.05];
+
+  // parcourt une branche complète : moitié gauche puis moitié droite en miroir (sens inverse)
+  const armSegments = (half, join) => {
+    const pts = [join];
+    const segs = [];
+    let prev = join;
+    for (const [cmd, ...ps] of half) { segs.push([cmd, ...ps]); prev = ps[ps.length - 1]; }
+    // miroir : on refait le chemin à l'envers de l'autre côté
+    const rev = [];
+    let cur = mirror(prev);
+    const points = [join, ...half.map((h) => h[h.length - 1])];
+    for (let i = half.length - 1; i >= 0; i--) {
+      const [cmd, ...ps] = half[i];
+      const startPt = mirror(points[i]);
+      if (cmd === 'C') rev.push(['C', mirror(ps[1]), mirror(ps[0]), startPt]);
+      else rev.push(['L', startPt]);
+    }
+    return [...segs, ...rev];
+  };
+  const loop = (half, join) => {
+    let d = `M ${P(join)} `;
+    for (let k = 0; k < 4; k++) {
+      for (const [cmd, ...ps] of armSegments(half, join)) {
+        d += `${cmd} ${ps.map((pt) => P(turn(pt, k))).join(' ')} `;
+      }
+    }
+    return d + 'Z';
+  };
+  const band = `${loop(outerHalf, outerJoin)} ${loop(innerHalf, innerJoin)}`;
+  const pommels = [];
+  for (let k = 0; k < 4; k++) for (const pt of [[0, -1.041], [-0.47, -0.775], [0.47, -0.775]]) pommels.push(turn(pt, k));
+  const shape = (fill) =>
+    `<path d="${band}" fill="${fill}" fill-rule="evenodd" stroke="${fill}" stroke-width="${f(0.05 * D)}" stroke-linejoin="round"/>` +
+    pommels.map((pt) => `<circle cx="${f(pt[0] * D)}" cy="${f(pt[1] * D)}" r="${f(0.096 * D)}" fill="${fill}"/>`).join('');
   return `<g transform="translate(${x} ${y}) rotate(${rot})">
-    <g filter="url(#softShadow)" opacity="0.55" transform="translate(${f(size * 0.02)} ${f(size * 0.045)})">${shape(C.navyDeep, C.navyDeep)}</g>
-    <g transform="translate(${f(size * 0.008)} ${f(size * 0.018)})">${shape(C.goldDeep, C.goldDeep)}</g>
-    <g filter="url(#bevel)">${shape('url(#goldGrad)', 'url(#goldGrad)')}</g>
+    <g filter="url(#softShadow)" opacity="0.55" transform="translate(${f(size * 0.02)} ${f(size * 0.045)})">${shape(C.navyDeep)}</g>
+    <g transform="translate(${f(size * 0.007)} ${f(size * 0.016)})">${shape(C.goldDeep)}</g>
+    <g filter="url(#bevel)">${shape('url(#goldGrad)')}</g>
   </g>`;
 }
 
