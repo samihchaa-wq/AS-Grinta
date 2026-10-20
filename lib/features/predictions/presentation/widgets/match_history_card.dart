@@ -29,6 +29,18 @@ class MatchHistoryCard extends ConsumerWidget {
     final border = match.isCancelled
         ? CalendarCardPalette.cancelledBorder
         : CalendarCardPalette.matchBorder(match.matchType);
+    final fixture = match.isInternal
+        ? const CalendarCenteredTitle('Match entre nous')
+        // Scores colorés selon le résultat d'AS Grinta : vert victoire,
+        // orange nul, rouge défaite.
+        : CalendarScoreline(
+            homeName: homeName,
+            awayName: awayName,
+            grintaIsHome: match.isHome,
+            homeScore: homeScore,
+            awayScore: awayScore,
+            finished: match.isFinished,
+          );
 
     final content = CalendarCardActionsOverlay(
       actions: actions,
@@ -38,18 +50,17 @@ class MatchHistoryCard extends ConsumerWidget {
           label: match.isInternal ? null : match.calendarTypeLabel,
           endInset: actions != null ? CalendarCardActionsOverlay.dateInset : 0,
         ),
-        body: match.isInternal
-            ? const CalendarCenteredTitle('Match entre nous')
-            // Scores colorés selon le résultat d'AS Grinta : vert victoire,
-            // orange nul, rouge défaite.
-            : CalendarScoreline(
-                homeName: homeName,
-                awayName: awayName,
-                grintaIsHome: match.isHome,
-                homeScore: homeScore,
-                awayScore: awayScore,
-                finished: match.isFinished,
-              ),
+        body: match.isCancelled
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  fixture,
+                  const SizedBox(height: CalendarCardSpacing.line),
+                  const CalendarCancelledLabel(),
+                ],
+              )
+            : fixture,
         footer: address != null && address.isNotEmpty
             ? CalendarAddressLine(address)
             : null,
@@ -64,8 +75,9 @@ class MatchHistoryCard extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       // Une fois terminé, un « Match entre nous » devient une archive purement
-      // informative : pas de navigation ni d'indication visuelle cliquable.
-      child: isFinishedInternal
+      // informative, et un match annulé n'a plus rien à ouvrir : pas de
+      // navigation ni d'indication visuelle cliquable.
+      child: isFinishedInternal || match.isCancelled
           ? content
           : InkWell(
               onTap: () => context.push('/matches/${match.id}'),

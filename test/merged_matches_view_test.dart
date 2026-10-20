@@ -23,6 +23,7 @@ void main() {
     required int pastMatches,
     required int upcomingMatches,
     String? focusMatchId,
+    List<MatchModel> extraMatches = const [],
   }) async {
     await tester.binding.setSurfaceSize(const Size(420, 860));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -32,6 +33,7 @@ void main() {
         _match('past-$i', now.subtract(Duration(days: 7 * i)), finished: true),
       for (var i = 1; i <= upcomingMatches; i++)
         _match('next-$i', now.add(Duration(days: 7 * i)), finished: false),
+      ...extraMatches,
     ];
 
     await tester.pumpWidget(
@@ -163,9 +165,48 @@ void main() {
 
     await disposeCalendar(tester);
   });
+
+  testWidgets(
+      'un match annulé ne s’ouvre pas et annonce son annulation, avant comme '
+      'après sa date', (tester) async {
+    final now = DateTime.now();
+    await pumpCalendar(
+      tester,
+      pastMatches: 2,
+      upcomingMatches: 2,
+      extraMatches: [
+        _match(
+          'cancelled-past',
+          now.subtract(const Duration(days: 2)),
+          finished: false,
+          cancelled: true,
+        ),
+        _match(
+          'cancelled-next',
+          now.add(const Duration(days: 2)),
+          finished: false,
+          cancelled: true,
+        ),
+      ],
+    );
+
+    final labels = find.text('Match annulé', skipOffstage: false);
+    expect(labels, findsNWidgets(2));
+    expect(
+      find.ancestor(of: labels, matching: find.byType(InkWell)),
+      findsNothing,
+    );
+
+    await disposeCalendar(tester);
+  });
 }
 
-MatchModel _match(String id, DateTime kickoffAt, {required bool finished}) =>
+MatchModel _match(
+  String id,
+  DateTime kickoffAt, {
+  required bool finished,
+  bool cancelled = false,
+}) =>
     MatchModel(
       id: id,
       seasonId: 's1',
@@ -173,7 +214,11 @@ MatchModel _match(String id, DateTime kickoffAt, {required bool finished}) =>
       kickoffAt: kickoffAt,
       isHome: true,
       plannedDurationMinutes: 90,
-      status: finished ? 'termine' : 'a_venir',
+      status: cancelled
+          ? 'annule'
+          : finished
+              ? 'termine'
+              : 'a_venir',
       grintaScore: finished ? 2 : null,
       opponentScore: finished ? 1 : null,
       resultValidatedAt:

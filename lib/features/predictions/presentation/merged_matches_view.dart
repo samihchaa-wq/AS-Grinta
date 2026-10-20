@@ -634,14 +634,7 @@ class _UpcomingMatchCard extends ConsumerWidget {
           fixture,
           if (match.isCancelled) ...[
             const SizedBox(height: CalendarCardSpacing.line),
-            Text(
-              'Annulé',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cardBorder,
-                    fontWeight: FontWeight.w400,
-                  ),
-            ),
+            const CalendarCancelledLabel(),
           ],
           if (availabilityIsOpen)
             MatchAvailabilitySelector(

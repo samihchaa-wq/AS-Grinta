@@ -6,6 +6,12 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- calendrier, vue Défilé : un match annulé ne s'ouvre plus, même une fois sa
+  date passée, et sa carte affiche « Match annulé ». Avant, dès l'heure du
+  match passée, il rejoignait les matchs terminés sans plus rien indiquer que
+  sa couleur, et ouvrait une fiche de match à venir. La mention, déjà présente
+  avant la date sous la forme « Annulé », passe aussi dans un rouge plus
+  lisible ;
 - fiche du match : quand un admin ouvre les disponibilités avant J-6
   (« maintenant » ou à une date choisie), les onglets Effectif, Compo et
   Prono apparaissent dès cette ouverture, au lieu d'attendre J-6 à 12 h. Le
