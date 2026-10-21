@@ -6,6 +6,15 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- icône de l'application : le blason sans sa bordure remplit tout le bouton
+  (fond bleu et bandes or jusqu'aux bords, banderole, « 2020 », ballon). La
+  croix occitane est redessinée fidèlement ; sur les téléphones Android qui
+  découpent l'icône en rond, elle est plus petite et rapprochée du centre
+  pour rester entière. L'icône est redessinée proprement, donc plus nette
+  qu'avant. Sur iPhone, une application déjà ajoutée à l'écran d'accueil
+  garde l'ancienne icône tant qu'elle n'est pas retirée puis rajoutée ; sur
+  Android, la nouvelle icône peut mettre un peu de temps à apparaître. L'icône
+  de l'onglet du navigateur ne change pas ;
 - calendrier, vue Défilé : un match annulé ne s'ouvre plus, même une fois sa
   date passée, et sa carte affiche « Match annulé ». Avant, dès l'heure du
   match passée, il rejoignait les matchs terminés sans plus rien indiquer que
