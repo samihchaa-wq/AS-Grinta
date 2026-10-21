@@ -47,6 +47,7 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
       ref.invalidate(statisticsPeriodProvider(period));
     }
     ref.invalidate(playerCardDetailsProvider(key));
+    ref.invalidate(playerSeasonStatsProvider(key));
     ref.invalidate(playerCardBadgesProvider);
     await ref.read(playerCardDetailsProvider(key).future);
   }
@@ -167,6 +168,12 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
                   ),
                   const SizedBox(height: 8),
                   _RecordCard(player: row, recent: info.recentMatches),
+                  // Une seule saison n'a pas d'évolution à montrer.
+                  if (_period == StatisticsPeriod.allTime)
+                    _EvolutionCard(
+                      playerKey: key,
+                      isGoalkeeper: isGoalkeeper,
+                    ),
                 ],
               );
             },
@@ -673,6 +680,319 @@ class _RecordCard extends StatelessWidget {
               _Legend(value: draws, label: 'Nuls'),
               _Legend(value: losses, label: 'Défaites', color: AppTheme.error),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Les statistiques suivies saison par saison. Les passes décisives n'en
+/// font pas partie : elles ne sont comptées que depuis la saison 2026-2027.
+const _evolutionStats = [
+  (stat: PlayerStat.matches, label: 'Matchs'),
+  (stat: PlayerStat.winRate, label: '% Victoires'),
+  (stat: PlayerStat.goals, label: 'Buts'),
+  (stat: PlayerStat.manOfTheMatch, label: 'HDM'),
+  (stat: PlayerStat.goalsPerMatch, label: 'Buts / match'),
+];
+
+/// Valeur d'une saison ; une moyenne sans match joué n'en a pas.
+num? _seasonValue(PlayerStat stat, PlayerSeasonStats season) {
+  final played = season.matchesPlayed;
+  return switch (stat) {
+    PlayerStat.matches => played,
+    PlayerStat.winRate => played == 0 ? null : season.wins * 100 / played,
+    PlayerStat.goals => season.goals,
+    PlayerStat.manOfTheMatch => season.hdm,
+    PlayerStat.goalsPerMatch => played == 0 ? null : season.goals / played,
+    PlayerStat.assists => null,
+  };
+}
+
+/// Évolution des statistiques de carrière, une barre par saison.
+///
+/// N'apparaît qu'à partir de deux saisons ; reste absente si le détail par
+/// saison ne peut pas être lu, plutôt que d'afficher une erreur sous des
+/// chiffres justes.
+class _EvolutionCard extends ConsumerStatefulWidget {
+  const _EvolutionCard({required this.playerKey, required this.isGoalkeeper});
+
+  final PlayerCardKey playerKey;
+  final bool isGoalkeeper;
+
+  @override
+  ConsumerState<_EvolutionCard> createState() => _EvolutionCardState();
+}
+
+class _EvolutionCardState extends ConsumerState<_EvolutionCard> {
+  // Un gardien marque peu : ses matchs parlent mieux de lui.
+  late PlayerStat _stat =
+      widget.isGoalkeeper ? PlayerStat.matches : PlayerStat.goals;
+
+  @override
+  Widget build(BuildContext context) {
+    final seasons = ref.watch(playerSeasonStatsProvider(widget.playerKey));
+    return seasons.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (list) {
+        if (list.length < 2) return const SizedBox.shrink();
+        final last = list.last;
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: _cardDecoration,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _SectionTitle('Évolution'),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final option in _evolutionStats)
+                      _StatChoice(
+                        label: option.label,
+                        selected: option.stat == _stat,
+                        onTap: () => setState(() => _stat = option.stat),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _SeasonBars(seasons: list, stat: _stat),
+                if (last.isCurrent) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Saison ${last.seasonName} en cours.',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textFaint,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _StatChoice extends StatelessWidget {
+  const _StatChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = StadiumBorder(
+      side: BorderSide(
+        color: selected
+            ? AppTheme.accent.withValues(alpha: .55)
+            : AppTheme.outline.withValues(alpha: .5),
+      ),
+    );
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        // Même bleu que l'onglet de période choisi.
+        color: selected ? const Color(0xFF1E3A66) : Colors.transparent,
+        shape: shape,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: selected ? AppTheme.accent : AppTheme.textFaint,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hauteur réservée aux barres et à leur valeur.
+const _barAreaHeight = 130.0;
+
+/// Largeur minimale d'une saison : en dessous, le graphique défile, la
+/// saison la plus récente d'abord visible.
+const _minSeasonSlot = 36.0;
+
+/// Matchs joués pour qu'une moyenne de saison compte comme la meilleure.
+const _seasonAverageMinMatches = 5;
+
+class _SeasonBars extends StatelessWidget {
+  const _SeasonBars({required this.seasons, required this.stat});
+
+  final List<PlayerSeasonStats> seasons;
+  final PlayerStat stat;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = [for (final s in seasons) _seasonValue(stat, s)];
+    var maxValue = 0.0;
+    for (final value in values) {
+      if (value != null && value > maxValue) maxValue = value.toDouble();
+    }
+    // La meilleure saison passe en or. Pour une moyenne, il lui faut autant
+    // de matchs que pour être classé sur une saison (voir
+    // averageRankingMinMatches) : deux matchs gagnés ne font pas une saison
+    // à 100 %.
+    int? best;
+    for (var i = 0; i < seasons.length; i++) {
+      final value = values[i];
+      if (value == null || value <= 0) continue;
+      if (stat.isAverage &&
+          seasons[i].matchesPlayed < _seasonAverageMinMatches) {
+        continue;
+      }
+      if (best == null || value > values[best]!) best = i;
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fits = seasons.length * _minSeasonSlot <= constraints.maxWidth;
+        final slot =
+            fits ? constraints.maxWidth / seasons.length : _minSeasonSlot;
+        final row = Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (var i = 0; i < seasons.length; i++)
+              SizedBox(
+                width: slot,
+                child: _SeasonBar(
+                  season: seasons[i],
+                  value: values[i],
+                  label: values[i] == null ? '–' : stat.format(values[i]!),
+                  statLabel: stat.label,
+                  share: values[i] == null || maxValue == 0
+                      ? 0
+                      : values[i]! / maxValue,
+                  isBest: i == best,
+                ),
+              ),
+          ],
+        );
+        if (fits) return row;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          reverse: true,
+          child: row,
+        );
+      },
+    );
+  }
+}
+
+class _SeasonBar extends StatelessWidget {
+  const _SeasonBar({
+    required this.season,
+    required this.value,
+    required this.label,
+    required this.statLabel,
+    required this.share,
+    required this.isBest,
+  });
+
+  final PlayerSeasonStats season;
+  final num? value;
+  final String label;
+  final String statLabel;
+
+  /// Part de la plus haute valeur affichée, entre 0 et 1.
+  final double share;
+  final bool isBest;
+
+  /// « 2023-2024 » devient « 23-24 ».
+  String get _shortSeason {
+    final name = season.seasonName;
+    return name.length == 9 && name[4] == '-'
+        ? '${name.substring(2, 4)}-${name.substring(7)}'
+        : name;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const valueHeight = 22.0;
+    final value = this.value;
+    // Une petite valeur garde une barre visible ; zéro n'en a pas.
+    final barHeight = value == null || value <= 0
+        ? 0.0
+        : (share * (_barAreaHeight - valueHeight)).clamp(3.0, double.infinity);
+    final color = isBest ? _gold : AppTheme.primaryBright;
+
+    return Semantics(
+      label: '${season.seasonName}${season.isCurrent ? ' (en cours)' : ''} : '
+          '$label, $statLabel',
+      excludeSemantics: true,
+      child: Column(
+        children: [
+          SizedBox(
+            height: _barAreaHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SizedBox(
+                  height: valueHeight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: _display,
+                        fontSize: 13,
+                        color: isBest ? _gold : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  height: barHeight,
+                  width: 18,
+                  decoration: BoxDecoration(
+                    // La saison en cours, encore incomplète, s'efface un peu.
+                    color:
+                        season.isCurrent ? color.withValues(alpha: .45) : color,
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(5)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            height: 1,
+            color: AppTheme.outline.withValues(alpha: .6),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _shortSeason,
+            maxLines: 1,
+            style: TextStyle(
+              fontSize: 10.5,
+              color: season.isCurrent
+                  ? AppTheme.textSecondary
+                  : AppTheme.textFaint,
+            ),
           ),
         ],
       ),

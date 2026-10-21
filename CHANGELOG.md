@@ -6,6 +6,19 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche joueur, onglet Carrière : une carte « Évolution » sous le Bilan
+  montre une barre par saison pour la statistique choisie (Matchs,
+  % Victoires, Buts, HDM, Buts / match ; les buts d'abord, les matchs pour
+  un gardien). La meilleure saison est en or ; pour une moyenne, il lui faut
+  au moins cinq matchs, comme pour être classé sur une saison. La saison en
+  cours, plus pâle, est signalée. Une saison manquée entre deux autres
+  apparaît vide. Les passes décisives n'y figurent pas : elles ne sont
+  comptées que depuis cette saison. Les saisons archivées sont recalculées
+  match par match ; pour cinq joueurs, il manque à l'archive un homme du
+  match (et, pour deux d'entre eux, un ou deux buts), si bien que leurs
+  barres totalisent un peu moins que leurs chiffres de carrière. La carte
+  n'apparaît qu'à partir de deux saisons, et seulement une fois la mise à
+  jour de la base de données déployée ;
 - icône de l'application : le blason sans sa bordure remplit tout le bouton
   (fond bleu et bandes or jusqu'aux bords, banderole, « 2020 », ballon). La
   croix occitane est redessinée fidèlement ; sur les téléphones Android qui
