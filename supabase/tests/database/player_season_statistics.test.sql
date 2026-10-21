@@ -452,6 +452,72 @@ select throws_ok(
 
 reset role;
 
+-- Un admin retape le nom avec d'autres majuscules dans un effectif : la vue
+-- regroupe les effectifs sur le nom exact et en fait une autre ligne
+-- Carrière. La fiche suit la sienne, sans additionner l'autre.
+insert into public.season_players(
+  id, season_id, player_id, first_name, last_name,
+  is_goalkeeper, is_active, position
+)
+values (
+  'f4000000-0000-0000-0000-000000000002',
+  'f3000000-0000-0000-0000-000000000001',
+  'f1000000-0000-0000-0000-000000000001',
+  'evolution',
+  'testeur',
+  false,
+  true,
+  2
+);
+
+insert into public.match_attendance(match_id, season_player_id)
+values (
+  'f7000000-0000-0000-0000-000000000001',
+  'f4000000-0000-0000-0000-000000000002'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"f2000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select is(
+  (
+    select count(*)::integer
+    from public.v_statistics_players
+    where period_key = 'all_time'
+      and lower(player_name) = 'evolution testeur'
+      and not is_goalkeeper
+  ),
+  2,
+  'la vue fait deux lignes Carrière pour deux saisies du nom'
+);
+
+select is(
+  pg_temp.season_totals('Evolution Testeur', false, null),
+  (
+    select concat_ws(
+      '/', v.matches_played, v.wins, v.draws, v.losses, v.goals, v.hdm
+    )
+    from public.v_statistics_players v
+    where v.period_key = 'all_time'
+      and lower(v.player_name) = 'evolution testeur'
+      and not v.is_goalkeeper
+    order by v.matches_played desc, v.goals desc
+    limit 1
+  ),
+  'la fiche suit sa ligne, sans l’effectif saisi avec d’autres majuscules'
+);
+
+reset role;
+
+delete from public.match_attendance
+where season_player_id = 'f4000000-0000-0000-0000-000000000002';
+delete from public.season_players
+where id = 'f4000000-0000-0000-0000-000000000002';
+
 -- Rattacher un compte à sa fiche d'archive fusionne deux identités : les
 -- matchs sans score suivent l'identité gardée.
 insert into public.players(id, display_name)
@@ -506,6 +572,32 @@ select throws_ok(
   )$$,
   '23514',
   'deux identités élues le même jour sans score demandent une résolution manuelle'
+);
+
+-- Un compte déjà rattaché à une fiche d'archive ne peut pas en recevoir une
+-- seconde : leurs archives match par match se mêleraient sans retour.
+insert into public.players(id, display_name)
+values
+  ('f1000000-0000-0000-0000-000000000008', 'Fusion Ligne Une'),
+  ('f1000000-0000-0000-0000-000000000009', 'Fusion Ligne Deux');
+
+insert into public.historical_player_statistics(
+  id, scope, season_name, display_rank, player_name, is_goalkeeper,
+  matches_played, wins, draws, losses, goals, hdm, clean_sheets, player_id
+)
+values
+  (987654329003, 'all_time', null, 997, 'Fusion Ligne Une', false,
+   0, 0, 0, 0, 0, 0, 0, 'f1000000-0000-0000-0000-000000000008'),
+  (987654329004, 'all_time', null, 996, 'Fusion Ligne Deux', false,
+   0, 0, 0, 0, 0, 0, 0, 'f1000000-0000-0000-0000-000000000009');
+
+select throws_ok(
+  $$select private.merge_player_identities(
+    'f1000000-0000-0000-0000-000000000009',
+    'f1000000-0000-0000-0000-000000000008'
+  )$$,
+  '23514',
+  'deux identités portant chacune une carrière importée ne fusionnent pas'
 );
 
 select * from finish();

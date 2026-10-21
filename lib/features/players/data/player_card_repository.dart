@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -377,9 +378,15 @@ final playerCardDetailsProvider =
   (ref, key) => ref.watch(playerCardRepositoryProvider).fetch(key),
 );
 
+/// Le détail par saison suit la ligne Carrière : il se recharge chaque fois
+/// qu'elle se recharge (match validé, retour dans l'application, tirer pour
+/// rafraîchir), pour que la somme des saisons retombe toujours dessus.
 final playerSeasonStatsProvider =
     FutureProvider.autoDispose.family<List<PlayerSeasonStats>, PlayerCardKey>(
-  (ref, key) => ref.watch(playerCardRepositoryProvider).fetchSeasons(key),
+  (ref, key) async {
+    await ref.watch(statisticsPeriodProvider(StatisticsPeriod.allTime).future);
+    return ref.watch(playerCardRepositoryProvider).fetchSeasons(key);
+  },
 );
 
 /// Badges gagnés par un autre membre, tels qu'on peut les montrer sur sa

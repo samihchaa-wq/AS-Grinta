@@ -667,8 +667,7 @@ void main() {
         expect(find.text('13-14').hitTestable(), findsNothing);
       });
 
-      testWidgets('une seule saison, ou un détail illisible : pas de graphique',
-          (tester) async {
+      testWidgets('une seule saison : pas de graphique', (tester) async {
         await pumpPage(
           tester,
           players: career,
@@ -680,19 +679,128 @@ void main() {
         await tester.tap(find.text('Carrière'));
         await tester.pumpAndSettle();
         expect(find.text('ÉVOLUTION'), findsNothing);
+      });
 
+      testWidgets(
+          'détail illisible (fonction pas encore déployée) : pas de graphique, '
+          'le reste de la fiche s’affiche', (tester) async {
+        var calls = 0;
         await pumpPage(
           tester,
           players: career,
           details: details,
-          seasons: () async => throw Exception('fonction absente'),
+          seasons: () async {
+            calls++;
+            throw Exception('fonction absente');
+          },
         );
         await tester.tap(find.text('Carrière'));
         await tester.pumpAndSettle();
+        expect(calls, 1);
         expect(find.text('ÉVOLUTION'), findsNothing);
-        // Le reste de la fiche s'affiche normalement.
         expect(find.text('BILAN'), findsOneWidget);
+        expect(tester.takeException(), isNull);
       });
+
+      testWidgets('des saisons à égalité sont toutes en or', (tester) async {
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async => [
+            _season('2021-2022', played: 31, wins: 24, goals: 9, hdm: 3),
+            _season('2022-2023', played: 22, wins: 17, goals: 4, hdm: 3),
+            _season('2023-2024', played: 20, wins: 10, goals: 9, hdm: 1),
+          ],
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+
+        // 9 buts deux fois.
+        expect(
+          tester
+              .widgetList<Text>(find.text('9'))
+              .map((t) => t.style!.color)
+              .toSet(),
+          {const Color(0xFFFFD84A)},
+        );
+
+        // 24/31 = 77,4 % et 17/22 = 77,3 % s'affichent tous deux « 77 % ».
+        await tester.tap(find.text('% Victoires'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widgetList<Text>(find.text('77 %'))
+              .map((t) => t.style!.color)
+              .toList(),
+          [const Color(0xFFFFD84A), const Color(0xFFFFD84A)],
+        );
+      });
+
+      testWidgets(
+          'revenir sur Carrière garde le graphique et la statistique choisie, '
+          'sans recharger', (tester) async {
+        var calls = 0;
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async {
+            calls++;
+            return [
+              _season('2021-2022', played: 30, wins: 19, goals: 40, hdm: 12),
+              _season('2022-2023', played: 35, wins: 23, goals: 32, hdm: 5),
+            ];
+          },
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('HDM'));
+        await tester.pumpAndSettle();
+        expect(find.text('12'), findsOneWidget);
+
+        await tester.tap(find.text('Saison'));
+        await tester.pumpAndSettle();
+        expect(find.text('ÉVOLUTION'), findsNothing);
+        await tester.tap(find.text('Carrière'));
+        await tester.pump();
+        // Déjà là au premier affichage : la page ne saute pas.
+        expect(find.text('ÉVOLUTION'), findsOneWidget);
+        await tester.pumpAndSettle();
+        expect(find.text('12'), findsOneWidget);
+        expect(calls, 1);
+      });
+    });
+  });
+
+  group('rechargement du détail par saison', () {
+    test('il suit la ligne Carrière : la recharger le recharge', () async {
+      final repository = _FakeSeasonsRepository();
+      final container = ProviderContainer(
+        overrides: [
+          playerCardRepositoryProvider.overrideWithValue(repository),
+          statisticsPeriodProvider(StatisticsPeriod.allTime).overrideWith(
+            (ref) async => const StatisticsPeriodData(
+              period: StatisticsPeriod.allTime,
+              label: 'Toutes saisons',
+              players: [],
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      const key = (profileId: null, fullName: 'Karim Ben', isGoalkeeper: false);
+      final subscription =
+          container.listen(playerSeasonStatsProvider(key), (_, __) {});
+      addTearDown(subscription.close);
+
+      await container.read(playerSeasonStatsProvider(key).future);
+      expect(repository.calls, 1);
+
+      // Ce que fait la synchronisation quand un match est validé.
+      container.invalidate(statisticsPeriodProvider(StatisticsPeriod.allTime));
+      await container.read(playerSeasonStatsProvider(key).future);
+      expect(repository.calls, 2);
     });
   });
 
@@ -810,3 +918,13 @@ PlayerSeasonStats _season(
       goals: goals,
       hdm: hdm,
     );
+
+class _FakeSeasonsRepository extends Fake implements PlayerCardRepository {
+  int calls = 0;
+
+  @override
+  Future<List<PlayerSeasonStats>> fetchSeasons(PlayerCardKey key) async {
+    calls++;
+    return const [];
+  }
+}

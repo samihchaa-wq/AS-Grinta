@@ -42,6 +42,15 @@ class PlayerCardPage extends ConsumerStatefulWidget {
 class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
   StatisticsPeriod _period = StatisticsPeriod.current;
 
+  /// Une fois l'onglet Carrière ouvert, l'évolution reste chargée tant que la
+  /// fiche est ouverte : y revenir ne la recharge pas et ne fait pas sauter
+  /// la page.
+  bool _careerOpened = false;
+
+  /// Statistique choisie sur le graphique d'évolution ; `null` tant que
+  /// l'utilisateur n'en a pas choisi.
+  PlayerStat? _evolutionStat;
+
   Future<void> _refresh(PlayerCardKey key) async {
     for (final period in StatisticsPeriod.values) {
       ref.invalidate(statisticsPeriodProvider(period));
@@ -71,6 +80,8 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
     final periodData = ref.watch(statisticsPeriodProvider(_period));
     final allTime =
         ref.watch(statisticsPeriodProvider(StatisticsPeriod.allTime));
+    final seasons =
+        _careerOpened ? ref.watch(playerSeasonStatsProvider(key)) : null;
     // Sert au seuil de classement de la saison en cours : il ne s'applique
     // qu'une fois passés les premiers matchs de l'équipe.
     final teamMatches = _period == StatisticsPeriod.current
@@ -145,8 +156,10 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
               ),
             ],
             selected: {_period},
-            onSelectionChanged: (value) =>
-                setState(() => _period = value.first),
+            onSelectionChanged: (value) => setState(() {
+              _period = value.first;
+              if (_period == StatisticsPeriod.allTime) _careerOpened = true;
+            }),
           ),
           const SizedBox(height: 12),
           periodData.when(
@@ -169,10 +182,17 @@ class _PlayerCardPageState extends ConsumerState<PlayerCardPage> {
                   const SizedBox(height: 8),
                   _RecordCard(player: row, recent: info.recentMatches),
                   // Une seule saison n'a pas d'évolution à montrer.
-                  if (_period == StatisticsPeriod.allTime)
+                  if (_period == StatisticsPeriod.allTime && seasons != null)
                     _EvolutionCard(
-                      playerKey: key,
-                      isGoalkeeper: isGoalkeeper,
+                      seasons: seasons,
+                      // Un gardien marque peu : ses matchs parlent mieux de
+                      // lui.
+                      stat: _evolutionStat ??
+                          (isGoalkeeper
+                              ? PlayerStat.matches
+                              : PlayerStat.goals),
+                      onStatChanged: (stat) =>
+                          setState(() => _evolutionStat = stat),
                     ),
                 ],
               );
@@ -715,24 +735,19 @@ num? _seasonValue(PlayerStat stat, PlayerSeasonStats season) {
 /// N'apparaît qu'à partir de deux saisons ; reste absente si le détail par
 /// saison ne peut pas être lu, plutôt que d'afficher une erreur sous des
 /// chiffres justes.
-class _EvolutionCard extends ConsumerStatefulWidget {
-  const _EvolutionCard({required this.playerKey, required this.isGoalkeeper});
+class _EvolutionCard extends StatelessWidget {
+  const _EvolutionCard({
+    required this.seasons,
+    required this.stat,
+    required this.onStatChanged,
+  });
 
-  final PlayerCardKey playerKey;
-  final bool isGoalkeeper;
-
-  @override
-  ConsumerState<_EvolutionCard> createState() => _EvolutionCardState();
-}
-
-class _EvolutionCardState extends ConsumerState<_EvolutionCard> {
-  // Un gardien marque peu : ses matchs parlent mieux de lui.
-  late PlayerStat _stat =
-      widget.isGoalkeeper ? PlayerStat.matches : PlayerStat.goals;
+  final AsyncValue<List<PlayerSeasonStats>> seasons;
+  final PlayerStat stat;
+  final ValueChanged<PlayerStat> onStatChanged;
 
   @override
   Widget build(BuildContext context) {
-    final seasons = ref.watch(playerSeasonStatsProvider(widget.playerKey));
     return seasons.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
@@ -756,13 +771,13 @@ class _EvolutionCardState extends ConsumerState<_EvolutionCard> {
                     for (final option in _evolutionStats)
                       _StatChoice(
                         label: option.label,
-                        selected: option.stat == _stat,
-                        onTap: () => setState(() => _stat = option.stat),
+                        selected: option.stat == stat,
+                        onTap: () => onStatChanged(option.stat),
                       ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                _SeasonBars(seasons: list, stat: _stat),
+                _SeasonBars(seasons: list, stat: stat),
                 if (last.isCurrent) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -855,16 +870,20 @@ class _SeasonBars extends StatelessWidget {
     // de matchs que pour être classé sur une saison (voir
     // averageRankingMinMatches) : deux matchs gagnés ne font pas une saison
     // à 100 %.
-    int? best;
-    for (var i = 0; i < seasons.length; i++) {
+    // Des saisons à égalité, telle que la valeur s'affiche, sont toutes en
+    // or.
+    bool eligible(int i) {
       final value = values[i];
-      if (value == null || value <= 0) continue;
-      if (stat.isAverage &&
-          seasons[i].matchesPlayed < _seasonAverageMinMatches) {
-        continue;
-      }
-      if (best == null || value > values[best]!) best = i;
+      if (value == null || value <= 0) return false;
+      return !stat.isAverage ||
+          seasons[i].matchesPlayed >= _seasonAverageMinMatches;
     }
+
+    num? best;
+    for (var i = 0; i < seasons.length; i++) {
+      if (eligible(i) && (best == null || values[i]! > best)) best = values[i];
+    }
+    final bestLabel = best == null ? null : stat.format(best);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -885,7 +904,7 @@ class _SeasonBars extends StatelessWidget {
                   share: values[i] == null || maxValue == 0
                       ? 0
                       : values[i]! / maxValue,
-                  isBest: i == best,
+                  isBest: eligible(i) && stat.format(values[i]!) == bestLabel,
                 ),
               ),
           ],
@@ -984,14 +1003,17 @@ class _SeasonBar extends StatelessWidget {
             color: AppTheme.outline.withValues(alpha: .6),
           ),
           const SizedBox(height: 6),
-          Text(
-            _shortSeason,
-            maxLines: 1,
-            style: TextStyle(
-              fontSize: 10.5,
-              color: season.isCurrent
-                  ? AppTheme.textSecondary
-                  : AppTheme.textFaint,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              _shortSeason,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: 10.5,
+                color: season.isCurrent
+                    ? AppTheme.textSecondary
+                    : AppTheme.textFaint,
+              ),
             ),
           ),
         ],
