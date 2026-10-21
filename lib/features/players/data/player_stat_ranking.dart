@@ -63,13 +63,16 @@ enum PlayerStat {
   /// sans match joué n'a pas de valeur.
   String display(PlayerStatistics p) {
     if (isAverage && (p.matchesPlayed ?? 0) == 0) return '–';
-    final value = valueOf(p);
-    return switch (this) {
-      PlayerStat.winRate => '${value.round()} %',
-      PlayerStat.goalsPerMatch => value.toStringAsFixed(2).replaceAll('.', ','),
-      _ => '$value',
-    };
+    return format(valueOf(p));
   }
+
+  /// Une valeur de cette statistique mise en forme : « 75 % », « 1,75 »…
+  String format(num value) => switch (this) {
+        PlayerStat.winRate => '${value.round()} %',
+        PlayerStat.goalsPerMatch =>
+          value.toStringAsFixed(2).replaceAll('.', ','),
+        _ => '$value',
+      };
 
   static PlayerStat? fromSlug(String? slug) {
     for (final stat in values) {

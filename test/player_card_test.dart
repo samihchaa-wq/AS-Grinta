@@ -171,6 +171,7 @@ void main() {
       WidgetTester tester, {
       required Map<StatisticsPeriod, List<PlayerStatistics>> players,
       required PlayerCardDetails details,
+      Future<List<PlayerSeasonStats>> Function()? seasons,
     }) async {
       await tester.binding.setSurfaceSize(const Size(420, 2000));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -186,6 +187,9 @@ void main() {
                 ),
               ),
             playerCardDetailsProvider(key).overrideWith((ref) async => details),
+            playerSeasonStatsProvider(key).overrideWith(
+              (ref) => seasons?.call() ?? Future.value(const []),
+            ),
             statisticsBadgeEmblemsProvider.overrideWith(
               (ref) async => const <String, List<StatisticsBadgeEmblemData>>{},
             ),
@@ -524,6 +528,303 @@ void main() {
 
       expect(find.text('Pas de fiche joueur'), findsOneWidget);
     });
+
+    group('évolution par saison', () {
+      const details = PlayerCardDetails(
+        firstName: 'Karim',
+        photoUrl: null,
+        profileId: null,
+        recentMatches: [],
+      );
+      final career = {
+        StatisticsPeriod.current: [_player('Karim Ben', played: 4)],
+        StatisticsPeriod.allTime: [_player('Karim Ben', played: 9, goals: 6)],
+      };
+
+      Color colorOf(WidgetTester tester, String value) =>
+          tester.widget<Text>(find.text(value)).style!.color!;
+
+      testWidgets(
+          'dans Carrière, une barre par saison : la meilleure en or, '
+          'la saison en cours signalée', (tester) async {
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async => withMissedSeasons([
+            _season('2021-2022', played: 30, wins: 19, goals: 40, hdm: 12),
+            _season('2023-2024', played: 29, wins: 22, goals: 53, hdm: 10),
+            _season('2024-2025', played: 31, wins: 24, goals: 45, hdm: 7),
+            _season(
+              '2026-2027',
+              played: 4,
+              wins: 3,
+              goals: 7,
+              hdm: 1,
+              current: true,
+            ),
+          ]),
+        );
+
+        // Une seule saison par onglet : pas d'évolution hors Carrière.
+        expect(find.text('ÉVOLUTION'), findsNothing);
+
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('ÉVOLUTION'), findsOneWidget);
+        // Les saisons manquées apparaissent, vides, à leur place.
+        final xs = [
+          for (final label in [
+            '21-22',
+            '22-23',
+            '23-24',
+            '24-25',
+            '25-26',
+            '26-27',
+          ])
+            tester.getCenter(find.text(label)).dx,
+        ];
+        expect(xs, orderedEquals([...xs]..sort()));
+        expect(xs.toSet(), hasLength(6));
+
+        // Un joueur de champ voit d'abord ses buts.
+        expect(colorOf(tester, '53'), const Color(0xFFFFD84A));
+        expect(colorOf(tester, '40'), AppTheme.textSecondary);
+        expect(find.text('7'), findsOneWidget);
+        expect(find.text('Saison 2026-2027 en cours.'), findsOneWidget);
+
+        await tester.tap(find.text('HDM'));
+        await tester.pumpAndSettle();
+        expect(colorOf(tester, '12'), const Color(0xFFFFD84A));
+        expect(find.text('53'), findsNothing);
+
+        // Une moyenne sur moins de cinq matchs ne prend pas l'or ; une saison
+        // sans match n'a pas de valeur.
+        await tester.tap(find.text('% Victoires'));
+        await tester.pumpAndSettle();
+        expect(colorOf(tester, '77 %'), const Color(0xFFFFD84A));
+        expect(colorOf(tester, '76 %'), AppTheme.textSecondary);
+        expect(colorOf(tester, '75 %'), AppTheme.textSecondary);
+        final card = find
+            .ancestor(
+              of: find.text('ÉVOLUTION'),
+              matching: find.byType(Container),
+            )
+            .first;
+        expect(
+          find.descendant(of: card, matching: find.text('–')),
+          findsNWidgets(2),
+        );
+      });
+
+      testWidgets(
+          'une moyenne sur deux matchs ne fait pas la meilleure saison, '
+          'un total si', (tester) async {
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async => [
+            _season('2019-2020', played: 2, wins: 2, goals: 4),
+            _season('2020-2021', played: 20, wins: 10, goals: 30),
+            _season('2021-2022', played: 25, wins: 10, goals: 40),
+          ],
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('% Victoires'));
+        await tester.pumpAndSettle();
+        expect(colorOf(tester, '100 %'), AppTheme.textSecondary);
+        expect(colorOf(tester, '50 %'), const Color(0xFFFFD84A));
+
+        await tester.tap(find.text('Buts / match'));
+        await tester.pumpAndSettle();
+        expect(colorOf(tester, '2,00'), AppTheme.textSecondary);
+        expect(colorOf(tester, '1,60'), const Color(0xFFFFD84A));
+
+        await tester.tap(find.text('Matchs'));
+        await tester.pumpAndSettle();
+        expect(colorOf(tester, '25'), const Color(0xFFFFD84A));
+      });
+
+      testWidgets('beaucoup de saisons : la plus récente reste visible',
+          (tester) async {
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async => [
+            for (var year = 2013; year <= 2026; year++)
+              _season('$year-${year + 1}', played: 20, wins: 10, goals: 5),
+          ],
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('26-27').hitTestable(), findsOneWidget);
+        expect(find.text('13-14').hitTestable(), findsNothing);
+      });
+
+      testWidgets('une seule saison : pas de graphique', (tester) async {
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async => [
+            _season('2025-2026', played: 20, wins: 10, goals: 5),
+          ],
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+        expect(find.text('ÉVOLUTION'), findsNothing);
+      });
+
+      testWidgets(
+          'détail illisible (fonction pas encore déployée) : pas de graphique, '
+          'le reste de la fiche s’affiche', (tester) async {
+        var calls = 0;
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async {
+            calls++;
+            throw Exception('fonction absente');
+          },
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+        expect(calls, 1);
+        expect(find.text('ÉVOLUTION'), findsNothing);
+        expect(find.text('BILAN'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('des saisons à égalité sont toutes en or', (tester) async {
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async => [
+            _season('2021-2022', played: 31, wins: 24, goals: 9, hdm: 3),
+            _season('2022-2023', played: 22, wins: 17, goals: 4, hdm: 3),
+            _season('2023-2024', played: 20, wins: 10, goals: 9, hdm: 1),
+          ],
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+
+        // 9 buts deux fois.
+        expect(
+          tester
+              .widgetList<Text>(find.text('9'))
+              .map((t) => t.style!.color)
+              .toSet(),
+          {const Color(0xFFFFD84A)},
+        );
+
+        // 24/31 = 77,4 % et 17/22 = 77,3 % s'affichent tous deux « 77 % ».
+        await tester.tap(find.text('% Victoires'));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widgetList<Text>(find.text('77 %'))
+              .map((t) => t.style!.color)
+              .toList(),
+          [const Color(0xFFFFD84A), const Color(0xFFFFD84A)],
+        );
+      });
+
+      testWidgets(
+          'revenir sur Carrière garde le graphique et la statistique choisie, '
+          'sans recharger', (tester) async {
+        var calls = 0;
+        await pumpPage(
+          tester,
+          players: career,
+          details: details,
+          seasons: () async {
+            calls++;
+            return [
+              _season('2021-2022', played: 30, wins: 19, goals: 40, hdm: 12),
+              _season('2022-2023', played: 35, wins: 23, goals: 32, hdm: 5),
+            ];
+          },
+        );
+        await tester.tap(find.text('Carrière'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('HDM'));
+        await tester.pumpAndSettle();
+        expect(find.text('12'), findsOneWidget);
+
+        await tester.tap(find.text('Saison'));
+        await tester.pumpAndSettle();
+        expect(find.text('ÉVOLUTION'), findsNothing);
+        await tester.tap(find.text('Carrière'));
+        await tester.pump();
+        // Déjà là au premier affichage : la page ne saute pas.
+        expect(find.text('ÉVOLUTION'), findsOneWidget);
+        await tester.pumpAndSettle();
+        expect(find.text('12'), findsOneWidget);
+        expect(calls, 1);
+      });
+    });
+  });
+
+  group('rechargement du détail par saison', () {
+    test('il suit la ligne Carrière : la recharger le recharge', () async {
+      final repository = _FakeSeasonsRepository();
+      final container = ProviderContainer(
+        overrides: [
+          playerCardRepositoryProvider.overrideWithValue(repository),
+          statisticsPeriodProvider(StatisticsPeriod.allTime).overrideWith(
+            (ref) async => const StatisticsPeriodData(
+              period: StatisticsPeriod.allTime,
+              label: 'Toutes saisons',
+              players: [],
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      const key = (profileId: null, fullName: 'Karim Ben', isGoalkeeper: false);
+      final subscription =
+          container.listen(playerSeasonStatsProvider(key), (_, __) {});
+      addTearDown(subscription.close);
+
+      await container.read(playerSeasonStatsProvider(key).future);
+      expect(repository.calls, 1);
+
+      // Ce que fait la synchronisation quand un match est validé.
+      container.invalidate(statisticsPeriodProvider(StatisticsPeriod.allTime));
+      await container.read(playerSeasonStatsProvider(key).future);
+      expect(repository.calls, 2);
+    });
+  });
+
+  group('saisons manquées', () {
+    test('une saison sans match entre deux autres apparaît, vide', () {
+      final seasons = withMissedSeasons([
+        _season('2019-2020', played: 3, wins: 1, goals: 1),
+        _season('2022-2023', played: 2, wins: 2, goals: 0),
+      ]);
+      expect(
+        [for (final s in seasons) s.seasonName],
+        ['2019-2020', '2020-2021', '2021-2022', '2022-2023'],
+      );
+      expect(seasons[1].matchesPlayed, 0);
+      expect(seasons[3].matchesPlayed, 2);
+    });
+
+    test('un nom de saison inattendu laisse la liste telle quelle', () {
+      final seasons = [
+        _season('2019-2020', played: 3, wins: 1, goals: 1),
+        _season('Saison test', played: 2, wins: 2, goals: 0),
+      ];
+      expect(withMissedSeasons(seasons), same(seasons));
+    });
   });
 }
 
@@ -598,3 +899,32 @@ PlayerMatchLine _match(
       assists: 0,
       isManOfTheMatch: motm,
     );
+
+PlayerSeasonStats _season(
+  String name, {
+  required int played,
+  required int wins,
+  required int goals,
+  int hdm = 0,
+  bool current = false,
+}) =>
+    PlayerSeasonStats(
+      seasonName: name,
+      isCurrent: current,
+      matchesPlayed: played,
+      wins: wins,
+      draws: 0,
+      losses: played - wins,
+      goals: goals,
+      hdm: hdm,
+    );
+
+class _FakeSeasonsRepository extends Fake implements PlayerCardRepository {
+  int calls = 0;
+
+  @override
+  Future<List<PlayerSeasonStats>> fetchSeasons(PlayerCardKey key) async {
+    calls++;
+    return const [];
+  }
+}

@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -78,6 +79,77 @@ class PlayerCardDetails {
 
   /// Matchs amicaux et de championnat, du plus récent au plus ancien.
   final List<PlayerMatchLine> recentMatches;
+}
+
+/// Les chiffres d'un joueur sur une saison, pour le graphique d'évolution de
+/// sa fiche.
+class PlayerSeasonStats {
+  const PlayerSeasonStats({
+    required this.seasonName,
+    required this.isCurrent,
+    required this.matchesPlayed,
+    required this.wins,
+    required this.draws,
+    required this.losses,
+    required this.goals,
+    required this.hdm,
+  });
+
+  /// Une saison sans match, entre deux saisons jouées.
+  const PlayerSeasonStats.empty(this.seasonName)
+      : isCurrent = false,
+        matchesPlayed = 0,
+        wins = 0,
+        draws = 0,
+        losses = 0,
+        goals = 0,
+        hdm = 0;
+
+  factory PlayerSeasonStats.fromRow(Map<String, dynamic> row) {
+    int count(String key) => (row[key] as num?)?.toInt() ?? 0;
+    return PlayerSeasonStats(
+      seasonName: (row['season_name'] ?? '').toString(),
+      isCurrent: row['is_current'] == true,
+      matchesPlayed: count('matches_played'),
+      wins: count('wins'),
+      draws: count('draws'),
+      losses: count('losses'),
+      goals: count('goals'),
+      hdm: count('hdm'),
+    );
+  }
+
+  /// « 2023-2024 ».
+  final String seasonName;
+
+  /// La saison ouverte, encore en cours.
+  final bool isCurrent;
+  final int matchesPlayed;
+  final int wins;
+  final int draws;
+  final int losses;
+  final int goals;
+  final int hdm;
+}
+
+final _seasonName = RegExp(r'^(\d{4})-\d{4}$');
+
+/// Les saisons de la première à la dernière jouée : une saison manquée entre
+/// deux autres apparaît, vide, pour que l'absence se voie sur le graphique.
+List<PlayerSeasonStats> withMissedSeasons(List<PlayerSeasonStats> seasons) {
+  final byStartYear = <int, PlayerSeasonStats>{};
+  for (final season in seasons) {
+    final match = _seasonName.firstMatch(season.seasonName);
+    // Un nom inattendu : rien à combler sans risque de se tromper.
+    if (match == null) return seasons;
+    byStartYear[int.parse(match[1]!)] = season;
+  }
+  if (byStartYear.isEmpty) return seasons;
+  final years = byStartYear.keys.toList()..sort();
+  return [
+    for (var year = years.first; year <= years.last; year++)
+      byStartYear[year] ?? PlayerSeasonStats.empty('$year-${year + 1}'),
+  ];
 }
 
 class PlayerCardRepository {
@@ -166,6 +238,22 @@ class PlayerCardRepository {
         for (final row in matching) row['id'].toString(),
       ]),
     );
+  }
+
+  /// Ses chiffres saison par saison, archive comprise, dans l'ordre.
+  Future<List<PlayerSeasonStats>> fetchSeasons(PlayerCardKey key) async {
+    final rows = await _client.rpc(
+      'get_player_season_statistics',
+      params: {
+        'p_full_name': key.fullName,
+        'p_is_goalkeeper': key.isGoalkeeper,
+        'p_profile_id': key.profileId,
+      },
+    );
+    return withMissedSeasons([
+      for (final raw in rows as List)
+        PlayerSeasonStats.fromRow(Map<String, dynamic>.from(raw as Map)),
+    ]);
   }
 
   Future<List<PlayerMatchLine>> _recentMatches(List<String> ids) async {
@@ -288,6 +376,17 @@ final playerCardRepositoryProvider = Provider<PlayerCardRepository>((ref) {
 final playerCardDetailsProvider =
     FutureProvider.autoDispose.family<PlayerCardDetails, PlayerCardKey>(
   (ref, key) => ref.watch(playerCardRepositoryProvider).fetch(key),
+);
+
+/// Le détail par saison suit la ligne Carrière : il se recharge chaque fois
+/// qu'elle se recharge (match validé, retour dans l'application, tirer pour
+/// rafraîchir), pour que la somme des saisons retombe toujours dessus.
+final playerSeasonStatsProvider =
+    FutureProvider.autoDispose.family<List<PlayerSeasonStats>, PlayerCardKey>(
+  (ref, key) async {
+    await ref.watch(statisticsPeriodProvider(StatisticsPeriod.allTime).future);
+    return ref.watch(playerCardRepositoryProvider).fetchSeasons(key);
+  },
 );
 
 /// Badges gagnés par un autre membre, tels qu'on peut les montrer sur sa

@@ -6,6 +6,30 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- fiche joueur, onglet Carrière : une carte « Évolution » sous le Bilan
+  montre une barre par saison pour la statistique choisie (Matchs,
+  % Victoires, Buts, HDM, Buts / match ; les buts d'abord, les matchs pour
+  un gardien). La meilleure saison est en or, et toutes les saisons à
+  égalité avec elle ; pour une moyenne, il lui faut au moins cinq matchs,
+  comme pour être classé sur une saison. La saison en cours, plus pâle, est
+  signalée. Une saison manquée entre deux autres apparaît vide. Les passes
+  décisives n'y figurent pas : elles ne sont comptées que depuis cette
+  saison. Les saisons archivées sont recalculées match par match. Les buts
+  et hommes du match de trois matchs officiels joués sans score (28 juin
+  2016 contre CG31, 17 mai 2024 contre AS Clinique Pasteur, 4 mai 2026
+  contre FC Boehringer Toulouse), déjà comptés dans les chiffres de carrière
+  sans compter comme matchs joués, sont rangés dans leur saison de la même
+  façon. Les barres reprennent exactement la ligne Carrière affichée, même
+  quand un admin change le poste ou l'écriture du nom d'un joueur dans
+  l'effectif, et se rechargent avec elle (match validé, retour dans
+  l'application) : leur somme retombe toujours sur les chiffres de
+  carrière. La carte n'apparaît qu'à partir de deux saisons, et seulement
+  une fois la mise à jour de la base de données déployée ;
+- administration des profils : rattacher un compte à une deuxième fiche
+  d'archive, alors qu'il en a déjà une, est refusé avec une erreur au lieu
+  de mêler les deux carrières sans retour possible ; il faut alors une
+  correction manuelle. Les buts et hommes du match des matchs sans score
+  suivent le joueur quand son compte est rattaché à sa fiche d'archive ;
 - icône de l'application : le blason sans sa bordure remplit tout le bouton
   (fond bleu et bandes or jusqu'aux bords, banderole, « 2020 », ballon). La
   croix occitane est redessinée fidèlement ; sur les téléphones Android qui
