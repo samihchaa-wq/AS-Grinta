@@ -84,6 +84,19 @@ set status = 'pending',
     updated_at = now()
 where id = 'f2000000-0000-0000-0000-000000000002';
 
+-- Classement importé : le total de carrière de l'archive, dont la ligne
+-- Carrière de la vue part. Il vaut la somme de l'archive et des matchs sans
+-- score ci-dessous.
+insert into public.historical_player_statistics(
+  id, scope, season_name, display_rank, player_name, is_goalkeeper,
+  matches_played, wins, draws, losses, goals, hdm, clean_sheets, player_id
+)
+values (
+  987654329002,
+  'all_time', null, 998, 'Evolution Testeur', false,
+  3, 1, 1, 1, 6, 3, 0, 'f1000000-0000-0000-0000-000000000001'
+);
+
 -- Archive : trois matchs sur deux saisons, la saison commençant le 1er juillet.
 insert into public.opponents(id, name)
 values ('f5000000-0000-0000-0000-000000000001', 'Adversaire test évolution');
@@ -291,7 +304,98 @@ select is(
   'le même nom au poste de gardien désigne un autre joueur'
 );
 
+create or replace function pg_temp.season_totals(
+  p_full_name text,
+  p_is_goalkeeper boolean,
+  p_profile_id uuid
+)
+returns text
+language sql
+stable
+as $function$
+  select concat_ws(
+    '/', sum(s.matches_played), sum(s.wins), sum(s.draws), sum(s.losses),
+    sum(s.goals), sum(s.hdm)
+  )
+  from public.get_player_season_statistics(
+    p_full_name, p_is_goalkeeper, p_profile_id
+  ) s;
+$function$;
+
+create or replace function pg_temp.career_line(p_is_goalkeeper boolean)
+returns text
+language sql
+stable
+as $function$
+  select concat_ws(
+    '/', v.matches_played, v.wins, v.draws, v.losses, v.goals, v.hdm
+  )
+  from public.v_statistics_players v
+  where v.period_key = 'all_time'
+    and v.player_name = 'Evolution Testeur'
+    and v.is_goalkeeper = p_is_goalkeeper;
+$function$;
+
+select is(
+  pg_temp.season_totals(
+    'Evolution Testeur', false, 'f2000000-0000-0000-0000-000000000001'
+  ),
+  pg_temp.career_line(false),
+  'la somme des saisons retombe exactement sur la ligne Carrière'
+);
+
 reset role;
+
+-- Un admin passe le joueur « Gardien » dans l'effectif de la saison : la vue
+-- en fait une seconde ligne Carrière, à part de l'archive. Chaque fiche doit
+-- retomber sur sa propre ligne, sans additionner l'autre.
+update public.season_players
+set is_goalkeeper = true
+where id = 'f4000000-0000-0000-0000-000000000001';
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"f2000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+-- Les deux lignes portent le même compte : la fiche ouverte par le compte
+-- affiche la plus fournie en matchs, ici celle de l'archive.
+select is(
+  pg_temp.season_totals(
+    'Evolution Testeur', false, 'f2000000-0000-0000-0000-000000000001'
+  ),
+  pg_temp.career_line(false),
+  'par le compte, la fiche suit la ligne la plus fournie, sans l’autre poste'
+);
+
+select is(
+  pg_temp.season_totals('Evolution Testeur', false, null),
+  pg_temp.career_line(false),
+  'par le nom et le poste de champ, la fiche suit l’archive seule'
+);
+
+select is(
+  pg_temp.season_totals('Evolution Testeur', true, null),
+  pg_temp.career_line(true),
+  'par le nom et le poste de gardien, la fiche suit l’effectif seul'
+);
+
+select is(
+  (
+    select array_agg(s.season_name order by s.season_name)
+    from public.get_player_season_statistics('Evolution Testeur', false, null) s
+  ),
+  array['2095-2096', '2096-2097', '2097-2098'],
+  'la saison jouée à l’autre poste n’apparaît pas sur la ligne de champ'
+);
+
+reset role;
+
+update public.season_players
+set is_goalkeeper = false
+where id = 'f4000000-0000-0000-0000-000000000001';
 
 -- Un joueur connu seulement de l'archive est retrouvé par son classement
 -- importé.
@@ -347,6 +451,62 @@ select throws_ok(
 );
 
 reset role;
+
+-- Rattacher un compte à sa fiche d'archive fusionne deux identités : les
+-- matchs sans score suivent l'identité gardée.
+insert into public.players(id, display_name)
+values
+  ('f1000000-0000-0000-0000-000000000004', 'Fusion Source'),
+  ('f1000000-0000-0000-0000-000000000005', 'Fusion Cible'),
+  ('f1000000-0000-0000-0000-000000000006', 'Fusion Double Source'),
+  ('f1000000-0000-0000-0000-000000000007', 'Fusion Double Cible');
+
+insert into public.historical_unscored_match_contributions(
+  match_date, opponent_name, match_type, player_id, goals, is_motm
+)
+values
+  (date '2097-05-20', 'Adversaire test évolution', 'amical',
+   'f1000000-0000-0000-0000-000000000004', 1, false),
+  (date '2097-05-20', 'Adversaire test évolution', 'amical',
+   'f1000000-0000-0000-0000-000000000006', 1, false),
+  (date '2097-05-20', 'Adversaire test évolution', 'amical',
+   'f1000000-0000-0000-0000-000000000007', 0, true);
+
+select private.merge_player_identities(
+  'f1000000-0000-0000-0000-000000000004',
+  'f1000000-0000-0000-0000-000000000005'
+);
+
+select is(
+  (
+    select player_id
+    from public.historical_unscored_match_contributions
+    where match_date = date '2097-05-20' and goals = 1 and not is_motm
+      and player_id in (
+        'f1000000-0000-0000-0000-000000000004',
+        'f1000000-0000-0000-0000-000000000005'
+      )
+  ),
+  'f1000000-0000-0000-0000-000000000005'::uuid,
+  'la fusion déplace les matchs sans score vers l’identité gardée'
+);
+
+select ok(
+  not exists (
+    select 1 from public.players
+    where id = 'f1000000-0000-0000-0000-000000000004'
+  ),
+  'l’identité fusionnée disparaît'
+);
+
+select throws_ok(
+  $$select private.merge_player_identities(
+    'f1000000-0000-0000-0000-000000000006',
+    'f1000000-0000-0000-0000-000000000007'
+  )$$,
+  '23514',
+  'deux identités élues le même jour sans score demandent une résolution manuelle'
+);
 
 select * from finish();
 rollback;

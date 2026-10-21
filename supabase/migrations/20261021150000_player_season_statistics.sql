@@ -14,8 +14,11 @@ begin;
 --
 -- Un match archivé appartient à la saison qui commence le 1er juillet, comme
 -- dans le calendrier des archives. Le joueur est retrouvé comme sur sa fiche :
--- par son compte, ou par son nom complet et son poste ; son identité
--- canonique relie ensuite toutes ses saisons et ses lignes d'archive.
+-- par son compte, ou par son nom complet et son poste, sur la ligne Carrière
+-- de la vue. Ses saisons sont celles des deux composantes de cette ligne, et
+-- d'elles seules : la somme des saisons retombe ainsi sur la ligne, même si
+-- un effectif change de poste ou d'orthographe (la vue en fait alors une
+-- autre ligne).
 --
 -- L'archive se lit uniquement par cette fonction, comme le détail d'un match
 -- archivé : les tables historiques restent fermées au client.
@@ -106,6 +109,105 @@ begin
 end;
 $$;
 
+-- La fusion de deux identités (rattachement d'un compte à sa fiche d'archive)
+-- déplace tout l'historique de l'identité perdante avant de la supprimer :
+-- elle déplace aussi ces lignes. Corps en service en production, plus le
+-- contrôle et le déplacement de cette table.
+create or replace function private.merge_player_identities(
+  p_source_player_id uuid,
+  p_target_player_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+begin
+  if p_source_player_id is null
+     or p_target_player_id is null
+     or p_source_player_id = p_target_player_id then
+    return;
+  end if;
+
+  if not exists (
+    select 1 from public.players p where p.id = p_source_player_id
+  ) or not exists (
+    select 1 from public.players p where p.id = p_target_player_id
+  ) then
+    raise exception 'Canonical player identity not found' using errcode = 'P0002';
+  end if;
+
+  if exists (
+    select 1 from public.profiles p where p.player_id = p_source_player_id
+  ) then
+    raise exception 'Cannot merge two account-backed player identities'
+      using errcode = '23514';
+  end if;
+
+  if exists (
+    select 1
+    from public.historical_match_players source_row
+    join public.historical_match_players target_row
+      on target_row.match_id = source_row.match_id
+     and target_row.player_id = p_target_player_id
+    where source_row.player_id = p_source_player_id
+  ) then
+    raise exception 'Archived match contains both player identities; manual resolution required'
+      using errcode = '23514';
+  end if;
+
+  if exists (
+    select 1
+    from public.historical_unscored_match_contributions source_row
+    join public.historical_unscored_match_contributions target_row
+      on target_row.match_date = source_row.match_date
+     and target_row.player_id = p_target_player_id
+    where source_row.player_id = p_source_player_id
+  ) then
+    raise exception 'Unscored match contains both player identities; manual resolution required'
+      using errcode = '23514';
+  end if;
+
+  delete from public.player_aliases source_alias
+  using public.player_aliases target_alias
+  where source_alias.player_id = p_source_player_id
+    and target_alias.player_id = p_target_player_id
+    and private.normalize_player_name(source_alias.alias)
+      = private.normalize_player_name(target_alias.alias);
+
+  update public.player_aliases
+  set player_id = p_target_player_id
+  where player_id = p_source_player_id;
+
+  update public.historical_match_players
+  set player_id = p_target_player_id
+  where player_id = p_source_player_id;
+
+  update public.historical_unscored_match_contributions
+  set player_id = p_target_player_id
+  where player_id = p_source_player_id;
+
+  update public.historical_player_name_links
+  set player_id = p_target_player_id, updated_at = now()
+  where player_id = p_source_player_id;
+
+  update public.historical_player_statistics
+  set player_id = p_target_player_id
+  where player_id = p_source_player_id;
+
+  update public.guest_players
+  set player_id = p_target_player_id
+  where player_id = p_source_player_id;
+
+  update public.season_players
+  set player_id = p_target_player_id
+  where player_id = p_source_player_id;
+
+  delete from public.players
+  where id = p_source_player_id;
+end;
+$function$;
+
 create function private.get_player_season_statistics(
   p_full_name text,
   p_is_goalkeeper boolean,
@@ -141,39 +243,35 @@ begin
     order by se.created_at desc
     limit 1
   ),
+  -- La ligne Carrière que la fiche affiche : même choix que l'application
+  -- (compte, ou nom complet et poste ; la plus fournie en matchs d'abord).
+  card as (
+    select v.player_name, v.is_goalkeeper
+    from public.v_statistics_players v
+    where v.period_key = 'all_time'
+      and (
+        (p_profile_id is not null and v.profile_id = p_profile_id)
+        or (
+          v_name <> ''
+          and v.is_goalkeeper = p_is_goalkeeper
+          and lower(regexp_replace(btrim(v.player_name), '\s+', ' ', 'g')) = v_name
+        )
+      )
+    order by v.matches_played desc, v.goals desc, lower(v.player_name)
+    limit 1
+  ),
+  -- Ses deux composantes, réunies par la vue sur le nom (casse et espaces
+  -- extérieurs ignorés) et le poste : le classement importé, dont l'archive
+  -- match par match suit l'identité, et les effectifs de l'application. Un
+  -- effectif inscrit à un autre poste ou sous un autre nom forme une autre
+  -- ligne Carrière ; il n'est donc pas compté ici non plus.
   ids as (
     select h.player_id
     from public.historical_player_statistics h
+    join card
+      on lower(btrim(h.player_name)) = lower(btrim(card.player_name))
+     and h.is_goalkeeper = card.is_goalkeeper
     where h.scope = 'all_time'
-      and (
-        (p_profile_id is not null and h.profile_id = p_profile_id)
-        or (
-          v_name <> ''
-          and h.is_goalkeeper = p_is_goalkeeper
-          and lower(regexp_replace(btrim(h.player_name), '\s+', ' ', 'g')) = v_name
-        )
-      )
-    union
-    select sp.player_id
-    from public.season_players sp
-    where not sp.is_coach
-      and (
-        (p_profile_id is not null and sp.profile_id = p_profile_id)
-        or (
-          v_name <> ''
-          and sp.is_goalkeeper = p_is_goalkeeper
-          and lower(regexp_replace(
-            btrim(concat_ws(' ', sp.first_name, nullif(sp.last_name, ''))),
-            '\s+', ' ', 'g'
-          )) = v_name
-        )
-      )
-    union
-    select pr.player_id
-    from public.profiles pr
-    where p_profile_id is not null
-      and pr.id = p_profile_id
-      and pr.player_id is not null
   ),
   archive_matches as (
     select
@@ -236,8 +334,11 @@ begin
   app_rows as (
     select sp.id, sp.season_id
     from public.season_players sp
+    join card
+      on lower(btrim(concat_ws(' ', sp.first_name, nullif(sp.last_name, ''))))
+         = lower(btrim(card.player_name))
+     and sp.is_goalkeeper = card.is_goalkeeper
     where not sp.is_coach
-      and sp.player_id in (select ids.player_id from ids)
   ),
   app_present as (
     select distinct present.match_id, m.season_id, m.score_as_grinta, m.score_adverse
