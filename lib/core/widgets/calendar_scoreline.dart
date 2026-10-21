@@ -485,6 +485,11 @@ abstract final class CalendarCardSpacing {
 
   /// Marge haute et basse des bandeaux foncés (date, adresse).
   static const double band = 12;
+
+  /// Espace entre l'affiche et la mention « Match annulé », et sous elle :
+  /// la mention reste collée à l'affiche au lieu d'aérer la carte.
+  static const double cancelledLabelGap = 2;
+  static const double cancelledBodyBottom = 10;
 }
 
 /// Découpe d'une carte du calendrier en trois zones :
@@ -500,6 +505,7 @@ class CalendarCardSections extends StatelessWidget {
     this.footer,
     this.bandVerticalPadding = CalendarCardSpacing.band,
     this.bodyVerticalPadding = CalendarCardSpacing.vertical,
+    this.bodyBottomPadding,
     this.bandHorizontalPadding = 14,
     this.bodyHorizontalPadding = 12,
   });
@@ -509,6 +515,9 @@ class CalendarCardSections extends StatelessWidget {
   final Widget? footer;
   final double bandVerticalPadding;
   final double bodyVerticalPadding;
+
+  /// Marge basse de l'affiche, si elle doit différer de la marge haute.
+  final double? bodyBottomPadding;
   final double bandHorizontalPadding;
   final double bodyHorizontalPadding;
 
@@ -535,9 +544,11 @@ class CalendarCardSections extends StatelessWidget {
       children: [
         band(header),
         Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: bodyHorizontalPadding,
-            vertical: bodyVerticalPadding,
+          padding: EdgeInsets.fromLTRB(
+            bodyHorizontalPadding,
+            bodyVerticalPadding,
+            bodyHorizontalPadding,
+            bodyBottomPadding ?? bodyVerticalPadding,
           ),
           child: body,
         ),

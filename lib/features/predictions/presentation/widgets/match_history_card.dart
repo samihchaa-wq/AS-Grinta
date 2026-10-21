@@ -50,13 +50,15 @@ class MatchHistoryCard extends ConsumerWidget {
           label: match.isInternal ? null : match.calendarTypeLabel,
           endInset: actions != null ? CalendarCardActionsOverlay.dateInset : 0,
         ),
+        bodyBottomPadding:
+            match.isCancelled ? CalendarCardSpacing.cancelledBodyBottom : null,
         body: match.isCancelled
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   fixture,
-                  const SizedBox(height: CalendarCardSpacing.line),
+                  const SizedBox(height: CalendarCardSpacing.cancelledLabelGap),
                   const CalendarCancelledLabel(),
                 ],
               )

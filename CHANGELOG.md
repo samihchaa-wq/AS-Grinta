@@ -44,7 +44,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   match passée, il rejoignait les matchs terminés sans plus rien indiquer que
   sa couleur, et ouvrait une fiche de match à venir. La mention, déjà présente
   avant la date sous la forme « Annulé », passe aussi dans un rouge plus
-  lisible ;
+  lisible. Dans les vues Défilé et Par mois, elle est collée sous l'affiche et
+  la carte est moins haute ;
 - notifications : « Match annulé » ouvre le calendrier, sur la carte du match
   annulé, au milieu des autres matchs, au lieu de l'onglet Info de sa fiche.
   Les « Match annulé » déjà reçus, et toute notification sur ce match envoyée
