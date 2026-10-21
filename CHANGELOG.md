@@ -14,11 +14,14 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   cours, plus pâle, est signalée. Une saison manquée entre deux autres
   apparaît vide. Les passes décisives n'y figurent pas : elles ne sont
   comptées que depuis cette saison. Les saisons archivées sont recalculées
-  match par match ; pour cinq joueurs, il manque à l'archive un homme du
-  match (et, pour deux d'entre eux, un ou deux buts), si bien que leurs
-  barres totalisent un peu moins que leurs chiffres de carrière. La carte
-  n'apparaît qu'à partir de deux saisons, et seulement une fois la mise à
-  jour de la base de données déployée ;
+  match par match. Les buts et hommes du match de trois matchs officiels
+  joués sans score (28 juin 2016 contre CG31, 17 mai 2024 contre AS
+  Clinique Pasteur, 4 mai 2026 contre FC Boehringer Toulouse), déjà comptés
+  dans les chiffres de carrière sans compter comme matchs joués, sont rangés
+  dans leur saison de la même façon : les barres retombent exactement sur
+  les chiffres de carrière de chaque joueur. La carte n'apparaît qu'à partir
+  de deux saisons, et seulement une fois la mise à jour de la base de
+  données déployée ;
 - icône de l'application : le blason sans sa bordure remplit tout le bouton
   (fond bleu et bandes or jusqu'aux bords, banderole, « 2020 », ballon). La
   croix occitane est redessinée fidèlement ; sur les téléphones Android qui

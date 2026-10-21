@@ -19,6 +19,92 @@ begin;
 --
 -- L'archive se lit uniquement par cette fonction, comme le détail d'un match
 -- archivé : les tables historiques restent fermées au client.
+--
+-- Matchs sans score. Le classement importé compte aussi les buts et les
+-- hommes du match de matchs officiels (amical, championnat) joués sans score
+-- saisi dans SportEasy, sans les compter comme matchs joués. Ces matchs ne
+-- sont pas dans l'archive, qui exige un score. D'après le relevé SportEasy du
+-- 2026-08-26 (tool/sporteasy), seuls trois matchs officiels sans score ont
+-- des buts ou des hommes du match, et leurs lignes ci-dessous font exactement
+-- les écarts entre le classement et l'archive : cinq hommes du match, trois
+-- buts. Les matchs « entre nous » et le tournoi sans score, eux, ne sont pas
+-- comptés par le classement. Le détail par saison ajoute ces lignes sans en
+-- faire des matchs joués : chaque saison retombe ainsi sur le classement.
+-- Philippe Couzin, élu le 2026-05-04, n'a pas de ligne au classement : il
+-- n'est pas repris.
+
+create table public.historical_unscored_match_contributions (
+  match_date date not null,
+  opponent_name text not null,
+  match_type text not null
+    check (match_type in ('amical', 'championnat')),
+  player_id uuid not null
+    references public.players(id) on delete restrict,
+  goals integer not null default 0 check (goals >= 0),
+  is_motm boolean not null default false,
+  primary key (player_id, match_date),
+  check (goals > 0 or is_motm)
+);
+
+comment on table public.historical_unscored_match_contributions is
+  'Buts et hommes du match de matchs officiels joués sans score saisi : comptés par le classement importé (historical_player_statistics), mais pas comme matchs joués. Lecture uniquement via get_player_season_statistics.';
+
+alter table public.historical_unscored_match_contributions enable row level security;
+
+create policy active_authenticated_profile_only
+  on public.historical_unscored_match_contributions
+  as restrictive
+  to authenticated
+  using ((select private.is_active_profile()))
+  with check ((select private.is_active_profile()));
+
+create policy deny_client_access
+  on public.historical_unscored_match_contributions
+  as restrictive
+  to anon, authenticated
+  using (false)
+  with check (false);
+
+revoke all on table public.historical_unscored_match_contributions from public, anon, authenticated;
+grant all on table public.historical_unscored_match_contributions to service_role;
+
+insert into public.historical_unscored_match_contributions(
+  match_date, opponent_name, match_type, player_id, goals, is_motm
+)
+select v.match_date, v.opponent_name, v.match_type, h.player_id, v.goals, v.is_motm
+from (
+  values
+    (date '2016-06-28', 'Amicale Football CG31', 'amical', 'Romain Spigolon', 0, true),
+    (date '2024-05-17', 'AS Clinique Pasteur', 'amical', 'Yoann Canal', 2, true),
+    (date '2024-05-17', 'AS Clinique Pasteur', 'amical', 'Milan Couzin', 1, false),
+    (date '2026-05-04', 'FC Boehringer Toulouse', 'championnat', 'Milan Couzin', 0, true),
+    (date '2026-05-04', 'FC Boehringer Toulouse', 'championnat', 'Samuel Granier', 0, true),
+    (date '2026-05-04', 'FC Boehringer Toulouse', 'championnat', 'Samih Châa', 0, true)
+) as v(match_date, opponent_name, match_type, player_name, goals, is_motm)
+join public.historical_player_statistics h
+  on h.scope = 'all_time'
+ and h.player_name = v.player_name;
+
+-- Une base sans archive (installation de test) n'a aucun de ces joueurs. Une
+-- base qui les a doit recevoir les six lignes : un nom changé entre-temps
+-- laisserait sinon un écart silencieux.
+do $$
+begin
+  if exists (
+    select 1
+    from public.historical_player_statistics h
+    where h.scope = 'all_time'
+      and h.player_name in (
+        'Romain Spigolon', 'Yoann Canal', 'Milan Couzin',
+        'Samuel Granier', 'Samih Châa'
+      )
+  ) and (
+    select count(*) from public.historical_unscored_match_contributions
+  ) <> 6 then
+    raise exception 'historical_unscored_match_contributions: 6 lignes attendues';
+  end if;
+end;
+$$;
 
 create function private.get_player_season_statistics(
   p_full_name text,
@@ -124,6 +210,29 @@ begin
     from archive_matches am
     group by am.start_year
   ),
+  unscored_seasons as (
+    select
+      us.start_year::text || '-' || (us.start_year + 1)::text as season_name,
+      0 as matches_played,
+      0 as wins,
+      0 as draws,
+      0 as losses,
+      coalesce(sum(us.goals), 0)::integer as goals,
+      count(*) filter (where us.is_motm)::integer as hdm
+    from (
+      select
+        case
+          when extract(month from c.match_date) >= 7
+            then extract(year from c.match_date)::integer
+          else extract(year from c.match_date)::integer - 1
+        end as start_year,
+        c.goals,
+        c.is_motm
+      from public.historical_unscored_match_contributions c
+      where c.player_id in (select ids.player_id from ids)
+    ) us
+    group by us.start_year
+  ),
   app_rows as (
     select sp.id, sp.season_id
     from public.season_players sp
@@ -197,6 +306,8 @@ begin
     sum(u.hdm)::integer
   from (
     select * from archive_seasons
+    union all
+    select * from unscored_seasons
     union all
     select * from app_seasons
   ) u

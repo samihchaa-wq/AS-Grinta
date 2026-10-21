@@ -34,6 +34,28 @@ select ok(
   'un visiteur anonyme n’atteint pas le calcul privé'
 );
 
+select ok(
+  (
+    select relrowsecurity from pg_class
+    where oid = 'public.historical_unscored_match_contributions'::regclass
+  ),
+  'les buts et HDM des matchs sans score sont protégés par RLS'
+);
+
+select ok(
+  not has_table_privilege(
+    'authenticated',
+    'public.historical_unscored_match_contributions',
+    'SELECT'
+  )
+  and not has_table_privilege(
+    'anon',
+    'public.historical_unscored_match_contributions',
+    'SELECT'
+  ),
+  'les matchs sans score ne se lisent pas directement'
+);
+
 insert into public.players(id, display_name)
 values ('f1000000-0000-0000-0000-000000000001', 'Evolution Testeur');
 
@@ -92,6 +114,18 @@ values
   -- Sur la feuille mais absent : ni match joué ni résultat.
   ('f6000000-0000-0000-0000-000000000004',
    'f1000000-0000-0000-0000-000000000001', 'Evolution Testeur', false, 0, false);
+
+-- Matchs officiels sans score : buts et HDM comptés par le classement, sans
+-- match joué. L'un tombe dans une saison déjà jouée, l'autre seul dans la
+-- sienne.
+insert into public.historical_unscored_match_contributions(
+  match_date, opponent_name, match_type, player_id, goals, is_motm
+)
+values
+  (date '2097-05-20', 'Adversaire test évolution', 'amical',
+   'f1000000-0000-0000-0000-000000000001', 2, true),
+  (date '2097-09-10', 'Adversaire test évolution', 'championnat',
+   'f1000000-0000-0000-0000-000000000001', 0, true);
 
 -- Application : une saison avec un match terminé et un match pas encore
 -- validé.
@@ -190,7 +224,7 @@ select is(
       'Evolution Testeur', false, 'f2000000-0000-0000-0000-000000000001'
     ) s
   ),
-  array['2095-2096', '2096-2097', '2098-2099'],
+  array['2095-2096', '2096-2097', '2097-2098', '2098-2099'],
   'une ligne par saison jouée, dans l’ordre, archive et application réunies'
 );
 
@@ -208,8 +242,17 @@ select is(
     'Evolution Testeur', false, 'f2000000-0000-0000-0000-000000000001',
     '2096-2097'
   ),
-  '2/1/0/1/3/1',
-  'matchs, résultats, buts et homme du match de l’archive ; un absent ne compte pas'
+  '2/1/0/1/5/2',
+  'archive et match sans score de la saison s’additionnent ; un absent ne compte pas'
+);
+
+select is(
+  pg_temp.season_line(
+    'Evolution Testeur', false, 'f2000000-0000-0000-0000-000000000001',
+    '2097-2098'
+  ),
+  '0/0/0/0/0/1',
+  'un match sans score donne ses buts et son HDM, jamais un match joué'
 );
 
 select is(
@@ -235,7 +278,7 @@ select is(
 
 select is(
   pg_temp.season_line('  evolution   TESTEUR ', false, null, '2096-2097'),
-  '2/1/0/1/3/1',
+  '2/1/0/1/5/2',
   'sans compte, le nom complet et le poste suffisent, casse et espaces ignorés'
 );
 
