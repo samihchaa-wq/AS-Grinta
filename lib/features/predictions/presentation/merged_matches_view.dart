@@ -627,13 +627,15 @@ class _UpcomingMatchCard extends ConsumerWidget {
         label: match.isInternal ? null : match.calendarTypeLabel,
         endInset: CalendarCardActionsOverlay.dateInsetFor(actionCount),
       ),
+      bodyBottomPadding:
+          match.isCancelled ? CalendarCardSpacing.cancelledBodyBottom : null,
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           fixture,
           if (match.isCancelled) ...[
-            const SizedBox(height: CalendarCardSpacing.line),
+            const SizedBox(height: CalendarCardSpacing.cancelledLabelGap),
             const CalendarCancelledLabel(),
           ],
           if (availabilityIsOpen)
