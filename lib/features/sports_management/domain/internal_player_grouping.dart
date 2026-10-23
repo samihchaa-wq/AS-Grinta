@@ -29,10 +29,9 @@ const int kMinimumInternalPositionAppearances = 3;
 /// Le cas du polyvalent mérite d'être dit : ranger sous une ligne un joueur
 /// dont le poste principal pèse moins de 30 % affiche une certitude que
 /// l'historique n'a pas. Le seuil est celui de [PlayerPositionProfile
-/// .isVersatile], le même que « Simuler la compo » utilise pour n'en faire
-/// qu'une variable d'ajustement. Rien n'est figé : chaque match enregistré
-/// dans l'application fait bouger la part du poste principal, et un joueur qui
-/// se fixe finit par franchir le seuil de lui-même.
+/// .isVersatile]. Rien n'est figé : chaque match enregistré dans
+/// l'application fait bouger la part du poste principal, et un joueur qui se
+/// fixe finit par franchir le seuil de lui-même.
 InternalPlayerGroup internalPlayerGroupFor({
   required bool isGuest,
   required bool isGoalkeeper,

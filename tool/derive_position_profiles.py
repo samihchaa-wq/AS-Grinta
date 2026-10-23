@@ -263,8 +263,8 @@ def render(profiles, latest, coverage_end, source):
         '      samples.length > 1 ? samples[1].slotLabel : null;',
         '',
         '  /// Vrai quand aucun poste ne domine : le joueur est un couteau',
-        '  /// suisse, que la simulation place en ajustement plutôt que sur',
-        "  /// un poste de référence qui n'en est pas un.",
+        '  /// suisse, que les matchs entre nous rangent dans « Autre » plutôt',
+        "  /// que sous une ligne qui n'en est pas une.",
         f'  bool get isVersatile => shareOf(mainSlotLabel) < '
         f'{VERSATILE_THRESHOLD};',
         '}',

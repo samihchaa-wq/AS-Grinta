@@ -1645,9 +1645,10 @@ class _PlayerChip extends StatelessWidget {
 final _internalBenchCountsProvider = FutureProvider.autoDispose
     .family<Map<String, int>, String>((ref, matchId) async {
   try {
-    return await ref
+    final history = await ref
         .watch(matchCompositionRepositoryProvider)
-        .fetchFinishedBenchCounts(matchId);
+        .fetchFinishedBenchHistory(matchId);
+    return history.counts;
   } catch (_) {
     return const {};
   }

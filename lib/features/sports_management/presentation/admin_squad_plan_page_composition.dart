@@ -325,6 +325,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 _canonicalPlayerIds[entry.seasonPlayerId] ?? ''],
             isGuest: entry.isGuest,
             isGoalkeeper: entry.isGoalkeeper,
+            benchedLastMatch: _benchedLastMatch.contains(entry.participantId),
           ),
     ];
   }
@@ -390,29 +391,69 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       );
       _compositionDirty = true;
     });
-    _showMessage(_simulationSummary(simulation));
+    // Plusieurs phrases à lire avant d'ajuster : le message reste plus
+    // longtemps que les confirmations d'une ligne.
+    _showMessage(
+      _simulationSummary(simulation),
+      duration: const Duration(seconds: 10),
+    );
   }
 
+  /// Ce que la simulation a fait, en quelques phrases : qui revient du banc,
+  /// et surtout ce qui mérite un coup d'œil avant d'enregistrer.
   String _simulationSummary(SimulatedComposition simulation) {
+    String placed(List<SimulatedPlacement> placements) => placements
+        .map((placement) =>
+            '${placement.candidate.displayName} (${placement.slot.label})')
+        .join(', ');
+    String names(Iterable<SimulationCandidate> candidates) =>
+        candidates.map((candidate) => candidate.displayName).join(', ');
+
     final titulaires = simulation.placements.length;
-    final parts = <String>[
-      '$titulaires ${titulaires > 1 ? 'titulaires placés' : 'titulaire placé'}',
-      '${simulation.bench.length} sur le banc',
+    final sentences = <String>[
+      '$titulaires ${titulaires > 1 ? 'titulaires' : 'titulaire'}, '
+          '${simulation.bench.length} sur le banc.',
     ];
-    if (simulation.emptySlots.isNotEmpty) {
-      final labels = simulation.emptySlots.map((slot) => slot.label).join(', ');
-      parts.add('poste${simulation.emptySlots.length > 1 ? 's' : ''} '
-          'sans joueur : $labels');
+    final promoted = simulation.promotedFromBench;
+    if (promoted.isNotEmpty) {
+      sentences.add(
+        'Remplaçant${promoted.length > 1 ? 's' : ''} au dernier match, '
+        'titulaire${promoted.length > 1 ? 's' : ''} cette fois : '
+        '${names(promoted.map((placement) => placement.candidate))}.',
+      );
+    }
+    final kept = simulation.keptOnBench;
+    if (kept.isNotEmpty) {
+      sentences.add(
+        kept.length > 1
+            ? 'Restent remplaçants, leur poste étant déjà pris : '
+                '${names(kept)}.'
+            : 'Reste remplaçant, son poste étant déjà pris : '
+                '${names(kept)}.',
+      );
     }
     final stretched = simulation.stretchedPlacements;
     if (stretched.isNotEmpty) {
-      final names = stretched
-          .map((placement) =>
-              '${placement.candidate.displayName} (${placement.slot.label})')
-          .join(', ');
-      parts.add('hors poste habituel : $names');
+      sentences.add(
+        'Hors de ${stretched.length > 1 ? 'leur' : 'son'} poste habituel : '
+        '${placed(stretched)}.',
+      );
     }
-    return '${parts.join(' · ')}. À toi d’ajuster.';
+    final unknown = simulation.unknownPlacements;
+    if (unknown.isNotEmpty) {
+      sentences.add(
+        'Poste${unknown.length > 1 ? 's' : ''} à confirmer, '
+        'faute de matchs joués : ${placed(unknown)}.',
+      );
+    }
+    if (simulation.emptySlots.isNotEmpty) {
+      sentences.add(
+        'Poste${simulation.emptySlots.length > 1 ? 's' : ''} sans joueur : '
+        '${simulation.emptySlots.map((slot) => slot.label).join(', ')}.',
+      );
+    }
+    sentences.add('À toi d’ajuster.');
+    return sentences.join(' ');
   }
 
   MatchComposition _compositionReadyToSave() {

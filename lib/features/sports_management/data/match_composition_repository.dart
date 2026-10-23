@@ -5,6 +5,22 @@ import 'package:flutter/painting.dart' show Offset;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Ce que les matchs déjà joués disent du banc, participant par participant.
+class FinishedBenchHistory {
+  const FinishedBenchHistory({
+    this.counts = const {},
+    this.benchedLastMatch = const {},
+  });
+
+  static const FinishedBenchHistory empty = FinishedBenchHistory();
+
+  /// Nombre de matchs terminés commencés sur le banc.
+  final Map<String, int> counts;
+
+  /// Les participants remplaçants au dernier match joué de la saison.
+  final Set<String> benchedLastMatch;
+}
+
 abstract interface class MatchCompositionRepository {
   Future<MatchComposition?> fetchAdminComposition(String matchId);
   Future<MatchComposition?> fetchPublishedComposition(String matchId);
@@ -14,7 +30,7 @@ abstract interface class MatchCompositionRepository {
   Future<Map<String, String>> fetchCanonicalPlayerIds(
     List<String> seasonPlayerIds,
   );
-  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId);
+  Future<FinishedBenchHistory> fetchFinishedBenchHistory(String matchId);
   Future<List<PlayedPosition>> fetchPlayerPositionHistory(DateTime since);
   Future<MatchComposition> saveComposition({
     required MatchComposition composition,
@@ -109,18 +125,31 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
   }
 
   @override
-  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async {
+  Future<FinishedBenchHistory> fetchFinishedBenchHistory(
+    String matchId,
+  ) async {
     final response = await _client.rpc(
       'admin_get_finished_bench_counts',
       params: {'p_match_id': matchId},
     );
-    if (response is! List) return const {};
-    return {
-      for (final row in response)
-        if (Map<String, dynamic>.from(row as Map) case final entry)
-          entry['participant_id'].toString():
-              (entry['finished_bench_count'] as num?)?.toInt() ?? 0,
-    };
+    if (response is! List) return FinishedBenchHistory.empty;
+    final counts = <String, int>{};
+    final benchedLastMatch = <String>{};
+    for (final row in response) {
+      final entry = Map<String, dynamic>.from(row as Map);
+      final participantId = entry['participant_id'].toString();
+      counts[participantId] =
+          (entry['finished_bench_count'] as num?)?.toInt() ?? 0;
+      // Clé absente tant que la base n'a pas reçu sa mise à jour : personne
+      // n'est alors signalé, et la simulation se passe de ce critère.
+      if (entry['benched_last_match'] == true) {
+        benchedLastMatch.add(participantId);
+      }
+    }
+    return FinishedBenchHistory(
+      counts: counts,
+      benchedLastMatch: benchedLastMatch,
+    );
   }
 
   /// Les placements des titulaires sur les matchs déjà joués depuis [since].

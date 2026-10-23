@@ -6,6 +6,21 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- composition, « Simuler une composition » : la proposition ne met plus un
+  défenseur central au milieu pendant qu'un vrai milieu reste sur le banc,
+  défaut constaté sur chacun des quatre matchs à onze de la saison. Elle
+  cherche désormais l'équipe entière la plus cohérente au lieu de remplir
+  les postes un par un, et suit la rotation que l'équipe pratique : les
+  remplaçants du dernier match sont titularisés, sauf si aucun poste qui
+  leur correspond n'est libre. Rejouée sur les matchs de la saison, elle
+  retrouve chaque fois au moins dix des onze titulaires réellement alignés.
+  Un invité complète un poste qui resterait vide, sans jamais prendre la
+  place d'un joueur de l'effectif. Le message affiché après la simulation
+  dit qui revient du banc, qui joue hors de son poste habituel, quels postes
+  sont à confirmer faute de matchs joués et lesquels restent vides. La
+  titularisation des remplaçants du dernier match n'est active qu'une fois
+  la mise à jour de la base de données déployée ; d'ici là, la simulation
+  fonctionne sans ce critère ;
 - fiche joueur, onglet Carrière : une carte « Évolution » sous le Bilan
   montre une barre par saison pour la statistique choisie (Matchs,
   % Victoires, Buts, HDM, Buts / match ; les buts d'abord, les matchs pour
