@@ -9,7 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class FinishedBenchHistory {
   const FinishedBenchHistory({
     this.counts = const {},
-    this.benchedLastMatch = const {},
+    this.benchedLastTime = const {},
   });
 
   static const FinishedBenchHistory empty = FinishedBenchHistory();
@@ -17,8 +17,9 @@ class FinishedBenchHistory {
   /// Nombre de matchs terminés commencés sur le banc.
   final Map<String, int> counts;
 
-  /// Les participants remplaçants au dernier match joué de la saison.
-  final Set<String> benchedLastMatch;
+  /// Les participants qui ont commencé remplaçants la dernière fois qu'ils
+  /// ont joué cette saison.
+  final Set<String> benchedLastTime;
 }
 
 abstract interface class MatchCompositionRepository {
@@ -134,7 +135,7 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
     );
     if (response is! List) return FinishedBenchHistory.empty;
     final counts = <String, int>{};
-    final benchedLastMatch = <String>{};
+    final benchedLastTime = <String>{};
     for (final row in response) {
       final entry = Map<String, dynamic>.from(row as Map);
       final participantId = entry['participant_id'].toString();
@@ -142,13 +143,13 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
           (entry['finished_bench_count'] as num?)?.toInt() ?? 0;
       // Clé absente tant que la base n'a pas reçu sa mise à jour : personne
       // n'est alors signalé, et la simulation se passe de ce critère.
-      if (entry['benched_last_match'] == true) {
-        benchedLastMatch.add(participantId);
+      if (entry['benched_last_time'] == true) {
+        benchedLastTime.add(participantId);
       }
     }
     return FinishedBenchHistory(
       counts: counts,
-      benchedLastMatch: benchedLastMatch,
+      benchedLastTime: benchedLastTime,
     );
   }
 

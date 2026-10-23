@@ -199,6 +199,7 @@ class FormationPitchEditor extends StatefulWidget {
     required this.onRemoveFromField,
     this.editable = true,
     this.finishedBenchCounts = const {},
+    this.benchedLastTime = const {},
     this.benchLabels = const {},
     this.benchColors = const {},
     this.namesOnly = false,
@@ -217,6 +218,10 @@ class FormationPitchEditor extends StatefulWidget {
   /// Nombre de fois où chaque joueur (par participantId) a déjà été noté
   /// remplaçant dans un match terminé.
   final Map<String, int> finishedBenchCounts;
+
+  /// Les joueurs (par participantId) qui ont commencé remplaçants la dernière
+  /// fois qu'ils ont joué : leur compteur passe en bleu.
+  final Set<String> benchedLastTime;
 
   /// Texte affiché à la place du compteur, par participantId (« 2.1 » en
   /// direct). Un joueur absent garde son simple compteur.
@@ -631,6 +636,8 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                                 count: finishedBenchCount,
                                 label: benchLabel,
                                 color: widget.benchColors[entry.participantId],
+                                benchedLastTime: widget.benchedLastTime
+                                    .contains(entry.participantId),
                               )
                             : null,
                       )
@@ -656,6 +663,8 @@ class _FormationPitchEditorState extends State<FormationPitchEditor> {
                                     label: benchLabel,
                                     color:
                                         widget.benchColors[entry.participantId],
+                                    benchedLastTime: widget.benchedLastTime
+                                        .contains(entry.participantId),
                                   ),
                                 ),
                             ],

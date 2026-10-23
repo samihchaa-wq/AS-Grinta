@@ -9,7 +9,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Set<String> _goalkeeperIds = {};
   Set<String> _actualPresent = {};
   Map<String, int> _finishedBenchCounts = {};
-  Set<String> _benchedLastMatch = {};
+  Set<String> _benchedLastTime = {};
   Map<String, String> _canonicalPlayerIds = {};
   Map<String, PlayerPositionProfile> _positionProfiles =
       kPlayerPositionProfiles;
@@ -229,7 +229,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _compositionExisted = saved != null;
         _actualPresent = actualPresent;
         _finishedBenchCounts = benchHistory.counts;
-        _benchedLastMatch = benchHistory.benchedLastMatch;
+        _benchedLastTime = benchHistory.benchedLastTime;
         _canonicalPlayerIds = canonicalPlayerIds;
         _goalkeeperIds = goalkeeperIds;
         _positionProfiles = positionProfiles;

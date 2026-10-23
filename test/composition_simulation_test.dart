@@ -31,7 +31,7 @@ SimulationCandidate candidate(
   int benchCount = 0,
   bool isGuest = false,
   bool isGoalkeeper = false,
-  bool benchedLastMatch = false,
+  bool benchedLastTime = false,
 }) {
   return SimulationCandidate(
     participantId: name,
@@ -40,7 +40,7 @@ SimulationCandidate candidate(
     profile: playerId == null ? null : kPlayerPositionProfiles[playerId],
     isGuest: isGuest,
     isGoalkeeper: isGoalkeeper,
-    benchedLastMatch: benchedLastMatch,
+    benchedLastTime: benchedLastTime,
   );
 }
 
@@ -238,7 +238,7 @@ void main() {
     });
 
     test('personne n’est envoyé hors de ses habitudes sans nécessité', () {
-      // Un buteur remplaçant au dernier match n'a pas sa place dans une
+      // Un buteur remplaçant la dernière fois n'a pas sa place dans une
       // charnière déjà tenue par deux axiaux : il reste sur le banc.
       final simulation = simulateComposition(
         slots: <FootballFormationSlot>[
@@ -248,7 +248,7 @@ void main() {
         candidates: [
           candidate('Julien', playerId: julienCesar),
           candidate('Stéphane', playerId: stephaneFernandez),
-          candidate('Milan', playerId: milanCouzin, benchedLastMatch: true),
+          candidate('Milan', playerId: milanCouzin, benchedLastTime: true),
         ],
       );
 
@@ -277,9 +277,10 @@ void main() {
   });
 
   group('Rotation', () {
-    test('les remplaçants du dernier match commencent celui-ci', () {
+    test('les remplaçants de leur dernier match commencent celui-ci', () {
       // Convocation réelle du 27 octobre 2026 : Hakim et Luka étaient
-      // remplaçants le 12 octobre.
+      // remplaçants le 12 octobre, Simon le 21 septembre, la dernière fois
+      // qu'il a joué.
       final simulation = simulateComposition(
         slots: formation.slots,
         candidates: [
@@ -292,20 +293,25 @@ void main() {
             'Hakim',
             playerId: hakimCherfi,
             benchCount: 2,
-            benchedLastMatch: true,
+            benchedLastTime: true,
           ),
           candidate('Julien', playerId: julienCesar, benchCount: 1),
           candidate(
             'Luka',
             playerId: lukaBrunel,
             benchCount: 1,
-            benchedLastMatch: true,
+            benchedLastTime: true,
           ),
           candidate('Milan', playerId: milanCouzin),
           candidate('Nicolas', playerId: nicolasBelmonte, benchCount: 1),
           candidate('Olivier', playerId: olivierMillet, benchCount: 1),
           candidate('Romain', playerId: romainSpigolon, benchCount: 1),
-          candidate('Simon', playerId: simonReis, benchCount: 1),
+          candidate(
+            'Simon',
+            playerId: simonReis,
+            benchCount: 1,
+            benchedLastTime: true,
+          ),
           candidate('Stéphane', playerId: stephaneFernandez, benchCount: 1),
         ],
       );
@@ -314,7 +320,7 @@ void main() {
       expect(slotOf(simulation, 'Luka'), isNotNull);
       expect(
         simulation.promotedFromBench.map((p) => p.candidate.displayName),
-        unorderedEquals(['Hakim', 'Luka']),
+        unorderedEquals(['Hakim', 'Luka', 'Simon']),
       );
       expect(simulation.keptOnBench, isEmpty);
       // Les titulaires qui n'ont pas de concurrent à leur poste restent.
@@ -350,19 +356,20 @@ void main() {
           candidate('Beaucoup', playerId: lukaBrunel, benchCount: 9),
           candidate('Moyen', playerId: allanBamokena, benchCount: 4),
           candidate(
-            'Dernier match',
+            'Remplaçant la dernière fois',
             playerId: julienCesar,
-            benchedLastMatch: true,
+            benchedLastTime: true,
           ),
           candidate('Titulaire', playerId: milanCouzin, benchCount: 12),
         ],
       );
 
       expect(slotOf(simulation, 'Titulaire'), 'BU');
-      // Le remplaçant du dernier match passe en tête, puis le compteur banc.
+      // Le remplaçant de son dernier match passe en tête, puis le compteur
+      // banc.
       expect(
         benchOf(simulation),
-        ['Dernier match', 'Beaucoup', 'Moyen', 'Peu'],
+        ['Remplaçant la dernière fois', 'Beaucoup', 'Moyen', 'Peu'],
       );
     });
 
@@ -446,7 +453,7 @@ void main() {
       expect(benchOf(simulation), contains('Habituel'));
     });
 
-    test('le gardien remplaçant au dernier match prend les buts', () {
+    test('le gardien remplaçant la dernière fois prend les buts', () {
       final simulation = simulateComposition(
         slots: formation.slots,
         candidates: [
@@ -460,7 +467,7 @@ void main() {
             'Doublure',
             playerId: samihGardien,
             isGoalkeeper: true,
-            benchedLastMatch: true,
+            benchedLastTime: true,
           ),
         ],
       );
@@ -499,7 +506,7 @@ void main() {
             'Invité',
             isGuest: true,
             benchCount: 12,
-            benchedLastMatch: true,
+            benchedLastTime: true,
           ),
           // Même un défenseur hors de ses habitudes passe avant l'invité.
           candidate('Julien', playerId: julienCesar),
@@ -534,7 +541,7 @@ void main() {
       expect(simulation.unknownPlacements, hasLength(1));
     });
 
-    test('une recrue remplaçante au dernier match a sa chance', () {
+    test('une recrue remplaçante la dernière fois a sa chance', () {
       final simulation = simulateComposition(
         slots: formation.slots,
         candidates: [
@@ -549,7 +556,7 @@ void main() {
           candidate('Nicolas', playerId: nicolasBelmonte),
           candidate('Milan', playerId: milanCouzin),
           candidate('Allan', playerId: allanBamokena),
-          candidate('Recrue', benchedLastMatch: true),
+          candidate('Recrue', benchedLastTime: true),
         ],
       );
 
@@ -587,7 +594,7 @@ void main() {
             'Joueur $index',
             playerId: profiles[index].key,
             benchCount: index % 3,
-            benchedLastMatch: index.isEven,
+            benchedLastTime: index.isEven,
           ),
       ],
     );

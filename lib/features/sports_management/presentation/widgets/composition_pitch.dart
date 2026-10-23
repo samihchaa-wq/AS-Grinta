@@ -666,6 +666,7 @@ class SubstituteHistoryBadge extends StatelessWidget {
     required this.count,
     this.label,
     this.color,
+    this.benchedLastTime = false,
   });
 
   final int count;
@@ -678,6 +679,11 @@ class SubstituteHistoryBadge extends StatelessWidget {
   /// quelle que soit la couleur. Sans elle, la pastille reste neutre.
   final Color? color;
 
+  /// Vrai pour un joueur qui a commencé remplaçant la dernière fois qu'il a
+  /// joué : la pastille passe au bleu royal du club, pour repérer d'un coup
+  /// d'œil ceux dont c'est le tour de commencer.
+  final bool benchedLastTime;
+
   @override
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
@@ -686,7 +692,11 @@ class SubstituteHistoryBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        color: accent == null ? base : Colors.black,
+        color: accent != null
+            ? Colors.black
+            : benchedLastTime
+                ? AppTheme.primary
+                : base,
         borderRadius: BorderRadius.circular(6),
         border: accent == null
             ? Border.all(color: Colors.white70, width: .8)

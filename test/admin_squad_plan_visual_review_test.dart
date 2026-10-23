@@ -467,7 +467,7 @@ void main() {
     expect(repository.publishCalls, 1);
   });
 
-  testWidgets('la simulation titularise le remplaçant du dernier match', (
+  testWidgets('la simulation titularise le remplaçant de son dernier match', (
     tester,
   ) async {
     await _setTallViewport(tester);
@@ -476,7 +476,7 @@ void main() {
       convocations: _convocations(),
       initialStep: 'composition',
       compositionRepository: _FakeMatchCompositionRepository(
-        benchHistory: const FinishedBenchHistory(benchedLastMatch: {'p2'}),
+        benchHistory: const FinishedBenchHistory(benchedLastTime: {'p2'}),
       ),
     );
 
@@ -492,13 +492,60 @@ void main() {
     // Le message dit qui revient du banc et ce qui reste à vérifier.
     expect(
       find.textContaining(
-        'Remplaçant au dernier match, titulaire cette fois : Bruno.',
+        'Remplaçant la dernière fois qu’il a joué, titulaire cette fois : '
+        'Bruno.',
       ),
       findsOneWidget,
     );
     expect(find.textContaining('à confirmer, faute de matchs joués'),
         findsOneWidget);
     expect(find.textContaining('À toi d’ajuster.'), findsOneWidget);
+  });
+
+  testWidgets(
+      'le compteur banc est bleu pour le remplaçant de son dernier '
+      'match', (tester) async {
+    await _setTallViewport(tester);
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(),
+      initialStep: 'composition',
+      compositionRepository: _FakeMatchCompositionRepository(
+        benchHistory: const FinishedBenchHistory(
+          counts: {'p2': 1, 'p3': 2},
+          benchedLastTime: {'p2'},
+        ),
+      ),
+    );
+
+    Color? badgeColor(int count) {
+      final badge = find.byWidgetPredicate(
+        (widget) => widget is SubstituteHistoryBadge && widget.count == count,
+      );
+      expect(badge, findsOneWidget);
+      final box = tester.widget<Container>(
+        find.descendant(of: badge, matching: find.byType(Container)).first,
+      );
+      return (box.decoration! as BoxDecoration).color;
+    }
+
+    // Sur le banc : Bruno, remplaçant la dernière fois qu'il a joué, en bleu ;
+    // Clara garde la pastille habituelle.
+    expect(badgeColor(1), AppTheme.primary);
+    expect(badgeColor(2), isNot(AppTheme.primary));
+
+    final simulate = find.widgetWithText(
+      OutlinedButton,
+      'Simuler une composition',
+    );
+    await tester.ensureVisible(simulate);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(simulate);
+    await _pumpFrames(tester, count: 10);
+
+    // Sur le terrain, après la simulation, le repère suit le joueur.
+    expect(badgeColor(1), AppTheme.primary);
+    expect(badgeColor(2), isNot(AppTheme.primary));
   });
 
   testWidgets(

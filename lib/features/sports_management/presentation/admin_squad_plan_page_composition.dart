@@ -325,7 +325,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 _canonicalPlayerIds[entry.seasonPlayerId] ?? ''],
             isGuest: entry.isGuest,
             isGoalkeeper: entry.isGoalkeeper,
-            benchedLastMatch: _benchedLastMatch.contains(entry.participantId),
+            benchedLastTime: _benchedLastTime.contains(entry.participantId),
           ),
     ];
   }
@@ -417,9 +417,13 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final promoted = simulation.promotedFromBench;
     if (promoted.isNotEmpty) {
       sentences.add(
-        'Remplaçant${promoted.length > 1 ? 's' : ''} au dernier match, '
-        'titulaire${promoted.length > 1 ? 's' : ''} cette fois : '
-        '${names(promoted.map((placement) => placement.candidate))}.',
+        promoted.length > 1
+            ? 'Remplaçants la dernière fois qu’ils ont joué, titulaires '
+                'cette fois : '
+                '${names(promoted.map((placement) => placement.candidate))}.'
+            : 'Remplaçant la dernière fois qu’il a joué, titulaire cette '
+                'fois : '
+                '${names(promoted.map((placement) => placement.candidate))}.',
       );
     }
     final kept = simulation.keptOnBench;
@@ -770,6 +774,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             onDroppedOnSlot: _dropOnSlot,
             onRemoveFromField: _moveToBench,
             finishedBenchCounts: _postMatch ? const {} : _finishedBenchCounts,
+            benchedLastTime: _postMatch ? const {} : _benchedLastTime,
           ),
         ),
         const SizedBox(height: 14),
@@ -807,6 +812,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                                 ? 0
                                 : _finishedBenchCounts[entry.participantId] ??
                                     0,
+                            benchedLastTime: !_postMatch &&
+                                _benchedLastTime.contains(entry.participantId),
                           ),
                       ],
                     ),

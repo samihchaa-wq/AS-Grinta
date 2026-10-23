@@ -7,7 +7,12 @@ import 'package:as_grinta/features/sports_management/domain/player_position_prof
 /// En dessous, le joueur n'est plus placé « à côté de son poste » mais hors
 /// de ses habitudes : la simulation ne s'y résout que pour ne pas laisser un
 /// poste vide, et le signale.
-const double kPlausiblePositionFit = .05;
+///
+/// Le seuil revient à avoir passé environ 15 % de son temps à ce poste ou
+/// juste à côté. Plus bas, un joueur prioritaire pour la rotation pouvait
+/// être casé là où il n'a presque jamais joué (un défenseur en sentinelle,
+/// un axial en latéral gauche) au lieu de reprendre son vrai poste.
+const double kPlausiblePositionFit = .15;
 
 /// Pourquoi la simulation a placé un joueur à ce poste.
 enum SimulatedPlacementReason {
@@ -39,7 +44,7 @@ class SimulationCandidate {
     this.profile,
     this.isGuest = false,
     this.isGoalkeeper = false,
-    this.benchedLastMatch = false,
+    this.benchedLastTime = false,
   });
 
   final String participantId;
@@ -55,9 +60,10 @@ class SimulationCandidate {
   final bool isGuest;
   final bool isGoalkeeper;
 
-  /// Vrai s'il a commencé le dernier match de la saison sur le banc : c'est
-  /// à son tour de commencer.
-  final bool benchedLastMatch;
+  /// Vrai s'il a commencé remplaçant la dernière fois qu'il a joué cette
+  /// saison, même si ce n'était pas le dernier match de l'équipe : c'est à
+  /// son tour de commencer.
+  final bool benchedLastTime;
 }
 
 /// Un joueur posé sur un poste du dispositif.
@@ -91,15 +97,15 @@ class SimulatedComposition {
   /// Les postes du dispositif restés sans joueur.
   final List<FootballFormationSlot> emptySlots;
 
-  /// Les remplaçants du dernier match titularisés cette fois.
+  /// Remplaçants la dernière fois qu'ils ont joué, titularisés cette fois.
   List<SimulatedPlacement> get promotedFromBench => placements
-      .where((placement) => placement.candidate.benchedLastMatch)
+      .where((placement) => placement.candidate.benchedLastTime)
       .toList(growable: false);
 
-  /// Les remplaçants du dernier match qui le restent : aucun poste crédible
-  /// ne leur était libre.
+  /// Remplaçants la dernière fois qu'ils ont joué, et qui le restent : aucun
+  /// poste crédible ne leur était libre.
   List<SimulationCandidate> get keptOnBench => bench
-      .where((candidate) => candidate.benchedLastMatch && !candidate.isGuest)
+      .where((candidate) => candidate.benchedLastTime && !candidate.isGuest)
       .toList(growable: false);
 
   /// Les postes que la simulation n'a pu remplir qu'avec un joueur hors de
@@ -131,7 +137,8 @@ class SimulatedComposition {
 ///    sert qu'à compléter, jamais à prendre la place d'un joueur de
 ///    l'effectif ;
 /// 2. personne hors de ses habitudes sans nécessité ;
-/// 3. les remplaçants du dernier match commencent celui-ci ;
+/// 3. ceux qui ont commencé remplaçants la dernière fois qu'ils ont joué
+///    commencent celui-ci ;
 /// 4. chacun au plus près de ses postes habituels, pour l'équipe entière ;
 /// 5. à égalité parfaite, le joueur le plus souvent resté sur le banc.
 ///
@@ -238,7 +245,7 @@ _Score? _gain(SimulationCandidate candidate, FootballFormationSlot slot) {
         !inGoal && _hasHistory(candidate) && fit < kPlausiblePositionFit
             ? 1
             : 0,
-    backFromBench: candidate.benchedLastMatch && !candidate.isGuest ? 1 : 0,
+    backFromBench: candidate.benchedLastTime && !candidate.isGuest ? 1 : 0,
     fit: fit,
     waited: candidate.benchCount,
   );
@@ -293,8 +300,8 @@ int _byName(SimulationCandidate a, SimulationCandidate b) {
 
 /// Le remplaçant qui attend depuis le plus longtemps passe devant.
 int _benchOrder(SimulationCandidate a, SimulationCandidate b) {
-  if (a.benchedLastMatch != b.benchedLastMatch) {
-    return a.benchedLastMatch ? -1 : 1;
+  if (a.benchedLastTime != b.benchedLastTime) {
+    return a.benchedLastTime ? -1 : 1;
   }
   final byBench = b.benchCount.compareTo(a.benchCount);
   return byBench != 0 ? byBench : _byName(a, b);
@@ -330,7 +337,7 @@ class _Score {
   /// Titulaires placés hors de leurs habitudes.
   final int outOfPosition;
 
-  /// Remplaçants du dernier match titularisés.
+  /// Remplaçants la dernière fois qu'ils ont joué, titularisés.
   final int backFromBench;
 
   /// Somme des affinités de chacun avec son poste.

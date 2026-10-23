@@ -1,20 +1,21 @@
 begin;
 
--- « Simuler la compo » : savoir qui était remplaçant au dernier match.
+-- « Simuler la compo » : savoir qui a commencé remplaçant la dernière fois
+-- qu'il a joué.
 --
--- La simulation titularise en priorité les joueurs qui ont commencé le
--- dernier match sur le banc. C'est la rotation que l'équipe pratique
--- réellement : sur chaque match de la saison 2026-2027, tous les remplaçants
--- du match précédent encore convoqués ont été titulaires. Le compteur banc
--- cumulé, seul transmis jusqu'ici, ne le dit pas : à un remplacement chacun,
--- presque tout l'effectif est à égalité.
+-- La simulation titularise en priorité ces joueurs : c'est leur tour de
+-- commencer. L'écran Compo colore aussi leur compteur banc en bleu. Le
+-- compteur banc cumulé, seul transmis jusqu'ici, ne le dit pas : à un
+-- remplacement chacun, presque tout l'effectif est à égalité.
 --
--- Chaque ligne gagne donc 'benched_last_match' : vrai si le participant
--- (même joueur de l'effectif, ou même invité) était remplaçant au dernier
--- match de la même saison joué avant celui-ci. Seul compte un match terminé
--- ou archivé qui a une vraie feuille titulaires / remplaçants : un match
--- entre nous n'en a pas, un match annulé n'est pas joué. Le premier match
--- de la saison n'a donc pas de précédent, et personne n'y est signalé.
+-- Chaque ligne gagne donc 'benched_last_time' : vrai si, au dernier match de
+-- la saison où le participant (même joueur de l'effectif, ou même invité) a
+-- joué avant celui-ci, il était remplaçant. Peu importe que ce match soit le
+-- dernier de l'équipe : un joueur absent depuis garde son tour. Seuls
+-- comptent les matchs terminés ou archivés où il figure sur la feuille,
+-- titulaire ou remplaçant : un match entre nous n'a pas de feuille, un match
+-- annulé n'est pas joué. Un joueur qui n'a pas encore joué de la saison
+-- n'est pas signalé.
 --
 -- 'finished_bench_count' est inchangé, et un ancien client ignore
 -- simplement la nouvelle clé. Le corps reprend sa dernière définition en
@@ -30,30 +31,18 @@ set search_path to ''
 as $function$
 declare
   v_result jsonb;
-  v_previous_match_id uuid;
+  v_season_id uuid;
+  v_kickoff_at timestamptz;
 begin
   perform private.require_sports_management_enabled();
   if not private.is_admin() then
     raise exception 'Active administrator role required' using errcode = '42501';
   end if;
 
-  select previous_match.id
-  into v_previous_match_id
+  select target_match.season_id, target_match.kickoff_at
+  into v_season_id, v_kickoff_at
   from public.matches target_match
-  join public.matches previous_match
-    on previous_match.season_id = target_match.season_id
-   and previous_match.id <> target_match.id
-   and previous_match.kickoff_at < target_match.kickoff_at
-   and previous_match.status in ('termine', 'archive')
-  where target_match.id = p_match_id
-    and exists (
-      select 1
-      from public.match_sport_participants lineup
-      where lineup.match_id = previous_match.id
-        and lineup.final_selection_status in ('starter', 'substitute')
-    )
-  order by previous_match.kickoff_at desc, previous_match.id desc
-  limit 1;
+  where target_match.id = p_match_id;
 
   select coalesce(jsonb_agg(
     jsonb_build_object(
@@ -72,18 +61,25 @@ begin
               and hist.guest_player_id = current_participant.guest_player_id)
           )
       ),
-      'benched_last_match', exists (
-        select 1
+      'benched_last_time', coalesce((
+        select previous.final_selection_status = 'substitute'
         from public.match_sport_participants previous
-        where previous.match_id = v_previous_match_id
-          and previous.final_selection_status = 'substitute'
+        join public.matches previous_match
+          on previous_match.id = previous.match_id
+        where previous_match.season_id = v_season_id
+          and previous_match.id <> p_match_id
+          and previous_match.kickoff_at < v_kickoff_at
+          and previous_match.status in ('termine', 'archive')
+          and previous.final_selection_status in ('starter', 'substitute')
           and (
             (current_participant.season_player_id is not null
               and previous.season_player_id = current_participant.season_player_id)
             or (current_participant.guest_player_id is not null
               and previous.guest_player_id = current_participant.guest_player_id)
           )
-      )
+        order by previous_match.kickoff_at desc, previous_match.id desc
+        limit 1
+      ), false)
     )
   ), '[]'::jsonb)
   into v_result

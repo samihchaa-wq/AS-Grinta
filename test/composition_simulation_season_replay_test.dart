@@ -32,7 +32,14 @@ const Map<String, String> _playerIds = {
   'Aki': 'a0a105a2-5041-4555-90bd-a75140ad701c',
 };
 
-const Set<String> _centreBacks = {'Julien', 'Stéphane', 'Olivier'};
+/// Défenseurs de métier : aucun ne doit être envoyé au milieu.
+const Set<String> _defenders = {
+  'Julien',
+  'Stéphane',
+  'Olivier',
+  'Simon',
+  'Hakim',
+};
 
 class _PlayedMatch {
   const _PlayedMatch(this.kickoffAt, this.starters, this.bench);
@@ -115,9 +122,27 @@ final List<_PlayedMatch> _season = [
   ),
 ];
 
+/// Ceux qui ont commencé remplaçants la dernière fois qu'ils ont joué, parmi
+/// les [played] premiers matchs de la saison.
+Set<String> _benchedLastTime(int played) {
+  final lastStatus = <String, bool>{};
+  for (final match in _season.take(played)) {
+    for (final name in match.starters.keys) {
+      lastStatus[name] = false;
+    }
+    for (final name in match.bench) {
+      lastStatus[name] = true;
+    }
+  }
+  return {
+    for (final entry in lastStatus.entries)
+      if (entry.value) entry.key,
+  };
+}
+
 /// Simule la composition d'un match avec ce que l'écran savait juste avant :
-/// les postes nourris des matchs déjà joués, le compteur banc et les
-/// remplaçants du match précédent.
+/// les postes nourris des matchs déjà joués, le compteur banc et ceux qui
+/// étaient remplaçants la dernière fois qu'ils ont joué.
 SimulatedComposition _simulateBefore(int matchIndex, List<String> squad) {
   final played = _season.take(matchIndex);
   final profiles = mergePlayerPositionProfiles(
@@ -137,8 +162,7 @@ SimulatedComposition _simulateBefore(int matchIndex, List<String> squad) {
       benchCounts.update(name, (count) => count + 1, ifAbsent: () => 1);
     }
   }
-  final lastBench =
-      matchIndex == 0 ? const <String>{} : _season[matchIndex - 1].bench;
+  final benchedLastTime = _benchedLastTime(matchIndex);
 
   return simulateComposition(
     slots: formationForCode('4-2-1-3').slots,
@@ -150,7 +174,7 @@ SimulatedComposition _simulateBefore(int matchIndex, List<String> squad) {
           benchCount: benchCounts[name] ?? 0,
           profile: profiles[_playerIds[name]],
           isGoalkeeper: name == 'Samih',
-          benchedLastMatch: lastBench.contains(name),
+          benchedLastTime: benchedLastTime.contains(name),
         ),
     ],
   );
@@ -177,29 +201,35 @@ void main() {
 
       expect(simulation.emptySlots, isEmpty);
       expect(simulation.stretchedPlacements, isEmpty);
-      for (final defender in _centreBacks) {
+      for (final defender in _defenders) {
         expect(
           ['MDG', 'MDD', 'MOC'],
           isNot(contains(_slotOf(simulation, defender))),
           reason: '$defender ne joue pas au milieu',
         );
       }
-      // Au plus un choix d'entraîneur d'écart avec le onze aligné.
+      // La rotation titularise ceux qui étaient remplaçants la dernière fois
+      // qu'ils ont joué ; l'équipe ne l'a pas toujours fait (Hakim, laissé
+      // sur le banc le 12 octobre). Hors ces cas, au plus un choix
+      // d'entraîneur d'écart avec le onze aligné.
+      final rotationOverrides = _benchedLastTime(index)
+          .where((name) => match.bench.contains(name))
+          .length;
       expect(
         match.starters.keys.where(starters.contains).length,
-        greaterThanOrEqualTo(10),
+        greaterThanOrEqualTo(10 - rotationOverrides),
         reason: 'titulaires simulés : $starters',
       );
     });
 
     if (index > 0) {
-      test('$date : les remplaçants du match précédent sont titulaires', () {
+      test('$date : les remplaçants de leur dernier match sont titulaires', () {
         final simulation = _simulateBefore(index, match.squad);
         final starters = {
           for (final placement in simulation.placements)
             placement.candidate.participantId,
         };
-        for (final name in _season[index - 1].bench) {
+        for (final name in _benchedLastTime(index)) {
           if (!match.squad.contains(name)) continue;
           expect(starters, contains(name));
         }
@@ -227,13 +257,15 @@ void main() {
 
     expect(simulation.emptySlots, isEmpty);
     expect(simulation.stretchedPlacements, isEmpty);
+    // Hakim et Luka, remplaçants le 12 octobre ; Simon, remplaçant le
+    // 21 septembre, la dernière fois qu'il a joué.
     expect(simulation.promotedFromBench.map((p) => p.candidate.displayName),
-        unorderedEquals(['Hakim', 'Luka']));
+        unorderedEquals(['Hakim', 'Luka', 'Simon']));
     expect(_slotOf(simulation, 'Samih'), 'GB');
     expect(_slotOf(simulation, 'Milan'), 'BU');
     expect(_slotOf(simulation, 'Allan'), 'AD');
     expect(_slotOf(simulation, 'Alban'), 'MOC');
-    for (final defender in _centreBacks) {
+    for (final defender in _defenders) {
       expect(
         ['MDG', 'MDD', 'MOC'],
         isNot(contains(_slotOf(simulation, defender))),

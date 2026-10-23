@@ -3,10 +3,10 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
--- « Simuler la compo » titularise en priorité les remplaçants du dernier
--- match. Le compteur banc signale donc, pour chaque participant, s'il était
--- remplaçant au dernier match de la saison qui a une vraie feuille
--- titulaires / remplaçants : un match entre nous n'en a pas.
+-- « Simuler la compo » titularise en priorité les joueurs qui ont commencé
+-- remplaçants la dernière fois qu'ils ont joué. Le compteur banc le signale
+-- donc pour chaque participant, d'après son dernier match de la saison où il
+-- figure sur la feuille : un match entre nous n'en a pas.
 
 insert into auth.users(id, email, raw_user_meta_data)
 values
@@ -118,7 +118,7 @@ values
   ('b5500000-0000-0000-0000-000000000001',
    'b5300000-0000-0000-0000-000000000004', null, 'available', 'substitute'),
   -- Dernier match joué : Alix et l'invité remplaçants, Bao et Cléo
-  -- titulaires, Dani absent.
+  -- titulaires, Dani absent : son dernier match reste le premier.
   ('b5500000-0000-0000-0000-000000000002',
    'b5300000-0000-0000-0000-000000000001', null, 'available', 'substitute'),
   ('b5500000-0000-0000-0000-000000000002',
@@ -175,14 +175,14 @@ create or replace function pg_temp.bench_rows(p_setting text)
 returns table(
   first_name text,
   finished_bench_count integer,
-  benched_last_match boolean
+  benched_last_time boolean
 )
 language sql
 stable
 as $function$
   select coalesce(season_player.first_name, guest.first_name),
          (bench_row ->> 'finished_bench_count')::integer,
-         (bench_row ->> 'benched_last_match')::boolean
+         (bench_row ->> 'benched_last_time')::boolean
   from jsonb_array_elements(current_setting(p_setting)::jsonb) bench_row
   join public.match_sport_participants participant
     on participant.id = (bench_row ->> 'participant_id')::uuid
@@ -196,21 +196,31 @@ select results_eq(
   $$
     select first_name
     from pg_temp.bench_rows('test.bench_next_match')
-    where benched_last_match
+    where benched_last_time
     order by first_name
   $$,
-  $$ values ('Alix'::text), ('Invité'::text) $$,
-  'seuls les remplaçants du dernier match joué sont signalés, invité compris'
+  $$ values ('Alix'::text), ('Dani'::text), ('Invité'::text) $$,
+  'les remplaçants de leur dernier match joué sont signalés, invité compris'
 );
 
 select is(
   (
-    select benched_last_match
+    select benched_last_time
+    from pg_temp.bench_rows('test.bench_next_match')
+    where first_name = 'Bao'
+  ),
+  false,
+  'remplaçant puis titulaire : le dernier match joué fait foi'
+);
+
+select is(
+  (
+    select benched_last_time
     from pg_temp.bench_rows('test.bench_next_match')
     where first_name = 'Dani'
   ),
-  false,
-  'un remplaçant d’un match plus ancien, absent du dernier, n’est pas signalé'
+  true,
+  'absent du dernier match de l’équipe, un remplaçant garde son tour'
 );
 
 select results_eq(
@@ -234,10 +244,10 @@ select is(
   (
     select count(*)::integer
     from pg_temp.bench_rows('test.bench_first_match')
-    where benched_last_match
+    where benched_last_time
   ),
   0,
-  'le premier match de la saison n’a pas de remplaçants à titulariser'
+  'personne n’est signalé avant d’avoir joué un match de la saison'
 );
 
 select set_config(
