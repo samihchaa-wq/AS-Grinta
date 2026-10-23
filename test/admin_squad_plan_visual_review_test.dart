@@ -523,6 +523,12 @@ void main() {
         (widget) => widget is SubstituteHistoryBadge && widget.count == count,
       );
       expect(badge, findsOneWidget);
+      // Le bleu s'ajoute au compteur : le nombre de débuts sur le banc reste
+      // affiché.
+      expect(
+        find.descendant(of: badge, matching: find.text('$count')),
+        findsOneWidget,
+      );
       final box = tester.widget<Container>(
         find.descendant(of: badge, matching: find.byType(Container)).first,
       );
