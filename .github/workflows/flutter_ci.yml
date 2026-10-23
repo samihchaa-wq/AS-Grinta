@@ -57,12 +57,17 @@ jobs:
             exit 0
           fi
 
-          # GitHub peut exposer le nouveau commit de squash avant que
-          # /commits/{sha}/pulls ne connaisse son association. Dans ce cas,
-          # vérifier le numéro de PR inscrit par GitHub dans le titre du squash
-          # et exiger que cette PR pointe exactement vers le SHA poussé.
+          # GitHub peut exposer le nouveau commit avant que
+          # /commits/{sha}/pulls ne connaisse son association, et il arrive
+          # qu'il ne la connaisse jamais (fusion de la PR #1525). Dans ce cas,
+          # lire le numéro de PR que GitHub inscrit dans le titre du commit
+          # (« … (#123) » pour un squash, « Merge pull request #123 from … »
+          # pour une fusion classique) et exiger que cette PR pointe exactement
+          # vers le SHA poussé.
           subject=$(git log -1 --pretty=%s)
-          pr_number=$(sed -nE 's/.*\(#([0-9]+)\)$/\1/p' <<<"$subject")
+          pr_number=$(sed -nE \
+            -e 's/^Merge pull request #([0-9]+) from .*/\1/p' \
+            -e 's/.*\(#([0-9]+)\)$/\1/p' <<<"$subject")
           if [ -z "$pr_number" ]; then
             echo "::error::Push direct détecté sur main. Les changements doivent passer par une pull request fusionnée."
             exit 1
