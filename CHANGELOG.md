@@ -6,6 +6,26 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- composition, « Simuler une composition » : la proposition ne met plus un
+  défenseur central au milieu pendant qu'un vrai milieu reste sur le banc,
+  défaut constaté sur chacun des quatre matchs à onze de la saison. Elle
+  cherche désormais l'équipe entière la plus cohérente au lieu de remplir
+  les postes un par un, et suit une rotation : un joueur qui a commencé
+  remplaçant la dernière fois qu'il a joué dans la saison est titularisé,
+  même s'il a manqué des matchs depuis, sauf si aucun poste qui lui
+  correspond n'est libre. Il reprend alors son vrai poste, et c'est le
+  titulaire habituel de ce poste qui s'assoit : personne n'est casé là où il
+  n'a presque jamais joué. Dans l'éditeur, le compteur banc de ces joueurs
+  est bleu, sur le terrain comme sur le banc. Rejouée sur les matchs de la
+  saison, la simulation retrouve chaque fois au moins dix des onze
+  titulaires réellement alignés, sauf le 12 octobre où elle aurait
+  titularisé Hakim, laissé sur le banc ce jour-là. Un invité complète un
+  poste qui resterait vide, sans jamais prendre la place d'un joueur de
+  l'effectif. Le message affiché après la simulation dit qui revient du
+  banc, qui joue hors de son poste habituel, quels postes sont à confirmer
+  faute de matchs joués et lesquels restent vides. La rotation et le
+  compteur bleu ne sont actifs qu'une fois la mise à jour de la base de
+  données déployée ; d'ici là, la simulation fonctionne sans ce critère ;
 - fiche joueur, onglet Carrière : une carte « Évolution » sous le Bilan
   montre une barre par saison pour la statistique choisie (Matchs,
   % Victoires, Buts, HDM, Buts / match ; les buts d'abord, les matchs pour

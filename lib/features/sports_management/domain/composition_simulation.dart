@@ -2,12 +2,17 @@ import 'package:as_grinta/features/sports_management/domain/football_formation.d
 import 'package:as_grinta/features/sports_management/domain/player_position_affinity.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 
-/// Affinité minimale pour qu'un glissement reste crédible.
+/// Affinité minimale pour qu'un poste reste crédible.
 ///
-/// En dessous, le joueur n'est plus placé « à côté de son poste » mais
-/// n'importe où : il ne sera retenu qu'en tout dernier recours, pour éviter
-/// de laisser un poste vide.
-const double _plausibleAffinity = .05;
+/// En dessous, le joueur n'est plus placé « à côté de son poste » mais hors
+/// de ses habitudes : la simulation ne s'y résout que pour ne pas laisser un
+/// poste vide, et le signale.
+///
+/// Le seuil revient à avoir passé environ 15 % de son temps à ce poste ou
+/// juste à côté. Plus bas, un joueur prioritaire pour la rotation pouvait
+/// être casé là où il n'a presque jamais joué (un défenseur en sentinelle,
+/// un axial en latéral gauche) au lieu de reprendre son vrai poste.
+const double kPlausiblePositionFit = .15;
 
 /// Pourquoi la simulation a placé un joueur à ce poste.
 enum SimulatedPlacementReason {
@@ -17,17 +22,17 @@ enum SimulatedPlacementReason {
   /// C'est le poste où le joueur a le plus joué.
   mainPosition,
 
-  /// C'est son second poste.
-  secondaryPosition,
+  /// Un poste qu'il a déjà réellement tenu, sans que ce soit son principal.
+  usualPosition,
 
-  /// Joueur sans poste dominant, utilisé en variable d'ajustement.
-  versatileAdjustment,
-
-  /// Poste voisin de ceux qu'il occupe habituellement.
+  /// Un poste voisin de ceux qu'il occupe habituellement.
   nearbyPosition,
 
-  /// Aucun candidat crédible : le poste aurait sinon été laissé vide.
-  lastResort,
+  /// Hors de ses habitudes : le poste serait sinon resté vide.
+  outOfPosition,
+
+  /// Aucun poste connu (recrue jamais alignée, invité) : à confirmer.
+  unknownPosition,
 }
 
 /// Un joueur convoqué, prêt à être placé par la simulation.
@@ -39,6 +44,7 @@ class SimulationCandidate {
     this.profile,
     this.isGuest = false,
     this.isGoalkeeper = false,
+    this.benchedLastTime = false,
   });
 
   final String participantId;
@@ -53,6 +59,11 @@ class SimulationCandidate {
 
   final bool isGuest;
   final bool isGoalkeeper;
+
+  /// Vrai s'il a commencé remplaçant la dernière fois qu'il a joué cette
+  /// saison, même si ce n'était pas le dernier match de l'équipe : c'est à
+  /// son tour de commencer.
+  final bool benchedLastTime;
 }
 
 /// Un joueur posé sur un poste du dispositif.
@@ -77,7 +88,7 @@ class SimulatedComposition {
     required this.emptySlots,
   });
 
-  /// Les joueurs placés sur le terrain.
+  /// Les joueurs placés sur le terrain, dans l'ordre des postes du dispositif.
   final List<SimulatedPlacement> placements;
 
   /// Les remplaçants, le prochain à devoir monter en tête.
@@ -86,212 +97,280 @@ class SimulatedComposition {
   /// Les postes du dispositif restés sans joueur.
   final List<FootballFormationSlot> emptySlots;
 
-  /// Les postes que la simulation n'a pu remplir qu'en dernier recours.
-  List<SimulatedPlacement> get stretchedPlacements => placements
-      .where(
-        (placement) => placement.reason == SimulatedPlacementReason.lastResort,
-      )
+  /// Remplaçants la dernière fois qu'ils ont joué, titularisés cette fois.
+  List<SimulatedPlacement> get promotedFromBench => placements
+      .where((placement) => placement.candidate.benchedLastTime)
       .toList(growable: false);
+
+  /// Remplaçants la dernière fois qu'ils ont joué, et qui le restent : aucun
+  /// poste crédible ne leur était libre.
+  List<SimulationCandidate> get keptOnBench => bench
+      .where((candidate) => candidate.benchedLastTime && !candidate.isGuest)
+      .toList(growable: false);
+
+  /// Les postes que la simulation n'a pu remplir qu'avec un joueur hors de
+  /// ses habitudes.
+  List<SimulatedPlacement> get stretchedPlacements => _withReason(
+        SimulatedPlacementReason.outOfPosition,
+      );
+
+  /// Les joueurs placés sans aucun poste connu.
+  List<SimulatedPlacement> get unknownPlacements => _withReason(
+        SimulatedPlacementReason.unknownPosition,
+      );
+
+  List<SimulatedPlacement> _withReason(SimulatedPlacementReason reason) =>
+      placements
+          .where((placement) => placement.reason == reason)
+          .toList(growable: false);
 }
 
 /// Compose une équipe à partir des postes de référence des joueurs.
 ///
-/// Le dispositif n'est jamais remis en cause : la simulation se contente de
-/// remplir les postes de [slots]. Les joueurs sont d'abord placés sur leur
-/// poste principal, puis sur leur second poste ; les polyvalents comblent
-/// ensuite les trous, et les derniers postes vides sont attribués au poste
-/// voisin le plus crédible. À poste équivalent, le joueur le plus souvent
-/// resté sur le banc est titularisé, pour que l'effectif tourne.
+/// Le dispositif n'est jamais remis en cause : la simulation remplit les
+/// postes de [slots]. Elle ne procède pas poste par poste — c'est ce qui
+/// envoyait un défenseur au milieu pendant qu'un vrai milieu restait sur le
+/// banc — mais cherche, parmi toutes les équipes possibles, celle qui
+/// respecte au mieux ces règles, chacune primant sur les suivantes :
+///
+/// 1. aucun poste vide tant qu'un convoqué peut l'occuper ; un invité ne
+///    sert qu'à compléter, jamais à prendre la place d'un joueur de
+///    l'effectif ;
+/// 2. personne hors de ses habitudes sans nécessité ;
+/// 3. ceux qui ont commencé remplaçants la dernière fois qu'ils ont joué
+///    commencent celui-ci ;
+/// 4. chacun au plus près de ses postes habituels, pour l'équipe entière ;
+/// 5. à égalité parfaite, le joueur le plus souvent resté sur le banc.
+///
+/// Les buts ne reviennent qu'à un gardien déclaré, et un gardien ne joue
+/// jamais dans le champ.
 ///
 /// Le résultat est déterministe : les mêmes convoqués redonnent toujours la
-/// même équipe.
+/// même équipe, quel que soit l'ordre dans lequel on les fournit.
 SimulatedComposition simulateComposition({
   required List<FootballFormationSlot> slots,
   required List<SimulationCandidate> candidates,
 }) {
-  final placements = <String, SimulatedPlacement>{};
-  final placed = <String>{};
+  // La recherche exhaustive double à chaque poste : onze postes restent
+  // instantanés, bien au-delà de seize elle deviendrait perceptible.
+  assert(slots.length <= 16, 'Trop de postes pour une recherche exhaustive.');
+  final players = [...candidates]..sort(_byName);
+  final playerCount = players.length;
+  final slotCount = slots.length;
+  final masks = 1 << slotCount;
 
-  final goalkeeperSlots = slots.where(_isGoalkeeperSlot).toList();
-  final outfieldSlots =
-      slots.where((slot) => !_isGoalkeeperSlot(slot)).toList();
+  final gains = [
+    for (final player in players)
+      [for (final slot in slots) _gain(player, slot)],
+  ];
 
-  // Les buts ne reviennent qu'à un gardien déclaré. Faute de gardien
-  // convoqué, le poste reste vide et l'alerte existante prend le relais :
-  // désigner d'office un joueur de champ serait un choix d'entraîneur.
-  final goalkeepers = candidates
-      .where((candidate) => candidate.isGoalkeeper && !candidate.isGuest)
-      .toList()
-    ..sort(_byRotationThenName);
-  for (final slot in goalkeeperSlots) {
-    final keeper = goalkeepers.firstWhere(
-      (candidate) => !placed.contains(candidate.participantId),
-      orElse: () => _noCandidate,
-    );
-    if (identical(keeper, _noCandidate)) break;
-    placed.add(keeper.participantId);
-    placements[slot.label] = SimulatedPlacement(
-      slot: slot,
-      candidate: keeper,
-      reason: SimulatedPlacementReason.goalkeeper,
-    );
-  }
-
-  // Un gardien reste un gardien : s'il n'a pas les buts, il va sur le banc
-  // plutôt que de dépanner à un poste de champ.
-  final outfield = candidates
-      .where(
-        (candidate) =>
-            !candidate.isGoalkeeper &&
-            !candidate.isGuest &&
-            !placed.contains(candidate.participantId),
-      )
-      .toList();
-
-  bool free(SimulationCandidate candidate) =>
-      !placed.contains(candidate.participantId);
-  bool open(FootballFormationSlot slot) => !placements.containsKey(slot.label);
-
-  void assign(
-    Iterable<_Pairing> pairings,
-    SimulatedPlacementReason reason,
-  ) {
-    for (final pairing in pairings.toList()..sort(_byPairingRank)) {
-      if (!open(pairing.slot) || !free(pairing.candidate)) continue;
-      placed.add(pairing.candidate.participantId);
-      placements[pairing.slot.label] = SimulatedPlacement(
-        slot: pairing.slot,
-        candidate: pairing.candidate,
-        reason: reason,
-      );
-    }
-  }
-
-  Iterable<_Pairing> pairingsWhere(
-    bool Function(SimulationCandidate candidate, FootballFormationSlot slot)
-        matches,
-  ) sync* {
-    for (final slot in outfieldSlots) {
-      for (final candidate in outfield) {
-        if (matches(candidate, slot)) {
-          yield _Pairing(
-            slot: slot,
-            candidate: candidate,
-            affinity: _affinity(candidate, slot),
-          );
+  // Programmation dynamique exacte sur les postes déjà pris : chaque joueur,
+  // dans l'ordre, va sur le banc ou sur un poste libre. Onze postes, soit
+  // 2 048 combinaisons par joueur — instantané.
+  final best = List<_Score>.filled((playerCount + 1) * masks, _Score.none);
+  final choice = List<int>.filled(playerCount * masks, -1);
+  for (var player = playerCount - 1; player >= 0; player -= 1) {
+    final next = (player + 1) * masks;
+    for (var used = 0; used < masks; used += 1) {
+      var bestScore = best[next + used];
+      var bestSlot = -1;
+      for (var slot = 0; slot < slotCount; slot += 1) {
+        if (used & (1 << slot) != 0) continue;
+        final gain = gains[player][slot];
+        if (gain == null) continue;
+        final score = gain + best[next + (used | 1 << slot)];
+        if (score.compareTo(bestScore) > 0) {
+          bestScore = score;
+          bestSlot = slot;
         }
       }
+      best[player * masks + used] = bestScore;
+      choice[player * masks + used] = bestSlot;
     }
   }
 
-  // 1. Poste principal, pour les joueurs qui en ont un.
-  assign(
-    pairingsWhere((candidate, slot) {
-      final profile = candidate.profile;
-      return profile != null &&
-          !profile.isVersatile &&
-          profile.mainSlotLabel == slot.label;
-    }),
-    SimulatedPlacementReason.mainPosition,
-  );
+  final slotOfPlayer = <int, int>{};
+  var used = 0;
+  for (var player = 0; player < playerCount; player += 1) {
+    final slot = choice[player * masks + used];
+    if (slot < 0) continue;
+    slotOfPlayer[slot] = player;
+    used |= 1 << slot;
+  }
 
-  // 2. Second poste.
-  assign(
-    pairingsWhere((candidate, slot) {
-      final profile = candidate.profile;
-      return profile != null &&
-          !profile.isVersatile &&
-          profile.secondarySlotLabel == slot.label;
-    }),
-    SimulatedPlacementReason.secondaryPosition,
-  );
-
-  // 3. Un joueur au poste marqué dont le poste exact n'existe pas dans ce
-  // dispositif glisse au poste voisin : il reste prioritaire sur les
-  // polyvalents, qui ne sont là que pour combler.
-  assign(
-    pairingsWhere((candidate, slot) {
-      final profile = candidate.profile;
-      return profile != null &&
-          !profile.isVersatile &&
-          _affinity(candidate, slot) >= _plausibleAffinity;
-    }),
-    SimulatedPlacementReason.nearbyPosition,
-  );
-
-  // 4. Les couteaux suisses comblent les postes encore vides, là où ils sont
-  // le plus à l'aise.
-  assign(
-    pairingsWhere((candidate, slot) {
-      final profile = candidate.profile;
-      return profile != null &&
-          profile.isVersatile &&
-          _affinity(candidate, slot) >= _plausibleAffinity;
-    }),
-    SimulatedPlacementReason.versatileAdjustment,
-  );
-
-  // 5. Dernier recours : mieux vaut un poste occupé par un joueur hors de ses
-  // habitudes qu'un trou dans le dispositif. Les invités n'en sont jamais :
-  // ils restent sur le banc en toutes circonstances.
-  assign(
-    pairingsWhere((candidate, slot) => true),
-    SimulatedPlacementReason.lastResort,
-  );
-
-  final bench = candidates.where(free).toList()..sort(_byRotationThenName);
+  final placed = <String>{};
+  final placements = <SimulatedPlacement>[];
+  for (var slot = 0; slot < slotCount; slot += 1) {
+    final player = slotOfPlayer[slot];
+    if (player == null) continue;
+    final candidate = players[player];
+    placed.add(candidate.participantId);
+    placements.add(
+      SimulatedPlacement(
+        slot: slots[slot],
+        candidate: candidate,
+        reason: _reasonFor(candidate, slots[slot]),
+      ),
+    );
+  }
 
   return SimulatedComposition(
-    placements: [
-      for (final slot in slots)
-        if (placements[slot.label] case final placement?) placement,
+    placements: placements,
+    bench: players
+        .where((candidate) => !placed.contains(candidate.participantId))
+        .toList()
+      ..sort(_benchOrder),
+    emptySlots: [
+      for (var slot = 0; slot < slotCount; slot += 1)
+        if (!slotOfPlayer.containsKey(slot)) slots[slot],
     ],
-    bench: bench,
-    emptySlots: slots.where(open).toList(growable: false),
   );
 }
 
 bool _isGoalkeeperSlot(FootballFormationSlot slot) => slot.label == 'GB';
 
+/// Ce que rapporte un joueur à ce poste, ou null si le placement est exclu.
+_Score? _gain(SimulationCandidate candidate, FootballFormationSlot slot) {
+  // Les buts ne reviennent qu'à un gardien déclaré. Faute de gardien
+  // convoqué, le poste reste vide et l'alerte existante prend le relais :
+  // désigner d'office un joueur de champ serait un choix d'entraîneur. Et un
+  // gardien qui n'a pas les buts va sur le banc plutôt que de dépanner.
+  final inGoal = _isGoalkeeperSlot(slot);
+  if (inGoal != candidate.isGoalkeeper) return null;
+  final fit = inGoal ? 1.0 : _fit(candidate, slot);
+  return _Score(
+    squadPlayers: candidate.isGuest ? 0 : 1,
+    guests: candidate.isGuest ? 1 : 0,
+    outOfPosition:
+        !inGoal && _hasHistory(candidate) && fit < kPlausiblePositionFit
+            ? 1
+            : 0,
+    backFromBench: candidate.benchedLastTime && !candidate.isGuest ? 1 : 0,
+    fit: fit,
+    waited: candidate.benchCount,
+  );
+}
+
 /// Proximité d'un joueur avec un poste, d'après les postes qu'il occupe.
 ///
-/// Le calcul vit dans [playerPositionAffinity] afin que la simulation et les
+/// Le poste est pris à sa place de référence sur la feuille de match, et non
+/// à l'endroit où ce dispositif le dessine : un milieu offensif reste un
+/// milieu offensif, que le 4-2-1-3 le pose un peu plus bas ou non. Le calcul
+/// vit dans [playerPositionAffinity] afin que la simulation et les
 /// regroupements des matchs entre nous ne puissent pas diverger.
-double _affinity(SimulationCandidate candidate, FootballFormationSlot slot) =>
-    playerPositionAffinity(candidate.profile, slot.position);
-
-/// Le joueur le plus souvent resté sur le banc passe devant.
-int _byRotationThenName(SimulationCandidate a, SimulationCandidate b) {
-  final byBench = b.benchCount.compareTo(a.benchCount);
-  if (byBench != 0) return byBench;
-  return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+double _fit(SimulationCandidate candidate, FootballFormationSlot slot) {
+  if (!_hasHistory(candidate)) return 0;
+  return playerPositionAffinity(
+    candidate.profile,
+    matchSheetSlotPositions[slot.label] ?? slot.position,
+  );
 }
 
-int _byPairingRank(_Pairing a, _Pairing b) {
-  final byBench = b.candidate.benchCount.compareTo(a.candidate.benchCount);
-  if (byBench != 0) return byBench;
-  final byAffinity = b.affinity.compareTo(a.affinity);
-  if (byAffinity != 0) return byAffinity;
-  final byName = a.candidate.displayName.toLowerCase().compareTo(
-        b.candidate.displayName.toLowerCase(),
+bool _hasHistory(SimulationCandidate candidate) =>
+    candidate.profile?.samples.isNotEmpty ?? false;
+
+SimulatedPlacementReason _reasonFor(
+  SimulationCandidate candidate,
+  FootballFormationSlot slot,
+) {
+  if (_isGoalkeeperSlot(slot)) return SimulatedPlacementReason.goalkeeper;
+  final profile = candidate.profile;
+  if (profile == null || profile.samples.isEmpty) {
+    return SimulatedPlacementReason.unknownPosition;
+  }
+  // Même seuil que le calcul de l'équipe : un poste tenu une fois en passant
+  // ne suffit pas à le rendre habituel.
+  if (_fit(candidate, slot) < kPlausiblePositionFit) {
+    return SimulatedPlacementReason.outOfPosition;
+  }
+  if (profile.mainSlotLabel == slot.label) {
+    return SimulatedPlacementReason.mainPosition;
+  }
+  return profile.shareOf(slot.label) > 0
+      ? SimulatedPlacementReason.usualPosition
+      : SimulatedPlacementReason.nearbyPosition;
+}
+
+int _byName(SimulationCandidate a, SimulationCandidate b) {
+  final byName = a.displayName.toLowerCase().compareTo(
+        b.displayName.toLowerCase(),
       );
-  return byName != 0 ? byName : a.slot.label.compareTo(b.slot.label);
+  return byName != 0 ? byName : a.participantId.compareTo(b.participantId);
 }
 
-class _Pairing {
-  const _Pairing({
-    required this.slot,
-    required this.candidate,
-    required this.affinity,
+/// Le remplaçant qui attend depuis le plus longtemps passe devant.
+int _benchOrder(SimulationCandidate a, SimulationCandidate b) {
+  if (a.benchedLastTime != b.benchedLastTime) {
+    return a.benchedLastTime ? -1 : 1;
+  }
+  final byBench = b.benchCount.compareTo(a.benchCount);
+  return byBench != 0 ? byBench : _byName(a, b);
+}
+
+/// La valeur d'une équipe, critère par critère, du plus important au moins
+/// important.
+class _Score {
+  const _Score({
+    required this.squadPlayers,
+    required this.guests,
+    required this.outOfPosition,
+    required this.backFromBench,
+    required this.fit,
+    required this.waited,
   });
 
-  final FootballFormationSlot slot;
-  final SimulationCandidate candidate;
-  final double affinity;
-}
+  static const _Score none = _Score(
+    squadPlayers: 0,
+    guests: 0,
+    outOfPosition: 0,
+    backFromBench: 0,
+    fit: 0,
+    waited: 0,
+  );
 
-const SimulationCandidate _noCandidate = SimulationCandidate(
-  participantId: '',
-  displayName: '',
-  benchCount: 0,
-);
+  /// Joueurs de l'effectif titularisés.
+  final int squadPlayers;
+
+  /// Invités titularisés pour compléter.
+  final int guests;
+
+  /// Titulaires placés hors de leurs habitudes.
+  final int outOfPosition;
+
+  /// Remplaçants la dernière fois qu'ils ont joué, titularisés.
+  final int backFromBench;
+
+  /// Somme des affinités de chacun avec son poste.
+  final double fit;
+
+  /// Somme des compteurs banc des titulaires.
+  final int waited;
+
+  _Score operator +(_Score other) => _Score(
+        squadPlayers: squadPlayers + other.squadPlayers,
+        guests: guests + other.guests,
+        outOfPosition: outOfPosition + other.outOfPosition,
+        backFromBench: backFromBench + other.backFromBench,
+        fit: fit + other.fit,
+        waited: waited + other.waited,
+      );
+
+  /// Positif quand cette équipe est meilleure que [other].
+  int compareTo(_Score other) {
+    if (squadPlayers != other.squadPlayers) {
+      return squadPlayers.compareTo(other.squadPlayers);
+    }
+    if (guests != other.guests) return guests.compareTo(other.guests);
+    if (outOfPosition != other.outOfPosition) {
+      return other.outOfPosition.compareTo(outOfPosition);
+    }
+    if (backFromBench != other.backFromBench) {
+      return backFromBench.compareTo(other.backFromBench);
+    }
+    // Les sommes d'affinités ne tombent pas juste au dernier chiffre près :
+    // deux répartitions équivalentes doivent être départagées par le banc,
+    // pas par une erreur d'arrondi.
+    if ((fit - other.fit).abs() > 1e-9) return fit.compareTo(other.fit);
+    return waited.compareTo(other.waited);
+  }
+}

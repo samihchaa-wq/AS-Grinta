@@ -114,11 +114,15 @@ class _BenchBox extends StatelessWidget {
     required this.entry,
     required this.draggable,
     required this.finishedBenchCount,
+    this.benchedLastTime = false,
   });
 
   final MatchCompositionEntry entry;
   final bool draggable;
   final int finishedBenchCount;
+
+  /// Remplaçant la dernière fois qu'il a joué : son compteur passe en bleu.
+  final bool benchedLastTime;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +137,10 @@ class _BenchBox extends StatelessWidget {
               ? () => FormationPitchTapSelection.placePlayer(entry)
               : null,
           cornerBadge: finishedBenchCount > 0
-              ? SubstituteHistoryBadge(count: finishedBenchCount)
+              ? SubstituteHistoryBadge(
+                  count: finishedBenchCount,
+                  benchedLastTime: benchedLastTime,
+                )
               : null,
         ),
       ),

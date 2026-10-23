@@ -9,6 +9,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Set<String> _goalkeeperIds = {};
   Set<String> _actualPresent = {};
   Map<String, int> _finishedBenchCounts = {};
+  Set<String> _benchedLastTime = {};
   Map<String, String> _canonicalPlayerIds = {};
   Map<String, PlayerPositionProfile> _positionProfiles =
       kPlayerPositionProfiles;
@@ -162,12 +163,12 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         waitlistRepository.fetchMatchConvocations(matchId),
         compositionRepository.fetchAdminComposition(matchId),
         waitlistRepository.fetchReminderSummary(matchId),
-        compositionRepository.fetchFinishedBenchCounts(matchId),
+        compositionRepository.fetchFinishedBenchHistory(matchId),
       ]);
       final convocations = results[0] as MatchConvocations;
       final saved = results[1] as MatchComposition?;
       final reminders = results[2] as AvailabilityReminderSummary;
-      final finishedBenchCounts = results[3] as Map<String, int>;
+      final benchHistory = results[3] as FinishedBenchHistory;
       final kickoffPassed = !DateTime.now().isBefore(convocations.kickoffAt);
       final finalization = kickoffPassed
           ? await ref
@@ -227,7 +228,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _postMatch = postMatch;
         _compositionExisted = saved != null;
         _actualPresent = actualPresent;
-        _finishedBenchCounts = finishedBenchCounts;
+        _finishedBenchCounts = benchHistory.counts;
+        _benchedLastTime = benchHistory.benchedLastTime;
         _canonicalPlayerIds = canonicalPlayerIds;
         _goalkeeperIds = goalkeeperIds;
         _positionProfiles = positionProfiles;
@@ -332,9 +334,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         false;
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+  void _showMessage(
+    String message, {
+    Duration duration = const Duration(seconds: 4),
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: duration),
+    );
   }
 
   @override

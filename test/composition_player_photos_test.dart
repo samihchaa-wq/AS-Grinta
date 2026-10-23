@@ -227,8 +227,10 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
       const [];
 
   @override
-  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>
-      const {};
+  Future<FinishedBenchHistory> fetchFinishedBenchHistory(
+    String matchId,
+  ) async =>
+      FinishedBenchHistory.empty;
 
   @override
   Future<MatchComposition> saveComposition({
