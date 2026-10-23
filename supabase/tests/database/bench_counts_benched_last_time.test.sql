@@ -103,6 +103,22 @@ values
    current_date + 5, time '20:00', 'domicile', 90, 'a_venir', 'amical',
    null, null, 'b5000000-0000-0000-0000-000000000001', null);
 
+-- Un participant n'existe que pour un match suivi sportivement.
+insert into public.match_sport_workflows(
+  match_id, availability_opens_at, created_by, updated_by
+)
+select match_id,
+       now() - interval '30 days',
+       'b5000000-0000-0000-0000-000000000001',
+       'b5000000-0000-0000-0000-000000000001'
+from (
+  values
+    ('b5500000-0000-0000-0000-000000000001'::uuid),
+    ('b5500000-0000-0000-0000-000000000002'::uuid),
+    ('b5500000-0000-0000-0000-000000000003'::uuid),
+    ('b5500000-0000-0000-0000-000000000004'::uuid)
+) followed(match_id);
+
 insert into public.match_sport_participants(
   match_id, season_player_id, guest_player_id, availability_status,
   final_selection_status
