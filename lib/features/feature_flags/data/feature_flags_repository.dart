@@ -30,11 +30,6 @@ abstract interface class FeatureFlagsRepository {
   Future<FeatureFlagsSnapshot> fetchFeatureFlags();
 
   Stream<FeatureFlagChangeSignal> watchSportsManagementChanges();
-
-  Future<FeatureFlagsSnapshot> setSportsManagementEnabled({
-    required bool enabled,
-    String? justification,
-  });
 }
 
 class SupabaseFeatureFlagsRepository implements FeatureFlagsRepository {
@@ -61,23 +56,6 @@ class SupabaseFeatureFlagsRepository implements FeatureFlagsRepository {
         .eq('key', 'sports_management')
         .where((rows) => rows.isNotEmpty)
         .map((rows) => FeatureFlagChangeSignal.fromRow(rows.first));
-  }
-
-  @override
-  Future<FeatureFlagsSnapshot> setSportsManagementEnabled({
-    required bool enabled,
-    String? justification,
-  }) async {
-    final response = await _client.rpc(
-      'set_sports_management_enabled',
-      params: {
-        'p_enabled': enabled,
-        'p_justification': justification?.trim().isEmpty == true
-            ? null
-            : justification?.trim(),
-      },
-    );
-    return FeatureFlagsSnapshot.fromRpc(response);
   }
 }
 

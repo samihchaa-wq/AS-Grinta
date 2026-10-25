@@ -45,8 +45,6 @@ class WrappedSkin {
   final WrappedMotif motif;
   final Color motifColor;
 
-  bool get isLight => figure.computeLuminance() < .4;
-
   static const WrappedSkin night = WrappedSkin(
     background: [Color(0xFF061A32), AppTheme.background],
     figure: AppTheme.accent,

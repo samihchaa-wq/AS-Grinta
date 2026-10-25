@@ -71,8 +71,6 @@ class PlayerStatistics {
 
   /// Matchs joués sans but encaissé, tous postes confondus.
   final int teamCleanSheets;
-
-  bool get hasHistoricalBreakdown => matchesPlayed != null;
 }
 
 class StatisticsPeriodData {

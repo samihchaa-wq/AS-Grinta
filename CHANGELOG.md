@@ -343,6 +343,17 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   plus toutes leurs données à chaque minute ronde. Voir
   `docs/changes/idle-cron-shared-data-signal.md`.
 
+### Maintenance
+
+- nettoyage du dépôt, sans changement visible pour les joueurs : retrait de
+  fichiers qui ne servaient plus (déclencheurs de CI, marqueur de déploiement,
+  anciens logos et images jamais affichés, deux fonds d'écran encodés jamais
+  chargés), du code d'anciennes fonctions remplacées (export `.ics` local
+  remplacé par l'abonnement au calendrier, carte des buteurs, section
+  d'administration du module sportif, simulation et terrain de l'ancienne
+  composition interne, interrupteur du module sportif devenu permanent) et de
+  petits accès devenus inutilisés.
+
 ## 0.2.2+4 — 2026-07-27
 
 ### Sécurité et données

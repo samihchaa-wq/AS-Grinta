@@ -21,8 +21,6 @@ class MatchLiveTimeline {
 
   final String matchId;
   final List<MatchLiveEvent> events;
-
-  bool get hasSecondHalf => events.any((e) => e.half == 2);
 }
 
 Map<String, dynamic> _map(Object? raw) {

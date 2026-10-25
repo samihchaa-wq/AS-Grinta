@@ -13,10 +13,6 @@ bool isValidPersonName(String value) {
   return _namePattern.hasMatch(trimmed) && _hasLetter.hasMatch(trimmed);
 }
 
-/// Message d'erreur unique, réutilisé partout.
-const String personNameError = 'Ce champ ne doit contenir que des lettres '
-    '(ni emoji, ni chiffre, ni symbole).';
-
 final RegExp _nameWordStart = RegExp(r"(^|[ '’-])(\p{L})", unicode: true);
 
 /// Met une majuscule à l'initiale de chaque partie d'un nom, sans toucher au

@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 export 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 
 const Color kDefaultBadgeColor = Color(0xFF3A4568);
-const Color kDiamondBadgeColor = Color(0xFFB9F2FF);
 
 Color? parseBadgeColor(String? hex) {
   if (hex == null) return null;

@@ -16,11 +16,6 @@ abstract final class CalendarCardPalette {
   static const Color championshipSurface = Color(0xFF0B2E59);
   static const Color championshipBorder = Color(0xFF2F80ED);
 
-  /// Alias historique : les écrans non encore spécialisés continuent à
-  /// utiliser le bleu championnat sans changer de rendu.
-  static const Color upcomingSurface = championshipSurface;
-  static const Color upcomingBorder = championshipBorder;
-
   /// Amical : bleu-vert (sarcelle), nettement distinct du bleu championnat,
   /// assez sombre pour que les scores vert / orange / rouge restent lisibles.
   static const Color friendlySurface = Color(0xFF0A4148);

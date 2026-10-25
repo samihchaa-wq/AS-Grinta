@@ -1,37 +1,6 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
-import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:flutter/material.dart';
-
-/// Regroupement des vingt-deux emplacements de la feuille de match en huit
-/// postes lisibles.
-///
-/// Doit rester aligné sur le regroupement fait côté base pour le calcul du
-/// bilan : c'est la même liste, écrite dans les deux langues du projet.
-const Map<String, String> wrappedPositionFamilies = <String, String>{
-  'GB': 'Gardien',
-  'DG': 'Arrière latéral',
-  'DD': 'Arrière latéral',
-  'DCG': 'Défenseur central',
-  'DC': 'Défenseur central',
-  'DCD': 'Défenseur central',
-  'MDG': 'Milieu défensif',
-  'MDC': 'Milieu défensif',
-  'MDD': 'Milieu défensif',
-  'MG': 'Milieu',
-  'MCG': 'Milieu',
-  'MC': 'Milieu',
-  'MCD': 'Milieu',
-  'MD': 'Milieu',
-  'MOG': 'Milieu offensif',
-  'MOC': 'Milieu offensif',
-  'MOD': 'Milieu offensif',
-  'AG': 'Ailier',
-  'AD': 'Ailier',
-  'BUG': 'Attaquant',
-  'BU': 'Attaquant',
-  'BUD': 'Attaquant',
-};
 
 /// Un point du terrain pour représenter chaque poste.
 ///
@@ -48,15 +17,6 @@ const Map<String, Offset> wrappedPositionAnchors = <String, Offset>{
   'Ailier': Offset(.13, .18),
   'Attaquant': Offset(.50, .08),
 };
-
-/// Les emplacements du terrain qui composent un poste.
-List<Offset> wrappedPositionSpots(String? family) {
-  if (family == null) return const [];
-  return [
-    for (final slot in matchSheetSlots)
-      if (wrappedPositionFamilies[slot.label] == family) slot.position,
-  ];
-}
 
 /// Le terrain réduit à ses lignes, avec la part de titularisations à chaque
 /// poste occupé.

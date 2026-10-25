@@ -37,9 +37,6 @@ class HistoricalMatchResult {
   /// source historique connaît ce numéro.
   final int? championshipRound;
 
-  bool get isWin => grintaScore > opponentScore;
-  bool get isDraw => grintaScore == opponentScore;
-  bool get isLoss => grintaScore < opponentScore;
   bool get isFriendly => matchType == 'amical';
   bool get isInternal => matchType == 'entre_nous';
   bool get isChampionship => matchType == 'championnat';
