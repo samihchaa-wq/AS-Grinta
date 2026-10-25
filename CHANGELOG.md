@@ -6,6 +6,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- pronostics : si la connexion coupe pendant l'enregistrement d'un pronostic
+  et que l'application ne peut pas vérifier qu'il est passé, elle le dit
+  (« ton pronostic a peut-être été enregistré ») au lieu d'annoncer une
+  erreur qui poussait à le ressaisir, comme le font déjà les disponibilités
+  et le compte rendu ;
 - effectif : l'effectif d'un match est publié dès la création du match. Il
   passait jusqu'ici par un « brouillon » invisible, qui durait jusqu'à ce
   qu'un admin ouvre la page du match (de quelques secondes à 23 minutes
@@ -337,6 +342,10 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Performance
 
+- l'application ne recharge plus la liste complète des pronostics de
+  l'utilisateur (deux requêtes au serveur) à l'ouverture de Pronos, à chaque
+  actualisation, après chaque pronostic enregistré et à chaque
+  synchronisation : aucun écran ne lisait cette liste ;
 - les tâches planifiées chaque minute (ouverture/fermeture des disponibilités,
   fin des matchs internes) ne déclenchent plus le signal de synchronisation
   quand elles n'ont rien à faire : les applications ouvertes ne rechargent
@@ -353,7 +362,11 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   remplacé par l'abonnement au calendrier, carte des buteurs, section
   d'administration du module sportif, simulation et terrain de l'ancienne
   composition interne, interrupteur du module sportif devenu permanent) et de
-  petits accès devenus inutilisés.
+  petits accès devenus inutilisés ;
+- retrait de la lecture côté application de la chronologie du direct : les
+  « Faits du match » viennent du compte rendu validé depuis la suppression
+  de leur effacement (migration `20260829000400`). La fonction serveur reste
+  en place pour les anciennes versions de l'application.
 
 ## 0.2.2+4 — 2026-07-27
 

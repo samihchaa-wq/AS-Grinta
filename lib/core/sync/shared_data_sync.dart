@@ -14,7 +14,6 @@ import 'package:as_grinta/features/matches/presentation/matches_controller.dart'
 import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
-import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -224,10 +223,9 @@ class SharedDataRefreshCoordinator {
     _invalidateSharedCaches();
 
     try {
-      await Future.wait<void>([
-        _ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
-        _ref.read(predictionsControllerProvider.notifier).load(),
-      ]);
+      await _ref
+          .read(matchesControllerProvider.notifier)
+          .load(allSeasons: true);
     } catch (error, stackTrace) {
       AppLogger.error('shared_data.refresh_controllers', error, stackTrace);
     }
@@ -236,7 +234,6 @@ class SharedDataRefreshCoordinator {
   void invalidateForSessionChange() {
     _invalidateSharedCaches();
     _ref.invalidate(matchesControllerProvider);
-    _ref.invalidate(predictionsControllerProvider);
   }
 
   void _invalidateSportsCaches() {

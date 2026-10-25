@@ -24,12 +24,9 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
-      await Future.wait([
-        ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
-        ref.read(predictionsControllerProvider.notifier).load(),
-      ]);
-    });
+    Future.microtask(
+      () => ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
+    );
   }
 
   @override
@@ -84,12 +81,9 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         ref
           ..invalidate(_calendarPredictionProvider)
           ..invalidate(inlineMatchPredictionProvider);
-        await Future.wait([
-          ref
-              .read(matchesControllerProvider.notifier)
-              .load(seasonId: state.selectedSeasonId, allSeasons: true),
-          ref.read(predictionsControllerProvider.notifier).load(),
-        ]);
+        await ref
+            .read(matchesControllerProvider.notifier)
+            .load(seasonId: state.selectedSeasonId, allSeasons: true);
       },
       child: CustomScrollView(
         controller: _scrollController,
@@ -310,7 +304,6 @@ class _AdminMatchActions extends ConsumerWidget {
       ..invalidate(_calendarPredictionProvider)
       ..invalidate(inlineMatchPredictionProvider)
       ..invalidate(matchDetailsProvider(match.id));
-    await ref.read(predictionsControllerProvider.notifier).load();
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
@@ -349,7 +342,6 @@ class _AdminMatchActions extends ConsumerWidget {
       ..invalidate(inlineMatchPredictionProvider)
       ..invalidate(leaderboardProvider)
       ..invalidate(matchDetailsProvider(match.id));
-    await ref.read(predictionsControllerProvider.notifier).load();
   }
 
   @override

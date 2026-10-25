@@ -1,14 +1,12 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_add_player_options.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
-import 'package:as_grinta/features/match_live/domain/match_live_timeline.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract interface class MatchLiveRepository {
   Future<MatchLiveStateBundle> fetchLiveState(String matchId);
-  Future<MatchLiveTimeline?> fetchTimeline(String matchId);
   Future<MatchLiveAddPlayerOptions> fetchAddPlayerOptions(String matchId);
 
   /// Tente de prendre la place de pilote. Si un autre téléphone la tient
@@ -133,15 +131,6 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
       params: {'p_match_id': matchId},
     );
     return MatchLiveStateBundle.fromRpc(response);
-  }
-
-  @override
-  Future<MatchLiveTimeline?> fetchTimeline(String matchId) async {
-    final response = await _client.rpc(
-      'get_match_live_timeline',
-      params: {'p_match_id': matchId},
-    );
-    return MatchLiveTimeline.tryFromRpc(response);
   }
 
   @override

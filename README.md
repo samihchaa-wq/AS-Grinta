@@ -42,9 +42,9 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 - **Live** : chronomètre, événements, buts (avec leur passeur décisif), remplacements et gestion de la composition réelle.
 - Un joueur ou invité ajouté tardivement pendant le Live arrive directement sur le banc.
 - La validation du récapitulatif Live finalise le match avant son passage normal en match passé.
-- Un Live mal rempli garde sa chronologie après validation : un administrateur
-  peut supprimer les « Faits du match » depuis la fiche du match, sans toucher au
-  score, aux statistiques, à la composition ni au vote Homme du match.
+- Les « Faits du match » de la fiche viennent du compte rendu validé, pas de la
+  saisie en direct : un Live mal rempli se corrige dans le compte rendu,
+  pendant la fenêtre de correction, et la fiche suit aussitôt.
 - Le vote Homme du match ouvre après cette validation et ferme **24 h après le coup d’envoi**.
 
 ## Pronostics

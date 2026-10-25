@@ -1,5 +1,4 @@
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
-import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -39,22 +38,6 @@ void main() {
 
       expect(item.canEditAt(opensAt), isFalse);
     });
-
-    test('the controller saves any match whose window is open', () async {
-      final item = _item(
-        matchId: 'match-2',
-        kickoffAt: DateTime.now().toUtc().add(const Duration(days: 3)),
-      );
-      final repository = _FakePredictionsRepository(item);
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-
-      await controller.load();
-      await controller.save(item.matchId);
-
-      expect(repository.saveCalls, 1);
-      expect(repository.savedMatchId, item.matchId);
-    });
   });
 }
 
@@ -76,29 +59,4 @@ MatchPredictionItem _item({
     actualScoreGrinta: null,
     actualScoreOpponent: null,
   );
-}
-
-class _FakePredictionsRepository implements PredictionsRepository {
-  _FakePredictionsRepository(this.item);
-
-  final MatchPredictionItem item;
-  int saveCalls = 0;
-  String? savedMatchId;
-
-  @override
-  Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async => [item];
-
-  @override
-  Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async =>
-      matchId == item.matchId ? item : null;
-
-  @override
-  Future<void> savePrediction({
-    required String matchId,
-    required int scoreGrinta,
-    required int scoreOpponent,
-  }) async {
-    saveCalls += 1;
-    savedMatchId = matchId;
-  }
 }

@@ -2,7 +2,6 @@ import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
-import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -76,7 +75,6 @@ Future<void> _pump(
           (ref) async => null,
         ),
         matchGoalActionsProvider(_matchId).overrideWith((ref) async => []),
-        matchLiveTimelineProvider(_matchId).overrideWith((ref) async => null),
       ],
       child: const MaterialApp(home: MatchDetailsPage(matchId: _matchId)),
     ),
