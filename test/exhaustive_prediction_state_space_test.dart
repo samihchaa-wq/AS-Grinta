@@ -1,9 +1,6 @@
-import 'dart:async';
-
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
-import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -113,123 +110,6 @@ void main() {
       // ignore: avoid_print
       print('STATE_SPACE prediction_window cases=$cases status=passed');
     });
-
-    test('score editing exhausts boundary values and deltas', () async {
-      const initialValues = [0, 1, 98, 99];
-      const deltas = [-100, -1, 0, 1, 100];
-      var cases = 0;
-
-      for (final initial in initialValues) {
-        for (final delta in deltas) {
-          for (final grinta in [true, false]) {
-            cases += 1;
-            final repository = _ScenarioPredictionsRepository(
-              items: [_item(scoreGrinta: initial, scoreOpponent: initial)],
-            );
-            final controller = PredictionsController(repository);
-            await controller.load();
-            controller.changeScore(
-              matchId: 'match',
-              grinta: grinta,
-              delta: delta,
-            );
-            final observed = controller.state.items.single;
-            final expected = (initial + delta).clamp(0, 99);
-            expect(
-              grinta ? observed.scoreGrinta : observed.scoreOpponent,
-              expected,
-              reason: 'initial=$initial delta=$delta grinta=$grinta',
-            );
-            expect(
-              grinta ? observed.scoreOpponent : observed.scoreGrinta,
-              initial,
-              reason: 'the other team score must remain unchanged',
-            );
-            controller.dispose();
-          }
-        }
-      }
-
-      expect(cases, 40);
-      // ignore: avoid_print
-      print('STATE_SPACE prediction_score_edit cases=$cases status=passed');
-    });
-
-    test('a slow save is non-reentrant and produces one mutation', () async {
-      final gate = Completer<void>();
-      final repository = _ScenarioPredictionsRepository(
-        items: [_item(scoreGrinta: 3, scoreOpponent: 2)],
-        saveGate: gate,
-      );
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-      await controller.load();
-
-      final first = controller.save('match');
-      await Future<void>.delayed(Duration.zero);
-      final second = controller.save('match');
-      await Future<void>.delayed(Duration.zero);
-
-      expect(repository.saveCalls, 1);
-      expect(controller.state.savingMatchId, 'match');
-      gate.complete();
-      await Future.wait([first, second]);
-
-      expect(repository.saveCalls, 1);
-      expect(controller.state.savingMatchId, isNull);
-      expect(controller.state.items.single.isFilled, isTrue);
-      // ignore: avoid_print
-      print('STATE_SPACE prediction_double_submit cases=1 status=passed');
-    });
-
-    test(
-      'save failure preserves the complete form and permits retry',
-      () async {
-        final repository = _ScenarioPredictionsRepository(
-          items: [_item(scoreGrinta: 4, scoreOpponent: 3)],
-          saveError: StateError('network unavailable'),
-        );
-        final controller = PredictionsController(repository);
-        addTearDown(controller.dispose);
-        await controller.load();
-
-        await controller.save('match');
-        final afterFailure = controller.state.items.single;
-        expect(afterFailure.scoreGrinta, 4);
-        expect(afterFailure.scoreOpponent, 3);
-        expect(afterFailure.isFilled, isFalse);
-        expect(controller.state.error, isNotNull);
-        expect(controller.state.savingMatchId, isNull);
-
-        repository.saveError = null;
-        await controller.save('match');
-        expect(repository.saveCalls, 2);
-        expect(controller.state.items.single.isFilled, isTrue);
-        expect(controller.state.error, isNull);
-        // ignore: avoid_print
-        print('STATE_SPACE prediction_retry cases=2 status=passed');
-      },
-    );
-
-    test('failed refresh keeps existing edited values', () async {
-      final repository = _ScenarioPredictionsRepository(
-        items: [_item(scoreGrinta: 1, scoreOpponent: 1)],
-      );
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-      await controller.load();
-      controller.changeScore(matchId: 'match', grinta: true, delta: 2);
-
-      repository.fetchError = StateError('offline');
-      await controller.load();
-
-      final item = controller.state.items.single;
-      expect(item.scoreGrinta, 3);
-      expect(item.scoreOpponent, 1);
-      expect(controller.state.error, isNotNull);
-      // ignore: avoid_print
-      print('STATE_SPACE prediction_failed_refresh cases=1 status=passed');
-    });
   });
 }
 
@@ -281,49 +161,4 @@ MatchPredictionItem _item({
     actualScoreOpponent: null,
     predictionsClosedAt: predictionsClosedAt,
   );
-}
-
-class _ScenarioPredictionsRepository implements PredictionsRepository {
-  _ScenarioPredictionsRepository({
-    required this.items,
-    this.saveGate,
-    this.saveError,
-  });
-
-  List<MatchPredictionItem> items;
-  Completer<void>? saveGate;
-  Object? fetchError;
-  Object? saveError;
-  int fetchCalls = 0;
-  int saveCalls = 0;
-
-  @override
-  Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
-    fetchCalls += 1;
-    final error = fetchError;
-    if (error != null) throw error;
-    return items;
-  }
-
-  @override
-  Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async {
-    for (final item in items) {
-      if (item.matchId == matchId) return item;
-    }
-    return null;
-  }
-
-  @override
-  Future<void> savePrediction({
-    required String matchId,
-    required int scoreGrinta,
-    required int scoreOpponent,
-  }) async {
-    saveCalls += 1;
-    final error = saveError;
-    if (error != null) throw error;
-    final gate = saveGate;
-    if (gate == null) return;
-    await gate.future;
-  }
 }

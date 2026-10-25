@@ -156,41 +156,6 @@ class PredictionsRepository {
   static const _predictionSelect =
       'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled';
 
-  Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      throw StateError('Ta session a expiré. Reconnecte-toi.');
-    }
-    final response = await _client
-        .from('matches')
-        .select(_matchSelect)
-        .eq('status', 'a_venir')
-        .neq('match_type', 'entre_nous')
-        .order('kickoff_at', ascending: true);
-    final matches = (response as List)
-        .map((match) => Map<String, dynamic>.from(match as Map))
-        .toList();
-    final matchIds = [for (final match in matches) match['id'].toString()];
-
-    final predictionsById = <String, Map<String, dynamic>>{};
-    if (matchIds.isNotEmpty) {
-      final predRows = await _client
-          .from('match_predictions')
-          .select(_predictionSelect)
-          .eq('profile_id', userId)
-          .inFilter('match_id', matchIds);
-      for (final row in predRows as List) {
-        final map = Map<String, dynamic>.from(row as Map);
-        predictionsById[map['match_id'].toString()] = map;
-      }
-    }
-
-    return [
-      for (final match in matches)
-        _buildItem(match, prediction: predictionsById[match['id'].toString()]),
-    ];
-  }
-
   Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async {
     final match = await _client
         .from('matches')

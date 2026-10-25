@@ -7,7 +7,6 @@ import 'package:as_grinta/features/matches/presentation/match_encounter_route.da
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
 import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
-import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -244,11 +243,23 @@ class _InlineMatchPredictionCardState
         ..invalidate(matchDetailsProvider(widget.matchId))
         // Le rappel de pronostic devient lu.
         ..invalidate(unreadNotificationCountProvider);
-      await ref.read(predictionsControllerProvider.notifier).load();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
+      }
+    } on PredictionWriteOutcomeUnknown {
+      // L'écriture a peut-être abouti : annoncer un échec pousserait à
+      // ressaisir un pronostic déjà enregistré.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Connexion interrompue : ton pronostic a peut-être été '
+              'enregistré. Actualise la page avant de réessayer.',
+            ),
+          ),
+        );
       }
     } catch (error) {
       if (mounted) {
