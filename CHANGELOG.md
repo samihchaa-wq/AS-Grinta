@@ -6,6 +6,17 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- effectif : l'effectif d'un match est publié dès la création du match. Il
+  passait jusqu'ici par un « brouillon » invisible, qui durait jusqu'à ce
+  qu'un admin ouvre la page du match (de quelques secondes à 23 minutes
+  cette saison) : pendant ce temps, les joueurs ne voyaient ni l'effectif ni
+  leur statut, aucune notification de convocation ou de liste d'attente ne
+  partait et un désistement ne gardait pas la place du joueur qui revient.
+  Ces règles s'appliquent désormais dès la première réponse. Un report à un
+  autre jour remet toujours les réponses à zéro, sans repasser par un
+  brouillon. Pour un match entre nous, enregistrer l'effectif pour la
+  première fois n'efface plus la composition déjà préparée. Actif une fois
+  la mise à jour de la base de données déployée ;
 - liste d'attente : un joueur qui s'était dit absent puis se dit présent
   après la publication de l'effectif prend son rang dans la liste d'attente,
   comme un joueur qui répond pour la première fois. Il tombait jusqu'ici
