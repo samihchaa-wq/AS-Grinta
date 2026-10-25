@@ -1,2 +1,0 @@
-- [Flutter on Replit via Nix](flutter-replit-setup.md) — install `flutter` via installSystemDependencies; use Python http.server on port 5000 to serve the web build.
-- [Player accounts & roster linking](players-claim-flow.md) — two roles only (pronostiqueur, admin); sign-up via register-account (pending), admin validates with staff_validate_profile and links with staff_set_season_player_profile; the old claim-token flow is gone.

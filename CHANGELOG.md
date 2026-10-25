@@ -348,7 +348,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 - nettoyage du dépôt, sans changement visible pour les joueurs : retrait de
   fichiers qui ne servaient plus (déclencheurs de CI, marqueur de déploiement,
   anciens logos et images jamais affichés, deux fonds d'écran encodés jamais
-  chargés), du code d'anciennes fonctions remplacées (export `.ics` local
+  chargés, captures et maquettes de l'audit visuel, configuration Replit qui
+  n'est plus utilisée), du code d'anciennes fonctions remplacées (export `.ics` local
   remplacé par l'abonnement au calendrier, carte des buteurs, section
   d'administration du module sportif, simulation et terrain de l'ancienne
   composition interne, interrupteur du module sportif devenu permanent) et de
