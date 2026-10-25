@@ -172,30 +172,6 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
     state = const AsyncLoading();
     state = AsyncData(await _loadFailClosed());
   }
-
-  Future<FeatureFlagsSnapshot> setSportsManagementEnabled({
-    required bool enabled,
-    String? justification,
-  }) async {
-    final previous =
-        state.valueOrNull ?? const FeatureFlagsSnapshot.unavailable();
-    state = const AsyncLoading();
-
-    try {
-      final next = await ref
-          .read(featureFlagsRepositoryProvider)
-          .setSportsManagementEnabled(
-            enabled: enabled,
-            justification: justification,
-          );
-      state = AsyncData(next);
-      return next;
-    } catch (error, stackTrace) {
-      AppLogger.error('feature_flags.set_sports_management', error, stackTrace);
-      state = AsyncData(previous);
-      rethrow;
-    }
-  }
 }
 
 final featureFlagsControllerProvider =

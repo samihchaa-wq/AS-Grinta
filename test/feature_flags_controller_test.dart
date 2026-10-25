@@ -52,28 +52,6 @@ void main() {
     expect(container.read(sportsManagementEnabledProvider), isFalse);
   });
 
-  test('updates the server flag and publishes the new value', () async {
-    final repository = _FakeFeatureFlagsRepository();
-    addTearDown(repository.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        featureFlagsRepositoryProvider.overrideWithValue(repository),
-        featureFlagsSessionReadyProvider.overrideWithValue(true),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    await container.read(featureFlagsControllerProvider.future);
-    final snapshot = await container
-        .read(featureFlagsControllerProvider.notifier)
-        .setSportsManagementEnabled(enabled: true, justification: 'Test');
-
-    expect(repository.lastEnabled, isTrue);
-    expect(repository.lastJustification, 'Test');
-    expect(snapshot.sportsManagement.enabled, isTrue);
-    expect(container.read(sportsManagementEnabledProvider), isTrue);
-  });
-
   test('refreshes a running session when the server flag changes', () async {
     final repository = _FakeFeatureFlagsRepository();
     addTearDown(repository.dispose);
@@ -210,8 +188,6 @@ class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
 
   int fetchCount = 0;
   int watchCount = 0;
-  bool? lastEnabled;
-  String? lastJustification;
   bool enabled = false;
   DateTime updatedAt = DateTime.utc(2026, 7, 20, 12);
 
@@ -254,18 +230,6 @@ class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
   Stream<FeatureFlagChangeSignal> watchSportsManagementChanges() {
     watchCount += 1;
     return _changes.stream;
-  }
-
-  @override
-  Future<FeatureFlagsSnapshot> setSportsManagementEnabled({
-    required bool enabled,
-    String? justification,
-  }) async {
-    lastEnabled = enabled;
-    lastJustification = justification;
-    this.enabled = enabled;
-    updatedAt = updatedAt.add(const Duration(seconds: 1));
-    return _snapshot(enabled: enabled, updatedAt: updatedAt);
   }
 }
 

@@ -352,7 +352,6 @@ class MatchConvocations {
   final List<ConvocationPlayer> players;
 
   bool get isPublished => convocationState == 'published';
-  bool get isOverLimit => convokedCount > squadSizeLimit;
   bool get isReadyForComposition => isPublished && !hasUnpublishedChanges;
 }
 

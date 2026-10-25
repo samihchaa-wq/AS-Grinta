@@ -112,9 +112,6 @@ class MatchModel {
     return round == null ? 'Championnat' : 'Championnat · J$round';
   }
 
-  /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
-  bool get pronosClosed => predictionsClosedAt != null;
-
   MatchDisplayPhase phase({DateTime? now}) {
     if (!isCancelled && isFinishedAt(now: now)) {
       return MatchDisplayPhase.past;
@@ -127,10 +124,6 @@ class MatchModel {
       now: now,
     );
   }
-
-  /// Le match est fini sportivement mais son compte rendu n'est pas encore
-  /// validé. On ne le mélange plus avec les matchs passés.
-  bool get isAwaitingResult => phase() == MatchDisplayPhase.awaitingValidation;
 
   String get statusLabel {
     switch (phase()) {

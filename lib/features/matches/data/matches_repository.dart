@@ -86,23 +86,6 @@ class MatchesRepository {
     return value == null || value.isEmpty ? null : value;
   }
 
-  /// Enregistre l'adresse d'un match ; elle est mémorisée sur l'équipe à
-  /// domicile pour préremplir les prochaines rencontres.
-  Future<void> setMatchAddress({
-    required String matchId,
-    required String? address,
-    required bool rememberAsDefault,
-  }) async {
-    await _client.rpc(
-      'admin_set_match_address',
-      params: {
-        'p_match_id': matchId,
-        'p_address': address,
-        'p_remember_as_default': rememberAsDefault,
-      },
-    );
-  }
-
   /// Journée du championnat, telle que fixée par la ligue.
   ///
   /// [round] null rend la main au numéro automatique (journée suivante de la
@@ -332,35 +315,6 @@ class MatchesRepository {
     if (result != true) {
       throw StateError('Le match n’existe plus ou n’a pas pu être annulé.');
     }
-  }
-
-  Future<Map<String, double>?> fetchMatchOdds(String matchId) async {
-    final response = await _client
-        .from('match_odds')
-        .select('odds_victoire_as_grinta, odds_nul, odds_victoire_adverse')
-        .eq('match_id', matchId)
-        .maybeSingle();
-    if (response == null) return null;
-    return {
-      'win': (response['odds_victoire_as_grinta'] as num).toDouble(),
-      'draw': (response['odds_nul'] as num).toDouble(),
-      'loss': (response['odds_victoire_adverse'] as num).toDouble(),
-    };
-  }
-
-  Future<List<Map<String, dynamic>>> fetchMatchPredictions(
-    String matchId,
-  ) async {
-    final response = await _client
-        .from('match_predictions')
-        .select(
-          'match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,is_filled,updated_at',
-        )
-        .eq('match_id', matchId)
-        .eq('is_filled', true);
-    return (response as List)
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList();
   }
 
   Future<void> updateMatchStatus({

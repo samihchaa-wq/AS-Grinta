@@ -250,14 +250,6 @@ class _ControlledRepository implements FeatureFlagsRepository {
   @override
   Stream<FeatureFlagChangeSignal> watchSportsManagementChanges() =>
       const Stream<FeatureFlagChangeSignal>.empty();
-
-  @override
-  Future<FeatureFlagsSnapshot> setSportsManagementEnabled({
-    required bool enabled,
-    String? justification,
-  }) {
-    throw UnimplementedError();
-  }
 }
 
 class _TestAuthController extends AuthController {
