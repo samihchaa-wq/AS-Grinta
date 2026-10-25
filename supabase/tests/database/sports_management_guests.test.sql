@@ -261,7 +261,9 @@ select is(
     ),
     'Effectif immédiat avant composition avec invité'
   ) #>> '{convocation_version}',
-  '1',
+  -- Un effectif naît publié en version 1 : le premier enregistrement donne
+  -- la version 2.
+  '2',
   'les convocations sont enregistrées immédiatement avant la composition avec invité'
 );
 

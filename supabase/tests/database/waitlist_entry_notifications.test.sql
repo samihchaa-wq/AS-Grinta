@@ -6,10 +6,11 @@ select no_plan();
 -- Entrer en liste d'attente prévient toujours le joueur, entrer chez les
 -- convoqués jamais : être convoqué est le résultat attendu.
 --
--- * à la première publication de l'effectif, les joueurs déjà placés en
---   liste d'attente reçoivent « Tu passes en liste d'attente » ;
--- * après la publication, un joueur qui répond « Présent » et tombe
---   directement en liste d'attente la reçoit aussi ;
+-- * l'effectif est publié dès la création du match : un joueur qui perd sa
+--   place au fil des réponses reçoit aussitôt « Tu passes en liste
+--   d'attente », sans attendre qu'un admin enregistre l'effectif ;
+-- * un joueur qui répond « Présent » et tombe directement en liste
+--   d'attente la reçoit aussi ;
 -- * un joueur convoqué directement ne reçoit rien.
 --
 -- Les envois sont lus dans la file de pg_net, à l'intérieur de la
@@ -154,7 +155,8 @@ as $function$
 $function$;
 
 -- ---------------------------------------------------------------------------
--- 1. Première publication : la liste d'attente initiale est prévenue
+-- 1. Effectif publié dès la création : la liste d'attente est prévenue
+--    au fil des réponses
 -- ---------------------------------------------------------------------------
 
 select set_config(
@@ -176,16 +178,6 @@ select set_config(
   true
 );
 
--- Alice et Bruno répondent avant la publication : une seule place.
-select public.admin_override_match_availability(
-  current_setting('test.match_publish')::uuid,
-  'e7400000-0000-0000-0000-000000000001', 'available', null, 'Test'
-);
-select public.admin_override_match_availability(
-  current_setting('test.match_publish')::uuid,
-  'e7400000-0000-0000-0000-000000000002', 'available', null, 'Test'
-);
-
 reset role;
 
 select is(
@@ -194,16 +186,13 @@ select is(
     from public.match_sport_workflows workflow
     where workflow.match_id = current_setting('test.match_publish')::uuid
   ),
-  'draft',
-  'avant l''enregistrement de l''effectif, rien n''est publié'
+  'published',
+  'l''effectif est publié dès la création du match'
 );
 
+-- Alice puis Bruno répondent, sans qu'aucun admin n'enregistre
+-- l'effectif : une seule place.
 select pg_temp.mark();
-select set_config(
-  'test.decisions_publish',
-  pg_temp.untouched_decisions(current_setting('test.match_publish')::uuid)::text,
-  true
-);
 select set_config(
   'request.jwt.claims',
   '{"sub":"e7100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -211,11 +200,13 @@ select set_config(
 );
 set local role authenticated;
 
-select public.admin_save_match_effectif(
+select public.admin_override_match_availability(
   current_setting('test.match_publish')::uuid,
-  1,
-  current_setting('test.decisions_publish')::jsonb,
-  'Première publication'
+  'e7400000-0000-0000-0000-000000000001', 'available', null, 'Test'
+);
+select public.admin_override_match_availability(
+  current_setting('test.match_publish')::uuid,
+  'e7400000-0000-0000-0000-000000000002', 'available', null, 'Test'
 );
 
 reset role;
@@ -235,7 +226,7 @@ select is(
 select is(
   pg_temp.pushes_since(current_setting('test.marker')::bigint),
   'Tu passes en liste d''attente → Alice',
-  'à la publication, seule Alice, en liste d''attente, est prévenue'
+  'seule Alice, qui perd sa place, est prévenue, dès la réponse de Bruno'
 );
 
 -- La notification porte de quoi la retrouver dans le journal de livraison.
@@ -254,7 +245,7 @@ select is(
   'l''envoi indique son type et son match pour le journal de livraison'
 );
 
--- Republier sans rien changer ne renvoie rien.
+-- Enregistrer l'effectif sans rien changer ne renvoie rien.
 select pg_temp.mark();
 select set_config(
   'test.decisions_republish',

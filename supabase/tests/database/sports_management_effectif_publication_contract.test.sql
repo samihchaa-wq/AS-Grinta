@@ -192,14 +192,16 @@ select is(
   'enregistrer ne crée aucun brouillon privé'
 );
 
+-- Un effectif naît publié en version 1 : chaque enregistrement ajoute une
+-- version à partir de là.
 select is(
   (
     select convocation_state::text || '/' || convocation_version::text
     from public.match_sport_workflows
     where match_id = current_setting('test.effectif_match')::uuid
   ),
-  'published/1',
-  'le premier save publie immédiatement la version 1'
+  'published/2',
+  'le premier save publie immédiatement la version 2'
 );
 
 select is(
@@ -258,8 +260,8 @@ select is(
     from public.match_sport_workflows
     where match_id = current_setting('test.effectif_match')::uuid
   ),
-  'published/2',
-  'le deuxième save publie immédiatement la version 2'
+  'published/3',
+  'le deuxième save publie immédiatement la version 3'
 );
 
 reset role;
@@ -309,7 +311,7 @@ select is(
     pg_temp.effectif_decisions(1),
     'Décisions indépendantes de la disponibilité'
   ) #>> '{convocation_version}',
-  '3',
+  '4',
   'les décisions incluent un absent et une sans réponse'
 );
 
@@ -360,7 +362,7 @@ select is(
     )),
     'Retour aux colonnes de disponibilité'
   ) #>> '{convocation_version}',
-  '4',
+  '5',
   'le retour aux colonnes source est publié immédiatement'
 );
 
@@ -403,7 +405,7 @@ select is(
     pg_temp.effectif_decisions(1),
     'Réapplication avant réponse'
   ) #>> '{convocation_version}',
-  '5',
+  '6',
   'les décisions indisponibles peuvent être réappliquées'
 );
 reset role;

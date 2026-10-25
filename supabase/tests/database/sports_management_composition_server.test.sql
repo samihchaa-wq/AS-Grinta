@@ -266,6 +266,8 @@ select set_config(
 );
 set local role authenticated;
 
+-- Un effectif naît publié en version 1 : le premier enregistrement donne la
+-- version 2.
 select is(
   public.admin_save_match_effectif(
     current_setting('test.composition_match')::uuid,
@@ -273,7 +275,7 @@ select is(
     pg_temp.effectif_payload(),
     'Effectif immédiat avant composition'
   ) #>> '{convocation_version}',
-  '1',
+  '2',
   'l’effectif est enregistré et publié immédiatement'
 );
 
