@@ -6,6 +6,15 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- liste d'attente : un joueur qui s'était dit absent puis se dit présent
+  après la publication de l'effectif prend son rang dans la liste d'attente,
+  comme un joueur qui répond pour la première fois. Il tombait jusqu'ici
+  d'office en liste d'attente, même quand des convoqués placés avant lui
+  dans la liste devaient y passer avant lui (cas d'Alyoun pour le match du
+  27 octobre). Si son rang lui donne une place, c'est le convoqué le plus
+  haut dans la liste qui passe en attente, et il en est prévenu. Un convoqué
+  qui s'était désisté puis revient récupère toujours sa place. Actif une
+  fois la mise à jour de la base de données déployée ;
 - composition, « Simuler une composition » : la proposition ne met plus un
   défenseur central au milieu pendant qu'un vrai milieu reste sur le banc,
   défaut constaté sur chacun des quatre matchs à onze de la saison. Elle
