@@ -246,17 +246,47 @@ class RosterRepository {
     }
   }
 
-  /// Téléverse la photo d'un joueur de l'effectif (utile pour les joueurs
-  /// sans compte) et met à jour `season_players.photo_url`.
+  /// Téléverse la photo d'un joueur de l'effectif.
+  ///
+  /// La photo du compte passe partout avant celle de l'effectif : pour un
+  /// joueur rattaché à un compte, on remplace donc la photo du compte, sinon
+  /// la nouvelle photo resterait invisible.
   Future<void> uploadPlayerPhoto({
     required String seasonPlayerId,
+    String? linkedProfileId,
     required Uint8List bytes,
     required String fileExt,
   }) async {
     final image = validateImageUpload(bytes, fileExt: fileExt);
-    final path =
-        'season/$seasonPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.${image.extension}';
+    final stamp = DateTime.now().millisecondsSinceEpoch;
     final bucket = _client.storage.from('profile-photos');
+    final profileId = linkedProfileId?.trim() ?? '';
+    if (profileId.isNotEmpty) {
+      final path = '$profileId/avatar_$stamp.${image.extension}';
+      await bucket.uploadBinary(
+        path,
+        bytes,
+        fileOptions: FileOptions(contentType: image.mimeType, upsert: false),
+      );
+      try {
+        // L'ancienne photo du compte est supprimée côté serveur (trigger sur
+        // profiles.photo_url).
+        final updated = await _client
+            .from('profiles')
+            .update({'photo_url': path})
+            .eq('id', profileId)
+            .select('id')
+            .maybeSingle();
+        if (updated == null) {
+          throw StateError('La photo du joueur n’a pas pu être enregistrée.');
+        }
+      } catch (_) {
+        await bucket.remove([path]);
+        rethrow;
+      }
+      return;
+    }
+    final path = 'season/$seasonPlayerId/avatar_$stamp.${image.extension}';
     await bucket.uploadBinary(
       path,
       bytes,
