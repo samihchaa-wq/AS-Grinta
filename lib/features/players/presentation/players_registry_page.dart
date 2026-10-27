@@ -243,6 +243,7 @@ Future<void> _pickAndUploadRosterPhoto(
   try {
     await ref.read(rosterRepositoryProvider).uploadPlayerPhoto(
           seasonPlayerId: player.id,
+          linkedProfileId: player.linkedProfileId,
           bytes: cropped,
           fileExt: 'jpg',
         );
