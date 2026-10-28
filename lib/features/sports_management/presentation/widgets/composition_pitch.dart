@@ -496,13 +496,12 @@ class CompositionPlayerTile extends StatelessWidget {
                   ),
                 ),
                 if (entry.isMotm)
-                  const Positioned(
-                    top: -4,
+                  Positioned(
+                    // La photo commence à 12 du haut de la case (64 − 52).
+                    top: 12 + PhotoCrown.topOffset(PhotoCrown.pitchPhotoSize),
                     left: 0,
                     right: 0,
-                    child: Center(
-                      child: Text('👑', style: TextStyle(fontSize: 20)),
-                    ),
+                    child: const Center(child: PhotoCrown()),
                   ),
                 if (entry.goals > 0)
                   Positioned(
