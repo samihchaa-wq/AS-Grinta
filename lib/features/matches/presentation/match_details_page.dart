@@ -673,7 +673,6 @@ class _MotmVotesCard extends ConsumerWidget {
       padding: const EdgeInsets.only(top: 16),
       child: CollapsibleSectionCard(
         storageKey: 'match-$matchId-votes-hdm',
-        icon: Icons.emoji_events_outlined,
         title: 'Votes Homme du match',
         childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
         children: rows,
@@ -788,7 +787,6 @@ class _PredictionsTable extends StatelessWidget {
 
     return CollapsibleSectionCard(
       storageKey: 'match-$matchId-prono',
-      icon: Icons.scoreboard_outlined,
       title: 'Prono',
       childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
       children: [
