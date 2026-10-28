@@ -55,7 +55,6 @@ class MatchFaitsDuMatchCard extends ConsumerWidget {
 
     return CollapsibleSectionCard(
       storageKey: 'match-$matchId-faits',
-      icon: Icons.timeline_rounded,
       title: 'Faits du match',
       children: [
         for (final row in rows) _FactLine(row: row),
