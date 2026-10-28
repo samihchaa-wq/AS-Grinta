@@ -3,12 +3,17 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:as_grinta/core/storage/avatar_image.dart';
+import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 
 /// Ouvre l'éditeur utilisé pour les photos de profil : déplacement libre,
 /// pinch-to-zoom / dézoom et export JPEG, ou PNG si la photo a des zones
 /// transparentes.
+///
+/// Un patron est posé sur l'aperçu (ovale du visage, épaules, couronne de
+/// l'Homme du match à sa place sur le terrain) pour cadrer tous les joueurs
+/// de la même façon. Il n'est jamais enregistré dans l'image.
 ///
 /// L'export est calculé directement depuis l'image source et la matrice de
 /// transformation. On ne capture pas le widget à l'écran : cela évite les
@@ -18,8 +23,8 @@ Future<Uint8List?> cropProfilePhoto(
   BuildContext context,
   Uint8List bytes, {
   String title = 'Recadrer la photo',
-  String instructions =
-      'Déplace et pince pour zoomer, afin de choisir ce qui apparaîtra sur le terrain.',
+  String instructions = 'Déplace et pince pour zoomer : le visage dans '
+      'l’ovale, du haut du front au menton.',
   String confirmLabel = 'Utiliser cette photo',
   Color previewColor = const Color(0xFF174936),
   Color previewBorderColor = const Color(0xFF6DAD8B),
@@ -61,6 +66,10 @@ class _PhotoCropDialog extends StatefulWidget {
 
 class _PhotoCropDialogState extends State<_PhotoCropDialog> {
   static const double _cropSize = 180;
+
+  /// Écart entre le bord du cadre coloré et la photo : la marge intérieure
+  /// de 6 plus le filet de 1.
+  static const double _frameInset = 7;
 
   /// Le rendu est calculé à la taille de stockage, pas à un multiple arbitraire
   /// de l'aperçu : c'est ce qui décide du poids réel de la photo à télécharger.
@@ -178,53 +187,91 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final crownTop = _frameInset + PhotoCrown.topOffset(_cropSize);
     return AlertDialog(
       title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.instructions, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: widget.previewColor,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: widget.previewBorderColor),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(_cropSize * 0.25),
-              child: SizedBox(
+          // Une seule consigne, sans note en dessous : avec la place de la
+          // couronne, la fenêtre doit encore tenir sur un petit écran.
+          Text(
+            '${widget.instructions} Ovale, couronne et fond ne sont pas '
+            'enregistrés.',
+            textAlign: TextAlign.center,
+          ),
+          // La couronne dépasse au-dessus de l'aperçu, comme sur le terrain :
+          // son dessin monte à environ 22 % du côté de la photo au-dessus
+          // d'elle (le haut de la boîte de l'emoji, plus haut, est vide). Sa
+          // place est réservée, sans plus : un petit écran doit tout afficher.
+          const SizedBox(height: 6 + _cropSize * .22 - _frameInset),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: widget.previewColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: widget.previewBorderColor),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(_cropSize * 0.25),
+                  child: SizedBox(
+                    width: _cropSize,
+                    height: _cropSize,
+                    child: !_ready
+                        ? const ColoredBox(color: Color(0x1FFFFFFF))
+                        : ClipRect(
+                            child: InteractiveViewer(
+                              transformationController:
+                                  _transformationController,
+                              constrained: false,
+                              boundaryMargin:
+                                  const EdgeInsets.all(_cropSize * 4),
+                              minScale: 0.05,
+                              maxScale: 8,
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              child: Image.memory(
+                                widget.bytes,
+                                width: _childWidth,
+                                height: _childHeight,
+                                fit: BoxFit.fill,
+                                filterQuality: FilterQuality.high,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              // Le patron laisse passer les gestes jusqu'à la photo.
+              Positioned(
+                top: crownTop,
+                left: 0,
+                right: 0,
+                child: const IgnorePointer(
+                  child: Center(
+                    child: Opacity(
+                      opacity: .8,
+                      child: PhotoCrown(photoSize: _cropSize),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: _frameInset,
+                top: _frameInset,
                 width: _cropSize,
                 height: _cropSize,
-                child: !_ready
-                    ? const ColoredBox(color: Color(0x1FFFFFFF))
-                    : ClipRect(
-                        child: InteractiveViewer(
-                          transformationController: _transformationController,
-                          constrained: false,
-                          boundaryMargin: const EdgeInsets.all(_cropSize * 4),
-                          minScale: 0.05,
-                          maxScale: 8,
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          child: Image.memory(
-                            widget.bytes,
-                            width: _childWidth,
-                            height: _childHeight,
-                            fit: BoxFit.fill,
-                            filterQuality: FilterQuality.high,
-                          ),
-                        ),
-                      ),
+                child: IgnorePointer(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(_cropSize * 0.25),
+                    child: const CustomPaint(painter: _FramingGuidePainter()),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Le cadre coloré n’est pas enregistré dans l’image.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12),
+            ],
           ),
         ],
       ),
@@ -240,4 +287,58 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
       ],
     );
   }
+}
+
+/// Patron de cadrage, en pointillés : un ovale pour le visage, du haut du
+/// front (13 % du côté de la photo) au menton (55 %), et la ligne des
+/// épaules.
+///
+/// Sur le terrain, la couronne descend jusqu'à 20 % de la photo : sur un
+/// visage cadré dans l'ovale, elle couvre le haut du front, comme portée.
+/// Le visage occupe à peu près la même place que sur la plupart des photos
+/// déjà en ligne, assez grand pour qu'on reconnaisse le joueur.
+class _FramingGuidePainter extends CustomPainter {
+  const _FramingGuidePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final face = Path()
+      ..addOval(Rect.fromLTRB(w * .33, h * .13, w * .67, h * .55));
+    final shoulders = Path()
+      ..moveTo(0, h * .84)
+      ..cubicTo(w * .06, h * .74, w * .20, h * .69, w * .39, h * .655)
+      ..moveTo(w, h * .84)
+      ..cubicTo(w * .94, h * .74, w * .80, h * .69, w * .61, h * .655);
+    final dashes = _dashed(face)..addPath(_dashed(shoulders), Offset.zero);
+    // Un liseré sombre sous le trait blanc : le patron reste visible sur un
+    // maillot clair comme sur un fond sombre.
+    final halo = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 3
+      ..color = const Color(0x59000000);
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 1.5
+      ..color = const Color(0xE6FFFFFF);
+    canvas
+      ..drawPath(dashes, halo)
+      ..drawPath(dashes, line);
+  }
+
+  static Path _dashed(Path source) {
+    final dashes = Path();
+    for (final metric in source.computeMetrics()) {
+      for (var start = 0.0; start < metric.length; start += 10) {
+        dashes.addPath(metric.extractPath(start, start + 6), Offset.zero);
+      }
+    }
+    return dashes;
+  }
+
+  @override
+  bool shouldRepaint(_FramingGuidePainter oldDelegate) => false;
 }
