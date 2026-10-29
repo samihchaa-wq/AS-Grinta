@@ -21,3 +21,8 @@ verify_jwt = true
 
 [functions.calendar-feed]
 verify_jwt = false
+
+# Appelée uniquement par le workflow GitHub qui fabrique les vidéos de
+# présentation : il présente le jeton OIDC de GitHub, vérifié par la fonction.
+[functions.lineup-presentations]
+verify_jwt = false

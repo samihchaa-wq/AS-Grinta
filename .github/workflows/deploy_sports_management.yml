@@ -27,6 +27,11 @@ on:
         required: true
         default: false
         type: boolean
+      deploy_lineup_presentations:
+        description: 'Deploy the lineup-presentations Edge Function'
+        required: true
+        default: false
+        type: boolean
 
 # Le déploiement lui-même ne demande qu'à lire le dépôt. Les deux droits
 # supplémentaires ne servent qu'à l'étape finale : pousser une branche de
@@ -161,6 +166,19 @@ jobs:
         run: |
           set -euo pipefail
           supabase functions deploy register-account \
+            --project-ref "$SUPABASE_PROJECT_ID" \
+            --no-verify-jwt \
+            --use-api
+
+      # Appelée par le workflow GitHub qui fabrique les vidéos de présentation,
+      # sans jeton de session : la fonction vérifie elle-même le jeton OIDC de
+      # GitHub. Ce réglage reprend celui déjà déclaré dans supabase/config.toml.
+      - name: Deploy lineup-presentations
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_lineup_presentations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy lineup-presentations \
             --project-ref "$SUPABASE_PROJECT_ID" \
             --no-verify-jwt \
             --use-api

@@ -1,0 +1,7 @@
+node_modules/
+out/
+# Copiés depuis assets/ par scripts/prepare-assets.mjs : la source reste unique.
+public/fonts/
+public/crest.webp
+# Photos téléchargées le temps d'un rendu : jamais dans le dépôt.
+public/jobs/

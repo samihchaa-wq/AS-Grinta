@@ -52,6 +52,7 @@ def main() -> int:
         "send-push": False,
         "send-prediction-reminders": True,
         "calendar-feed": False,
+        "lineup-presentations": False,
     }
     versioned_functions = {
         path.name
@@ -237,6 +238,47 @@ def main() -> int:
         'from("matches")',
         "calendar-feed doit vérifier le profil actif avant de charger le calendrier",
     )
+
+    lineup = source("lineup-presentations")
+    for marker in (
+        'req.method !== "POST"',
+        'authHeader?.startsWith("Bearer ")',
+        "await verifyGithubToken(",
+        "readBoundedJson<RenderRequest>(req, MAX_BODY_BYTES)",
+        "RequestBodyTooLargeError",
+        'Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")',
+        'return new Response("non autorisé", { status: 401 })',
+        'return new Response("corps trop volumineux", { status: 413 })',
+    ):
+        require(marker in lineup, f"lineup-presentations: garde absente: {marker}")
+    require_in_order(
+        lineup,
+        "await verifyGithubToken(",
+        "readBoundedJson<RenderRequest>(req, MAX_BODY_BYTES)",
+        "lineup-presentations doit vérifier le jeton GitHub avant de lire le corps",
+    )
+    require_in_order(
+        lineup,
+        "await verifyGithubToken(",
+        "createClient(",
+        "lineup-presentations doit vérifier le jeton GitHub avant de créer le client privilégié",
+    )
+    lineup_security = function_file("lineup-presentations", "security.ts")
+    for marker in (
+        'GITHUB_OIDC_ISSUER = "https://token.actions.githubusercontent.com"',
+        'ALLOWED_REPOSITORY = "samihchaa-wq/AS-Grinta"',
+        "lineup_presentation_render.yml@refs/heads/main",
+        'claims.ref !== "refs/heads/main"',
+        "audience: OIDC_AUDIENCE",
+        'algorithms: ["RS256"]',
+        "MAX_BODY_BYTES = 4_096",
+        "totalBytes > maxBytes",
+        "await reader.cancel()",
+    ):
+        require(
+            marker in lineup_security,
+            f"lineup-presentations/security: garde absente: {marker}",
+        )
 
     for slug in ("claim-account", "send-prediction-reminders"):
         retired = source(slug)
