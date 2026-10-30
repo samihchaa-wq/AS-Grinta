@@ -24,6 +24,11 @@ class CompositionPitch extends StatefulWidget {
   )? onMoved;
   final ValueChanged<MatchCompositionEntry>? onPlayerTap;
 
+  /// Case d'un joueur sur le terrain. Publiques pour que la vidéo de la
+  /// composition pose chaque photo exactement à la même place.
+  static const double markerWidth = 64;
+  static const double markerHeight = 92;
+
   @override
   State<CompositionPitch> createState() => _CompositionPitchState();
 }
@@ -114,8 +119,8 @@ class _CompositionPitchState extends State<CompositionPitch> {
     MatchCompositionEntry entry,
     Size size,
   ) {
-    const markerWidth = 64.0;
-    const markerHeight = 92.0;
+    const markerWidth = CompositionPitch.markerWidth;
+    const markerHeight = CompositionPitch.markerHeight;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -194,11 +199,16 @@ class CompositionPitchWithBench extends StatelessWidget {
     required this.field,
     required this.bench,
     this.maxWidth = 520,
+    this.pitchKey,
   });
 
   final List<MatchCompositionEntry> field;
   final List<MatchCompositionEntry> bench;
   final double maxWidth;
+
+  /// Clé posée sur le terrain lui-même, pour en mesurer l'emplacement exact
+  /// (la vidéo de la composition se pose dessus).
+  final Key? pitchKey;
 
   static const double _pitchWidth = 340;
   static const double _pitchHeight = _pitchWidth / .68;
@@ -216,7 +226,7 @@ class CompositionPitchWithBench extends StatelessWidget {
       return Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          child: CompositionPitch(entries: field),
+          child: CompositionPitch(key: pitchKey, entries: field),
         ),
       );
     }
@@ -248,7 +258,7 @@ class CompositionPitchWithBench extends StatelessWidget {
                 const SizedBox(width: _pitchGap),
                 SizedBox(
                   width: _pitchWidth,
-                  child: CompositionPitch(entries: field),
+                  child: CompositionPitch(key: pitchKey, entries: field),
                 ),
               ],
             ),
