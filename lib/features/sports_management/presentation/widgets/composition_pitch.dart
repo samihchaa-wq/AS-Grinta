@@ -115,7 +115,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
     Size size,
   ) {
     const markerWidth = 64.0;
-    const markerHeight = 88.0;
+    const markerHeight = 92.0;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -305,7 +305,7 @@ class _CompositionBench extends StatelessWidget {
                               return const SizedBox(
                                 width:
                                     CompositionPitchWithBench._benchCellWidth,
-                                height: 88,
+                                height: 92,
                               );
                             }
                             return CompositionPlayerTile(
