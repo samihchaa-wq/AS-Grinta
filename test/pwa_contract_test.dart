@@ -91,6 +91,19 @@ void main() {
     );
 
     test(
+      'les vidéos et les sons ne passent pas par le cache du service worker',
+      () {
+        // Téléchargés par morceaux (réponses 206), ils échouaient dans le
+        // cache : la vidéo de la composition ne jouait sur aucun téléphone.
+        final media = worker.indexOf("request.headers.has('range')");
+        expect(media, isNonNegative);
+        expect(worker, contains("request.destination === 'video'"));
+        expect(worker, contains("request.destination === 'audio'"));
+        expect(media, lessThan(worker.indexOf('event.respondWith(')));
+      },
+    );
+
+    test(
       'les autres ressources statiques ne bloquent plus systématiquement sur le réseau',
       () {
         expect(worker, contains('staleWhileRevalidate'));

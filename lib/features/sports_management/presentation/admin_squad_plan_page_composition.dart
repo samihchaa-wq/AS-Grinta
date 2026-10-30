@@ -657,6 +657,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     List<MatchCompositionEntry> field,
     List<MatchCompositionEntry> bench,
   ) async {
+    // Pendant l'appui, avant toute attente : débloque la vidéo du stade.
+    primeStadiumVideo();
     final composition = _composition;
     final matchId = _selectedMatchId;
     if (composition == null || matchId == null) return;
