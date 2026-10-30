@@ -99,6 +99,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Vidéos et sons : le navigateur les télécharge par morceaux (en-tête
+  // Range, réponses 206) que le cache refuse de stocker. Passés par ici, ils
+  // échouaient : la vidéo du stade restait une image fixe sur tous les
+  // téléphones. Ils vont donc directement au réseau.
+  if (
+    request.headers.has('range') ||
+    request.destination === 'video' ||
+    request.destination === 'audio'
+  ) {
+    return;
+  }
+
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);

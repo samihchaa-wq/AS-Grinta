@@ -94,19 +94,24 @@ class CompositionPresentationData {
   static const _coachId = '#coach';
 }
 
-/// Signal donné au décor : la présentation tourne ([playing]), et repart du
-/// début à chaque nouvelle prise ([take]). Le décor appelle [onReady] dès
-/// qu'il peut s'afficher, ou qu'il a renoncé à charger la vidéo.
+/// Signal donné au décor : la présentation tourne ([playing]), où elle en est
+/// ([elapsed]), et repart du début à chaque nouvelle prise ([take]). Le décor
+/// appelle [onReady] dès qu'il peut s'afficher, ou qu'il a renoncé à charger
+/// la vidéo, et décrit son état par [onStatus].
 class PresentationCue {
   const PresentationCue({
     required this.playing,
     required this.take,
+    required this.elapsed,
     required this.onReady,
+    this.onStatus,
   });
 
   final bool playing;
   final int take;
+  final double Function() elapsed;
   final VoidCallback onReady;
+  final ValueChanged<String>? onStatus;
 }
 
 /// Le décor derrière les joueurs : la vidéo du stade, ou un simple fond dans
@@ -119,10 +124,13 @@ typedef PresentationBackgroundBuilder = Widget Function(
 Widget stadiumVideoBackground(BuildContext context, PresentationCue cue) =>
     StadiumVideo(
       video: 'assets/composition/stade.mp4',
+      lightVideo: 'assets/composition/stade-720.mp4',
       poster: 'assets/composition/stade.jpg',
       playing: cue.playing,
       take: cue.take,
+      elapsed: cue.elapsed,
       onReady: cue.onReady,
+      onStatus: cue.onStatus,
     );
 
 /// Décor imposé par les tests, qui n'ont pas de lecteur vidéo.
@@ -131,11 +139,15 @@ PresentationBackgroundBuilder? debugPresentationBackground;
 
 /// Ouvre la vidéo de la composition en plein écran. Elle se termine sur
 /// l'écran Composition, avec « Revoir » et « Fermer ».
+///
+/// Appelée pendant un appui (sans attente avant), elle débloque la vidéo du
+/// stade ; sinon, l'appelant appelle [primeStadiumVideo] au moment de l'appui.
 Future<void> showCompositionPresentation(
   BuildContext context, {
   required CompositionPresentationData data,
   PresentationBackgroundBuilder background = stadiumVideoBackground,
 }) {
+  primeStadiumVideo();
   return Navigator.of(context, rootNavigator: true).push<void>(
     PageRouteBuilder<void>(
       transitionDuration: const Duration(milliseconds: 250),
@@ -182,6 +194,9 @@ class _CompositionPresentationPageState
   bool _started = false;
   int _take = 0;
   Timer? _giveUp;
+
+  /// Ce qui est arrivé à la vidéo du stade, affiché à la fin de l'aperçu.
+  String? _videoStatus;
 
   /// Terrain de l'écran d'arrivée, dans le repère de la page, et largeur de
   /// son gabarit avant réduction (340 avec un banc, sa vraie largeur sinon).
@@ -337,7 +352,12 @@ class _CompositionPresentationPageState
             PresentationCue(
               playing: _started,
               take: _take,
+              elapsed: () => _time.value,
               onReady: _onBackgroundReady,
+              onStatus: (status) {
+                if (!mounted || status == _videoStatus) return;
+                setState(() => _videoStatus = status);
+              },
             ),
           );
           return ValueListenableBuilder<double>(
@@ -537,11 +557,32 @@ class _CompositionPresentationPageState
                 icon: const Icon(Icons.close_rounded),
               ),
               const SizedBox(width: 4),
-              const Expanded(
-                child: Text(
-                  'Aperçu : personne n’a été prévenu.',
-                  maxLines: 2,
-                  style: TextStyle(color: AppTheme.textFaint, fontSize: 13),
+              Expanded(
+                child: GestureDetector(
+                  onTap: _videoStatus == null ? null : _showVideoStatus,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Aperçu : personne n’a été prévenu.',
+                        maxLines: 2,
+                        style: TextStyle(
+                          color: AppTheme.textFaint,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (_videoStatus != null)
+                        Text(
+                          _videoStatus!.split('\n').first,
+                          maxLines: 2,
+                          style: const TextStyle(
+                            color: AppTheme.textFaint,
+                            fontSize: 11,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -553,6 +594,25 @@ class _CompositionPresentationPageState
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Détail de la vidéo du stade, pour une capture d'écran.
+  void _showVideoStatus() {
+    final status = _videoStatus;
+    if (status == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Vidéo du stade'),
+        content: SelectableText(status.replaceAll(' · ', '\n')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fermer'),
+          ),
+        ],
       ),
     );
   }
@@ -716,8 +776,11 @@ class _StageLayer extends StatelessWidget {
     final t = frame.t;
     final plan = frame.plan;
     final stageOpacity = frame.stageOpacity;
-    final backgroundOpacity = _sstep(0, 0.6, t) *
-        (1 - _sstep(plan.moveStart + 0.2, plan.flatAt - 0.5, t));
+    final backgroundOpacity =
+        1 - _sstep(plan.moveStart + 0.2, plan.flatAt - 0.5, t);
+    // Au départ, la vidéo reste pleinement affichée : un iPhone ne lance pas
+    // une vidéo invisible. C'est un voile posé dessus qui s'efface.
+    final veil = 1 - _sstep(0, 0.6, t);
     final pitchOpacity =
         _sstep(plan.moveStart, plan.moveStart + 0.5, t) * stageOpacity;
 
@@ -745,6 +808,10 @@ class _StageLayer extends StatelessWidget {
                   Transform.scale(
                     scale: 1 + 0.12 * frame.move,
                     child: background,
+                  ),
+                  Opacity(
+                    opacity: veil,
+                    child: const ColoredBox(color: AppTheme.background),
                   ),
                   // Sur un écran plus large que la scène, le stade se fond
                   // dans le fond de l'écran au lieu de s'arrêter net.
