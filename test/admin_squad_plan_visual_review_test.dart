@@ -540,17 +540,9 @@ void main() {
     await tester.tap(simulate);
     await _pumpFrames(tester, count: 10);
 
-    // Le message dit qui revient du banc et ce qui reste à vérifier.
-    expect(
-      find.textContaining(
-        'Remplaçant la dernière fois qu’il a joué, titulaire cette fois : '
-        'Bruno.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.textContaining('à confirmer, faute de matchs joués'),
-        findsOneWidget);
-    expect(find.textContaining('À toi d’ajuster.'), findsOneWidget);
+    // Plus de message récapitulatif après la simulation.
+    expect(find.textContaining('titulaire cette fois'), findsNothing);
+    expect(find.textContaining('À toi d’ajuster.'), findsNothing);
   });
 
   testWidgets(
