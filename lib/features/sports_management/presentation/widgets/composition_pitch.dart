@@ -194,11 +194,16 @@ class CompositionPitchWithBench extends StatelessWidget {
     required this.field,
     required this.bench,
     this.maxWidth = 520,
+    this.pitchKey,
   });
 
   final List<MatchCompositionEntry> field;
   final List<MatchCompositionEntry> bench;
   final double maxWidth;
+
+  /// Clé posée sur le terrain lui-même, pour en mesurer l'emplacement exact
+  /// (la vidéo de la composition se pose dessus).
+  final Key? pitchKey;
 
   static const double _pitchWidth = 340;
   static const double _pitchHeight = _pitchWidth / .68;
@@ -216,7 +221,7 @@ class CompositionPitchWithBench extends StatelessWidget {
       return Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
-          child: CompositionPitch(entries: field),
+          child: CompositionPitch(key: pitchKey, entries: field),
         ),
       );
     }
@@ -248,7 +253,7 @@ class CompositionPitchWithBench extends StatelessWidget {
                 const SizedBox(width: _pitchGap),
                 SizedBox(
                   width: _pitchWidth,
-                  child: CompositionPitch(entries: field),
+                  child: CompositionPitch(key: pitchKey, entries: field),
                 ),
               ],
             ),

@@ -24,6 +24,9 @@ dependencies:
   supabase_flutter: ^2.8.4
   url_launcher: ^6.3.1
   web: ^1.1.1
+  # Décor de la présentation vidéo de la composition (vidéo muette en fond,
+  # joueurs dessinés par l'appli par-dessus).
+  video_player: ^2.14.1
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +41,7 @@ flutter:
     - assets/images/icons/
     - assets/images/jerseys/
     - assets/audio/wrapped.mp3
+    - assets/composition/
 
   # La condensée de stade du bilan de saison : elle porte les chiffres et les
   # titres. Licence SIL OFL dans assets/fonts.

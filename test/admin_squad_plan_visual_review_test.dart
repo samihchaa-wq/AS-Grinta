@@ -11,6 +11,7 @@ import 'package:as_grinta/features/sports_management/domain/player_position_hist
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -465,6 +466,56 @@ void main() {
     await _pumpFrames(tester, count: 20);
     expect(repository.saveCalls, 1);
     expect(repository.publishCalls, 1);
+  });
+
+  testWidgets(
+      '« Aperçu », juste avant « Enregistrer », montre la vidéo '
+      'sans rien enregistrer', (tester) async {
+    await _setTallViewport(tester);
+    debugPresentationBackground = (context, cue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => cue.onReady());
+      return const ColoredBox(color: Colors.black);
+    };
+    addTearDown(() => debugPresentationBackground = null);
+    final repository = _FakeMatchCompositionRepository();
+    await _pumpWorkspace(
+      tester,
+      convocations: _convocations(),
+      initialStep: 'composition',
+      compositionRepository: repository,
+    );
+
+    final preview = find.widgetWithText(OutlinedButton, 'Aperçu');
+    final save = find.widgetWithText(FilledButton, 'Enregistrer');
+    expect(tester.widget<OutlinedButton>(preview).onPressed, isNull);
+
+    final simulate = find.widgetWithText(
+      OutlinedButton,
+      'Simuler une composition',
+    );
+    await tester.ensureVisible(simulate);
+    await _pumpFrames(tester, count: 5);
+    await tester.tap(simulate);
+    await _pumpFrames(tester, count: 10);
+
+    await tester.ensureVisible(save);
+    await _pumpFrames(tester, count: 5);
+    // Sur la même ligne, à gauche de « Enregistrer ».
+    expect(tester.getCenter(preview).dy, tester.getCenter(save).dy);
+    expect(tester.getCenter(preview).dx, lessThan(tester.getCenter(save).dx));
+
+    await tester.tap(preview);
+    await _pumpFrames(tester, count: 10);
+    expect(find.byType(CompositionPresentationPage), findsOneWidget);
+    expect(find.text('Passer'), findsOneWidget);
+
+    await tester.tap(find.text('Passer'));
+    await _pumpFrames(tester, count: 2);
+    await tester.tap(find.byTooltip('Fermer'));
+    await _pumpFrames(tester, count: 5);
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(repository.saveCalls, 0);
+    expect(repository.publishCalls, 0);
   });
 
   testWidgets('la simulation titularise le remplaçant de son dernier match', (

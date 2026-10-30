@@ -630,6 +630,14 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: field.isEmpty
+              ? null
+              : () => _previewCompositionVideo(field, bench),
+          icon: const Icon(Icons.play_circle_outline_rounded),
+          label: const Text('Aperçu de la vidéo'),
+        ),
         if (!_compositionLocked) ...[
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -640,6 +648,59 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
           ),
         ],
       ],
+    );
+  }
+
+  /// Montre à l'admin la vidéo de la composition affichée à l'écran, même
+  /// pas encore enregistrée. Rien n'est écrit et personne n'est prévenu.
+  Future<void> _previewCompositionVideo(
+    List<MatchCompositionEntry> field,
+    List<MatchCompositionEntry> bench,
+  ) async {
+    final composition = _composition;
+    final matchId = _selectedMatchId;
+    if (composition == null || matchId == null) return;
+    UpcomingMatchFixtureData? fixture;
+    try {
+      fixture = await ref.read(upcomingMatchFixtureProvider(matchId).future);
+    } catch (_) {
+      // Sans la fiche du match, l'accroche se contente de l'effectif.
+    }
+    if (!mounted) return;
+    final convocations = _convocations;
+    final opponent =
+        fixture?.opponentName ?? convocations?.opponentName ?? 'Adversaire';
+    final grintaIsHome = fixture?.grintaIsHome ?? true;
+    // Le coach n'apparaît que s'il s'est dit présent.
+    final coach = convocations?.players
+        .where((player) => player.isCoach && player.isAvailable)
+        .firstOrNull;
+    await showCompositionPresentation(
+      context,
+      data: CompositionPresentationData(
+        homeName: grintaIsHome ? 'AS Grinta' : opponent,
+        awayName: grintaIsHome ? opponent : 'AS Grinta',
+        grintaIsHome: grintaIsHome,
+        field: alignFieldToFormation(composition.formationCode, field),
+        bench: bench,
+        coach: coach == null
+            ? null
+            : CompositionPresentationCoach(
+                id: coach.participantId,
+                name: coach.shortName,
+                photoUrl: coach.photoUrl,
+              ),
+        kickoffAt: fixture?.kickoffAt ?? convocations?.kickoffAt,
+        matchType: fixture?.matchType,
+        typeLabel: fixture == null
+            ? null
+            : calendarMatchTypeLabel(
+                fixture.matchType,
+                fixture.championshipRound,
+              ),
+        address: fixture?.address,
+        formationCode: composition.formationCode,
+      ),
     );
   }
 
@@ -823,12 +884,30 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
           ),
         ),
         const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: _compositionLocked || !_compositionDirty
-              ? null
-              : _persistComposition,
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Enregistrer'),
+        Row(
+          children: [
+            // Phase de test : l'admin regarde la vidéo de la composition à
+            // l'écran, sans rien enregistrer ni prévenir personne.
+            if (!_postMatch) ...[
+              OutlinedButton.icon(
+                onPressed: field.isEmpty
+                    ? null
+                    : () => _previewCompositionVideo(field, bench),
+                icon: const Icon(Icons.play_circle_outline_rounded),
+                label: const Text('Aperçu'),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _compositionLocked || !_compositionDirty
+                    ? null
+                    : _persistComposition,
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Enregistrer'),
+              ),
+            ),
+          ],
         ),
         if (_locked && !_postMatch)
           const Padding(
