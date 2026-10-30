@@ -12,9 +12,9 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation_camera.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:video_player/video_player.dart';
 
 /// Le coach présenté à la fin de la vidéo, quand il s'est dit présent.
 class CompositionPresentationCoach {
@@ -117,7 +117,13 @@ typedef PresentationBackgroundBuilder = Widget Function(
 );
 
 Widget stadiumVideoBackground(BuildContext context, PresentationCue cue) =>
-    _StadiumVideo(cue: cue);
+    StadiumVideo(
+      video: 'assets/composition/stade.mp4',
+      poster: 'assets/composition/stade.jpg',
+      playing: cue.playing,
+      take: cue.take,
+      onReady: cue.onReady,
+    );
 
 /// Décor imposé par les tests, qui n'ont pas de lecteur vidéo.
 @visibleForTesting
@@ -1702,90 +1708,6 @@ class _GoldRule extends StatelessWidget {
                   : const [Color(0x00FBE80C), AppTheme.accent],
         ),
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Décor : la vidéo du stade
-// ---------------------------------------------------------------------------
-
-/// La vidéo muette du stade, avec son image fixe en attendant (ou à la
-/// place, si le téléphone refuse de la lire).
-class _StadiumVideo extends StatefulWidget {
-  const _StadiumVideo({required this.cue});
-
-  final PresentationCue cue;
-
-  @override
-  State<_StadiumVideo> createState() => _StadiumVideoState();
-}
-
-class _StadiumVideoState extends State<_StadiumVideo> {
-  static const _video = 'assets/composition/stade.mp4';
-  static const _poster = 'assets/composition/stade.jpg';
-
-  late final VideoPlayerController _controller = VideoPlayerController.asset(
-    _video,
-    videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
-  );
-  bool _ready = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_initialize());
-  }
-
-  Future<void> _initialize() async {
-    try {
-      await _controller.initialize().timeout(const Duration(seconds: 5));
-      // Muette : c'est aussi ce qui permet au navigateur de la lancer seul.
-      await _controller.setVolume(0);
-      if (!mounted) return;
-      setState(() => _ready = true);
-      if (widget.cue.playing) unawaited(_controller.play());
-    } catch (_) {
-      // Pas de vidéo : l'image fixe du stade reste en fond.
-    }
-    if (mounted) widget.cue.onReady();
-  }
-
-  @override
-  void didUpdateWidget(_StadiumVideo oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_ready) return;
-    if (widget.cue.take != oldWidget.cue.take) {
-      unawaited(_controller.seekTo(Duration.zero));
-      unawaited(_controller.play());
-    } else if (widget.cue.playing && !oldWidget.cue.playing) {
-      unawaited(_controller.play());
-    }
-  }
-
-  @override
-  void dispose() {
-    unawaited(_controller.dispose());
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final size = _controller.value.size;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const ColoredBox(color: Colors.black),
-        Image.asset(_poster, fit: BoxFit.cover, gaplessPlayback: true),
-        if (_ready && !size.isEmpty)
-          FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox.fromSize(
-              size: size,
-              child: VideoPlayer(_controller),
-            ),
-          ),
-      ],
     );
   }
 }
