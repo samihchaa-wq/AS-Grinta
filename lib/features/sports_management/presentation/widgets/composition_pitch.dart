@@ -115,7 +115,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
     Size size,
   ) {
     const markerWidth = 64.0;
-    const markerHeight = 84.0;
+    const markerHeight = 92.0;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -305,7 +305,7 @@ class _CompositionBench extends StatelessWidget {
                               return const SizedBox(
                                 width:
                                     CompositionPitchWithBench._benchCellWidth,
-                                height: 84,
+                                height: 92,
                               );
                             }
                             return CompositionPlayerTile(
@@ -469,6 +469,11 @@ class CompositionPlayerTile extends StatelessWidget {
   /// le terrain (nombre de débuts de match sur le banc, par exemple).
   final Widget? cornerBadge;
 
+  /// Côté de la photo : limité par les joueurs les plus proches des
+  /// dispositifs à 3 ou 5 (68 px d'écart sur le terrain de référence), en
+  /// gardant la place des ballons et des crampons entre deux photos.
+  static const double photoSize = 58;
+
   @override
   Widget build(BuildContext context) {
     if (entry.isVacant) return const VacantSlotMarker();
@@ -480,8 +485,8 @@ class CompositionPlayerTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 60,
-            height: 64,
+            width: 62,
+            height: photoSize + 12,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -492,33 +497,35 @@ class CompositionPlayerTile extends StatelessWidget {
                     name: entry.displayName,
                     lastName: entry.lastInitial,
                     isGoalkeeper: entry.isGoalkeeper,
-                    size: 52,
+                    size: photoSize,
                   ),
                 ),
                 if (entry.isMotm)
                   Positioned(
-                    // La photo commence à 12 du haut de la case (64 − 52).
-                    top: 12 + PhotoCrown.topOffset(PhotoCrown.pitchPhotoSize),
+                    // La photo commence à 12 du haut de la case.
+                    top: 12 + PhotoCrown.topOffset(photoSize),
                     left: 0,
                     right: 0,
-                    child: const Center(child: PhotoCrown()),
+                    child: const Center(
+                      child: PhotoCrown(photoSize: photoSize),
+                    ),
                   ),
                 if (entry.goals > 0)
                   Positioned(
                     left: 0,
-                    top: 37,
+                    top: 40,
                     child: GoalBadge(goals: entry.goals),
                   ),
                 if (entry.assists > 0)
                   Positioned(
                     left: 0,
-                    top: 51,
+                    top: 54,
                     child: AssistBadge(assists: entry.assists),
                   ),
-                // La photo (52) est centrée en bas d'une case de 60 × 64 :
-                // son coin haut-droit est à 4 du bord droit et 12 du haut.
+                // La photo (58) est centrée en bas d'une case de 62 × 70 :
+                // son coin haut-droit est à 2 du bord droit et 12 du haut.
                 if (cornerBadge != null)
-                  Positioned(right: 2, top: 10, child: cornerBadge!),
+                  Positioned(right: 0, top: 10, child: cornerBadge!),
               ],
             ),
           ),
@@ -543,8 +550,8 @@ class VacantSlotMarker extends StatelessWidget {
       label: 'Poste sans joueur connu dans l’archive',
       child: ExcludeSemantics(
         child: SizedBox(
-          width: 60,
-          height: 64,
+          width: 62,
+          height: CompositionPlayerTile.photoSize + 12,
           child: Align(
             alignment: Alignment.bottomCenter,
             child: Container(
