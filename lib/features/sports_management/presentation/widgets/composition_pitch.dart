@@ -24,6 +24,11 @@ class CompositionPitch extends StatefulWidget {
   )? onMoved;
   final ValueChanged<MatchCompositionEntry>? onPlayerTap;
 
+  /// Case d'un joueur sur le terrain. Publiques pour que la vidéo de la
+  /// composition pose chaque photo exactement à la même place.
+  static const double markerWidth = 64;
+  static const double markerHeight = 92;
+
   @override
   State<CompositionPitch> createState() => _CompositionPitchState();
 }
@@ -114,8 +119,8 @@ class _CompositionPitchState extends State<CompositionPitch> {
     MatchCompositionEntry entry,
     Size size,
   ) {
-    const markerWidth = 64.0;
-    const markerHeight = 92.0;
+    const markerWidth = CompositionPitch.markerWidth;
+    const markerHeight = CompositionPitch.markerHeight;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)

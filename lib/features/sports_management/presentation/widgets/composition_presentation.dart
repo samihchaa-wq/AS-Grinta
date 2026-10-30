@@ -686,6 +686,10 @@ class _Frame {
 // ---------------------------------------------------------------------------
 
 const double _panelCenterY = 418;
+
+/// Case d'un joueur, identique à celle de l'écran Composition.
+const double _tileWidth = CompositionPitch.markerWidth;
+const double _tileHeight = CompositionPitch.markerHeight;
 const double _coachX = 330;
 
 class _StageLayer extends StatelessWidget {
@@ -1379,7 +1383,8 @@ class _StageLayer extends StatelessWidget {
                   transform: Matrix4.identity()
                     ..translateByDouble(position.dx, position.dy, 0, 1)
                     ..scaleByDouble(scale, scale, 1, 1)
-                    ..translateByDouble(-32, -42, 0, 1),
+                    ..translateByDouble(
+                        -_tileWidth / 2, -_tileHeight / 2, 0, 1),
                   child: _PresentationTile(
                     face: face,
                     silhouette: line.kind.isOnField ? silhouette : 1,
@@ -1400,7 +1405,7 @@ class _StageLayer extends StatelessWidget {
     final position = person.position ?? const Offset(.5, .5);
     final width = frame.pitchLayoutWidth;
     final height = width / .68;
-    const markerWidth = 64.0, markerHeight = 84.0;
+    const markerWidth = _tileWidth, markerHeight = _tileHeight;
     final x = position.dx.clamp(0.08, 0.92);
     final y = position.dy.clamp(0.06, 0.94);
     final left = (x * width - markerWidth / 2).clamp(0.0, width - markerWidth);
@@ -1428,11 +1433,11 @@ class _PanelLayout {
   _PanelLayout(this.line) {
     final perRow = line.rows.fold<int>(0, (m, r) => math.max(m, r.length));
     final rows = line.rows.length;
-    final byWidth = (330 - (perRow - 1) * 10) / (64 * perRow);
-    final byHeight = (400 - 78 - (rows - 1) * 8) / (84 * rows);
-    final cap = perRow <= 1 && rows <= 1 ? 2.4 : 1.9;
+    final byWidth = (330 - (perRow - 1) * 10) / (_tileWidth * perRow);
+    final byHeight = (400 - 78 - (rows - 1) * 8) / (_tileHeight * rows);
+    final cap = perRow <= 1 && rows <= 1 ? 2.2 : 1.8;
     scale = [byWidth, byHeight, cap].reduce(math.min);
-    block = rows * 84 * scale + (rows - 1) * 8;
+    block = rows * _tileHeight * scale + (rows - 1) * 8;
   }
 
   final PresentationLine line;
@@ -1445,8 +1450,8 @@ class _PanelLayout {
     final top = _panelCenterY - 18 - block / 2;
     return Offset(
       presentationStageSize.width / 2 +
-          (column - (count - 1) / 2) * (64 * scale + 10),
-      top + row * (84 * scale + 8) + 42 * scale,
+          (column - (count - 1) / 2) * (_tileWidth * scale + 10),
+      top + row * (_tileHeight * scale + 8) + _tileHeight / 2 * scale,
     );
   }
 }
@@ -1463,7 +1468,7 @@ class _BenchStrip {
     center = (left + right) / 2;
     count = math.max(bench, 1);
     spacing = math.min(74.0, (right - left) / count);
-    scale = math.min(1.0, (spacing - 4) / 64);
+    scale = math.min(1.0, (spacing - 4) / _tileWidth);
   }
 
   late final double center;
@@ -1494,8 +1499,8 @@ class _Face {
   bool get hasPhoto => photoUrl?.trim().isNotEmpty ?? false;
 }
 
-/// La vignette de l'écran Composition (case de 64 × 84, photo de 52 sans
-/// contour, prénom dessous). Sans photo : une silhouette neutre, qui laisse
+/// La vignette de l'écran Composition (même case, même photo sans contour,
+/// prénom dessous). Sans photo : une silhouette neutre, qui laisse
 /// la place aux initiales de l'appli quand [silhouette] retombe à 0.
 class _PresentationTile extends StatelessWidget {
   const _PresentationTile({required this.face, this.silhouette = 1});
@@ -1505,21 +1510,23 @@ class _PresentationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const photoSize = CompositionPlayerTile.photoSize;
     final avatar = PlayerAvatar(
       photoUrl: face.photoUrl,
       name: face.name,
       lastName: face.lastName,
       isGoalkeeper: face.isGoalkeeper,
+      size: photoSize,
     );
     return SizedBox(
-      width: 64,
-      height: 84,
+      width: _tileWidth,
+      height: _tileHeight,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 60,
-            height: 64,
+            width: 62,
+            height: photoSize + 12,
             child: Align(
               alignment: Alignment.bottomCenter,
               child: face.hasPhoto
@@ -1531,7 +1538,7 @@ class _PresentationTile extends StatelessWidget {
                           Opacity(
                             opacity: silhouette.clamp(0.0, 1.0),
                             child: const SizedBox.square(
-                              dimension: 52,
+                              dimension: photoSize,
                               child: CustomPaint(painter: _SilhouettePainter()),
                             ),
                           ),
