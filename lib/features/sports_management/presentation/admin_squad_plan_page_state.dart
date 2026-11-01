@@ -59,6 +59,12 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   @override
   void didUpdateWidget(covariant AdminSquadPlanPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Une notification de la compo touchée alors que l'écran est déjà ouvert
+    // relance l'examen : la vidéo doit partir comme à une ouverture à froid.
+    if (widget.fromNotification && !oldWidget.fromNotification) {
+      final matchId = widget.initialMatchId ?? _selectedMatchId;
+      if (matchId != null) _videoAutoChecked.remove(matchId);
+    }
     // Seule une nouvelle demande explicite (une autre section dans l'URL)
     // change l'onglet affiché. showPredictionStep, lui, bascule tout seul à
     // T-15 quand les pronostics ferment : le prendre pour une demande de
