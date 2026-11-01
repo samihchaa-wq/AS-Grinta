@@ -603,21 +603,20 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     }
     if (!mounted) return;
     final convocations = _convocations;
-    final opponent =
-        fixture?.opponentName ?? convocations?.opponentName ?? 'Adversaire';
-    final grintaIsHome = fixture?.grintaIsHome ?? true;
     // Le coach n'apparaît que s'il s'est dit présent.
     final coach = convocations?.players
         .where((player) => player.isCoach && player.isAvailable)
         .firstOrNull;
     await showCompositionPresentation(
       context,
-      data: CompositionPresentationData(
-        homeName: grintaIsHome ? 'AS Grinta' : opponent,
-        awayName: grintaIsHome ? opponent : 'AS Grinta',
-        grintaIsHome: grintaIsHome,
-        field: alignFieldToFormation(composition.formationCode, field),
+      preview: true,
+      data: buildCompositionPresentationData(
+        formationCode: composition.formationCode,
+        field: field,
         bench: bench,
+        fixture: fixture,
+        fallbackOpponent: convocations?.opponentName,
+        fallbackKickoffAt: convocations?.kickoffAt,
         coach: coach == null
             ? null
             : CompositionPresentationCoach(
@@ -625,16 +624,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 name: coach.shortName,
                 photoUrl: coach.photoUrl,
               ),
-        kickoffAt: fixture?.kickoffAt ?? convocations?.kickoffAt,
-        matchType: fixture?.matchType,
-        typeLabel: fixture == null
-            ? null
-            : calendarMatchTypeLabel(
-                fixture.matchType,
-                fixture.championshipRound,
-              ),
-        address: fixture?.address,
-        formationCode: composition.formationCode,
       ),
     );
   }

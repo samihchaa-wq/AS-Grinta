@@ -265,12 +265,28 @@ function notificationTargetUrl(rawUrl, scopeUrl) {
   return `${home}#/${route}${target.search}`;
 }
 
+// Une compo ouverte depuis sa notification lance sa vidéo : l'adresse le dit
+// à l'application par `from=notification`. Une compo ouverte autrement (onglet
+// Compo, lien de la fiche) ne porte pas cette marque.
+function markCompositionFromNotification(targetUrl) {
+  const hashIndex = targetUrl.indexOf('#/');
+  if (hashIndex < 0) return targetUrl;
+  const route = targetUrl.slice(hashIndex + 2);
+  const queryIndex = route.indexOf('?');
+  const path = queryIndex < 0 ? route : route.slice(0, queryIndex);
+  if (!/^matches\/[^/?#]+\/lineup$/.test(path)) return targetUrl;
+  const params = new URLSearchParams(queryIndex < 0 ? '' : route.slice(queryIndex + 1));
+  if (params.get('section') !== 'composition') return targetUrl;
+  params.set('from', 'notification');
+  return `${targetUrl.slice(0, hashIndex)}#/${path}?${params.toString()}`;
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = notificationTargetUrl(
+  const target = markCompositionFromNotification(notificationTargetUrl(
     event.notification.data && event.notification.data.url,
     self.registration.scope,
-  );
+  ));
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(
       (clients) => {

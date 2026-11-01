@@ -17,6 +17,7 @@ import 'package:as_grinta/features/sports_management/domain/match_availability_b
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -396,11 +397,16 @@ class _UpcomingModules extends ConsumerWidget {
           subtitle: isAdmin
               ? 'Créer, enregistrer et publier la composition.'
               : 'Consulter la composition publiée.',
-          onTap: () => context.push(
-            isAdmin
-                ? '/matches/$matchId/composition?step=composition'
-                : '/matches/$matchId/lineup?section=composition',
-          ),
+          onTap: () {
+            // La vidéo de la compo peut se lancer à l'arrivée : l'appui la
+            // débloque sur iPhone.
+            if (!isAdmin) primeStadiumVideo();
+            context.push(
+              isAdmin
+                  ? '/matches/$matchId/composition?step=composition'
+                  : '/matches/$matchId/lineup?section=composition',
+            );
+          },
         );
         final modules = [
           if (showEffectif) effectif,

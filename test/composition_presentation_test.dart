@@ -74,7 +74,11 @@ Widget _plainBackground(BuildContext context, PresentationCue cue) {
   return const ColoredBox(color: Colors.black);
 }
 
-Future<void> _pumpPage(WidgetTester tester, CompositionPresentationData data) {
+Future<void> _pumpPage(
+  WidgetTester tester,
+  CompositionPresentationData data, {
+  bool preview = true,
+}) {
   tester.view
     ..physicalSize = const Size(390, 844)
     ..devicePixelRatio = 1;
@@ -85,6 +89,7 @@ Future<void> _pumpPage(WidgetTester tester, CompositionPresentationData data) {
       home: CompositionPresentationPage(
         data: data,
         background: _plainBackground,
+        preview: preview,
       ),
     ),
   );
@@ -151,6 +156,18 @@ void main() {
     expect(find.text('Passer'), findsOneWidget);
     await _playUntil(tester, 3.2);
     expect(find.text('GARDIEN'), findsOneWidget);
+  });
+
+  testWidgets('un joueur ne voit pas la mention de l’aperçu', (tester) async {
+    await _pumpPage(tester, _data(coach: false), preview: false);
+    await tester.pump();
+    await tester.pump();
+    await _playUntil(tester, 1);
+
+    await tester.tap(find.text('Passer'));
+    await tester.pump();
+    expect(find.text('Revoir'), findsOneWidget);
+    expect(find.text('Aperçu : personne n’a été prévenu.'), findsNothing);
   });
 
   testWidgets('sans coach présent, pas d’écran Coach', (tester) async {

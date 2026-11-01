@@ -16,6 +16,7 @@ let windows = [];
 const listeners = {};
 const sandbox = {
   URL,
+  URLSearchParams,
   Promise,
   console,
   caches: { open: async () => ({}), keys: async () => [] },
@@ -76,7 +77,12 @@ async function click(url) {
   await click('admin/administration');
   const withWindow = calls.splice(0);
 
-  process.stdout.write(JSON.stringify({ targets, withoutWindow, withWindow }));
+  windows = [];
+  await click('matches/m1/lineup?section=composition');
+  await click('matches/m1/lineup?section=effectif');
+  const composition = calls.splice(0);
+
+  process.stdout.write(JSON.stringify({ targets, withoutWindow, withWindow, composition }));
 })().catch((error) => { console.error(error); process.exit(1); });
 ''';
 
@@ -109,6 +115,15 @@ void main() {
 
       expect(output['withoutWindow'], [
         ['openWindow', '$home#/matches/m1/vote'],
+      ]);
+      // Une compo ouverte depuis sa notification lance sa vidéo ; les autres
+      // pages restent inchangées.
+      expect(output['composition'], [
+        [
+          'openWindow',
+          '$home#/matches/m1/lineup?section=composition&from=notification',
+        ],
+        ['openWindow', '$home#/matches/m1/lineup?section=effectif'],
       ]);
       expect(output['withWindow'], [
         ['navigate', '$home#/admin/administration'],

@@ -7,6 +7,7 @@ import 'package:as_grinta/features/sports_management/data/match_availability_rep
 import 'package:as_grinta/features/sports_management/domain/match_availability.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:as_grinta/features/unavailability/domain/player_unavailability.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -110,9 +111,14 @@ class _MatchAvailabilitySelectorState
             onOpenEffectif: () => context.push(
               '/matches/${widget.matchId}/lineup?section=effectif',
             ),
-            onOpenComposition: () => context.push(
-              '/matches/${widget.matchId}/lineup?section=composition',
-            ),
+            onOpenComposition: () {
+              // La vidéo de la compo peut se lancer à l'arrivée : l'appui la
+              // débloque sur iPhone.
+              primeStadiumVideo();
+              context.push(
+                '/matches/${widget.matchId}/lineup?section=composition',
+              );
+            },
           ),
         );
       },

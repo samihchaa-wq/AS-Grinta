@@ -1,0 +1,267 @@
+import 'dart:async';
+
+import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
+import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/formation_display.dart';
+import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// Ajouté à l'adresse de la compo quand on l'ouvre depuis sa notification
+/// (`?section=composition&from=notification`) : la vidéo se lance alors à
+/// chaque fois, même déjà vue.
+const compositionOpenedFromNotification = 'notification';
+
+/// L'adresse d'une notification, avec la marque « ouverte depuis la
+/// notification » si elle mène à une compo. Les autres adresses sont rendues
+/// telles quelles.
+String markCompositionRouteFromNotification(String route) {
+  final uri = Uri.tryParse(route);
+  if (uri == null ||
+      uri.queryParameters['section'] != 'composition' ||
+      !RegExp(r'^/?matches/[^/]+/lineup$').hasMatch(uri.path)) {
+    return route;
+  }
+  return uri.replace(
+    queryParameters: {
+      ...uri.queryParameters,
+      'from': compositionOpenedFromNotification,
+    },
+  ).toString();
+}
+
+/// Les données de la vidéo, à partir de la compo et de la fiche du match.
+/// Partagé entre l'aperçu de l'admin et la vidéo des joueurs, pour qu'ils
+/// voient exactement la même chose.
+CompositionPresentationData buildCompositionPresentationData({
+  required String? formationCode,
+  required List<MatchCompositionEntry> field,
+  required List<MatchCompositionEntry> bench,
+  UpcomingMatchFixtureData? fixture,
+  String? fallbackOpponent,
+  DateTime? fallbackKickoffAt,
+  CompositionPresentationCoach? coach,
+}) {
+  final opponent = fixture?.opponentName ?? fallbackOpponent ?? 'Adversaire';
+  final grintaIsHome = fixture?.grintaIsHome ?? true;
+  return CompositionPresentationData(
+    homeName: grintaIsHome ? 'AS Grinta' : opponent,
+    awayName: grintaIsHome ? opponent : 'AS Grinta',
+    grintaIsHome: grintaIsHome,
+    field: alignFieldToFormation(formationCode, field),
+    bench: bench,
+    coach: coach,
+    kickoffAt: fixture?.kickoffAt ?? fallbackKickoffAt,
+    matchType: fixture?.matchType,
+    typeLabel: fixture == null
+        ? null
+        : calendarMatchTypeLabel(fixture.matchType, fixture.championshipRound),
+    address: fixture?.address,
+    formationCode: formationCode,
+  );
+}
+
+/// Retient, sur ce téléphone, les compos dont le joueur a déjà vu la vidéo.
+/// Une nouvelle publication (nouvelle version) compte comme une compo
+/// nouvelle : sa vidéo se relance une fois.
+class CompositionVideoSeenStore {
+  const CompositionVideoSeenStore();
+
+  static const _prefix = 'composition_video_seen.';
+
+  Future<bool> hasSeen(String matchId, int version) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      return preferences.getInt('$_prefix$matchId') == version;
+    } catch (_) {
+      // Mémoire du téléphone illisible : mieux vaut ne pas relancer la vidéo
+      // à chaque visite.
+      return true;
+    }
+  }
+
+  Future<void> markSeen(String matchId, int version) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setInt('$_prefix$matchId', version);
+    } catch (_) {
+      // Sans mémoire, la vidéo se relancera à la prochaine visite : rien de
+      // grave.
+    }
+  }
+}
+
+final compositionVideoSeenStoreProvider =
+    Provider<CompositionVideoSeenStore>((ref) {
+  return const CompositionVideoSeenStore();
+});
+
+/// Onglet Compo d'un joueur : la compo publiée, le bouton « Aperçu de la
+/// vidéo » (illimité), et la vidéo lancée d'elle-même
+/// - à chaque ouverture depuis la notification de la compo ;
+/// - à la première visite de l'onglet après une publication.
+class PlayerCompositionTab extends ConsumerStatefulWidget {
+  const PlayerCompositionTab({
+    super.key,
+    required this.matchId,
+    required this.lineup,
+    this.fromNotification = false,
+  });
+
+  final String matchId;
+
+  /// La compo publiée telle que l'onglet l'affiche.
+  final Widget lineup;
+  final bool fromNotification;
+
+  @override
+  ConsumerState<PlayerCompositionTab> createState() =>
+      _PlayerCompositionTabState();
+}
+
+class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
+  /// Version de compo déjà examinée pour le lancement automatique : une seule
+  /// tentative par compo affichée.
+  int? _autoChecked;
+  bool _playing = false;
+
+  @override
+  void didUpdateWidget(covariant PlayerCompositionTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Une nouvelle notification sur le même écran relance l'examen.
+    if (widget.fromNotification && !oldWidget.fromNotification) {
+      _autoChecked = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final composition = ref
+        .watch(publishedMatchCompositionProvider(widget.matchId))
+        .valueOrNull;
+    final playable = composition != null &&
+        composition.entriesFor(MatchCompositionZone.field).any(
+              (entry) => !entry.isVacant,
+            );
+    if (playable && _autoChecked != composition.version) {
+      _autoChecked = composition.version;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => unawaited(_autoplay(composition)),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        widget.lineup,
+        if (playable) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: _playing
+                  ? null
+                  : () {
+                      // Pendant l'appui, avant toute attente : débloque la
+                      // vidéo du stade.
+                      primeStadiumVideo();
+                      unawaited(_play(composition));
+                    },
+              icon: const Icon(Icons.play_circle_outline_rounded),
+              label: const Text('Aperçu de la vidéo'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _autoplay(MatchComposition composition) async {
+    if (!mounted) return;
+    final store = ref.read(compositionVideoSeenStoreProvider);
+    final fromNotification = widget.fromNotification;
+    if (!fromNotification &&
+        await store.hasSeen(widget.matchId, composition.version)) {
+      return;
+    }
+    if (!mounted) return;
+    // Une autre page ouverte par-dessus : pas de vidéo dans son dos.
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    if (fromNotification) {
+      // L'adresse perd sa marque : revenir sur la page ou la recharger ne
+      // relance pas la vidéo.
+      final router = GoRouter.maybeOf(context);
+      if (router != null) {
+        router.replace(
+          '/matches/${widget.matchId}/lineup?section=composition',
+        );
+      }
+    }
+    await _play(composition);
+  }
+
+  Future<void> _play(MatchComposition composition) async {
+    if (_playing) return;
+    setState(() => _playing = true);
+    try {
+      final store = ref.read(compositionVideoSeenStoreProvider);
+      // Vue dès qu'elle démarre : la fermer tout de suite compte aussi.
+      unawaited(store.markSeen(widget.matchId, composition.version));
+      final data = await _loadData(composition);
+      if (!mounted) return;
+      await showCompositionPresentation(context, data: data);
+    } finally {
+      if (mounted) setState(() => _playing = false);
+    }
+  }
+
+  Future<CompositionPresentationData> _loadData(
+    MatchComposition composition,
+  ) async {
+    final matchId = widget.matchId;
+    UpcomingMatchFixtureData? fixture;
+    try {
+      fixture = await ref
+          .read(upcomingMatchFixtureProvider(matchId).future)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Sans la fiche du match, l'accroche se contente de l'effectif.
+    }
+    CompositionPresentationCoach? coach;
+    DateTime? kickoffAt;
+    try {
+      final board = await ref
+          .read(matchAvailabilityBoardProvider(matchId).future)
+          .timeout(const Duration(seconds: 4));
+      kickoffAt = board?.kickoffAt;
+      // Le coach n'apparaît que s'il s'est dit présent.
+      final present = board?.players.where(
+        (player) =>
+            player.isCoach &&
+            player.status == MatchAvailabilityBoardStatus.present,
+      );
+      final player = present == null || present.isEmpty ? null : present.first;
+      if (player != null) {
+        coach = CompositionPresentationCoach(
+          id: player.participantId,
+          name: player.firstNameOnly,
+        );
+      }
+    } catch (_) {
+      // Sans l'effectif, la vidéo se passe de l'écran du coach.
+    }
+    return buildCompositionPresentationData(
+      formationCode: composition.formationCode,
+      field: composition.entriesFor(MatchCompositionZone.field),
+      bench: composition.entriesFor(MatchCompositionZone.bench),
+      fixture: fixture,
+      fallbackKickoffAt: kickoffAt,
+      coach: coach,
+    );
+  }
+}

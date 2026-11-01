@@ -8,7 +8,6 @@ import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/core/widgets/match_sheet_top_row.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_tab.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
@@ -28,7 +27,6 @@ import 'package:as_grinta/features/sports_management/domain/composition_simulati
 import 'package:as_grinta/features/sports_management/domain/effectif_validation_rules.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/formation_assignment.dart';
-import 'package:as_grinta/features/sports_management/domain/formation_display.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
@@ -38,6 +36,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/compos
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_composition_view.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/player_composition_video.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
