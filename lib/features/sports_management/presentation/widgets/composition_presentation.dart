@@ -166,11 +166,14 @@ Future<void> showCompositionPresentation(
   PresentationBackgroundBuilder background = stadiumVideoBackground,
   bool preview = false,
   CompositionLanding? landing,
+  bool returnToPage = false,
 }) {
   primeStadiumVideo();
-  // La page d'arrivée doit être affichée pour qu'on s'y pose : sinon, la
-  // vidéo garde son propre écran de fin.
-  final onPage = landing != null && landing.isOnScreen;
+  // La page d'arrivée doit être affichée pour qu'on s'y pose. Sans terrain où
+  // se poser, [returnToPage] rend quand même la page : la vidéo s'efface
+  // au-dessus d'elle. Sinon, la vidéo garde son propre écran de fin.
+  final landsOnPage = landing != null && landing.isOnScreen;
+  final onPage = landsOnPage || returnToPage;
   return Navigator.of(context, rootNavigator: true).push<void>(
     PageRouteBuilder<void>(
       // Posée sur la vraie page : celle-ci reste dessinée dessous.
@@ -182,7 +185,8 @@ Future<void> showCompositionPresentation(
         data: data,
         background: debugPresentationBackground ?? background,
         preview: preview,
-        landing: onPage ? landing : null,
+        landing: landsOnPage ? landing : null,
+        endsOnPage: onPage,
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) =>
           FadeTransition(opacity: animation, child: child),
@@ -197,6 +201,7 @@ class CompositionPresentationPage extends StatefulWidget {
     this.background = stadiumVideoBackground,
     this.preview = false,
     this.landing,
+    this.endsOnPage = false,
   });
 
   final CompositionPresentationData data;
@@ -206,9 +211,16 @@ class CompositionPresentationPage extends StatefulWidget {
   /// donne l'état de la vidéo du stade. Un joueur ne voit ni l'un ni l'autre.
   final bool preview;
 
-  /// La vraie page d'arrivée, affichée sous la vidéo (voir
-  /// [CompositionLanding]). `null` : la vidéo a son propre écran de fin.
+  /// Le terrain de la vraie page, affichée sous la vidéo, où les photos se
+  /// posent (voir [CompositionLanding]).
   final CompositionLanding? landing;
+
+  /// La vidéo se termine sur la page affichée dessous et se referme
+  /// d'elle-même. Sans [landing], le terrain se pose au milieu de l'écran
+  /// puis s'efface sur la page (l'éditeur d'une compo en cours, dont le
+  /// terrain n'a pas la même forme). `false` : la vidéo a son propre écran
+  /// de fin, avec « Revoir » et « Fermer ».
+  final bool endsOnPage;
 
   @override
   State<CompositionPresentationPage> createState() =>
@@ -246,7 +258,7 @@ class _CompositionPresentationPageState
   /// Fermeture une fois posée sur la vraie page.
   Timer? _autoClose;
 
-  bool get _onPage => widget.landing != null;
+  bool get _onPage => widget.endsOnPage;
 
   bool get _finished => _time.value >= _plan.duration;
 
@@ -388,6 +400,8 @@ class _CompositionPresentationPageState
   void _measurePitch() {
     final root = _rootKey.currentContext?.findRenderObject();
     final landing = widget.landing;
+    // Sur la page sans terrain où se poser : le terrain se pose au milieu.
+    if (_onPage && landing == null) return;
     final pitch =
         (landing?.pitch ?? _pitchKey).currentContext?.findRenderObject();
     if (root is! RenderBox || pitch is! RenderBox) return;

@@ -58,6 +58,41 @@ void main() {
     await expectLandsOnPage(tester);
   });
 
+  testWidgets('aperçu pendant une modification : retour à l’éditeur',
+      (tester) async {
+    await _pumpPublished(
+      tester,
+      store: _MemoryStore()..seen.add(_matchId),
+    );
+    final edit = find.widgetWithText(OutlinedButton, 'Modifier la composition');
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    for (var index = 0; index < 5; index += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final preview = find.widgetWithText(OutlinedButton, 'Aperçu');
+    await tester.ensureVisible(preview);
+    await tester.pump();
+    await tester.tap(preview);
+    for (var index = 0; index < 10; index += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(page.endsOnPage, isTrue);
+    expect(page.landing, isNull, reason: 'l’éditeur n’a pas la même forme');
+
+    // Jusqu'au bout, sans « Passer » : ni copie ni « Revoir » à la fin.
+    for (var index = 0; index < 250; index += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Revoir'), findsNothing);
+    }
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Aperçu'), findsOneWidget);
+    expect(find.text('Simuler une composition'), findsOneWidget);
+  });
+
   testWidgets('un autre admin, déjà vue : compo normale', (tester) async {
     await _pumpPublished(
       tester,

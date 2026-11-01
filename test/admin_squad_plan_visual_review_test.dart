@@ -509,11 +509,13 @@ void main() {
     expect(find.byType(CompositionPresentationPage), findsOneWidget);
     expect(find.text('Passer'), findsOneWidget);
 
+    // La vidéo se referme d'elle-même et rend l'éditeur, sans copie de
+    // l'écran ni « Revoir ».
     await tester.tap(find.text('Passer'));
-    await _pumpFrames(tester, count: 2);
-    await tester.tap(find.byTooltip('Fermer'));
-    await _pumpFrames(tester, count: 5);
+    await _pumpFrames(tester);
     expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(find.text('Revoir'), findsNothing);
+    expect(preview, findsOneWidget);
     expect(repository.saveCalls, 0);
     expect(repository.publishCalls, 0);
   });

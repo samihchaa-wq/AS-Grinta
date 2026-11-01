@@ -646,6 +646,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     List<MatchCompositionEntry> bench, {
     bool preview = true,
     CompositionLanding? landing,
+    bool returnToPage = false,
   }) async {
     // Pendant l'appui, avant toute attente : débloque la vidéo du stade.
     primeStadiumVideo();
@@ -668,6 +669,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       context,
       preview: preview,
       landing: landing,
+      returnToPage: returnToPage,
       data: buildCompositionPresentationData(
         formationCode: composition.formationCode,
         field: field,
@@ -866,7 +868,11 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               OutlinedButton.icon(
                 onPressed: field.isEmpty
                     ? null
-                    : () => _previewCompositionVideo(field, bench),
+                    : () => _previewCompositionVideo(
+                          field,
+                          bench,
+                          returnToPage: true,
+                        ),
                 icon: const Icon(Icons.play_circle_outline_rounded),
                 label: const Text('Aperçu'),
               ),
