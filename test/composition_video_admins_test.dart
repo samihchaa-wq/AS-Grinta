@@ -14,6 +14,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support_composition_landing.dart';
+
 /// Les admins qui n'ont pas publié la compo voient sa vidéo comme les
 /// joueurs ; celui qui l'a publiée depuis ce téléphone garde son « Aperçu ».
 const String _matchId = 'match-video-admins';
@@ -27,6 +29,33 @@ void main() {
     await _pumpPublished(tester, store: _MemoryStore());
     expect(find.byType(CompositionPresentationPage), findsOneWidget);
     expect(find.text('Aperçu : personne n’a été prévenu.'), findsNothing);
+  });
+
+  testWidgets('la vidéo se pose sur l’écran admin et rend la main',
+      (tester) async {
+    await _pumpPublished(tester, store: _MemoryStore());
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(page.landing, isNotNull, reason: 'la vidéo vise le vrai écran');
+    await tester.tap(find.text('Passer'));
+    for (var index = 0; index < 10; index += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    final edit = find.widgetWithText(OutlinedButton, 'Modifier la composition');
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    for (var index = 0; index < 5; index += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.widgetWithText(OutlinedButton, 'Aperçu'), findsOneWidget);
+  });
+
+  testWidgets('les joueurs se posent exactement sur ceux de l’écran admin',
+      (tester) async {
+    await _pumpPublished(tester, store: _MemoryStore());
+    await expectLandsOnPage(tester);
   });
 
   testWidgets('un autre admin, déjà vue : compo normale', (tester) async {

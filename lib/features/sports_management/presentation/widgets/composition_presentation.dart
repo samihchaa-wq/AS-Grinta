@@ -133,6 +133,24 @@ Widget stadiumVideoBackground(BuildContext context, PresentationCue cue) =>
       onStatus: cue.onStatus,
     );
 
+/// Repères de la vraie page sur laquelle la vidéo se pose, à placer sur son
+/// [CompositionPitchWithBench] : [pitch] sur le terrain (`pitchKey`), [area]
+/// sur le bloc terrain + remplaçants (`key`).
+///
+/// Sans eux, la vidéo dessine sa propre image de l'écran Composition et se
+/// termine dessus, avec « Revoir » et « Fermer ». Avec eux, elle se pose sur
+/// la page elle-même, laissée visible dessous, puis se referme d'elle-même :
+/// on retombe exactement sur ce qu'on avait, et on peut s'en servir.
+class CompositionLanding {
+  final GlobalKey pitch = GlobalKey(debugLabel: 'compo-landing-pitch');
+  final GlobalKey area = GlobalKey(debugLabel: 'compo-landing-area');
+
+  bool get isOnScreen {
+    final box = pitch.currentContext?.findRenderObject();
+    return box is RenderBox && box.attached && box.hasSize;
+  }
+}
+
 /// Décor imposé par les tests, qui n'ont pas de lecteur vidéo.
 @visibleForTesting
 PresentationBackgroundBuilder? debugPresentationBackground;
@@ -147,10 +165,16 @@ Future<void> showCompositionPresentation(
   required CompositionPresentationData data,
   PresentationBackgroundBuilder background = stadiumVideoBackground,
   bool preview = false,
+  CompositionLanding? landing,
 }) {
   primeStadiumVideo();
+  // La page d'arrivée doit être affichée pour qu'on s'y pose : sinon, la
+  // vidéo garde son propre écran de fin.
+  final onPage = landing != null && landing.isOnScreen;
   return Navigator.of(context, rootNavigator: true).push<void>(
     PageRouteBuilder<void>(
+      // Posée sur la vraie page : celle-ci reste dessinée dessous.
+      opaque: !onPage,
       transitionDuration: const Duration(milliseconds: 250),
       reverseTransitionDuration: const Duration(milliseconds: 200),
       pageBuilder: (context, animation, secondaryAnimation) =>
@@ -158,6 +182,7 @@ Future<void> showCompositionPresentation(
         data: data,
         background: debugPresentationBackground ?? background,
         preview: preview,
+        landing: onPage ? landing : null,
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) =>
           FadeTransition(opacity: animation, child: child),
@@ -171,6 +196,7 @@ class CompositionPresentationPage extends StatefulWidget {
     required this.data,
     this.background = stadiumVideoBackground,
     this.preview = false,
+    this.landing,
   });
 
   final CompositionPresentationData data;
@@ -179,6 +205,10 @@ class CompositionPresentationPage extends StatefulWidget {
   /// Aperçu de l'admin : la fin rappelle que personne n'a été prévenu et
   /// donne l'état de la vidéo du stade. Un joueur ne voit ni l'un ni l'autre.
   final bool preview;
+
+  /// La vraie page d'arrivée, affichée sous la vidéo (voir
+  /// [CompositionLanding]). `null` : la vidéo a son propre écran de fin.
+  final CompositionLanding? landing;
 
   @override
   State<CompositionPresentationPage> createState() =>
@@ -210,7 +240,19 @@ class _CompositionPresentationPageState
   Rect? _pitchRect;
   double _pitchLayoutWidth = presentationPitchWidth;
 
+  /// Bloc terrain + remplaçants de la vraie page, dans le repère de la page.
+  Rect? _areaRect;
+
+  /// Fermeture une fois posée sur la vraie page.
+  Timer? _autoClose;
+
+  bool get _onPage => widget.landing != null;
+
   bool get _finished => _time.value >= _plan.duration;
+
+  /// Posée sur la vraie page, la vidéo s'arrête dès que la scène s'est
+  /// effacée ([_Frame.stageOpacity]) : la page est alors entièrement là.
+  double get _endTime => _onPage ? _plan.flatAt + 0.5 : _plan.duration;
 
   @override
   void initState() {
@@ -235,6 +277,7 @@ class _CompositionPresentationPageState
   @override
   void dispose() {
     _giveUp?.cancel();
+    _autoClose?.cancel();
     _ticker.dispose();
     _time.dispose();
     super.dispose();
@@ -305,10 +348,14 @@ class _CompositionPresentationPageState
 
   void _tick(Duration elapsed) {
     final t = elapsed.inMicroseconds / Duration.microsecondsPerSecond;
-    if (t >= _plan.duration) {
+    // La page dessous peut encore bouger (chargement, défilement) : la
+    // vidéo suit la place réelle de son terrain.
+    if (_onPage) _measurePitch();
+    if (t >= _endTime) {
       _ticker.stop();
       _time.value = _plan.duration;
       setState(() {});
+      _closeOnPage();
       return;
     }
     _time.value = t;
@@ -318,6 +365,17 @@ class _CompositionPresentationPageState
     _ticker.stop();
     _time.value = _plan.duration;
     setState(() {});
+    _closeOnPage();
+  }
+
+  /// Posée sur la vraie page, la vidéo s'efface : on rend la main tout de
+  /// suite, pour qu'on ne reste pas devant une page qu'on ne peut pas toucher.
+  void _closeOnPage() {
+    if (!_onPage) return;
+    _autoClose?.cancel();
+    _autoClose = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) Navigator.of(context).maybePop();
+    });
   }
 
   void _replay() {
@@ -329,17 +387,31 @@ class _CompositionPresentationPageState
 
   void _measurePitch() {
     final root = _rootKey.currentContext?.findRenderObject();
-    final pitch = _pitchKey.currentContext?.findRenderObject();
+    final landing = widget.landing;
+    final pitch =
+        (landing?.pitch ?? _pitchKey).currentContext?.findRenderObject();
     if (root is! RenderBox || pitch is! RenderBox) return;
-    if (!root.hasSize || !pitch.hasSize || !pitch.attached) return;
-    final topLeft = pitch.localToGlobal(Offset.zero, ancestor: root);
-    final bottomRight = pitch.localToGlobal(
-      pitch.size.bottomRight(Offset.zero),
-      ancestor: root,
-    );
-    final rect = Rect.fromPoints(topLeft, bottomRight);
-    if (rect == _pitchRect && pitch.size.width == _pitchLayoutWidth) return;
+    if (!root.hasSize || !root.attached) return;
+    if (!pitch.hasSize || !pitch.attached) return;
+    // La vraie page est sous la vidéo, pas dedans : on passe par l'écran.
+    Rect boxRect(RenderBox box) => Rect.fromPoints(
+          root.globalToLocal(box.localToGlobal(Offset.zero)),
+          root.globalToLocal(
+            box.localToGlobal(box.size.bottomRight(Offset.zero)),
+          ),
+        );
+    final rect = boxRect(pitch);
+    final area = landing?.area.currentContext?.findRenderObject();
+    final areaRect = area is RenderBox && area.attached && area.hasSize
+        ? boxRect(area)
+        : null;
+    if (rect == _pitchRect &&
+        areaRect == _areaRect &&
+        pitch.size.width == _pitchLayoutWidth) {
+      return;
+    }
     _pitchRect = rect;
+    _areaRect = areaRect;
     _pitchLayoutWidth = pitch.size.width;
     if (mounted) setState(() {});
   }
@@ -349,8 +421,16 @@ class _CompositionPresentationPageState
     WidgetsBinding.instance.addPostFrameCallback((_) => _measurePitch());
     // Un lecteur plein écran qu'on referme, comme une boîte de dialogue :
     // pas de page à part entière, donc pas de barre ni d'écusson d'accueil.
+    // Posée sur la vraie page, celle-ci reste affichée dessous : elle est
+    // tue pour les lecteurs d'écran (VoiceOver) tant que la vidéo est là.
+    return BlockSemantics(
+      child: _buildPlayer(context),
+    );
+  }
+
+  Widget _buildPlayer(BuildContext context) {
     return Material(
-      color: AppTheme.background,
+      color: _onPage ? Colors.transparent : AppTheme.background,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final stage = _StageFit(constraints.biggest);
@@ -381,7 +461,9 @@ class _CompositionPresentationPageState
               return Stack(
                 key: _rootKey,
                 children: [
-                  Positioned.fill(child: _arrival(frame)),
+                  Positioned.fill(
+                    child: _onPage ? _pageCover(frame) : _arrival(frame),
+                  ),
                   Positioned.fill(
                     child: IgnorePointer(
                       child: _StageLayer(
@@ -409,6 +491,23 @@ class _CompositionPresentationPageState
             },
           );
         },
+      ),
+    );
+  }
+
+  /// Le voile qui cache la vraie page pendant la vidéo, puis la découvre :
+  /// la page autour du terrain apparaît avec [_Frame.chrome], le terrain et
+  /// les remplaçants seulement quand les photos s'y posent
+  /// ([_Frame.handoff]), pour ne jamais voir deux fois les joueurs.
+  Widget _pageCover(_Frame frame) {
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _PageCoverPainter(
+          page: 1 - frame.chrome,
+          area: 1 - frame.handoff,
+          areaRect: _areaRect ?? _pitchRect,
+        ),
+        child: const SizedBox.expand(),
       ),
     );
   }
@@ -535,6 +634,11 @@ class _CompositionPresentationPageState
   }
 
   Widget _controls(BuildContext context) {
+    // Sur la vraie page, plus de bouton dès qu'elle commence à apparaître :
+    // il couvrirait son en-tête, et la vidéo se referme d'elle-même.
+    if (_onPage && _time.value >= _plan.moveStart + 1.0) {
+      return const SizedBox.shrink();
+    }
     if (!_finished) {
       return SafeArea(
         child: Align(
@@ -625,6 +729,46 @@ class _CompositionPresentationPageState
       ),
     );
   }
+}
+
+class _PageCoverPainter extends CustomPainter {
+  const _PageCoverPainter({
+    required this.page,
+    required this.area,
+    required this.areaRect,
+  });
+
+  /// Opacité du voile sur la page, et sur le bloc terrain + remplaçants.
+  final double page;
+  final double area;
+  final Rect? areaRect;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final screen = Offset.zero & size;
+    final paint = Paint();
+    final hole = areaRect;
+    if (hole == null) {
+      paint.color = AppTheme.background.withValues(alpha: page.clamp(0, 1));
+      canvas.drawRect(screen, paint);
+      return;
+    }
+    paint.color = AppTheme.background.withValues(alpha: page.clamp(0, 1));
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(screen),
+        Path()..addRect(hole),
+      ),
+      paint,
+    );
+    paint.color = AppTheme.background.withValues(alpha: area.clamp(0, 1));
+    canvas.drawRect(hole, paint);
+  }
+
+  @override
+  bool shouldRepaint(_PageCoverPainter old) =>
+      old.page != page || old.area != area || old.areaRect != areaRect;
 }
 
 class _PillButton extends StatelessWidget {

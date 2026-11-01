@@ -281,6 +281,36 @@ function markCompositionFromNotification(targetUrl) {
   return `${targetUrl.slice(0, hashIndex)}#/${path}?${params.toString()}`;
 }
 
+// Version de l'application en ligne en ce moment, ou '' si on ne peut pas la
+// lire (hors ligne, serveur lent) : on ne retarde alors pas l'ouverture.
+async function deployedWebVersion(scopeUrl) {
+  try {
+    const url = new URL('build_version.js', scopeUrl);
+    url.searchParams.set('notification-check', String(Date.now()));
+    const response = await Promise.race([
+      fetch(url.href, { cache: 'no-store' }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
+    ]);
+    if (!response || !response.ok) return '';
+    const match = (await response.text())
+      .match(/AS_GRINTA_WEB_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    return match ? match[1] : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+// Une application restée ouverte en arrière-plan garde sa version jusqu'à la
+// prochaine ouverture, pour ne pas couper ce qu'on y faisait. Toucher une
+// notification, c'est passer à autre chose : si une version plus récente est
+// en ligne, la page de la notification est rechargée dessus (avec la marque
+// de mise à jour de app_shell.js) au lieu de rester sur l'ancienne.
+function withDeploymentMarker(target, version) {
+  const url = new URL(target);
+  url.searchParams.set('_asg_release', version);
+  return url.href;
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const target = markCompositionFromNotification(notificationTargetUrl(
@@ -292,16 +322,32 @@ self.addEventListener('notificationclick', (event) => {
       (clients) => {
         // Une fenêtre de l'application déjà ouverte est mise au premier plan
         // et amenée sur la page de la notification ; sinon, une fenêtre
-        // s'ouvre directement sur cette page.
+        // s'ouvre directement sur cette page (et donc sur la dernière version).
         const appWindow = clients.find(
           (client) => client.url.startsWith(self.registration.scope) && 'focus' in client,
         );
         if (!appWindow) return self.clients.openWindow(target);
 
-        const navigation = 'navigate' in appWindow
+        const canNavigate = 'navigate' in appWindow;
+        // Ouverture immédiate, sans rien attendre : un téléphone n'autorise
+        // l'ouverture que juste après le toucher.
+        const navigation = canNavigate
           ? appWindow.navigate(target).catch(() => self.clients.openWindow(target))
           : self.clients.openWindow(target);
-        return Promise.all([appWindow.focus(), navigation]);
+        // Ensuite seulement, la version : plus récente, la page est rechargée
+        // dessus, à la même adresse.
+        const refresh = canNavigate
+          ? Promise.all([deployedWebVersion(self.registration.scope), navigation])
+            .then(([deployed, opened]) => {
+              if (!deployed || deployed === WEB_VERSION) return null;
+              const client = opened && typeof opened.navigate === 'function'
+                ? opened
+                : appWindow;
+              return client.navigate(withDeploymentMarker(target, deployed));
+            })
+            .catch(() => null)
+          : null;
+        return Promise.all([appWindow.focus(), navigation, refresh]);
       },
     ),
   );

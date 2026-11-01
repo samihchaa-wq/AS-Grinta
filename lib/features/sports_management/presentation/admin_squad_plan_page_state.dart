@@ -33,6 +33,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   /// Matchs dont le lancement automatique de la vidéo a déjà été examiné.
   final Set<String> _videoAutoChecked = {};
+
+  /// Terrain de la compo publiée, sur lequel la vidéo se pose.
+  final CompositionLanding _publishedLanding = CompositionLanding();
   bool _loading = true;
   bool _busy = false;
   String? _error;

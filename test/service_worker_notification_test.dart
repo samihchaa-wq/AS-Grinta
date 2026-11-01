@@ -13,14 +13,25 @@ const vm = require('vm');
 const scope = 'https://samihchaa-wq.github.io/AS-Grinta/';
 const calls = [];
 let windows = [];
+// Version en ligne que renvoie build_version.js (null : hors ligne).
+let deployed = null;
 const listeners = {};
 const sandbox = {
   URL,
   URLSearchParams,
   Promise,
+  setTimeout,
   console,
   caches: { open: async () => ({}), keys: async () => [] },
-  fetch: async () => { throw new Error('offline'); },
+  fetch: async (url) => {
+    if (deployed && String(url).includes('build_version.js')) {
+      return {
+        ok: true,
+        text: async () => `globalScope.AS_GRINTA_WEB_VERSION = '${deployed}';`,
+      };
+    }
+    throw new Error('offline');
+  },
   self: {
     location: { href: scope + 'sw.js?v=test', origin: 'https://samihchaa-wq.github.io' },
     addEventListener: (type, listener) => { listeners[type] = listener; },
@@ -82,7 +93,26 @@ async function click(url) {
   await click('matches/m1/lineup?section=effectif');
   const composition = calls.splice(0);
 
-  process.stdout.write(JSON.stringify({ targets, withoutWindow, withWindow, composition }));
+  // Appli ouverte sur une ancienne version : la page s'ouvre tout de suite,
+  // puis se recharge sur la version en ligne.
+  const openWindow = {
+    url: scope + '#/matches',
+    focus: async () => { calls.push(['focus']); },
+    navigate: async (url) => { calls.push(['navigate', url]); },
+  };
+  windows = [openWindow];
+  deployed = 'newer';
+  await click('matches/m1/lineup?section=composition');
+  const outdated = calls.splice(0);
+  // Déjà à jour : pas de rechargement.
+  deployed = 'test';
+  await click('matches/m1/vote');
+  const upToDate = calls.splice(0);
+  deployed = null;
+
+  process.stdout.write(JSON.stringify({
+    targets, withoutWindow, withWindow, composition, outdated, upToDate,
+  }));
 })().catch((error) => { console.error(error); process.exit(1); });
 ''';
 
@@ -124,6 +154,22 @@ void main() {
           '$home#/matches/m1/lineup?section=composition&from=notification',
         ],
         ['openWindow', '$home#/matches/m1/lineup?section=effectif'],
+      ]);
+      expect(output['outdated'], [
+        [
+          'navigate',
+          '$home#/matches/m1/lineup?section=composition&from=notification',
+        ],
+        ['focus'],
+        [
+          'navigate',
+          '$home?_asg_release=newer'
+              '#/matches/m1/lineup?section=composition&from=notification',
+        ],
+      ]);
+      expect(output['upToDate'], [
+        ['navigate', '$home#/matches/m1/vote'],
+        ['focus'],
       ]);
       expect(output['withWindow'], [
         ['navigate', '$home#/admin/administration'],

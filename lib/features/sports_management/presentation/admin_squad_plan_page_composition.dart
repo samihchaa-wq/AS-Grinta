@@ -563,8 +563,12 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         Card(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+            // Les joueurs calés sur leur poste, comme chez les joueurs : la
+            // vidéo s'y pose exactement.
             child: CompositionPitchWithBench(
-              field: field,
+              key: _publishedLanding.area,
+              pitchKey: _publishedLanding.pitch,
+              field: alignFieldToFormation(_composition?.formationCode, field),
               bench: bench,
               maxWidth: 520,
             ),
@@ -574,7 +578,11 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         OutlinedButton.icon(
           onPressed: field.isEmpty
               ? null
-              : () => _previewCompositionVideo(field, bench),
+              : () => _previewCompositionVideo(
+                    field,
+                    bench,
+                    landing: _publishedLanding,
+                  ),
           icon: const Icon(Icons.play_circle_outline_rounded),
           label: const Text('Aperçu de la vidéo'),
         ),
@@ -622,7 +630,12 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         );
       }
       unawaited(store.markSeen(matchId));
-      await _previewCompositionVideo(field, bench, preview: false);
+      await _previewCompositionVideo(
+        field,
+        bench,
+        preview: false,
+        landing: _publishedLanding,
+      );
     });
   }
 
@@ -632,6 +645,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     List<MatchCompositionEntry> field,
     List<MatchCompositionEntry> bench, {
     bool preview = true,
+    CompositionLanding? landing,
   }) async {
     // Pendant l'appui, avant toute attente : débloque la vidéo du stade.
     primeStadiumVideo();
@@ -653,6 +667,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     await showCompositionPresentation(
       context,
       preview: preview,
+      landing: landing,
       data: buildCompositionPresentationData(
         formationCode: composition.formationCode,
         field: field,
