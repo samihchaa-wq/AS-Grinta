@@ -488,6 +488,13 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         );
       }
       if (!mounted) return;
+      if (!_postMatch) {
+        // Celui qui publie ne voit pas la vidéo d'elle-même : il a l'aperçu.
+        _videoAutoChecked.add(ready.matchId);
+        final store = ref.read(compositionVideoSeenStoreProvider);
+        unawaited(store.markPublishedHere(ready.matchId));
+        unawaited(store.markSeen(ready.matchId));
+      }
       _updateState(() {
         _composition = result;
         _compositionDirty = false;
@@ -584,12 +591,48 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     );
   }
 
+  /// Un autre admin que celui qui a publié voit la vidéo comme un joueur :
+  /// à chaque ouverture depuis la notification, et à sa première visite de
+  /// la compo publiée.
+  void _scheduleCompositionVideoAutoplay(
+    List<MatchCompositionEntry> field,
+    List<MatchCompositionEntry> bench,
+  ) {
+    final matchId = _selectedMatchId;
+    if (matchId == null || _videoAutoChecked.contains(matchId)) return;
+    if (!field.any((entry) => !entry.isVacant)) return;
+    _videoAutoChecked.add(matchId);
+    final fromNotification = widget.fromNotification;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final store = ref.read(compositionVideoSeenStoreProvider);
+      if (!await store.shouldAutoplay(
+        matchId,
+        fromNotification: fromNotification,
+      )) {
+        return;
+      }
+      if (!mounted || _selectedMatchId != matchId) return;
+      if (_step != _AdminStep.composition) return;
+      // Une autre page ouverte par-dessus : pas de vidéo dans son dos.
+      if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      if (fromNotification) {
+        // L'adresse perd sa marque : recharger ne relance pas la vidéo.
+        GoRouter.maybeOf(context)?.replace(
+          '/matches/$matchId/lineup?section=composition',
+        );
+      }
+      unawaited(store.markSeen(matchId));
+      await _previewCompositionVideo(field, bench, preview: false);
+    });
+  }
+
   /// Montre à l'admin la vidéo de la composition affichée à l'écran, même
   /// pas encore enregistrée. Rien n'est écrit et personne n'est prévenu.
   Future<void> _previewCompositionVideo(
     List<MatchCompositionEntry> field,
-    List<MatchCompositionEntry> bench,
-  ) async {
+    List<MatchCompositionEntry> bench, {
+    bool preview = true,
+  }) async {
     // Pendant l'appui, avant toute attente : débloque la vidéo du stade.
     primeStadiumVideo();
     final composition = _composition;
@@ -609,7 +652,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         .firstOrNull;
     await showCompositionPresentation(
       context,
-      preview: true,
+      preview: preview,
       data: buildCompositionPresentationData(
         formationCode: composition.formationCode,
         field: field,
@@ -641,6 +684,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     if (composition.isPublished &&
         !_postMatch &&
         !_editingPublishedComposition) {
+      _scheduleCompositionVideoAutoplay(field, bench);
       return _buildPublishedCompositionPreview(field, bench);
     }
 
