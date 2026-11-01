@@ -16,6 +16,8 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_composition_view.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/player_composition_video.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_board_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
@@ -172,9 +174,16 @@ class MatchLineupPage extends ConsumerWidget {
                           ),
                       ],
                       selected: {resolvedSection},
-                      onSelectionChanged: (selection) => context.go(
-                        '/matches/$matchId/lineup?section=${selection.first}',
-                      ),
+                      onSelectionChanged: (selection) {
+                        // La vidéo de la compo peut se lancer à l'arrivée :
+                        // l'appui la débloque sur iPhone.
+                        if (selection.first == 'composition') {
+                          primeStadiumVideo();
+                        }
+                        context.go(
+                          '/matches/$matchId/lineup?section=${selection.first}',
+                        );
+                      },
                     ),
                     const SizedBox(height: AppSpacing.sectionGap),
                     if (showInfo) MatchInfoTab(matchId: matchId),
@@ -187,11 +196,16 @@ class MatchLineupPage extends ConsumerWidget {
                       InternalTeamCompositionView(
                           matchId: matchId, editable: false)
                     else if (showComposition)
-                      PublishedLineupPreview(
+                      PlayerCompositionTab(
                         matchId: matchId,
-                        expanded: true,
-                        fallbackToEffectif: false,
-                        emptyMessage: 'Composition non publiée.',
+                        fromNotification: queryParameters['from'] ==
+                            compositionOpenedFromNotification,
+                        lineup: PublishedLineupPreview(
+                          matchId: matchId,
+                          expanded: true,
+                          fallbackToEffectif: false,
+                          emptyMessage: 'Composition non publiée.',
+                        ),
                       ),
                     if (showLive) MatchLiveTab(matchId: matchId),
                     if (showPrediction)

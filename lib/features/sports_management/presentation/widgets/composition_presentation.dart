@@ -146,6 +146,7 @@ Future<void> showCompositionPresentation(
   BuildContext context, {
   required CompositionPresentationData data,
   PresentationBackgroundBuilder background = stadiumVideoBackground,
+  bool preview = false,
 }) {
   primeStadiumVideo();
   return Navigator.of(context, rootNavigator: true).push<void>(
@@ -156,6 +157,7 @@ Future<void> showCompositionPresentation(
           CompositionPresentationPage(
         data: data,
         background: debugPresentationBackground ?? background,
+        preview: preview,
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) =>
           FadeTransition(opacity: animation, child: child),
@@ -168,10 +170,15 @@ class CompositionPresentationPage extends StatefulWidget {
     super.key,
     required this.data,
     this.background = stadiumVideoBackground,
+    this.preview = false,
   });
 
   final CompositionPresentationData data;
   final PresentationBackgroundBuilder background;
+
+  /// Aperçu de l'admin : la fin rappelle que personne n'a été prévenu et
+  /// donne l'état de la vidéo du stade. Un joueur ne voit ni l'un ni l'autre.
+  final bool preview;
 
   @override
   State<CompositionPresentationPage> createState() =>
@@ -558,32 +565,34 @@ class _CompositionPresentationPageState
               ),
               const SizedBox(width: 4),
               Expanded(
-                child: GestureDetector(
-                  onTap: _videoStatus == null ? null : _showVideoStatus,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Aperçu : personne n’a été prévenu.',
-                        maxLines: 2,
-                        style: TextStyle(
-                          color: AppTheme.textFaint,
-                          fontSize: 13,
+                child: !widget.preview
+                    ? const SizedBox.shrink()
+                    : GestureDetector(
+                        onTap: _videoStatus == null ? null : _showVideoStatus,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Aperçu : personne n’a été prévenu.',
+                              maxLines: 2,
+                              style: TextStyle(
+                                color: AppTheme.textFaint,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (_videoStatus != null)
+                              Text(
+                                _videoStatus!.split('\n').first,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                  color: AppTheme.textFaint,
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      if (_videoStatus != null)
-                        Text(
-                          _videoStatus!.split('\n').first,
-                          maxLines: 2,
-                          style: const TextStyle(
-                            color: AppTheme.textFaint,
-                            fontSize: 11,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
               ),
               const SizedBox(width: 8),
               FilledButton.tonalIcon(

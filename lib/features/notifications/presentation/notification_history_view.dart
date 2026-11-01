@@ -3,6 +3,8 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/notifications/data/notification_inbox_repository.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/player_composition_video.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -108,8 +110,12 @@ class _NotificationHistoryViewState
   }
 
   void _open(NotificationHistoryEntry entry) {
-    final route = notificationRoute(entry.url);
-    if (route == null) return;
+    final raw = notificationRoute(entry.url);
+    if (raw == null) return;
+    // Comme depuis le téléphone : la compo ouverte depuis sa notification
+    // lance sa vidéo, que l'appui débloque sur iPhone.
+    final route = markCompositionRouteFromNotification(raw);
+    if (route != raw) primeStadiumVideo();
     // Le calendrier est la racine de l'application : on y retourne au lieu
     // d'en empiler une seconde copie.
     if (route == '/matches' || route.startsWith('/matches?')) {
