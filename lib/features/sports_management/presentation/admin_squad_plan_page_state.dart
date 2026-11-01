@@ -30,6 +30,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   int _effectifRevision = 0;
   bool _compositionDirty = false;
   bool _editingPublishedComposition = false;
+
+  /// Matchs dont le lancement automatique de la vidéo a déjà été examiné.
+  final Set<String> _videoAutoChecked = {};
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -274,6 +277,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   /// prochain rafraîchissement manuel ». Une composition en cours d'édition
   /// n'est jamais écrasée : on la laisse telle quelle.
   void _selectStep(_AdminStep next) {
+    // La vidéo de la compo peut se lancer à l'arrivée : l'appui la débloque
+    // sur iPhone.
+    if (next == _AdminStep.composition) primeStadiumVideo();
     setState(() => _step = next);
     if (next != _AdminStep.effectif && next != _AdminStep.composition) return;
     final matchId = _selectedMatchId;

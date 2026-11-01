@@ -83,6 +83,8 @@ class MatchLineupPage extends ConsumerWidget {
         initialMatchId: matchId,
         initialStep: adminSection,
         showPredictionStep: !isInternal && !predictionClosed,
+        fromNotification:
+            queryParameters['from'] == compositionOpenedFromNotification,
       );
     }
 

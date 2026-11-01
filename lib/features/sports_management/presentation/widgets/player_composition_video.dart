@@ -68,13 +68,47 @@ CompositionPresentationData buildCompositionPresentationData({
   );
 }
 
-/// Retient, sur ce téléphone, les compos dont le joueur a déjà vu la vidéo.
-/// Une fois vue pour un match, elle ne se relance plus d'elle-même, même si
-/// la compo est modifiée ensuite.
+/// Retient, sur ce téléphone, les compos dont la vidéo a déjà été vue, et
+/// celles publiées depuis ce téléphone.
+/// - Une fois vue pour un match, elle ne se relance plus d'elle-même, même si
+///   la compo est modifiée ensuite.
+/// - Celui qui publie ne la voit jamais d'elle-même pour ce match, même par
+///   la notification : il a son bouton « Aperçu ».
 class CompositionVideoSeenStore {
   const CompositionVideoSeenStore();
 
   static const _prefix = 'composition_video_seen.';
+  static const _publishedPrefix = 'composition_video_published_here.';
+
+  /// La vidéo doit-elle se lancer d'elle-même à l'arrivée sur la compo ?
+  Future<bool> shouldAutoplay(
+    String matchId, {
+    required bool fromNotification,
+  }) async {
+    if (await publishedHere(matchId)) return false;
+    if (fromNotification) return true;
+    return !await hasSeen(matchId);
+  }
+
+  Future<bool> publishedHere(String matchId) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      return preferences.getBool('$_publishedPrefix$matchId') ?? false;
+    } catch (_) {
+      // Mémoire illisible : on ne lance rien plutôt que de surprendre celui
+      // qui publie.
+      return true;
+    }
+  }
+
+  Future<void> markPublishedHere(String matchId) async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool('$_publishedPrefix$matchId', true);
+    } catch (_) {
+      // Sans mémoire, au pire celui qui publie voit la vidéo une fois.
+    }
+  }
 
   Future<bool> hasSeen(String matchId) async {
     try {
@@ -186,7 +220,10 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     if (!mounted) return;
     final store = ref.read(compositionVideoSeenStoreProvider);
     final fromNotification = widget.fromNotification;
-    if (!fromNotification && await store.hasSeen(widget.matchId)) {
+    if (!await store.shouldAutoplay(
+      widget.matchId,
+      fromNotification: fromNotification,
+    )) {
       return;
     }
     if (!mounted) return;

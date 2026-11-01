@@ -56,11 +56,16 @@ class AdminSquadPlanPage extends ConsumerStatefulWidget {
     this.initialMatchId,
     this.initialStep,
     this.showPredictionStep = false,
+    this.fromNotification = false,
   });
 
   final String? initialMatchId;
   final String? initialStep;
   final bool showPredictionStep;
+
+  /// Ouvert depuis la notification de la compo : sa vidéo se lance, sauf
+  /// pour l'admin qui l'a publiée depuis ce téléphone.
+  final bool fromNotification;
 
   @override
   ConsumerState<AdminSquadPlanPage> createState() => _AdminSquadPlanPageState();

@@ -53,6 +53,14 @@ void main() {
     );
   });
 
+  testWidgets('publiée depuis ce téléphone : jamais d’elle-même',
+      (tester) async {
+    final store = _MemoryStore()..published.add('match-1');
+    await _pump(tester, store: store, fromNotification: true);
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(find.text('Aperçu de la vidéo'), findsOneWidget);
+  });
+
   test('seules les notifications de compo portent la marque', () {
     expect(
       markCompositionRouteFromNotification(
@@ -70,14 +78,23 @@ void main() {
   });
 }
 
-class _MemoryStore implements CompositionVideoSeenStore {
+class _MemoryStore extends CompositionVideoSeenStore {
   final Set<String> seen = {};
+  final Set<String> published = {};
 
   @override
   Future<bool> hasSeen(String matchId) async => seen.contains(matchId);
 
   @override
   Future<void> markSeen(String matchId) async => seen.add(matchId);
+
+  @override
+  Future<bool> publishedHere(String matchId) async =>
+      published.contains(matchId);
+
+  @override
+  Future<void> markPublishedHere(String matchId) async =>
+      published.add(matchId);
 }
 
 Widget _plainBackground(BuildContext context, PresentationCue cue) {
