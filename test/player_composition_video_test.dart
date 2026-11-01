@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/player_composition_video.dart';
@@ -59,6 +60,40 @@ void main() {
     await _pump(tester, store: store, fromNotification: true);
     expect(find.byType(CompositionPresentationPage), findsNothing);
     expect(find.text('Aperçu de la vidéo'), findsOneWidget);
+  });
+
+  testWidgets('le coach présent apparaît avec sa photo', (tester) async {
+    final asked = <String>[];
+    await _pump(
+      tester,
+      store: _MemoryStore(),
+      board: _boardWithCoach(),
+      photoLookup: (seasonPlayerId) async {
+        asked.add(seasonPlayerId);
+        return 'https://photos.test/coach.jpg';
+      },
+    );
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(asked, ['sp-coach']);
+    expect(page.data.coach?.name, 'Philippe');
+    expect(page.data.coach?.photoUrl, 'https://photos.test/coach.jpg');
+  });
+
+  testWidgets('photo du coach introuvable : silhouette, la vidéo part',
+      (tester) async {
+    await _pump(
+      tester,
+      store: _MemoryStore(),
+      board: _boardWithCoach(),
+      photoLookup: (_) async => throw Exception('réseau'),
+    );
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(page.data.coach?.name, 'Philippe');
+    expect(page.data.coach?.photoUrl, isNull);
   });
 
   test('seules les notifications de compo portent la marque', () {
@@ -122,6 +157,8 @@ Future<GoRouter> _pump(
   required _MemoryStore store,
   int version = 1,
   bool fromNotification = false,
+  MatchAvailabilityBoard? board,
+  SeasonPlayerPhotoLookup? photoLookup,
 }) async {
   tester.view
     ..physicalSize = const Size(390, 844)
@@ -170,8 +207,10 @@ Future<GoRouter> _pump(
           (ref) async => null,
         ),
         matchAvailabilityBoardProvider('match-1').overrideWith(
-          (ref) async => null,
+          (ref) async => board,
         ),
+        if (photoLookup != null)
+          seasonPlayerPhotoLookupProvider.overrideWithValue(photoLookup),
       ],
       child: MaterialApp.router(routerConfig: router),
     ),
@@ -193,3 +232,31 @@ Future<void> _close(WidgetTester tester) async {
   await _settle(tester);
   expect(find.byType(CompositionPresentationPage), findsNothing);
 }
+
+MatchAvailabilityBoard _boardWithCoach() => MatchAvailabilityBoard.fromRpc({
+      'match_id': 'match-1',
+      'kickoff_at':
+          DateTime.now().add(const Duration(days: 2)).toIso8601String(),
+      'availability_opens_at':
+          DateTime.now().subtract(const Duration(days: 3)).toIso8601String(),
+      'players': [
+        {
+          'participant_id': 'part-coach',
+          'season_player_id': 'sp-coach',
+          'first_name': 'Philippe',
+          'last_name': 'Coach',
+          'status': 'available',
+          'convocation_status': 'convoked',
+          'is_coach': true,
+        },
+        {
+          'participant_id': 'part-absent-coach',
+          'season_player_id': 'sp-absent',
+          'first_name': 'Absent',
+          'last_name': 'Coach',
+          'status': 'absent',
+          'convocation_status': 'not_applicable',
+          'is_coach': true,
+        },
+      ],
+    });

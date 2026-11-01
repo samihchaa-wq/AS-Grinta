@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -131,6 +132,34 @@ class CompositionVideoSeenStore {
     }
   }
 }
+
+/// Retrouve la photo d'une fiche de la saison (le coach, côté joueur : la
+/// liste des présents ne la donne pas). Profil d'abord, fiche ensuite, comme
+/// la fiche joueur. `null` : pas de photo, la vidéo montre une silhouette.
+typedef SeasonPlayerPhotoLookup = Future<String?> Function(
+  String seasonPlayerId,
+);
+
+final seasonPlayerPhotoLookupProvider =
+    Provider<SeasonPlayerPhotoLookup>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return (seasonPlayerId) async {
+    final row = await client
+        .from('season_players')
+        .select('photo_url, profiles!season_players_profile_id_fkey(photo_url)')
+        .eq('id', seasonPlayerId)
+        .maybeSingle();
+    if (row == null) return null;
+    String? clean(Object? value) {
+      final text = value?.toString().trim();
+      return text == null || text.isEmpty ? null : text;
+    }
+
+    final profile = row['profiles'];
+    return clean(profile is Map ? profile['photo_url'] : null) ??
+        clean(row['photo_url']);
+  };
+});
 
 final compositionVideoSeenStoreProvider =
     Provider<CompositionVideoSeenStore>((ref) {
@@ -284,9 +313,21 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
       );
       final player = present == null || present.isEmpty ? null : present.first;
       if (player != null) {
+        String? photoUrl;
+        final seasonPlayerId = player.seasonPlayerId;
+        if (seasonPlayerId != null) {
+          try {
+            photoUrl = await ref
+                .read(seasonPlayerPhotoLookupProvider)(seasonPlayerId)
+                .timeout(const Duration(seconds: 3));
+          } catch (_) {
+            // Sans photo, le coach garde sa silhouette.
+          }
+        }
         coach = CompositionPresentationCoach(
           id: player.participantId,
           name: player.firstNameOnly,
+          photoUrl: photoUrl,
         );
       }
     } catch (_) {

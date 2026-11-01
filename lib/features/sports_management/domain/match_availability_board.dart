@@ -25,6 +25,7 @@ class MatchAvailabilityBoardPlayer {
     this.isCoach = false,
     this.waitlistPosition,
     this.serverName,
+    this.seasonPlayerId,
   });
 
   factory MatchAvailabilityBoardPlayer.fromJson(Map<String, dynamic> json) {
@@ -40,6 +41,7 @@ class MatchAvailabilityBoardPlayer {
       isCoach: json['is_coach'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
       serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,
+      seasonPlayerId: _nonEmpty(json['season_player_id']),
     );
   }
 
@@ -57,6 +59,9 @@ class MatchAvailabilityBoardPlayer {
 
   /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom.
   final String? serverName;
+
+  /// Fiche de la saison (absente pour un invité) : elle porte la photo.
+  final String? seasonPlayerId;
 
   String get displayName {
     if (serverName != null) return serverName!;
@@ -176,4 +181,9 @@ class MatchAvailabilityBoard {
         ? byPosition
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
+}
+
+String? _nonEmpty(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
 }
