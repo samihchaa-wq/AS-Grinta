@@ -34,16 +34,16 @@ void main() {
     expect(find.byType(CompositionPresentationPage), findsOneWidget);
   });
 
-  testWidgets('nouvelle publication : la vidéo se relance une fois',
+  testWidgets('compo modifiée après la visite : pas de nouvelle vidéo',
       (tester) async {
-    final store = _MemoryStore()..seen['match-1'] = 1;
+    final store = _MemoryStore()..seen.add('match-1');
     await _pump(tester, store: store, version: 2);
-    expect(find.byType(CompositionPresentationPage), findsOneWidget);
-    expect(store.seen['match-1'], 2);
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(find.text('Aperçu de la vidéo'), findsOneWidget);
   });
 
   testWidgets('depuis la notification : vidéo même déjà vue', (tester) async {
-    final store = _MemoryStore()..seen['match-1'] = 1;
+    final store = _MemoryStore()..seen.add('match-1');
     final router = await _pump(tester, store: store, fromNotification: true);
     expect(find.byType(CompositionPresentationPage), findsOneWidget);
     // L'adresse perd sa marque : revenir sur la page ne la relance pas.
@@ -71,15 +71,13 @@ void main() {
 }
 
 class _MemoryStore implements CompositionVideoSeenStore {
-  final Map<String, int> seen = {};
+  final Set<String> seen = {};
 
   @override
-  Future<bool> hasSeen(String matchId, int version) async =>
-      seen[matchId] == version;
+  Future<bool> hasSeen(String matchId) async => seen.contains(matchId);
 
   @override
-  Future<void> markSeen(String matchId, int version) async =>
-      seen[matchId] = version;
+  Future<void> markSeen(String matchId) async => seen.add(matchId);
 }
 
 Widget _plainBackground(BuildContext context, PresentationCue cue) {

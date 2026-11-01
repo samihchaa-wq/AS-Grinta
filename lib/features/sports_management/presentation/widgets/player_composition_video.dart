@@ -69,17 +69,17 @@ CompositionPresentationData buildCompositionPresentationData({
 }
 
 /// Retient, sur ce téléphone, les compos dont le joueur a déjà vu la vidéo.
-/// Une nouvelle publication (nouvelle version) compte comme une compo
-/// nouvelle : sa vidéo se relance une fois.
+/// Une fois vue pour un match, elle ne se relance plus d'elle-même, même si
+/// la compo est modifiée ensuite.
 class CompositionVideoSeenStore {
   const CompositionVideoSeenStore();
 
   static const _prefix = 'composition_video_seen.';
 
-  Future<bool> hasSeen(String matchId, int version) async {
+  Future<bool> hasSeen(String matchId) async {
     try {
       final preferences = await SharedPreferences.getInstance();
-      return preferences.getInt('$_prefix$matchId') == version;
+      return preferences.getBool('$_prefix$matchId') ?? false;
     } catch (_) {
       // Mémoire du téléphone illisible : mieux vaut ne pas relancer la vidéo
       // à chaque visite.
@@ -87,10 +87,10 @@ class CompositionVideoSeenStore {
     }
   }
 
-  Future<void> markSeen(String matchId, int version) async {
+  Future<void> markSeen(String matchId) async {
     try {
       final preferences = await SharedPreferences.getInstance();
-      await preferences.setInt('$_prefix$matchId', version);
+      await preferences.setBool('$_prefix$matchId', true);
     } catch (_) {
       // Sans mémoire, la vidéo se relancera à la prochaine visite : rien de
       // grave.
@@ -106,7 +106,8 @@ final compositionVideoSeenStoreProvider =
 /// Onglet Compo d'un joueur : la compo publiée, le bouton « Aperçu de la
 /// vidéo » (illimité), et la vidéo lancée d'elle-même
 /// - à chaque ouverture depuis la notification de la compo ;
-/// - à la première visite de l'onglet après une publication.
+/// - à la première visite de l'onglet après la publication (une compo
+///   modifiée ensuite ne la relance pas).
 class PlayerCompositionTab extends ConsumerStatefulWidget {
   const PlayerCompositionTab({
     super.key,
@@ -185,8 +186,7 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     if (!mounted) return;
     final store = ref.read(compositionVideoSeenStoreProvider);
     final fromNotification = widget.fromNotification;
-    if (!fromNotification &&
-        await store.hasSeen(widget.matchId, composition.version)) {
+    if (!fromNotification && await store.hasSeen(widget.matchId)) {
       return;
     }
     if (!mounted) return;
@@ -211,7 +211,7 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     try {
       final store = ref.read(compositionVideoSeenStoreProvider);
       // Vue dès qu'elle démarre : la fermer tout de suite compte aussi.
-      unawaited(store.markSeen(widget.matchId, composition.version));
+      unawaited(store.markSeen(widget.matchId));
       final data = await _loadData(composition);
       if (!mounted) return;
       await showCompositionPresentation(context, data: data);
