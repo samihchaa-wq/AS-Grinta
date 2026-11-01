@@ -3,12 +3,16 @@ import 'package:as_grinta/features/sports_management/data/match_availability_boa
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/player_composition_video.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'package:go_router/go_router.dart';
+
+import 'support_composition_landing.dart';
 
 /// Vidéo de la compo côté joueur :
 /// - depuis la notification, elle se lance à chaque fois ;
@@ -96,6 +100,41 @@ void main() {
     expect(page.data.coach?.photoUrl, isNull);
   });
 
+  testWidgets(
+      'posée sur le vrai terrain, la vidéo se referme d’elle-même sur la page',
+      (tester) async {
+    await _pump(tester, store: _MemoryStore(), withPitch: true);
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(page.landing, isNotNull, reason: 'la vidéo vise la vraie page');
+    await tester.tap(find.text('Passer'));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(find.text('Revoir'), findsNothing);
+    // La page est utilisable : le bouton relance la vidéo.
+    await tester.tap(find.text('Aperçu de la vidéo'));
+    await _settle(tester);
+    expect(find.byType(CompositionPresentationPage), findsOneWidget);
+  });
+
+  testWidgets('les joueurs se posent exactement sur ceux de la page',
+      (tester) async {
+    await _pump(tester, store: _MemoryStore(), withPitch: true);
+    await expectLandsOnPage(tester);
+  });
+
+  testWidgets('jusqu’au bout sans « Passer », même fin', (tester) async {
+    await _pump(tester, store: _MemoryStore(), withPitch: true);
+    for (var i = 0; i < 200; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(CompositionPresentationPage), findsNothing);
+    expect(find.text('Aperçu de la vidéo'), findsOneWidget);
+  });
+
   test('seules les notifications de compo portent la marque', () {
     expect(
       markCompositionRouteFromNotification(
@@ -159,6 +198,7 @@ Future<GoRouter> _pump(
   bool fromNotification = false,
   MatchAvailabilityBoard? board,
   SeasonPlayerPhotoLookup? photoLookup,
+  bool withPitch = false,
 }) async {
   tester.view
     ..physicalSize = const Size(390, 844)
@@ -189,7 +229,22 @@ Future<GoRouter> _pump(
             matchId: 'match-1',
             fromNotification: state.uri.queryParameters['from'] ==
                 compositionOpenedFromNotification,
-            lineup: const Text('Compo publiée'),
+            lineupBuilder: (landing) => withPitch
+                ? Column(
+                    children: [
+                      const Text('Compo publiée'),
+                      CompositionPitchWithBench(
+                        key: landing.area,
+                        pitchKey: landing.pitch,
+                        field:
+                            composition.entriesFor(MatchCompositionZone.field),
+                        bench:
+                            composition.entriesFor(MatchCompositionZone.bench),
+                        maxWidth: 360,
+                      ),
+                    ],
+                  )
+                : const Text('Compo publiée'),
           ),
         ),
       ),

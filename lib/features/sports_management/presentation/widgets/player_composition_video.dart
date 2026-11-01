@@ -175,14 +175,15 @@ class PlayerCompositionTab extends ConsumerStatefulWidget {
   const PlayerCompositionTab({
     super.key,
     required this.matchId,
-    required this.lineup,
+    required this.lineupBuilder,
     this.fromNotification = false,
   });
 
   final String matchId;
 
-  /// La compo publiée telle que l'onglet l'affiche.
-  final Widget lineup;
+  /// La compo publiée telle que l'onglet l'affiche, avec sur son terrain les
+  /// repères où la vidéo se pose.
+  final Widget Function(CompositionLanding landing) lineupBuilder;
   final bool fromNotification;
 
   @override
@@ -195,6 +196,7 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
   /// tentative par compo affichée.
   int? _autoChecked;
   bool _playing = false;
+  final CompositionLanding _landing = CompositionLanding();
 
   @override
   void didUpdateWidget(covariant PlayerCompositionTab oldWidget) {
@@ -223,7 +225,7 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        widget.lineup,
+        widget.lineupBuilder(_landing),
         if (playable) ...[
           const SizedBox(height: 12),
           Center(
@@ -280,7 +282,11 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
       unawaited(store.markSeen(widget.matchId));
       final data = await _loadData(composition);
       if (!mounted) return;
-      await showCompositionPresentation(context, data: data);
+      await showCompositionPresentation(
+        context,
+        data: data,
+        landing: _landing,
+      );
     } finally {
       if (mounted) setState(() => _playing = false);
     }

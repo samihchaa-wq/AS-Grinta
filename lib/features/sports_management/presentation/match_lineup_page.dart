@@ -15,6 +15,7 @@ import 'package:as_grinta/features/sports_management/domain/formation_display.da
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_presentation.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_composition_view.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/player_composition_video.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/stadium_video.dart';
@@ -202,11 +203,12 @@ class MatchLineupPage extends ConsumerWidget {
                         matchId: matchId,
                         fromNotification: queryParameters['from'] ==
                             compositionOpenedFromNotification,
-                        lineup: PublishedLineupPreview(
+                        lineupBuilder: (landing) => PublishedLineupPreview(
                           matchId: matchId,
                           expanded: true,
                           fallbackToEffectif: false,
                           emptyMessage: 'Composition non publiée.',
+                          landing: landing,
                         ),
                       ),
                     if (showLive) MatchLiveTab(matchId: matchId),
@@ -337,6 +339,7 @@ class PublishedLineupPreview extends ConsumerWidget {
     this.expanded = false,
     this.fallbackToEffectif = true,
     this.emptyMessage,
+    this.landing,
   });
 
   final String matchId;
@@ -347,6 +350,9 @@ class PublishedLineupPreview extends ConsumerWidget {
   final bool expanded;
   final bool fallbackToEffectif;
   final String? emptyMessage;
+
+  /// Repères du terrain pour la vidéo de la compo, qui s'y pose.
+  final CompositionLanding? landing;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -424,6 +430,8 @@ class PublishedLineupPreview extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.contentGap),
               CompositionPitchWithBench(
+                key: landing?.area,
+                pitchKey: landing?.pitch,
                 field: alignFieldToFormation(
                   composition.formationCode,
                   composition.entriesFor(MatchCompositionZone.field),
