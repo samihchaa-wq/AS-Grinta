@@ -114,7 +114,9 @@ insert into reviewed_open_definers (fonction, motif) values
   ('private.is_feature_enabled(text)',
    'ne renvoie qu’un booléen de configuration, aucune donnée personnelle'),
   ('private.profile_badge_stars(uuid)',
-   'agrégats de badges uniquement ; contrepartie interne de public.profile_badge_metrics');
+   'agrégats de badges uniquement ; contrepartie interne de public.profile_badge_metrics'),
+  ('private.featured_badge_display_values(uuid)',
+   'ne renvoie que le chiffre des badges arborés, déjà affiché à tout le club ; utilisée par public.featured_badges()');
 
 create temporary view open_definers as
   select p.oid::regprocedure::text as fonction
