@@ -30,9 +30,9 @@ select
 
 set local session_replication_role = replica;
 insert into public.profile_badges(profile_id, badge_id, featured)
-select 'fb100000-0000-0000-0000-000000000001', shown_id, true from picked
+select 'fb100000-0000-0000-0000-000000000001'::uuid, shown_id, true from picked
 union all
-select 'fb100000-0000-0000-0000-000000000001', hidden_id, false from picked;
+select 'fb100000-0000-0000-0000-000000000001'::uuid, hidden_id, false from picked;
 set local session_replication_role = origin;
 
 grant select on picked to authenticated;
@@ -69,7 +69,7 @@ select throws_ok(
 select throws_ok(
   $$ select * from private.profile_badge_display_metrics('fb100000-0000-0000-0000-000000000001') $$,
   '42501',
-  null,
+  null::text,
   'l''implémentation privée du bilan n''est pas appelable par un membre'
 );
 
