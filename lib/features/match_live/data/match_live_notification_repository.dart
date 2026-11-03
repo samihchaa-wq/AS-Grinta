@@ -82,18 +82,36 @@ final matchLiveNotificationStatusProvider = FutureProvider.autoDispose
       .fetchStatus(matchId);
 
   // Si l'écran reste ouvert avant J-6 12 h, la cloche doit apparaître toute
-  // seule au moment exact de l'ouverture sans imposer un pull-to-refresh.
-  final opensAt = status.opensAt;
-  if (!status.eligible && opensAt != null) {
-    final delay = opensAt.difference(DateTime.now());
-    if (delay > Duration.zero) {
-      final timer = Timer(
-        delay + const Duration(seconds: 1),
-        () => ref.invalidateSelf(),
-      );
-      ref.onDispose(timer.cancel);
-    }
+  // seule au moment de l'ouverture sans imposer un pull-to-refresh.
+  final delay = matchLiveNotificationRecheckDelay(status, DateTime.now());
+  if (delay != null) {
+    final timer = Timer(delay, () => ref.invalidateSelf());
+    ref.onDispose(timer.cancel);
   }
 
   return status;
 });
+
+/// Plus longue attente confiée à une seule minuterie.
+///
+/// Sur le Web, une minuterie de plus de 24,8 jours (2^31 - 1 ms) déborde et se
+/// déclenche immédiatement. Pour un match lointain, la relecture repartait
+/// donc aussitôt, sans fin : des millions de requêtes inutiles. Au-delà de ce
+/// plafond, on relit simplement l'état une fois, puis on réarme.
+const Duration matchLiveNotificationMaxRecheckDelay = Duration(hours: 12);
+
+/// Délai avant de relire l'état de la cloche, ou `null` s'il n'y a rien à
+/// attendre. Toujours compris entre 1 s et [matchLiveNotificationMaxRecheckDelay].
+Duration? matchLiveNotificationRecheckDelay(
+  MatchLiveNotificationStatus status,
+  DateTime now,
+) {
+  final opensAt = status.opensAt;
+  if (status.eligible || opensAt == null) return null;
+  final untilOpen = opensAt.difference(now);
+  if (untilOpen <= Duration.zero) return null;
+  final delay = untilOpen + const Duration(seconds: 1);
+  return delay > matchLiveNotificationMaxRecheckDelay
+      ? matchLiveNotificationMaxRecheckDelay
+      : delay;
+}
