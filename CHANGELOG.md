@@ -342,6 +342,16 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Performance
 
+- cloche des alertes de buts : pour un match dont les alertes ouvrent dans
+  plus de 24,8 jours, l'application relisait l'état de la cloche sans fin
+  (une minuterie trop longue se déclenche immédiatement dans un navigateur).
+  Cette boucle invisible représentait plus de 90 % des requêtes du projet et
+  avait fait dépasser les quotas gratuits de Supabase. L'attente est
+  désormais plafonnée à 12 h ;
+- garde-fous contre une nouvelle surconsommation : l'application espace et
+  signale toute requête identique répétée plus de 60 fois par minute, et un
+  contrôle quotidien sur GitHub alerte par e-mail dès que le volume de
+  requêtes de la production devient anormal. Voir `docs/observability.md` ;
 - l'application ne recharge plus la liste complète des pronostics de
   l'utilisateur (deux requêtes au serveur) à l'ouverture de Pronos, à chaque
   actualisation, après chaque pronostic enregistré et à chaque
