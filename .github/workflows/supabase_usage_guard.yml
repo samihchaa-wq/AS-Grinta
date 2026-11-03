@@ -1,0 +1,149 @@
+name: Supabase usage guard
+
+on:
+  # Le 3 novembre 2026, une boucle invisible dans l'application (la cloche des
+  # alertes de buts) avait fait dépasser les quotas gratuits de Supabase à
+  # toute l'organisation, sans que rien ne le signale avant l'avertissement de
+  # blocage. Ce contrôle relève chaque jour le nombre de requêtes de la
+  # production et échoue — donc envoie un e-mail de GitHub — dès qu'un volume
+  # anormal apparaît. Il ne fait que lire des statistiques : aucune donnée
+  # métier, aucune écriture.
+  schedule:
+    - cron: '29 6 * * *'
+  workflow_dispatch:
+  # Toute modification du contrôle est essayée contre la vraie production
+  # avant d'être fusionnée (lecture seule).
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/supabase_usage_guard.yml'
+      - 'supabase/diagnostics/request_usage_snapshot.sql'
+      - 'tool/check_request_usage.py'
+
+permissions:
+  contents: read
+  # Lecture du relevé de la veille, conservé comme artefact.
+  actions: read
+
+concurrency:
+  group: supabase-usage-guard
+  cancel-in-progress: false
+
+env:
+  SNAPSHOT_ARTIFACT: request-usage-snapshot
+
+jobs:
+  check-request-usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require Supabase access token
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::Usage guard cannot run without SUPABASE_ACCESS_TOKEN."
+            exit 1
+          fi
+
+      # Lecture seule : l'API de gestion exécute la requête avec le rôle
+      # `supabase_read_only_user`. Le jeton n'apparaît que dans l'en-tête.
+      - name: Snapshot request counters of production (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/usage-query.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          query = Path('supabase/diagnostics/request_usage_snapshot.sql').read_text()
+          Path(sys.argv[1]).write_text(json.dumps({'query': query}))
+          PY
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data-binary "@$RUNNER_TEMP/usage-query.json" \
+            --output "$RUNNER_TEMP/usage-current.json" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query/read-only"
+          test -s "$RUNNER_TEMP/usage-current.json"
+
+      # Le relevé de la veille est l'artefact le plus récent de ce workflow.
+      # Son absence (premier passage, artefact expiré) n'est pas une erreur :
+      # le relevé du jour sert alors de point de départ.
+      - name: Fetch previous snapshot
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts"
+          url=$(curl --fail --silent --show-error \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "${api}?name=${SNAPSHOT_ARTIFACT}&per_page=10" \
+            | python3 -c '
+          import json, sys
+          for artifact in json.load(sys.stdin).get("artifacts", []):
+              if not artifact.get("expired"):
+                  print(artifact["archive_download_url"])
+                  break
+          ') || url=""
+          if [ -z "$url" ]; then
+            echo "Aucun relevé précédent disponible."
+            exit 0
+          fi
+          if curl --fail --silent --show-error --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --output "$RUNNER_TEMP/previous.zip" "$url"; then
+            unzip -o -q "$RUNNER_TEMP/previous.zip" -d "$RUNNER_TEMP/previous"
+          else
+            echo "::warning::Relevé précédent illisible : nouveau point de départ."
+          fi
+
+      - name: Compare with previous snapshot
+        id: compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/next"
+          previous_args=()
+          if [ -s "$RUNNER_TEMP/previous/snapshot.json" ]; then
+            previous_args=(--previous "$RUNNER_TEMP/previous/snapshot.json")
+          fi
+          status=0
+          python3 tool/check_request_usage.py \
+            --current "$RUNNER_TEMP/usage-current.json" \
+            "${previous_args[@]}" \
+            --output "$RUNNER_TEMP/next/snapshot.json" \
+            --summary "$GITHUB_STEP_SUMMARY" || status=$?
+          # 3 = seuil dépassé (alerte, traitée plus bas) ; tout autre échec
+          # est une panne du contrôle lui-même.
+          if [ "$status" != 0 ] && [ "$status" != 3 ]; then
+            exit "$status"
+          fi
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          test -s "$RUNNER_TEMP/next/snapshot.json"
+
+      # Conservé même en cas d'alerte : c'est la base de comparaison de demain.
+      - name: Keep today's snapshot for tomorrow
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.SNAPSHOT_ARTIFACT }}
+          path: ${{ runner.temp }}/next/snapshot.json
+          retention-days: 8
+          if-no-files-found: error
+
+      - name: Fail on abnormal usage
+        if: steps.compare.outputs.status != '0'
+        shell: bash
+        run: |
+          echo "::error::Volume de requêtes anormal sur la production Supabase : voir le résumé du run."
+          exit 1

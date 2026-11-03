@@ -17,6 +17,9 @@ dependencies:
   # Encodage JPEG des avatars recadrés : dart:ui ne sait produire que du PNG,
   # qui pesait 171 à 250 ko par avatar là où un JPEG équivalent en fait ~30.
   image: ^4.5.4
+  # Client HTTP placé sous Supabase pour le garde-fou anti-boucle
+  # (lib/core/network/request_burst_guard.dart). Déjà présent via supabase.
+  http: ^1.6.0
   image_picker: ^1.1.2
   audioplayers: ^6.1.0
   share_plus: ^10.1.4

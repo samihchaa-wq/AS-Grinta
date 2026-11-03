@@ -30,3 +30,12 @@ Pour rapprocher un signal utilisateur d’un journal :
 4. corréler avec les journaux Supabase sans recopier de donnée personnelle dans GitHub.
 
 En développement, le même enregistrement reste visible dans la console sous la forme `incident=<référence>`.
+
+## Consommation Supabase
+
+Le 3 novembre 2026, une boucle invisible (la cloche des alertes de buts relancée sans fin pour les matchs lointains) a fait dépasser à l'organisation les quotas gratuits de Supabase : données sortantes et journaux. Rien ne le signalait avant l'avertissement de blocage. Deux garde-fous existent depuis :
+
+- **dans l'application** — `RequestBurstGuard` (`lib/core/network/request_burst_guard.dart`) se place sous le client Supabase. Une requête strictement identique (même adresse, même contenu) envoyée plus de 60 fois en une minute est considérée comme prise en boucle : ses envois suivants sont espacés (5 s, puis de plus en plus, jusqu'à une par minute) et un incident `network.request_burst.<requête>` est enregistré une fois par session. Une utilisation normale ne s'en approche jamais ; la requête n'est jamais refusée ;
+- **côté production** — `.github/workflows/supabase_usage_guard.yml` relève chaque matin les compteurs de `pg_stat_statements` (lecture seule) et les compare à la veille. Il échoue, et GitHub envoie un e-mail, au-delà de 40 000 requêtes API par jour, de 15 000 appels par jour pour une même requête ou de 40 000 exécutions de tâches planifiées. Le résumé du run liste les requêtes les plus appelées.
+
+Pour une enquête ponctuelle, préférer `pg_stat_statements` (gratuit) aux journaux Supabase : chaque requête sur les journaux consomme le quota « Log Query ».

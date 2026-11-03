@@ -6,6 +6,7 @@ import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/network/request_burst_guard.dart';
 import 'package:as_grinta/core/storage/profile_photo_urls.dart';
 import 'package:as_grinta/core/widgets/grinta_animated_crest.dart';
 import 'package:as_grinta/core/widgets/grinta_background.dart';
@@ -14,6 +15,7 @@ import 'package:as_grinta/core/widgets/incident_error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
@@ -95,6 +97,15 @@ class _BootstrapAppState extends State<_BootstrapApp> {
       await Supabase.initialize(
         url: AppConfig.supabaseUrl,
         publishableKey: AppConfig.supabaseAnonKey,
+        // Garde-fou : une requête identique répétée en boucle est espacée et
+        // signalée au lieu de consommer le quota Supabase en silence.
+        httpClient: RequestBurstGuard(
+          http.Client(),
+          onBurst: (endpoint) => AppLogger.error(
+            'network.request_burst.$endpoint',
+            StateError('Requête répétée en boucle'),
+          ),
+        ),
       ).timeout(const Duration(seconds: 20));
       _installIncidentSink();
       // Les URLs signées des photos déjà vues sont relues du disque pendant
