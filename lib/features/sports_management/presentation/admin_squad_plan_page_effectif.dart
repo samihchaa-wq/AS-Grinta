@@ -684,99 +684,67 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           ),
         ),
         const SizedBox(height: 14),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = [
+        EffectifColumnsLayout(
+          columns: [
+            _EffectifAvatarColumn(
+              title: 'Convoqués',
+              color: _effectifConvokedColor,
+              icon: Icons.check_circle_outline,
+              players: _convokedPlayers,
+              acceptsDrops: true,
+              draggable: true,
+              onAccept: (player) =>
+                  _setEffectifStatus(player, ConvocationStatus.convoked),
+              onRemoveGuest: _removeGuestFromMatch,
+              onShowInfo: _showPlayerInfo,
+              locked: _locked || _busy,
+            ),
+            if (!_isInternalMatch)
               _EffectifAvatarColumn(
-                title: 'Convoqués',
-                color: _effectifConvokedColor,
-                icon: Icons.check_circle_outline,
-                players: _convokedPlayers,
+                title: 'Liste d’attente',
+                color: _effectifWaitlistColor,
+                icon: Icons.hourglass_top_rounded,
+                players: _waitlistedPlayers,
                 acceptsDrops: true,
                 draggable: true,
                 onAccept: (player) =>
-                    _setEffectifStatus(player, ConvocationStatus.convoked),
-                onRemoveGuest: _removeGuestFromMatch,
+                    _setEffectifStatus(player, ConvocationStatus.notConvoked),
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
-              if (!_isInternalMatch)
-                _EffectifAvatarColumn(
-                  title: 'Liste d’attente',
-                  color: _effectifWaitlistColor,
-                  icon: Icons.hourglass_top_rounded,
-                  players: _waitlistedPlayers,
-                  acceptsDrops: true,
-                  draggable: true,
-                  onAccept: (player) =>
-                      _setEffectifStatus(player, ConvocationStatus.notConvoked),
-                  onShowInfo: _showPlayerInfo,
-                  locked: _locked || _busy,
-                ),
-              _EffectifAvatarColumn(
-                title: 'Absents',
-                color: _effectifAbsentColor,
-                icon: Icons.cancel_outlined,
-                players: _absentPlayers,
-                acceptsDrops: true,
-                draggable: true,
-                onAccept: _markAbsent,
-                onShowInfo: _showPlayerInfo,
-                locked: _busy || _locked,
-              ),
-              _EffectifAvatarColumn(
-                title: 'Sans réponse',
-                countCoachApart: false,
-                color: _effectifNoResponseColor,
-                icon: Icons.schedule_outlined,
-                players: _unansweredPlayers,
-                acceptsDrops: true,
-                acceptsPlayer: (player) =>
-                    player.availabilityStatus == 'no_response',
-                draggable: true,
-                onAccept: (player) =>
-                    _setEffectifStatus(player, ConvocationStatus.notApplicable),
-                locked: _busy || _locked,
-                onShowInfo: _showPlayerInfo,
-                onRelanceAll: (_reminders?.canRemind ?? false)
-                    ? () => _sendReminder()
-                    : null,
-                onRelance: (_reminders?.canRemind ?? false)
-                    ? (player) => _sendReminder(player: player)
-                    : null,
-              ),
-            ];
-            if (constraints.maxWidth >= 900) {
-              // Deux colonnes par ligne : quatre côte à côte coupaient les
-              // prénoms à deux ou trois lettres (« Th… » pour Thomas comme
-              // pour Théo) et le titre « Sans réponse » lui-même.
-              return Column(
-                children: [
-                  for (var row = 0; row < columns.length; row += 2) ...[
-                    if (row > 0) const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: columns[row]),
-                        if (row + 1 < columns.length) ...[
-                          const SizedBox(width: 10),
-                          Expanded(child: columns[row + 1]),
-                        ],
-                      ],
-                    ),
-                  ],
-                ],
-              );
-            }
-            return Column(
-              children: [
-                for (var index = 0; index < columns.length; index += 1) ...[
-                  columns[index],
-                  if (index < columns.length - 1) const SizedBox(height: 12),
-                ],
-              ],
-            );
-          },
+            _EffectifAvatarColumn(
+              title: 'Absents',
+              color: _effectifAbsentColor,
+              icon: Icons.cancel_outlined,
+              players: _absentPlayers,
+              acceptsDrops: true,
+              draggable: true,
+              onAccept: _markAbsent,
+              onShowInfo: _showPlayerInfo,
+              locked: _busy || _locked,
+            ),
+            _EffectifAvatarColumn(
+              title: 'Sans réponse',
+              countCoachApart: false,
+              color: _effectifNoResponseColor,
+              icon: Icons.schedule_outlined,
+              players: _unansweredPlayers,
+              acceptsDrops: true,
+              acceptsPlayer: (player) =>
+                  player.availabilityStatus == 'no_response',
+              draggable: true,
+              onAccept: (player) =>
+                  _setEffectifStatus(player, ConvocationStatus.notApplicable),
+              locked: _busy || _locked,
+              onShowInfo: _showPlayerInfo,
+              onRelanceAll: (_reminders?.canRemind ?? false)
+                  ? () => _sendReminder()
+                  : null,
+              onRelance: (_reminders?.canRemind ?? false)
+                  ? (player) => _sendReminder(player: player)
+                  : null,
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         if (!_locked && _effectifSaving) const Text('Enregistrement…'),

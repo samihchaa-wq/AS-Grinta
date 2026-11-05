@@ -69,66 +69,32 @@ class _EffectifAvatarColumn extends StatelessWidget {
           },
           builder: (context, candidates, rejected) {
             final highlightedTarget = candidates.isNotEmpty || canTapTarget;
-            final section = AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
-              // Marges latérales serrées : sur un téléphone, les trois
-              // colonnes laissent ainsi assez de place aux prénoms.
-              padding: const EdgeInsets.fromLTRB(8, 12, 8, 13),
-              decoration: BoxDecoration(
-                color: Color.alphaBlend(
-                  color.withValues(alpha: highlightedTarget ? .20 : .11),
-                  Theme.of(context).colorScheme.surfaceContainer,
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color:
-                      highlightedTarget ? color : color.withValues(alpha: .52),
-                  width: highlightedTarget ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, size: 18, color: color),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Text(
-                          '$title (${countCoachApart ? effectifCountLabel(players) : players.length})',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: color,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                        ),
+            final section = EffectifSectionFrame(
+              title: title,
+              countLabel: countCoachApart
+                  ? effectifCountLabel(players)
+                  : '${players.length}',
+              color: color,
+              icon: icon,
+              highlighted: highlightedTarget,
+              trailing: onRelanceAll != null && players.isNotEmpty
+                  ? TextButton.icon(
+                      onPressed: locked ? null : onRelanceAll,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        minimumSize: const Size(0, 34),
                       ),
-                      if (onRelanceAll != null && players.isNotEmpty)
-                        TextButton.icon(
-                          onPressed: locked ? null : onRelanceAll,
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            minimumSize: const Size(0, 34),
-                          ),
-                          icon: const Icon(
-                            Icons.notifications_active_outlined,
-                            size: 16,
-                          ),
-                          label: const Text('Relancer tous'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  if (players.isEmpty)
-                    Text(
-                      'Aucun joueur.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      icon: const Icon(
+                        Icons.notifications_active_outlined,
+                        size: 16,
+                      ),
+                      label: const Text('Relancer tous'),
                     )
-                  else
-                    _EffectifAvatarGrid(
+                  : null,
+              child: players.isEmpty
+                  ? const EffectifEmptyLabel()
+                  : _EffectifAvatarGrid(
                       players: players,
                       color: color,
                       locked: locked,
@@ -137,8 +103,6 @@ class _EffectifAvatarColumn extends StatelessWidget {
                       onShowInfo: onShowInfo,
                       onRelance: onRelance,
                     ),
-                ],
-              ),
             );
 
             if (!canTapTarget) return section;
@@ -177,8 +141,6 @@ class _EffectifAvatarGrid extends StatelessWidget {
     this.onRelance,
   });
 
-  static const int _columns = 3;
-
   final List<ConvocationPlayer> players;
   final Color color;
   final bool locked;
@@ -197,29 +159,10 @@ class _EffectifAvatarGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return EffectifAvatarGrid(
       children: [
-        for (var row = 0; row < players.length; row += _columns) ...[
-          if (row > 0) const SizedBox(height: 7),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var column = 0; column < _columns; column++) ...[
-                if (column > 0) const SizedBox(width: 4),
-                Expanded(
-                  child: row + column < players.length
-                      ? _playerCell(
-                          context,
-                          players[row + column],
-                          _playerColor(players[row + column]),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ],
-          ),
-        ],
+        for (final player in players)
+          _playerCell(context, player, _playerColor(player)),
       ],
     );
   }
@@ -311,68 +254,23 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectionColor = selected ? AppTheme.accent : color;
-    final tile = Material(
-      type: MaterialType.transparency,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          constraints: const BoxConstraints(minHeight: 39),
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
-          decoration: BoxDecoration(
-            color: selected
-                ? selectionColor.withValues(alpha: .16)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: selected
-                ? Border.all(color: selectionColor.withValues(alpha: .85))
-                : null,
-          ),
-          child: Row(
-            children: [
-              PlayerAvatar(
-                photoUrl: player.photoUrl,
-                name: player.shortName,
-                lastName: player.lastName,
-                isGoalkeeper: player.isGoalkeeper,
-                size: 30,
-                fallbackScale: .9,
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  player.shortName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-              if (player.isCoach)
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: Tooltip(
-                    message:
-                        'Coach : dans l’effectif, hors quota et hors composition',
-                    child: Icon(
-                      Icons.sports_outlined,
-                      size: 14,
-                      color: color,
-                    ),
-                  ),
-                )
-              else if (player.isGuest && onTap != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: Icon(Icons.close, size: 13, color: color),
-                )
-              else if (onRelance != null)
-                Tooltip(
+    return EffectifPlayerTile(
+      photoUrl: player.photoUrl,
+      name: player.shortName,
+      lastName: player.lastName,
+      isGoalkeeper: player.isGoalkeeper,
+      isCoach: player.isCoach,
+      color: color,
+      selected: selected,
+      selectionColor: AppTheme.accent,
+      onTap: onTap,
+      trailing: player.isGuest && onTap != null
+          ? Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Icon(Icons.close, size: 13, color: color),
+            )
+          : onRelance != null
+              ? Tooltip(
                   message: 'Relancer ${player.displayName}',
                   child: InkResponse(
                     onTap: onRelance,
@@ -386,12 +284,8 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
-        ),
-      ),
+                )
+              : null,
     );
-    return tile;
   }
 }

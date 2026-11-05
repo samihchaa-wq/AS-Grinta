@@ -20,5 +20,8 @@ bool canManageBadges(AuthProfile? profile) {
 }
 
 final canManageBadgesProvider = Provider<bool>((ref) {
+  // En « Voir l'app comme un joueur », l'entrée disparaît comme les autres
+  // outils d'admin.
+  if (ref.watch(playerPreviewProvider)) return false;
   return canManageBadges(ref.watch(authControllerProvider).profile);
 });

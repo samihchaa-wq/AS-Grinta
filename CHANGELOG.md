@@ -6,6 +6,24 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- admin : « Voir l'app comme un joueur », dans les Paramètres. Un admin
+  regarde l'application sans ses outils de gestion, exactement comme ses
+  joueurs la reçoivent : fiche du match, onglets Effectif et Compo,
+  calendrier, notifications, liste d'attente en lecture seule… Un bandeau
+  « Vue joueur » reste affiché en haut de chaque écran, avec « Revenir en
+  admin ». Le mode ne change que l'affichage : le serveur envoie les mêmes
+  données à un admin et à un joueur sur ces écrans. Recharger l'application
+  ou changer de compte ramène toujours à la vue admin ;
+- effectif : les joueurs voient l'onglet Effectif d'un match comme les
+  admins, en lecture seule : photo à gauche du prénom, trois par ligne,
+  mêmes colonnes (« Convoqués », « Liste d'attente », « Absents », « Sans
+  réponse »), même ordre et même compteur, le coach compté à part
+  (« Convoqués (14 + coach) »). Ils voyaient jusqu'ici des prénoms sans
+  photo, une colonne « Disponibles » qui contenait en fait les convoqués,
+  le coach compté dans le total (« 15 ») et les convoqués dans l'ordre
+  inverse de celui des admins. Pour un match entre nous, ni liste d'attente
+  ni limite, comme chez les admins. Les photos arrivent une fois la mise à
+  jour de la base de données déployée ; avant, les initiales s'affichent ;
 - liste d'attente : quand un convoqué se désiste après la publication de
   l'effectif, sa place revient au joueur en attente le plus bas dans la
   liste, comme le prévoit la règle de l'effectif. C'était jusqu'ici le n°1

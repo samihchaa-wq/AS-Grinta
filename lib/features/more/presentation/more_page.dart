@@ -19,6 +19,10 @@ class MorePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     final isRealAdmin = ref.watch(isRealAdminProvider);
+    // En « Voir l'app comme un joueur », la page est celle d'un joueur : seul
+    // l'interrupteur pour revenir reste en plus.
+    final isAdminView = ref.watch(isAdminViewProvider);
+    final previewActive = ref.watch(isPlayerPreviewActiveProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
@@ -46,13 +50,35 @@ class MorePage extends ConsumerWidget {
                   icon: Icons.format_list_numbered_rounded,
                   title: 'Liste d’attente',
                   onTap: () => context.push(
-                    isRealAdmin ? '/admin/waitlist' : '/waitlist',
+                    isAdminView ? '/admin/waitlist' : '/waitlist',
                   ),
                 ),
               ],
             ),
           ],
           if (isRealAdmin) ...[
+            const _SectionLabel('Aperçu'),
+            _SettingsGroup(
+              children: [
+                SwitchListTile.adaptive(
+                  key: const ValueKey('player-preview-switch'),
+                  secondary: const Icon(
+                    Icons.visibility_outlined,
+                    color: AppTheme.primaryBright,
+                  ),
+                  title: const Text('Voir l’app comme un joueur'),
+                  subtitle: const Text(
+                    'Masque tes outils d’admin pour voir exactement les écrans '
+                    'des joueurs.',
+                  ),
+                  value: previewActive,
+                  onChanged: (value) =>
+                      ref.read(playerPreviewProvider.notifier).state = value,
+                ),
+              ],
+            ),
+          ],
+          if (isAdminView) ...[
             const _SectionLabel('Club · admin'),
             _SettingsGroup(
               children: [

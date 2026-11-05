@@ -26,6 +26,8 @@ class MatchAvailabilityBoardPlayer {
     this.waitlistPosition,
     this.serverName,
     this.seasonPlayerId,
+    this.photoUrl,
+    this.isGoalkeeper = false,
   });
 
   factory MatchAvailabilityBoardPlayer.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,8 @@ class MatchAvailabilityBoardPlayer {
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
       serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,
       seasonPlayerId: _nonEmpty(json['season_player_id']),
+      photoUrl: _nonEmpty(json['photo_url']),
+      isGoalkeeper: json['is_goalkeeper'] == true,
     );
   }
 
@@ -60,8 +64,16 @@ class MatchAvailabilityBoardPlayer {
   /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom.
   final String? serverName;
 
-  /// Fiche de la saison (absente pour un invité) : elle porte la photo.
+  /// Fiche de la saison (absente pour un invité).
   final String? seasonPlayerId;
+
+  /// Chemin ou URL de la photo, la même que sur la page des admins. Absente
+  /// tant que le serveur ne la transmet pas : l'avatar montre alors les
+  /// initiales.
+  final String? photoUrl;
+
+  /// Choisit l'avatar de repli quand il n'y a pas de photo.
+  final bool isGoalkeeper;
 
   String get displayName {
     if (serverName != null) return serverName!;
@@ -150,9 +162,11 @@ class MatchAvailabilityBoard {
   bool isVisibleAt(DateTime now) =>
       now.isBefore(kickoffAt) && !compositionPublished;
 
+  /// Même ordre que la colonne « Convoqués » des admins : le coach d'abord,
+  /// puis l'ordre inverse de la liste d'attente.
   List<MatchAvailabilityBoardPlayer> get convoked {
     final result = players.where((player) => player.isConvoked).toList();
-    result.sort(_byWaitlistThenName);
+    result.sort(_convokedOrder);
     return result;
   }
 
@@ -166,9 +180,30 @@ class MatchAvailabilityBoard {
     MatchAvailabilityBoardStatus status,
   ) {
     final result = players.where((player) => player.status == status).toList();
-    result.sort((a, b) => a.displayName.compareTo(b.displayName));
+    result.sort(_byWaitlistThenName);
     return result;
   }
+
+  static int _convokedOrder(
+    MatchAvailabilityBoardPlayer a,
+    MatchAvailabilityBoardPlayer b,
+  ) {
+    if (a.isCoach != b.isCoach) return a.isCoach ? -1 : 1;
+
+    final ap = a.waitlistPosition;
+    final bp = b.waitlistPosition;
+    if (ap == null && bp == null) return _byName(a, b);
+    if (ap == null) return 1;
+    if (bp == null) return -1;
+    final byPosition = bp.compareTo(ap);
+    return byPosition != 0 ? byPosition : _byName(a, b);
+  }
+
+  static int _byName(
+    MatchAvailabilityBoardPlayer a,
+    MatchAvailabilityBoardPlayer b,
+  ) =>
+      a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
 
   static int _byWaitlistThenName(
     MatchAvailabilityBoardPlayer a,

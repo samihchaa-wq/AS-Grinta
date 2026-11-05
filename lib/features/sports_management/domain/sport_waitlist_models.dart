@@ -281,11 +281,18 @@ class ConvocationPlayer {
 /// d'un coup d'œil.
 ///
 /// Sans coach dans la colonne, le libellé reste le simple total.
-String effectifCountLabel(List<ConvocationPlayer> players) {
-  final coaches = players.where((player) => player.isCoach).length;
-  if (coaches == 0) return '${players.length}';
+String effectifCountLabel(List<ConvocationPlayer> players) => effectifCountText(
+      total: players.length,
+      coaches: players.where((player) => player.isCoach).length,
+    );
 
-  final others = players.length - coaches;
+/// Même libellé que [effectifCountLabel], à partir des seuls nombres : la vue
+/// des joueurs ne manipule pas les mêmes fiches que celle des admins, mais
+/// doit compter exactement de la même façon.
+String effectifCountText({required int total, required int coaches}) {
+  if (coaches == 0) return '$total';
+
+  final others = total - coaches;
   final coachLabel = coaches == 1 ? 'coach' : '$coaches coachs';
   return '$others + $coachLabel';
 }
