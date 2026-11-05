@@ -6,6 +6,13 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- liste d'attente : quand un convoqué se désiste après la publication de
+  l'effectif, sa place revient au joueur en attente le plus bas dans la
+  liste, comme le prévoit la règle de l'effectif. C'était jusqu'ici le n°1
+  de la liste, celui qui doit justement rester en attente en premier (cas
+  de Julien César, convoqué à la place d'Alyoun après le désistement de
+  Poulain pour le match du 9 novembre). Actif une fois la mise à jour de la
+  base de données déployée ;
 - pronostics : si la connexion coupe pendant l'enregistrement d'un pronostic
   et que l'application ne peut pas vérifier qu'il est passé, elle le dit
   (« ton pronostic a peut-être été enregistré ») au lieu d'annoncer une
