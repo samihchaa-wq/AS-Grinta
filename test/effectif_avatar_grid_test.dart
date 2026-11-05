@@ -29,10 +29,26 @@ void main() {
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_effectif.dart',
     ).readAsStringSync();
+    final shared = File(
+      'lib/features/sports_management/presentation/widgets/'
+      'effectif_avatar_grid.dart',
+    ).readAsStringSync();
+    final playerBoard = File(
+      'lib/features/sports_management/presentation/widgets/'
+      'match_availability_board_card.dart',
+    ).readAsStringSync();
 
-    expect(roster, contains('static const int _columns = 3;'));
-    expect(roster, contains('PlayerAvatar('));
+    expect(shared, contains('static const int columns = 3;'));
+    expect(shared, contains('PlayerAvatar('));
+    expect(roster, contains('EffectifAvatarGrid('));
+    expect(roster, contains('EffectifPlayerTile('));
     expect(roster, contains('photoUrl: player.photoUrl'));
+    // La vue des joueurs utilise les mêmes briques que celle des admins.
+    expect(playerBoard, contains('EffectifAvatarGrid('));
+    expect(playerBoard, contains('EffectifPlayerTile('));
+    expect(playerBoard, contains('photoUrl: player.photoUrl'));
+    expect(playerBoard, contains('EffectifColumnsLayout('));
+    expect(effectif, contains('EffectifColumnsLayout('));
     expect(effectif, contains("title: 'Liste d’attente'"));
     expect(
       RegExp(r'_EffectifAvatarColumn\(').allMatches(effectif).length,

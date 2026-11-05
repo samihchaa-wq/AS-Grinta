@@ -1,7 +1,10 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
+import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/effectif_avatar_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,6 +29,8 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
     }
 
     final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
+    final isInternal =
+        ref.watch(matchInfoProvider(matchId)).valueOrNull?.isInternal ?? false;
     return boardAsync.when(
       loading: () => const SizedBox.shrink(),
       error: (_, __) => Padding(
@@ -52,12 +57,10 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
         if (!visible) return const SizedBox.shrink();
         return Padding(
           padding: EdgeInsets.only(bottom: bottomSpacing),
-          child: Card(
-            margin: compact ? EdgeInsets.zero : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: MatchAvailabilityBoardContent(board: board),
-            ),
+          child: MatchAvailabilityBoardContent(
+            board: board,
+            isInternal: isInternal,
+            headerMargin: compact ? EdgeInsets.zero : null,
           ),
         );
       },
@@ -66,97 +69,117 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
 }
 
 class MatchAvailabilityBoardContent extends StatelessWidget {
-  const MatchAvailabilityBoardContent({super.key, required this.board});
+  const MatchAvailabilityBoardContent({
+    super.key,
+    required this.board,
+    this.isInternal = false,
+    this.headerMargin,
+  });
 
   final MatchAvailabilityBoard board;
 
+  /// Marge de l'encadré d'en-tête (celle d'une carte par défaut).
+  final EdgeInsetsGeometry? headerMargin;
+
+  /// Match entre nous : pas de liste d'attente ni de limite, comme sur la
+  /// page des admins.
+  final bool isInternal;
+
   @override
   Widget build(BuildContext context) {
+    final convoked = board.convoked;
     final absent = board.playersWith(MatchAvailabilityBoardStatus.absent);
     final noResponse = board.playersWith(
       MatchAvailabilityBoardStatus.noResponse,
     );
     // Le coach est dans l'effectif mais ne prend la place d'aucun joueur :
     // il ne doit pas déclencher l'alerte de dépassement.
-    final countedConvoked =
-        board.convoked.where((player) => !player.isCoach).length;
-    final overLimit = countedConvoked > board.squadSizeLimit;
+    final coaches = convoked.where((player) => player.isCoach).length;
+    final overLimit =
+        !isInternal && convoked.length - coaches > board.squadSizeLimit;
+    // Même disposition que la page des admins : un encadré d'en-tête, puis
+    // les colonnes en pleine largeur, pour que les prénoms aient la même
+    // place.
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.groups_2_outlined),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Effectif',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400),
-              ),
+        Card(
+          margin: headerMargin,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.groups_2_outlined),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Effectif',
+                        style: Theme.of(
+                          context,
+                        )
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w400),
+                      ),
+                    ),
+                    if (overLimit)
+                      const Tooltip(
+                        message: 'La limite indicative est dépassée',
+                        child: Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  isInternal
+                      ? 'Mise à jour en direct'
+                      : 'Mise à jour en direct · limite indicative '
+                          '${board.squadSizeLimit}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
-            if (overLimit)
-              const Tooltip(
-                message: 'La limite indicative est dépassée',
-                child: Icon(Icons.warning_amber_rounded, color: Colors.orange),
-              ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        Text(
-          'Mise à jour en direct · limite indicative ${board.squadSizeLimit}',
-          style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
         const SizedBox(height: 14),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final groups = [
-              _BoardGroup(
-                title: 'Disponibles',
-                players: board.convoked,
-                color: AppTheme.availabilityIn,
-                icon: Icons.check_circle_outline,
+        // Mêmes colonnes, mêmes titres, même ordre et même façon de compter
+        // que sur la page des admins, en lecture seule.
+        EffectifColumnsLayout(
+          columns: [
+            _BoardGroup(
+              title: 'Convoqués',
+              countLabel: effectifCountText(
+                total: convoked.length,
+                coaches: coaches,
               ),
+              players: convoked,
+              color: AppTheme.availabilityIn,
+              icon: Icons.check_circle_outline,
+            ),
+            if (!isInternal)
               _BoardGroup(
                 title: 'Liste d’attente',
                 players: board.waitlisted,
                 color: AppTheme.availabilityWaiting,
                 icon: Icons.hourglass_top_rounded,
               ),
-              _BoardGroup(
-                title: 'Absents',
-                players: absent,
-                color: AppTheme.availabilityOut,
-                icon: Icons.cancel_outlined,
-              ),
-              _BoardGroup(
-                title: 'Sans réponse',
-                players: noResponse,
-                color: AppTheme.availabilityUnknown,
-                icon: Icons.schedule_outlined,
-              ),
-            ];
-            if (constraints.maxWidth >= 760) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (var index = 0; index < groups.length; index += 1) ...[
-                    Expanded(child: groups[index]),
-                    if (index < groups.length - 1) const SizedBox(width: 10),
-                  ],
-                ],
-              );
-            }
-            return Column(
-              children: [
-                for (var index = 0; index < groups.length; index += 1) ...[
-                  groups[index],
-                  if (index < groups.length - 1) const SizedBox(height: 12),
-                ],
-              ],
-            );
-          },
+            _BoardGroup(
+              title: 'Absents',
+              players: absent,
+              color: AppTheme.availabilityOut,
+              icon: Icons.cancel_outlined,
+            ),
+            _BoardGroup(
+              title: 'Sans réponse',
+              players: noResponse,
+              color: AppTheme.availabilityUnknown,
+              icon: Icons.schedule_outlined,
+            ),
+          ],
         ),
       ],
     );
@@ -169,6 +192,7 @@ class _BoardGroup extends StatelessWidget {
     required this.players,
     required this.color,
     required this.icon,
+    this.countLabel,
   });
 
   final String title;
@@ -176,60 +200,45 @@ class _BoardGroup extends StatelessWidget {
   final Color color;
   final IconData icon;
 
+  /// Par défaut, le simple nombre de joueurs.
+  final String? countLabel;
+
+  /// Couleur de chaque prénom selon sa réponse, comme chez les admins.
+  Color _playerColor(MatchAvailabilityBoardPlayer player) =>
+      switch (player.status) {
+        MatchAvailabilityBoardStatus.present => AppTheme.availabilityIn,
+        MatchAvailabilityBoardStatus.absent => AppTheme.availabilityOut,
+        MatchAvailabilityBoardStatus.noResponse => AppTheme.availabilityUnknown,
+        MatchAvailabilityBoardStatus.ignored => color,
+      };
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .07),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: .32)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  '$title (${players.length})',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w400,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 9),
-          if (players.isEmpty)
-            Text('Aucun joueur.', style: Theme.of(context).textTheme.bodySmall)
-          else
-            Wrap(
-              spacing: 7,
-              runSpacing: 7,
+    return EffectifSectionFrame(
+      title: title,
+      countLabel: countLabel ?? '${players.length}',
+      color: color,
+      icon: icon,
+      child: players.isEmpty
+          ? const EffectifEmptyLabel()
+          : EffectifAvatarGrid(
               children: [
                 for (final player in players)
-                  Chip(
-                    visualDensity: VisualDensity.compact,
-                    side: BorderSide(color: color.withValues(alpha: .45)),
-                    backgroundColor: color.withValues(alpha: .10),
-                    avatar: player.isCoach
-                        ? const Icon(Icons.sports_outlined, size: 16)
-                        : player.isGuest
-                            ? const Icon(
-                                Icons.person_add_alt_1_outlined,
-                                size: 16,
-                              )
-                            : null,
-                    label: Text(player.firstNameOnly),
+                  Semantics(
+                    label: player.firstNameOnly,
+                    excludeSemantics: true,
+                    child: EffectifPlayerTile(
+                      key: ValueKey('board-player-${player.participantId}'),
+                      photoUrl: player.photoUrl,
+                      name: player.firstNameOnly,
+                      lastName: player.lastName,
+                      isGoalkeeper: player.isGoalkeeper,
+                      isCoach: player.isCoach,
+                      color: _playerColor(player),
+                    ),
                   ),
               ],
             ),
-        ],
-      ),
     );
   }
 }
