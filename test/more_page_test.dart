@@ -83,6 +83,12 @@ void main() {
   testWidgets('an admin sees the account card and both setting groups', (
     tester,
   ) async {
+    // Écran de téléphone : avec le groupe « Aperçu », la page dépasse la
+    // petite fenêtre de test par défaut.
+    tester.view
+      ..physicalSize = const Size(1170, 2532)
+      ..devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
     await _pumpMorePage(tester, profile: _admin, sportsEnabled: true);
 
     expect(find.text('Karim Benali'), findsOneWidget);
@@ -120,6 +126,38 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('an admin can look at the app as a player', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1170, 2532)
+      ..devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await _pumpMorePage(tester, profile: _admin, sportsEnabled: true);
+
+    expect(find.text('APERÇU'), findsOneWidget);
+    final toggle = find.byKey(const ValueKey('player-preview-switch'));
+    expect(toggle, findsOneWidget);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    // La page devient celle d'un joueur ; seul l'interrupteur reste en plus.
+    expect(find.text('CLUB · ADMIN'), findsNothing);
+    expect(find.text('Administration'), findsNothing);
+    expect(find.text('Équipes & stades'), findsNothing);
+    expect(toggle, findsOneWidget);
+
+    await tester.tap(find.text('Liste d’attente'));
+    await tester.pumpAndSettle();
+    expect(find.text('page /waitlist'), findsOneWidget);
+  });
+
+  testWidgets('a player never sees the preview switch', (tester) async {
+    await _pumpMorePage(tester, profile: _player, sportsEnabled: true);
+
+    expect(find.text('APERÇU'), findsNothing);
+    expect(find.byKey(const ValueKey('player-preview-switch')), findsNothing);
   });
 
   testWidgets('a player without sports management only sees their account', (

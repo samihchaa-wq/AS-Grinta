@@ -6,6 +6,14 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Produit
 
+- admin : « Voir l'app comme un joueur », dans les Paramètres. Un admin
+  regarde l'application sans ses outils de gestion, exactement comme ses
+  joueurs la reçoivent : fiche du match, onglets Effectif et Compo,
+  calendrier, notifications, liste d'attente en lecture seule… Un bandeau
+  « Vue joueur » reste affiché en haut de chaque écran, avec « Revenir en
+  admin ». Le mode ne change que l'affichage : le serveur envoie les mêmes
+  données à un admin et à un joueur sur ces écrans. Recharger l'application
+  ou changer de compte ramène toujours à la vue admin ;
 - effectif : les joueurs voient l'onglet Effectif d'un match comme les
   admins, en lecture seule : photo à gauche du prénom, trois par ligne,
   mêmes colonnes (« Convoqués », « Liste d'attente », « Absents », « Sans
