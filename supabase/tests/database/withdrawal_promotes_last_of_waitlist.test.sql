@@ -304,5 +304,85 @@ select is(
   'Damien, revenu, récupère sa place et Bruno retourne en attente'
 );
 
+-- ---------------------------------------------------------------------------
+-- Retour d'un convoqué dont la place a été reprise à la main
+-- ---------------------------------------------------------------------------
+
+-- Damien se désiste de nouveau : Bruno, dernier en attente, monte.
+select pg_temp.as_profile('f5710000-0000-0000-0000-000000000005');
+set local role authenticated;
+select public.set_my_match_availability(
+  current_setting('test.match')::uuid, 'absent', null
+);
+reset role;
+
+select is(
+  pg_temp.effectif(current_setting('test.match')::uuid),
+  'Alice not_convoked / Bruno convoked / Chloé convoked / Damien not_applicable',
+  'second désistement de Damien : Bruno monte'
+);
+
+-- Comme Poulain pour le match du 9 novembre, l'admin renvoie à la main le
+-- remplaçant en liste d'attente. Le recalcul donne la place libre à Alice,
+-- sans la noter comme remplaçante de Damien.
+select set_config(
+  'test.decisions_manual',
+  (
+    select jsonb_agg(
+      case
+        when decision ->> 'season_player_id'
+             = 'f5740000-0000-0000-0000-000000000002'
+          then jsonb_build_object(
+            'season_player_id', decision ->> 'season_player_id',
+            'status', 'not_convoked',
+            'changed', true
+          )
+        else decision
+      end
+    )
+    from jsonb_array_elements(
+      pg_temp.untouched_decisions(current_setting('test.match')::uuid)
+    ) decision
+  )::text,
+  true
+);
+select pg_temp.as_profile('f5710000-0000-0000-0000-000000000001');
+set local role authenticated;
+select public.admin_save_match_effectif(
+  current_setting('test.match')::uuid,
+  2,
+  current_setting('test.decisions_manual')::jsonb,
+  'Correction manuelle'
+);
+reset role;
+
+select is(
+  pg_temp.effectif(current_setting('test.match')::uuid),
+  'Alice convoked / Bruno not_convoked / Chloé convoked / Damien not_applicable',
+  'après la correction manuelle, Alice occupe la place de Damien'
+);
+
+-- Damien revient. Personne n'est noté comme son remplaçant : sans
+-- correction, il reprenait sa place et l'effectif passait à 3 pour 2.
+select pg_temp.mark();
+select pg_temp.as_profile('f5710000-0000-0000-0000-000000000005');
+set local role authenticated;
+select public.set_my_match_availability(
+  current_setting('test.match')::uuid, 'available', null
+);
+reset role;
+
+select is(
+  pg_temp.effectif(current_setting('test.match')::uuid),
+  'Alice not_convoked / Bruno not_convoked / Chloé convoked / Damien convoked',
+  'Damien récupère sa place et Alice, la plus haute des convoqués dans la liste, repasse en attente'
+);
+
+select is(
+  pg_temp.pushes_since(current_setting('test.marker')::bigint),
+  'Tu passes en liste d''attente → Alice',
+  'seule Alice, qui perd sa place, est prévenue'
+);
+
 select * from finish();
 rollback;
