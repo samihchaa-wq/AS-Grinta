@@ -17,15 +17,6 @@ int suggestedChampionshipRound(Iterable<int?> roundsOfSeason) {
   return suggestion > maxChampionshipRound ? maxChampionshipRound : suggestion;
 }
 
-String? validateChampionshipRound(int? round) {
-  if (round == null) return null;
-  if (round < 1) return 'La journée doit être un nombre positif.';
-  if (round > maxChampionshipRound) {
-    return 'La journée ne peut pas dépasser $maxChampionshipRound.';
-  }
-  return null;
-}
-
 /// Autres rencontres de la saison qui portent déjà cette journée.
 ///
 /// Deux rencontres peuvent légitimement partager un numéro quand la saison

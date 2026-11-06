@@ -529,7 +529,7 @@ class _BenchColumn extends StatelessWidget {
     final theme = Theme.of(context);
     final lastExits = lastExitMarksByParticipant(bundle.events);
     return SizedBox(
-      width: metrics.width + _benchColumnMargin,
+      width: benchColumnWidth(metrics),
       child: Card(
         margin: EdgeInsets.zero,
         child: Padding(

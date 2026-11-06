@@ -33,26 +33,6 @@ void main() {
     });
   });
 
-  group('validateChampionshipRound', () {
-    test('accepte une journée absente', () {
-      expect(validateChampionshipRound(null), isNull);
-    });
-
-    test('accepte une journée dans les bornes', () {
-      expect(validateChampionshipRound(1), isNull);
-      expect(validateChampionshipRound(maxChampionshipRound), isNull);
-    });
-
-    test('refuse zéro et les valeurs négatives', () {
-      expect(validateChampionshipRound(0), isNotNull);
-      expect(validateChampionshipRound(-3), isNotNull);
-    });
-
-    test('refuse au-delà de la borne haute', () {
-      expect(validateChampionshipRound(maxChampionshipRound + 1), isNotNull);
-    });
-  });
-
   group('championshipRoundIsAlreadyUsed', () {
     test('signale une journée déjà portée par une autre rencontre', () {
       expect(

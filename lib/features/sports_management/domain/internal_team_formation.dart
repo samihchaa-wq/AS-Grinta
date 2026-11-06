@@ -155,13 +155,6 @@ InternalTeamFormation? internalDefaultFormationForPlayerCount(int playerCount) {
   return internalDefaultFormations[onFieldCount];
 }
 
-/// Compatibilité avec les appels existants : il n'existe désormais qu'une
-/// seule option, déterminée par le nombre de joueurs.
-List<InternalTeamFormation> internalFormationsForPlayerCount(int playerCount) {
-  final formation = internalDefaultFormationForPlayerCount(playerCount);
-  return formation == null ? const [] : [formation];
-}
-
 InternalTeamFormation? internalFormationByCode({
   required int playerCount,
   required String? code,
