@@ -1,6 +1,6 @@
 # Changelog
 
-Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
+Toutes les évolutions notables d’AS Grinta sont documentées ici.
 
 ## Non publié
 
@@ -28,14 +28,15 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   l'effectif, sa place revient au joueur en attente le plus bas dans la
   liste, comme le prévoit la règle de l'effectif. C'était jusqu'ici le n°1
   de la liste, celui qui doit justement rester en attente en premier (cas
-  de Julien César, convoqué à la place d'Alyoun après le désistement de
-  Poulain pour le match du 9 novembre). Actif une fois la mise à jour de la
-  base de données déployée ;
+  du match du 9 novembre, où le n°1 de la liste a pris la place laissée par
+  un désistement). Actif une fois la mise à jour de la base de données
+  déployée ;
 - liste d'attente : un convoqué qui s'était désisté puis revient ne fait
   plus dépasser le nombre de places quand sa place a été reprise par une
   correction manuelle de l'effectif. Personne n'étant noté comme son
-  remplaçant, personne ne redescendait (Poulain, s'il s'était remis présent
-  pour le match du 9 novembre, aurait donné 15 convoqués pour 14 places).
+  remplaçant, personne ne redescendait (pour le match du 9 novembre, le
+  retour du joueur qui s'était désisté aurait donné 15 convoqués pour 14
+  places).
   C'est désormais le convoqué le plus haut dans la liste d'attente qui
   repasse en attente, et il en est prévenu. Actif une fois la mise à jour de
   la base de données déployée ;
@@ -59,8 +60,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   après la publication de l'effectif prend son rang dans la liste d'attente,
   comme un joueur qui répond pour la première fois. Il tombait jusqu'ici
   d'office en liste d'attente, même quand des convoqués placés avant lui
-  dans la liste devaient y passer avant lui (cas d'Alyoun pour le match du
-  27 octobre). Si son rang lui donne une place, c'est le convoqué le plus
+  dans la liste devaient y passer avant lui (cas d'un joueur pour le match
+  du 27 octobre). Si son rang lui donne une place, c'est le convoqué le plus
   haut dans la liste qui passe en attente, et il en est prévenu. Un convoqué
   qui s'était désisté puis revient récupère toujours sa place. Actif une
   fois la mise à jour de la base de données déployée ;
@@ -77,7 +78,7 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   est bleu, sur le terrain comme sur le banc. Rejouée sur les matchs de la
   saison, la simulation retrouve chaque fois au moins dix des onze
   titulaires réellement alignés, sauf le 12 octobre où elle aurait
-  titularisé Hakim, laissé sur le banc ce jour-là. Un invité complète un
+  titularisé un joueur laissé sur le banc ce jour-là. Un invité complète un
   poste qui resterait vide, sans jamais prendre la place d'un joueur de
   l'effectif. Le message affiché après la simulation dit qui revient du
   banc, qui joue hors de son poste habituel, quels postes sont à confirmer
@@ -193,8 +194,8 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
   livraison par appareil, comme les autres notifications. Un refus d'Apple
   ou de Google ne passe plus inaperçu ;
 
-- fiche joueur : le surnom s'affiche entre guillemets (« Poulain ») au lieu
-  de « SURNOM Poulain » ; dans « Derniers matchs », le score s'écrit dans
+- fiche joueur : le surnom s'affiche entre guillemets (« Surnom ») au lieu
+  de « SURNOM Surnom » ; dans « Derniers matchs », le score s'écrit dans
   l'ordre domicile – extérieur (une victoire 5-0 à l'extérieur devient 0-5)
   et toucher un match ouvre sa fiche, la flèche retour ramenant à la fiche
   joueur ;
@@ -468,7 +469,7 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 ### Interface
 
 - amélioration des écrans Matchs, compositions et listes d’attente ;
-- ajout d’un système de chargement propre à Ma Petite Grinta ;
+- ajout d’un système de chargement propre à l’application ;
 - mise en évidence de la ligne de l’utilisateur connecté ;
 - bandeau de mise à jour PWA accessible au clavier.
 
