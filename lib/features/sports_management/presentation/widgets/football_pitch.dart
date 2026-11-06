@@ -9,8 +9,9 @@ import 'package:flutter/material.dart';
 /// pas et le terrain reste net quelle que soit la taille d'écran.
 ///
 /// Les tracés suivent les proportions officielles d'un terrain de 105 m sur
-/// 68 m. Les distances horizontales sont converties avec [_mx], les
-/// verticales avec [_my] ; les cercles et les arcs utilisent l'échelle
+/// 68 m. Les distances horizontales sont converties avec l'échelle `mx`, les
+/// verticales avec `my` (un mètre réel en pixels, calculées dans
+/// `_paintMarkings`) ; les cercles et les arcs utilisent l'échelle
 /// horizontale des deux côtés pour rester ronds, la vignette étant un peu
 /// plus étroite qu'un vrai terrain.
 class FootballPitchPainter extends CustomPainter {

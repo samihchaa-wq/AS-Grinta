@@ -146,16 +146,4 @@ class SportMotmVote {
 
   /// Le score n'est connu qu'une fois la feuille de match validée.
   bool get hasScore => scoreAsGrinta != null && scoreAdverse != null;
-
-  /// Intitulé du match avec l'équipe qui reçoit affichée en premier, comme sur
-  /// le reste de l'app (domicile à gauche).
-  String get matchTitle {
-    const grinta = 'AS Grinta';
-    if (!hasScore) {
-      return isHome ? '$grinta – $opponentName' : '$opponentName – $grinta';
-    }
-    return isHome
-        ? '$grinta $scoreAsGrinta – $scoreAdverse $opponentName'
-        : '$opponentName $scoreAdverse – $scoreAsGrinta $grinta';
-  }
 }
