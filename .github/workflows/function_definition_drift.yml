@@ -5,8 +5,10 @@ on:
   # contrôle compare le contenu des fonctions : il a été ajouté après la
   # découverte, le 27 septembre 2026, de huit fonctions modifiées en
   # production hors migration. Il ne fait que lire la production.
+  # Hebdomadaire (lundi) depuis le passage du dépôt en privé, pour tenir dans
+  # le quota mensuel de minutes.
   schedule:
-    - cron: '41 5 * * *'
+    - cron: '41 5 * * 1'
   workflow_dispatch:
 
 permissions:

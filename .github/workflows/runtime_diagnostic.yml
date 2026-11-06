@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Un nouveau commit sur la même pull request rend l'essai précédent inutile.
+concurrency:
+  group: runtime-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   web-runtime:
     runs-on: ubuntu-latest

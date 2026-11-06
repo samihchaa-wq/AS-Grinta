@@ -79,11 +79,11 @@ Le test automatique `Production backup restore drill` restaure chaque dimanche l
 - une migration existe seulement dans GitHub ou seulement en production ;
 - `supabase/production_migrations.lock` ne correspond pas exactement à l’historique distant.
 
-Le contrôle distant s’exécute sur les PR internes qui touchent les migrations ou le lock, sur les modifications correspondantes de `main`, quotidiennement et à la demande. Le lock ne doit être mis à jour qu’après une comparaison distante réussie.
+Le contrôle distant s’exécute sur les PR internes qui touchent les migrations ou le lock, sur les modifications correspondantes de `main`, chaque lundi (quotidien avant le passage du dépôt en privé) et à la demande. Le lock ne doit être mis à jour qu’après une comparaison distante réussie.
 
 ### Contenu des fonctions
 
-La liste des migrations ne dit pas si une fonction a été modifiée directement sur la base. `.github/workflows/function_definition_drift.yml` le vérifie chaque jour (et à la demande), en lecture seule :
+La liste des migrations ne dit pas si une fonction a été modifiée directement sur la base. `.github/workflows/function_definition_drift.yml` le vérifie chaque lundi (et à la demande), en lecture seule :
 
 1. il reconstruit une base à partir des migrations du dépôt **déjà appliquées en production** ; une migration fusionnée mais pas encore déployée est ignorée et simplement listée ;
 2. il relève les fonctions des schémas `public` et `private` de cette base et de la production avec la même requête, `supabase/diagnostics/function_definitions_snapshot.sql` ; côté production, la requête passe par l’API de gestion Supabase en lecture seule ;

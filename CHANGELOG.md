@@ -397,6 +397,12 @@ Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
 ### Maintenance
 
+- dépôt passé en privé : les vérifications automatiques consomment désormais
+  un quota mensuel. Elles ne se relancent plus quand seul le titre d'une pull
+  request change, ni quand une modification de `main` ne touche que la
+  documentation ou le verrou de migrations ; les contrôles de dérive de la
+  production passent de quotidiens à hebdomadaires. Aucun changement pour les
+  joueurs.
 - nettoyage du dépôt, sans changement visible pour les joueurs : retrait de
   fichiers qui ne servaient plus (déclencheurs de CI, marqueur de déploiement,
   anciens logos et images jamais affichés, deux fonds d'écran encodés jamais
