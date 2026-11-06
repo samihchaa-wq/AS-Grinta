@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="600" viewBox="0 0 520 600">
+  <defs>
+    <clipPath id="body"><path d="M 205 40 L 150 55 C 120 63 96 74 80 92 L 24 206 C 19 216 23 229 35 234 L 92 262 C 102 266 112 262 116 252 L 141 202 C 147 262 147 420 150 558 C 150 571 158 578 171 579 C 230 585 290 585 349 579 C 362 578 370 571 370 558 C 373 420 373 262 379 202 L 404 252 C 408 262 418 266 428 262 L 485 234 C 497 229 501 216 496 206 L 440 92 C 424 74 400 63 370 55 L 315 40 Z"/></clipPath>
+    <clipPath id="sleeves"><path d="M 0 0 L 175 0 L 150 60 L 141 202 L 116 252 L 0 300 Z M 520 0 L 345 0 L 370 60 L 379 202 L 404 252 L 520 300 Z"/></clipPath>
+    <linearGradient id="light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="sides" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0.22" stop-color="#000000" stop-opacity="0.16"/>
+      <stop offset="0.36" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.64" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="0.78" stop-color="#000000" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="sleeveTone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C6E8E1"/>
+      <stop offset="1" stop-color="#C6E8E1"/>
+    </linearGradient>
+  </defs>
+  <path d="M 205 40 L 150 55 C 120 63 96 74 80 92 L 24 206 C 19 216 23 229 35 234 L 92 262 C 102 266 112 262 116 252 L 141 202 C 147 262 147 420 150 558 C 150 571 158 578 171 579 C 230 585 290 585 349 579 C 362 578 370 571 370 558 C 373 420 373 262 379 202 L 404 252 C 408 262 418 266 428 262 L 485 234 C 497 229 501 216 496 206 L 440 92 C 424 74 400 63 370 55 L 315 40 Z" fill="#C6E8E1"/>
+  <g clip-path="url(#body)"><path d="M 214 46 C 190 110 160 160 141 204" fill="none" stroke="#D9772E" stroke-width="5"/><path d="M 306 46 C 330 110 360 160 379 204" fill="none" stroke="#D9772E" stroke-width="5"/><g clip-path="url(#sleeves)"><g><rect x="-45.0" y="241.4" width="220" height="7.6" fill="#0B3A9C" transform="rotate(26.16 65.0 244.9)"/><rect x="-41.9" y="235.1" width="220" height="7.6" fill="#FFFFFF" transform="rotate(26.16 68.1 238.6)"/><rect x="-38.8" y="228.8" width="220" height="7.6" fill="#E2231A" transform="rotate(26.16 71.2 232.3)"/><rect x="-36.1" y="224.4" width="220" height="5.6" fill="#9CD2C3" transform="rotate(26.16 73.9 226.9)"/></g><g transform="translate(520 0) scale(-1 1)"><rect x="-45.0" y="241.4" width="220" height="7.6" fill="#0B3A9C" transform="rotate(26.16 65.0 244.9)"/><rect x="-41.9" y="235.1" width="220" height="7.6" fill="#FFFFFF" transform="rotate(26.16 68.1 238.6)"/><rect x="-38.8" y="228.8" width="220" height="7.6" fill="#E2231A" transform="rotate(26.16 71.2 232.3)"/><rect x="-36.1" y="224.4" width="220" height="5.6" fill="#9CD2C3" transform="rotate(26.16 73.9 226.9)"/></g></g><rect width="520" height="600" fill="url(#light)"/><rect width="520" height="600" fill="url(#sides)"/><path d="M 152 240 C 184 300 192 390 188 500" fill="none" stroke="#000000" stroke-opacity="0.025" stroke-width="40" stroke-linecap="round"/><path d="M 368 240 C 336 300 328 390 332 500" fill="none" stroke="#000000" stroke-opacity="0.025" stroke-width="40" stroke-linecap="round"/></g>
+  <path d="M 205 40 C 232 26 288 26 315 40 L 260 100 L 205 40 Z" fill="#7B908C"/>
+  <path d="M 205 40 C 232 26 288 26 315 40" fill="none" stroke="#649285" stroke-width="9" stroke-linecap="round"/>
+  <path d="M 205 40 L 260 100 L 315 40" fill="none" stroke="#86C3B1" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 205 40 L 260 100 L 315 40" fill="none" stroke="#D9772E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 7)"/>
+  <path d="M 205 40 L 150 55 C 120 63 96 74 80 92 L 24 206 C 19 216 23 229 35 234 L 92 262 C 102 266 112 262 116 252 L 141 202 C 147 262 147 420 150 558 C 150 571 158 578 171 579 C 230 585 290 585 349 579 C 362 578 370 571 370 558 C 373 420 373 262 379 202 L 404 252 C 408 262 418 266 428 262 L 485 234 C 497 229 501 216 496 206 L 440 92 C 424 74 400 63 370 55 L 315 40 Z" fill="none" stroke="#819792" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>
