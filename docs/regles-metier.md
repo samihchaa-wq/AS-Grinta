@@ -28,7 +28,7 @@ d’écart, c’est la production qui fait foi, et ce document doit être corrig
 - La saison ouverte utilise le cycle complet des matchs.
 - Le calendrier permet d’ouvrir les saisons archivées et d’afficher les anciens résultats en lecture seule.
 - Les résultats importés restent volontairement séparés des matchs modernes afin de ne pas créer de faux pronostics, compositions, Live ou notifications.
-- La saison actuelle peut être exportée au format `.ics` pour être ajoutée à un agenda compatible.
+- La saison actuelle peut être ajoutée à un agenda compatible par abonnement (flux `.ics`) : l’agenda se met à jour tout seul, et un match annulé en disparaît. L’ancien export local d’un fichier `.ics` a été retiré.
 - La version PC/PWA limite la largeur utile du calendrier et utilise une navigation latérale sur les grands écrans.
 
 ## Cycle actuel d’un match

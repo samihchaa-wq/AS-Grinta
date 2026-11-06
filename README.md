@@ -14,7 +14,7 @@ du club.
 ### Avant le match
 
 - Calendrier de la saison, saisons archivées consultables en lecture seule,
-  abonnement ou export vers un agenda (`.ics`).
+  abonnement depuis son agenda (Apple, Google, Outlook), mis à jour tout seul.
 - Disponibilités des joueurs, et indisponibilités déclarées à l’avance sur une
   période.
 - Convocations, liste d’attente avec rotation, invités de match sans compte.
