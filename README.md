@@ -1,146 +1,139 @@
 # AS Grinta
 
-AS Grinta est l’application de gestion sportive et de vie de club de l’AS Grinta. Elle conserve également les pronostics comme fonctionnalité complémentaire. Elle est utilisée sous forme de PWA Flutter avec Supabase comme source de vérité métier.
+Application du club de football AS La Grinta : organisation des matchs,
+effectif, composition d’équipe, match en direct, statistiques et vie du club.
+Elle conserve aussi les pronostics entre membres comme fonctionnalité
+complémentaire.
 
-## Source de vérité
+L’application est une PWA (application web installable sur le téléphone)
+écrite en Flutter, avec Supabase comme source de vérité pour toutes les données
+du club.
 
-Le fonctionnement réel de la production prévaut sur la documentation et sur les anciennes migrations.
+## Ce que fait l’application
 
-Les migrations Supabase déjà appliquées restent dans le dépôt comme historique immuable. Elles peuvent donc décrire d’anciennes règles qui ne sont plus actives.
+### Avant le match
 
-## Comptes et rôles
+- Calendrier de la saison, saisons archivées consultables en lecture seule,
+  abonnement depuis son agenda (Apple, Google, Outlook), mis à jour tout seul.
+- Disponibilités des joueurs, et indisponibilités déclarées à l’avance sur une
+  période.
+- Convocations, liste d’attente avec rotation, invités de match sans compte.
+- Météo du prochain match.
 
-- Auto-inscription puis validation du compte.
-- Deux niveaux d’accès applicatifs : `pronostiqueur` (Utilisateur) et `admin`.
-- Un Admin possède tous les droits d’administration du club.
-- Gardien est un attribut sportif et n’accorde aucun droit applicatif supplémentaire.
-- Coach est un attribut sportif : le coach garde toutes les fonctionnalités du
-  club (notifications, disponibilités, pronostics, vote Homme du match) et peut
-  piloter le Live des matchs de sa saison. Il apparaît dans l’effectif du match
-  dès qu’il se dit présent, hors quota de convoqués, mais jamais dans la
-  composition d’équipe, jamais dans la liste d’attente, et jamais dans les
-  « Statistiques Joueurs » — il reste présent dans les « Statistiques Pronos ».
-- Les anciennes valeurs `moderateur` sont converties en `admin` ; les anciens clients restent tolérés pendant la transition.
-- Les comptes inactifs ne peuvent pas utiliser les fonctions métier protégées.
-- Les joueurs de l’effectif peuvent être liés à un compte.
-- Les invités de match n’ont pas besoin de compte permanent.
+### Composition
 
-## Calendrier et historique
+- Éditeur tactique : dispositifs, placement des joueurs, banc.
+- Simulation d’un onze cohérent à partir des postes réellement occupés par
+  chaque joueur au fil des saisons, avec rotation des remplaçants.
 
-- La saison ouverte utilise le cycle complet des matchs.
-- Le calendrier permet d’ouvrir les saisons archivées et d’afficher les anciens résultats en lecture seule.
-- Les résultats importés restent volontairement séparés des matchs modernes afin de ne pas créer de faux pronostics, compositions, Live ou notifications.
-- La saison actuelle peut être exportée au format `.ics` pour être ajoutée à un agenda compatible.
-- La version PC/PWA limite la largeur utile du calendrier et utilise une navigation latérale sur les grands écrans.
+### Jour de match
 
-## Cycle actuel d’un match
+- Live : chronomètre, buts et passes décisives, remplacements, composition
+  réelle.
+- Compte rendu validé en fin de match, qui alimente la fiche du match et les
+  statistiques.
 
-- **J-6 à 12 h, Europe/Paris** : le match entre dans la fenêtre « Prochain match » et les disponibilités s’ouvrent.
-- **J-6 à 12 h → T-15** : pronostics, Effectif et Composition sont disponibles selon les droits de l’utilisateur.
-- Une fois l’Effectif enregistré, la Composition propose de **simuler un onze** dans le dispositif choisi. La simulation ne remplit pas les postes un par un : elle cherche l’équipe entière la plus cohérente, chaque règle primant sur les suivantes — aucun poste vide tant qu’un convoqué peut l’occuper (un invité ne fait que compléter), personne hors de ses habitudes sans nécessité, ceux qui ont commencé remplaçants la dernière fois qu’ils ont joué dans la saison titularisés (même si ce n’était pas le dernier match de l’équipe), puis chacun au plus près de ses postes de référence ; à égalité parfaite, le plus souvent remplaçant passe devant. Dans l’éditeur, le compteur banc de ces joueurs prioritaires est bleu. Les buts ne reviennent qu’à un gardien déclaré. Un message dit ensuite qui revient du banc et ce qui mérite un coup d’œil : joueur hors de son poste habituel, poste à confirmer faute de matchs joués, poste resté vide. Les postes de référence se mettent à jour tout seuls au fil des matchs joués. La proposition n’est qu’un point de départ, entièrement modifiable, et n’est enregistrée que par le bouton Enregistrer.
-- **T-15** : les pronostics ferment, Effectif/Composition sont gelés et le Live peut être ouvert.
-- **Live** : chronomètre, événements, buts (avec leur passeur décisif), remplacements et gestion de la composition réelle.
-- Un joueur ou invité ajouté tardivement pendant le Live arrive directement sur le banc.
-- La validation du récapitulatif Live finalise le match avant son passage normal en match passé.
-- Les « Faits du match » de la fiche viennent du compte rendu validé, pas de la
-  saisie en direct : un Live mal rempli se corrige dans le compte rendu,
-  pendant la fenêtre de correction, et la fiche suit aussitôt.
-- Le vote Homme du match ouvre après cette validation et ferme **24 h après le coup d’envoi**.
+### Après le match
 
-## Pronostics
+- Vote anonyme de l’Homme du match, clos 24 heures après le coup d’envoi.
+- Statistiques individuelles et collectives, saison par saison et toutes
+  saisons confondues.
+- Badges automatiques et manuels, armoire à trophées, bilan de saison animé.
 
-- Pronostics de match ouverts dans la fenêtre active du match jusqu’à T-15.
-- Les pronostics restent privés avant la validation du résultat.
-- Le multiplicateur / portefeuille **×2 ne fait plus partie du produit actuel**.
-- Les anciennes migrations et certaines signatures de compatibilité peuvent encore contenir des traces de ×2.
+### Pour tout le club
 
-## Gestion sportive
+- Pronostics de score et classement entre membres.
+- Notifications sur le téléphone : ouverture des disponibilités, convocation,
+  liste d’attente, rappels, vote de l’Homme du match.
+- Comptes validés par un administrateur ; deux niveaux d’accès (Utilisateur et
+  Admin), le coach pilotant le Live de sa saison.
+- Mode « Voir l’app comme un joueur » pour les administrateurs.
 
-Le module actuel comprend notamment :
-
-- disponibilités ;
-- indisponibilités déclarées à l’avance ;
-- liste d’attente et rotation ;
-- convocations ;
-- joueurs de l’effectif et invités ;
-- composition tactique et simulation de composition ;
-- Live ;
-- présence finale, buts, passes décisives et clean sheets ;
-- statistiques ;
-- vote collectif et anonyme de l’Homme du match.
-
-### Indisponibilité déclarée
-
-Depuis Paramètres, chaque joueur déclare lui-même les périodes où il ne sera pas
-là, avec une raison en texte libre. Les bornes sont des dates pleines, incluses,
-lues en Europe/Paris.
-
-- Un match dont le coup d’envoi tombe dans la période pose automatiquement le
-  joueur **absent** : il sort de l’effectif convocable, et les notifications qui
-  en découlent ne lui sont plus envoyées (`docs/NOTIFICATIONS_V2.md`).
-- S’il était déjà convoqué sur un match publié, il se retire exactement comme
-  une désistement ordinaire : le suivant de la liste d’attente monte, et son
-  tour n’est pas consommé avant l’heure limite.
-- Pendant la période, ni lui ni un administrateur ne peut répondre à la
-  disponibilité des matchs concernés : la période est la seule source de vérité.
-- La période reste modifiable et annulable tant qu’elle n’est pas terminée.
-  L’annulation rend les matchs concernés à « sans réponse », sauf ceux où le
-  joueur s’était déjà déclaré absent lui-même : cette réponse lui appartient.
-- Un match programmé après coup, ou déplacé vers une autre date, est rattrapé
-  automatiquement.
-- Seuls les administrateurs voient l’ensemble des indisponibilités du club, en
-  lecture seule, avec l’auteur, la date de saisie, la période et la raison.
-
-Les postes de référence utilisés par la simulation de composition ne sont saisis nulle part : ils sont **déduits des compositions réellement alignées**, et suivent donc l’évolution des joueurs.
-
-- Le socle est `lib/features/sports_management/domain/player_position_profiles.dart`, produit par `tool/derive_position_profiles.py` depuis l’archive du club, qui couvre les compositions jusqu’au 21 mai 2026.
-- Les matchs joués depuis viennent s’y ajouter au chargement de l’écran, via `admin_get_player_position_history`. Un joueur qui change durablement de poste voit son profil basculer sans redéploiement ; une recrue absente de l’archive s’en construit un à partir de ses seuls matchs.
-- Les deux sources utilisent la même pondération par récence, ancrée sur la même saison de référence, ce qui permet de les additionner directement.
-- Tout est indexé sur l’identité canonique `players.id`, stable d’une saison à l’autre et insensible aux changements de nom.
-
-## Notifications
-
-Les notifications automatiques actuelles comprennent notamment :
-
-- ouverture des disponibilités ;
-- changements importants d’un match ;
-- rappel de pronostic le jour du match à 16 h si activé et nécessaire ;
-- entrée en liste d’attente, et passage de la liste d’attente aux convoqués ;
-- ouverture du vote HDM si activée ;
-- résultat du vote HDM sous le même réglage utilisateur.
-
-Le contrat détaillé est dans `docs/NOTIFICATIONS_V2.md`.
-
-## Statistiques, badges et profils
-
-- Statistiques individuelles et collectives.
-- Buts, passes décisives, clean sheets, matchs joués et Homme du match.
-- Les passes décisives sont suivies depuis leur mise en service : les saisons
-  importées et les matchs validés avant restent à zéro, sans reconstitution.
-- Saison actuelle, saison précédente et historique toutes saisons.
-- Badges automatiques et manuels.
-- Photos de profil, de joueur et d’invité.
+Le fonctionnement détaillé de chaque module est décrit dans
+`docs/regles-metier.md`.
 
 ## Architecture
 
-- Flutter, Riverpod et `go_router` ;
-- Supabase Auth et PostgreSQL ;
-- Supabase Storage et Realtime ;
-- Edge Functions pour les opérations serveur nécessaires ;
-- GitHub Actions pour les contrôles et déploiements ;
-- GitHub Pages pour la version Web publique.
+- Application : Flutter (version web/PWA), Riverpod, `go_router`.
+- Serveur : Supabase — PostgreSQL avec règles d’accès ligne par ligne (RLS),
+  Auth, Storage et Realtime.
+- Edge Functions (TypeScript) pour les opérations serveur : notifications,
+  flux d’agenda, gestion des comptes, rappels.
+- Hébergement : GitHub Pages ; contrôles et déploiements par GitHub Actions.
 
-## Configuration locale
+### Organisation du dépôt
 
-Les valeurs clientes publiques de production sont centralisées dans `config/production.json`.
+```text
+lib/
+  app/        routeur et navigation principale
+  core/       briques partagées : thème, widgets, réseau, journalisation…
+  features/   une fonctionnalité par dossier, en trois couches :
+              data (accès aux données), domain (règles), presentation (écrans)
+test/         même arborescence que lib/, plus :
+  architecture/  règles vérifiées sur l’ensemble du code
+  web/           page d’accueil PWA et service worker
+supabase/     migrations SQL, Edge Functions, tests de la base (pgTAP)
+web/          coquille de la PWA, service worker, page d’abonnement agenda
+tool/         scripts de maintenance et de contrôle
+docs/         documentation de référence
+config/       valeurs publiques de configuration de production
+```
+
+## Qualité et fiabilité
+
+Chaque modification passe par une pull request et des contrôles automatiques
+avant d’arriver en production :
+
+- formatage, analyse statique stricte (aucun avertissement toléré), plus de
+  1 000 tests Flutter, plancher de couverture de tests, build web et budget
+  de poids de l’application ;
+- base de données de test installée dans un environnement isolé (jamais la
+  production), plus de 130 fichiers de tests pgTAP (règles métier et droits
+  d’accès) et lint SQL ;
+- essai de l’application compilée sur plusieurs tailles d’écran, liens
+  profonds et rechargement hors ligne ;
+- garde-fous sur la production : écart de migrations, définitions de fonctions
+  modifiées hors migration, volume de requêtes anormal (contrôle quotidien) ;
+- sauvegarde chiffrée hebdomadaire, suivie d’un exercice de restauration
+  automatique ;
+- actions GitHub épinglées par empreinte, dépendances surveillées
+  (Dependabot, avis de sécurité Pub) ;
+- références d’incident (« ASG-… ») affichées à l’utilisateur et journalisées
+  sans le contenu sensible de l’erreur.
+
+## Démarrer en local
+
+Les valeurs clientes publiques de production sont centralisées dans
+`config/production.json`.
 
 ```bash
+flutter pub get --enforce-lockfile
 flutter run \
   --dart-define-from-file=config/production.json \
   --dart-define=APP_VERSION=dev
 ```
 
-## Qualité
+Contrôles à lancer avant de proposer un changement :
+
+```bash
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze --fatal-warnings --fatal-infos
+flutter test
+```
+
+## Travailler sur le projet
+
+### Source de vérité
+
+Le fonctionnement réel de la production prévaut sur la documentation et sur
+les anciennes migrations.
+
+Les migrations Supabase déjà appliquées restent dans le dépôt comme historique
+immuable. Elles peuvent donc décrire d’anciennes règles qui ne sont plus
+actives. Les règles de travail détaillées (agents compris) sont dans
+`AGENTS.md`.
+
+### Qualité attendue
 
 Les changements applicatifs importants doivent passer au minimum :
 
@@ -151,12 +144,16 @@ Les changements applicatifs importants doivent passer au minimum :
 - contrôles Supabase/RLS concernés ;
 - tests runtime / smoke tests applicables.
 
-La CI Supabase construit un schéma isolé avec les migrations courantes nécessaires puis exécute l’ensemble des tests pgTAP/RLS découverts et le lint SQL. Un contrôle vert n’est toutefois pas une raison pour ignorer un écart observé directement en production.
+La CI Supabase construit un schéma isolé avec les migrations courantes
+nécessaires puis exécute l’ensemble des tests pgTAP/RLS découverts et le lint
+SQL. Un contrôle vert n’est toutefois pas une raison pour ignorer un écart
+observé directement en production.
 
 ## Documentation courante
 
 Les documents à maintenir comme références actuelles sont :
 
+- `docs/regles-metier.md` — fonctionnement détaillé de chaque module ;
 - `docs/NOTIFICATIONS_V2.md` — contrat des notifications ;
 - `docs/MATCH_WEATHER.md` — météo du prochain match ;
 - `docs/business-security-matrix.md` — invariants de sécurité métier ;
@@ -167,5 +164,8 @@ Les documents à maintenir comme références actuelles sont :
 - `docs/observability.md` — références d’incident ;
 - `docs/repository-protection.md` — protections GitHub ;
 - `docs/ui-foundations.md` — fondations UI encore utilisées.
+
+`docs/changes/` rassemble les notes de décision et de correctif rédigées au
+fil des évolutions marquantes ; `CHANGELOG.md` retrace les versions.
 
 Les comptes rendus de lancement et anciennes spécifications restent consultables dans l’historique Git mais ne sont pas conservés comme documentation active.

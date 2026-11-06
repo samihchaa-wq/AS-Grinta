@@ -55,6 +55,7 @@ Les valeurs opérationnelles comme les feature flags, le coupe-circuit des notif
 - Supabase reste l’unique source de vérité pour les données métier.
 - Ne jamais utiliser la clé `service_role` dans Flutter.
 - Respecter Riverpod, `go_router` et l’architecture feature-first.
+- Ranger chaque test dans le dossier de `test/` qui reflète celui du code vérifié dans `lib/` (par exemple `test/features/matches/domain/` pour `lib/features/matches/domain/`). Les règles qui balaient tout le code vont dans `test/architecture/`, les contrats sur `web/` dans `test/web/`. Jamais de test à la racine de `test/` : `test/architecture/test_layout_test.dart` le vérifie.
 - Toute évolution de schéma passe par une **nouvelle migration additive ou corrective** ; ne jamais réécrire une migration appliquée.
 - Avant chaque suppression, tracer références et dépendances.
 - Faire des lots petits et cohérents.

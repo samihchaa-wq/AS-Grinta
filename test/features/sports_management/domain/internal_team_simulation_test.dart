@@ -37,13 +37,13 @@ void main() {
       11: '4-3-3',
     };
 
-    test('chaque effectif de 1 à 11 n’a qu’un seul dispositif', () {
+    test('chaque effectif de 1 à 11 a son propre dispositif', () {
       for (final entry in expectedCodes.entries) {
-        final formations = internalFormationsForPlayerCount(entry.key);
+        final formation = internalDefaultFormationForPlayerCount(entry.key);
 
-        expect(formations, hasLength(1), reason: '${entry.key} joueurs');
-        expect(formations.single.code, entry.value);
-        expect(formations.single.playerCount, entry.key);
+        expect(formation, isNotNull, reason: '${entry.key} joueurs');
+        expect(formation!.code, entry.value);
+        expect(formation.playerCount, entry.key);
       }
     });
 
@@ -85,7 +85,7 @@ void main() {
     });
 
     test('zéro joueur ne propose aucune formation', () {
-      expect(internalFormationsForPlayerCount(0), isEmpty);
+      expect(internalDefaultFormationForPlayerCount(0), isNull);
     });
   });
 

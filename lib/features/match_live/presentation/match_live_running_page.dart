@@ -29,6 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'match_live_running_widgets.dart';
+part 'match_live_running_journal.dart';
 
 /// Un changement préparé mais pas encore envoyé.
 typedef PendingSubstitution = ({String playerIn, String playerOut});

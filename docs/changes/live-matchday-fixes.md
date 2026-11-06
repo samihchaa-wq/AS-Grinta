@@ -60,9 +60,9 @@ attribuer ».
 
 - Migration : `20260828120000_live_prekickoff_lineup_swap.sql`.
 - Test pgTAP : `supabase/tests/database/live_prekickoff_lineup_swap.test.sql`.
-- Tests Flutter : `test/match_live_player_name_display_test.dart`,
-  `test/admin_squad_plan_step_persistence_test.dart`,
-  `test/match_live_scorer_picker_test.dart`.
+- Tests Flutter : `test/features/match_live/presentation/match_live_player_name_display_test.dart`,
+  `test/features/sports_management/presentation/admin_squad_plan_step_persistence_test.dart`,
+  `test/features/match_live/presentation/widgets/match_live_scorer_picker_test.dart`.
 - Validation : la suite Flutter complète passe (451 tests). Le comportement de
   la fonction SQL a été rejoué sur un PostgreSQL local avec un schéma réduit
   aux tables qu'elle touche : échange accepté avant le coup d'envoi sans
