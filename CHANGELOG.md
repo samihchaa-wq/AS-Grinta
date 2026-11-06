@@ -6,6 +6,10 @@ Toutes les évolutions notables d’AS Grinta sont documentées ici.
 
 ### Produit
 
+- maillots : les trois maillots proposés pour un match (France, Orange,
+  Bleu) sont désormais des dessins aux couleurs du club, sans logo ni
+  écusson. Ils reprenaient jusqu'ici des photos de maillots de sélections
+  nationales, avec les marques de l'équipementier et des fédérations ;
 - admin : « Voir l'app comme un joueur », dans les Paramètres. Un admin
   regarde l'application sans ses outils de gestion, exactement comme ses
   joueurs la reçoivent : fiche du match, onglets Effectif et Compo,
@@ -398,6 +402,14 @@ Toutes les évolutions notables d’AS Grinta sont documentées ici.
 
 ### Maintenance
 
+- rangement du dépôt, sans changement pour les joueurs : tests classés
+  selon l'arborescence du code (un contrôle l'impose désormais), quatre
+  gros écrans découpés, outil d'extraction de l'historique SportEasy
+  retiré une fois l'import terminé, README de présentation et règles
+  détaillées dans `docs/regles-metier.md`. Les branches sont supprimées
+  automatiquement après fusion, et le workflow manuel « Ménage des
+  branches » retire les anciennes sans rien perdre (voir
+  `docs/repository-protection.md`) ;
 - dépôt passé en privé : les vérifications automatiques consomment désormais
   un quota mensuel. Elles ne se relancent plus quand seul le titre d'une pull
   request change, ni quand une modification de `main` ne touche que la

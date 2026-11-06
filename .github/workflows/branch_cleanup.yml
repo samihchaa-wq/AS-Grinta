@@ -1,0 +1,65 @@
+name: Ménage des branches
+
+# Retire les branches qui ne servent plus, sans rien perdre. Les règles sont
+# décrites en tête de tool/branch_cleanup.py : jamais la branche par défaut,
+# ni une demande de fusion ouverte, ni une branche modifiée depuis moins de
+# trois jours ; ce qui n'existe nulle part ailleurs est archivé et vérifié
+# avant d'être retiré.
+#
+# Lancement manuel uniquement. Le mode « analyse », proposé par défaut, ne
+# modifie rien : il affiche ce que ferait le mode « appliquer ».
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'analyse : liste seulement ; appliquer : archive puis supprime'
+        required: true
+        default: analyse
+        type: choice
+        options:
+          - analyse
+          - appliquer
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branch-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch every branch
+        run: git fetch --quiet --prune origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: List open pull request heads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh pr list --state open --limit 500 \
+            --json headRefName --jq '.[].headRefName' > open-heads.txt
+          cat open-heads.txt
+
+      - name: Clean branches
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          apply=()
+          if [ "$MODE" = appliquer ]; then apply=(--apply); fi
+          python3 tool/branch_cleanup.py \
+            --default-branch "$DEFAULT_BRANCH" \
+            --open-heads open-heads.txt \
+            --min-age-days 3 \
+            "${apply[@]}"
