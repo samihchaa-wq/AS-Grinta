@@ -1,11 +1,21 @@
 name: Flutter CI
 
 on:
+  # Dépôt privé : chaque minute de vérification est décomptée du quota
+  # mensuel. Sur main, une modification qui ne touche que le verrou de
+  # migrations ou la documentation ne change pas l'application : inutile de
+  # tout retester et de republier le site à l'identique.
   push:
     branches: [main]
+    paths-ignore:
+      - 'supabase/production_migrations.lock'
+      - 'docs/**'
+      - '**/*.md'
+  # Pas de relance quand seul le titre ou la description de la pull request
+  # change : le contrôle ne lit ni l'un ni l'autre.
   pull_request:
     branches: [main]
-    types: [opened, edited, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 
 permissions:

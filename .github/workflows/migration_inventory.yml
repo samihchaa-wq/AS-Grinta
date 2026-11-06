@@ -16,8 +16,10 @@ on:
       - 'supabase/tests/database/**'
       - 'supabase/production_migrations.lock'
       - '.github/workflows/migration_inventory.yml'
+  # Hebdomadaire (lundi) depuis le passage du dépôt en privé : chaque pull
+  # request et chaque déploiement refont déjà ce contrôle.
   schedule:
-    - cron: '17 5 * * *'
+    - cron: '17 5 * * 1'
   workflow_dispatch:
 
 permissions:
