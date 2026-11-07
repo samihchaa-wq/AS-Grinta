@@ -58,7 +58,8 @@ void main() {
             (ref) => Stream.value(const []),
           ),
           myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
-          calendarFocusMotmVoteProvider.overrideWith((ref, id) async => motmVote(id)),
+          calendarFocusMotmVoteProvider
+              .overrideWith((ref, id) async => motmVote(id)),
         ],
         child: MaterialApp(
           home: Scaffold(body: MergedMatchesView(focusMatchId: focusMatchId)),
