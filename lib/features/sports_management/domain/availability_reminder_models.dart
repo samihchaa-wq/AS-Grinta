@@ -3,19 +3,28 @@ class AvailabilityReminderPlayer {
     required this.seasonPlayerId,
     this.lastReminderAt,
     this.manualCooldownUntil,
+    this.manualReminderCount = 0,
   });
 
   factory AvailabilityReminderPlayer.fromJson(Map<String, dynamic> json) {
+    final manualCooldownUntil = _dateOrNull(json['manual_cooldown_until']);
+    final count = (json['manual_reminder_count'] as num?)?.toInt();
     return AvailabilityReminderPlayer(
       seasonPlayerId: (json['season_player_id'] ?? '').toString(),
       lastReminderAt: _dateOrNull(json['last_reminder_at']),
-      manualCooldownUntil: _dateOrNull(json['manual_cooldown_until']),
+      manualCooldownUntil: manualCooldownUntil,
+      // Un serveur qui ne donne pas encore le nombre indique tout de même s'il
+      // y a eu au moins une relance manuelle.
+      manualReminderCount: count ?? (manualCooldownUntil == null ? 0 : 1),
     );
   }
 
   final String seasonPlayerId;
   final DateTime? lastReminderAt;
   final DateTime? manualCooldownUntil;
+
+  /// Nombre de relances envoyées à ce joueur par un admin pour ce match.
+  final int manualReminderCount;
 
   bool isInCooldownAt(DateTime now) {
     final cooldown = manualCooldownUntil;
