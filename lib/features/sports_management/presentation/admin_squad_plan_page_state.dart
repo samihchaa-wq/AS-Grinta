@@ -199,29 +199,38 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         for (final player in convocations.players)
           if (player.seasonPlayerId.isNotEmpty) player.seasonPlayerId,
       ];
-      final goalkeeperIds = postMatch
-          ? const <String>{}
-          : await compositionRepository.fetchGoalkeeperSeasonPlayerIds(
-              seasonPlayerIds,
-            );
-      final canonicalPlayerIds = postMatch
-          ? const <String, String>{}
-          : await compositionRepository.fetchCanonicalPlayerIds(
-              seasonPlayerIds,
-            );
+      var goalkeeperIds = const <String>{};
+      var canonicalPlayerIds = const <String, String>{};
       var positionProfiles = kPlayerPositionProfiles;
       if (!postMatch) {
-        final archive = await ref.read(playerPositionArchiveProvider.future);
+        // Lectures indépendantes : elles partent ensemble au lieu de
+        // s'enchaîner. L'historique des postes garde son repli sur l'archive
+        // en cas d'échec, sans faire échouer le reste.
+        final preparation = await Future.wait<Object?>([
+          compositionRepository.fetchGoalkeeperSeasonPlayerIds(
+            seasonPlayerIds,
+          ),
+          compositionRepository.fetchCanonicalPlayerIds(seasonPlayerIds),
+          ref.read(playerPositionArchiveProvider.future),
+          compositionRepository
+              .fetchPlayerPositionHistory(kLivePositionHistoryStart)
+              .then<Object?>((history) => history)
+              .catchError((Object _) => null),
+        ]);
+        goalkeeperIds = preparation[0]! as Set<String>;
+        canonicalPlayerIds = preparation[1]! as Map<String, String>;
+        final archive = preparation[2]! as Map<String, PlayerPositionProfile>;
+        final history = preparation[3];
         positionProfiles = archive;
-        try {
-          positionProfiles = mergePlayerPositionProfiles(
-            history: await compositionRepository.fetchPlayerPositionHistory(
-              kLivePositionHistoryStart,
-            ),
-            archive: archive,
-          );
-        } catch (_) {
-          positionProfiles = archive;
+        if (history != null) {
+          try {
+            positionProfiles = mergePlayerPositionProfiles(
+              history: history as List<PlayedPosition>,
+              archive: archive,
+            );
+          } catch (_) {
+            positionProfiles = archive;
+          }
         }
       }
       // Une composition déjà enregistrée est la source de vérité, y compris

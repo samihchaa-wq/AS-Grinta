@@ -433,13 +433,27 @@ class BadgeRepository {
     String profileId, {
     Set<String> clubEarnedCodes = const {},
   }) async {
-    final catalog = await fetchCatalog();
-
-    // Badges directement attribués (paliers + custom).
-    final earnedRows = await _client
-        .from('profile_badges')
-        .select('badge_id, awarded_at, featured, badges(code)')
-        .eq('profile_id', profileId);
+    // Les cinq lectures sont indépendantes : elles partent ensemble au lieu
+    // de s'enchaîner (l'armoire attendait cinq allers-retours successifs).
+    final results = await Future.wait<Object?>([
+      fetchCatalog(),
+      // Badges directement attribués (paliers + custom).
+      _client
+          .from('profile_badges')
+          .select('badge_id, awarded_at, featured, badges(code)')
+          .eq('profile_id', profileId),
+      _client
+          .from('profile_badge_seen')
+          .select('badge_code')
+          .eq('profile_id', profileId),
+      _client.rpc(
+        'profile_badge_display_metrics',
+        params: {'p_profile_id': profileId},
+      ),
+      _client.rpc('profile_badge_stars', params: {'p_profile_id': profileId}),
+    ]);
+    final catalog = results[0]! as List<BadgeDef>;
+    final earnedRows = results[1];
     final earnedAt = <String, DateTime>{};
     final featuredCodes = <String>{};
     for (final r in earnedRows as List) {
@@ -455,10 +469,7 @@ class BadgeRepository {
 
     // Badges déjà consultés : ceux gagnés mais absents d'ici affichent la
     // pastille « nouveau ».
-    final seenRows = await _client
-        .from('profile_badge_seen')
-        .select('badge_code')
-        .eq('profile_id', profileId);
+    final seenRows = results[2];
     final seenCodes = {
       for (final r in seenRows as List)
         Map<String, dynamic>.from(r as Map)['badge_code'].toString(),
@@ -467,10 +478,7 @@ class BadgeRepository {
     // Deux valeurs par métrique : `current_value` pilote toujours la
     // progression/déblocage ; `display_value` pilote seulement le chiffre du
     // badge (record de saison pour les badges saisonniers déjà gagnés).
-    final metricsRes = await _client.rpc(
-      'profile_badge_display_metrics',
-      params: {'p_profile_id': profileId},
-    );
+    final metricsRes = results[3];
     final metrics = <String, int>{};
     final displayMetrics = <String, int>{};
     if (metricsRes is List) {
@@ -485,8 +493,7 @@ class BadgeRepository {
 
     // Nombre d'étoiles par badge : un palier étoilé ré-atteint (nouvelle saison,
     // titre regagné) ajoute une étoile. 1 par défaut pour les paliers carrière.
-    final starsRes = await _client
-        .rpc('profile_badge_stars', params: {'p_profile_id': profileId});
+    final starsRes = results[4];
     final starCounts = <String, int>{};
     if (starsRes is List) {
       for (final r in starsRes) {
