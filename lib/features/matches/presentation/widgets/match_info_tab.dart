@@ -30,7 +30,7 @@ class MatchInfoTab extends ConsumerWidget {
         ),
       ),
       data: (info) {
-        final encounters = info.lastEncounters.take(5).toList();
+        final encounters = info.lastEncounters.take(_encounterSlots).toList();
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.cardPadding),
@@ -146,6 +146,14 @@ class MatchInfoTab extends ConsumerWidget {
                           child: _EncounterChip(encounter: encounters[index]),
                         ),
                       ],
+                      // Cases vides : chaque score garde la largeur qu'il
+                      // aurait avec cinq rencontres, même s'il est seul.
+                      for (var index = encounters.length;
+                          index < _encounterSlots;
+                          index++) ...[
+                        const SizedBox(width: AppSpacing.microGap),
+                        const Expanded(child: SizedBox.shrink()),
+                      ],
                     ],
                   ),
               ],
@@ -156,6 +164,9 @@ class MatchInfoTab extends ConsumerWidget {
     );
   }
 }
+
+/// Nombre de dernières rencontres affichées sur une ligne.
+const _encounterSlots = 5;
 
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.child});
