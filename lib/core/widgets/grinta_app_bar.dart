@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
@@ -71,6 +69,8 @@ class GrintaClubHomeButton extends StatelessWidget {
             child: Image.asset(
               'assets/images/as_grinta_logo.webp',
               height: 42,
+              // Décodé à la taille affichée plutôt qu'en 680 × 741 px.
+              cacheHeight: (42 * MediaQuery.devicePixelRatioOf(context)).ceil(),
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
             ),
@@ -86,24 +86,23 @@ class _HeaderBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppTheme.surface.withValues(alpha: .94),
-                AppTheme.surface.withValues(alpha: .74),
-              ],
-            ),
-            border: Border(
-              bottom: BorderSide(
-                color: AppTheme.accent.withValues(alpha: .22),
-              ),
-            ),
+    // Pas de flou d'arrière-plan : le contenu ne passe jamais sous la barre
+    // (aucun Scaffold n'étend son corps derrière elle), le flou ne portait
+    // donc que sur un fond uni et restait invisible. Il coûtait pourtant un
+    // recalcul à chaque image pendant le défilement, surtout sur iPhone.
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.surface.withValues(alpha: .94),
+            AppTheme.surface.withValues(alpha: .74),
+          ],
+        ),
+        border: Border(
+          bottom: BorderSide(
+            color: AppTheme.accent.withValues(alpha: .22),
           ),
         ),
       ),

@@ -150,12 +150,25 @@ class MatchDetailsRepository {
   final SupabaseClient _client;
 
   Future<MatchDetailsData> fetch(String matchId) async {
-    final match = await _client.from('matches').select('''
+    // Les lectures indépendantes partent ensemble : la fiche d'un match
+    // terminé enchaînait huit requêtes l'une après l'autre. Il n'en reste que
+    // deux vagues : le match (et le compteur de pronostics), puis tout ce qui
+    // dépend de son type et de son statut. Future.wait attend toutes les
+    // réponses puis rend la première erreur telle quelle.
+    final firstWave = await Future.wait<Object?>([
+      _client.from('matches').select('''
       id, opponent_id, match_date, match_time, kickoff_at, status, location,
       address, match_type, championship_round, score_as_grinta, score_adverse,
       result_validated_at, opponents(name, address),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
-    ''').eq('id', matchId).maybeSingle();
+    ''').eq('id', matchId).maybeSingle(),
+      _client.rpc(
+        'match_prediction_participant_count',
+        params: {'p_match_id': matchId},
+      ),
+    ]);
+    final match = firstWave[0] as Map<String, dynamic>?;
+    final countResult = firstWave[1];
     if (match == null) {
       throw StateError('Ce match est introuvable ou a été supprimé.');
     }
@@ -181,23 +194,48 @@ class MatchDetailsRepository {
     final status = match['status']?.toString() ?? 'a_venir';
     final isValidated = status == 'termine' || status == 'archive';
 
-    final countResult = await _client.rpc(
-      'match_prediction_participant_count',
-      params: {'p_match_id': matchId},
-    );
-
     // Pas d'historique face-à-face pour un match entre nous : il n'y a pas
     // d'adversaire réel à comparer.
     // La table `matches` ne contient que les rencontres saisies dans
     // l'application : interrogée seule, elle annonçait « Aucune confrontation
     // précédente » face à un adversaire déjà rencontré des dizaines de fois.
     // La RPC fait l'union avec `historical_match_scores`, comme l'onglet Info.
-    final List historyRaw = isInternal || opponentId == null
-        ? const []
-        : await _client.rpc(
-            'get_last_opponent_encounters',
-            params: {'p_match_id': matchId},
-          ) as List;
+    final secondWave = await Future.wait<Object?>([
+      if (isInternal || opponentId == null)
+        Future<Object?>.value(const [])
+      else
+        _client.rpc(
+          'get_last_opponent_encounters',
+          params: {'p_match_id': matchId},
+        ),
+      if (isValidated) ...[
+        _client.from('match_player_stats').select('''
+        season_player_id,goals,assists,clean_sheet,
+        season_players(first_name,last_name,profiles(surnom))
+      ''').eq('match_id', matchId),
+        _client
+            .from('match_composition_publications')
+            .select('snapshot')
+            .eq('match_id', matchId)
+            .order('version', ascending: false)
+            .order('published_at', ascending: false)
+            .limit(1)
+            .maybeSingle(),
+        _client
+            .from('match_man_of_match')
+            .select('season_player_id')
+            .eq('match_id', matchId),
+        _client
+            .from('v_match_prediction_points')
+            .select('profile_id,points')
+            .eq('match_id', matchId),
+        _client.from('match_predictions').select('''
+        profile_id,predicted_score_as_grinta,predicted_score_adverse,
+        profiles(first_name,surnom)
+      ''').eq('match_id', matchId).eq('is_filled', true),
+      ],
+    ]);
+    final historyRaw = secondWave[0] as List;
     final history = historyRaw
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map(
@@ -217,10 +255,7 @@ class MatchDetailsRepository {
     var predictions = const <MatchPredictionResult>[];
 
     if (isValidated) {
-      final statRows = await _client.from('match_player_stats').select('''
-        season_player_id,goals,assists,clean_sheet,
-        season_players(first_name,last_name,profiles(surnom))
-      ''').eq('match_id', matchId);
+      final statRows = secondWave[1];
       final statsByPlayerId = <String, MatchStatLine>{};
       playerStats = (statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
@@ -248,18 +283,8 @@ class MatchDetailsRepository {
       }).toList()
         ..sort((a, b) => b.goals.compareTo(a.goals));
 
-      final publication = await _client
-          .from('match_composition_publications')
-          .select('snapshot')
-          .eq('match_id', matchId)
-          .order('version', ascending: false)
-          .order('published_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-      final manOfMatchRows = await _client
-          .from('match_man_of_match')
-          .select('season_player_id')
-          .eq('match_id', matchId);
+      final publication = secondWave[2] as Map<String, dynamic>?;
+      final manOfMatchRows = secondWave[3];
       final manOfMatchIds = {
         for (final raw in manOfMatchRows as List)
           if ((raw as Map)['season_player_id'] != null)
@@ -298,10 +323,7 @@ class MatchDetailsRepository {
           });
       }
 
-      final pointRows = await _client
-          .from('v_match_prediction_points')
-          .select('profile_id,points')
-          .eq('match_id', matchId);
+      final pointRows = secondWave[4];
       final pointsByProfile = <String, double>{};
       for (final row in pointRows as List) {
         final map = Map<String, dynamic>.from(row);
@@ -309,10 +331,7 @@ class MatchDetailsRepository {
         pointsByProfile[map['profile_id'].toString()] = decimalPoints * 100;
       }
 
-      final predictionRows = await _client.from('match_predictions').select('''
-        profile_id,predicted_score_as_grinta,predicted_score_adverse,
-        profiles(first_name,surnom)
-      ''').eq('match_id', matchId).eq('is_filled', true);
+      final predictionRows = secondWave[5];
       predictions = (predictionRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final profileId = map['profile_id'].toString();

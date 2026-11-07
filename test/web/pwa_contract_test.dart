@@ -91,6 +91,66 @@ void main() {
     );
 
     test(
+      'le programme principal versionné reste sur le téléphone',
+      () {
+        // Son adresse porte la version (tool/stamp_web_release.py) : il est
+        // servi depuis le téléphone sans risque de mélanger deux versions.
+        expect(worker, contains('const VERSIONED_MAIN_JS'));
+        expect(
+          worker,
+          contains(
+            "path.endsWith('/main.dart.js') && url.searchParams.has('v')",
+          ),
+        );
+        expect(worker, contains('const kept = await caches.match(request);'));
+        final versioned = worker.indexOf("url.searchParams.has('v')");
+        expect(versioned, lessThan(worker.indexOf('const mustStayFresh')));
+      },
+    );
+
+    test(
+      'une nouvelle version précharge son programme à l’installation',
+      () {
+        expect(
+          worker,
+          contains('await cache.add(VERSIONED_MAIN_JS).catch(() => {});'),
+        );
+      },
+    );
+
+    test('une nouvelle version repérée appli ouverte précharge son programme',
+        () {
+      final schedule = shell.indexOf('function scheduleDeploymentVersion(');
+      expect(schedule, isNonNegative);
+      expect(
+        shell.indexOf('prefetchDeploymentProgram(freshVersion);', schedule),
+        greaterThan(schedule),
+      );
+      // Même adresse que celle écrite dans flutter_bootstrap.js.
+      expect(
+        shell,
+        contains("'main.dart.js?v=' + encodeURIComponent(freshVersion)"),
+      );
+    });
+
+    test('les morceaux de programme chargés à la demande restent frais', () {
+      expect(worker, contains("path.endsWith('.part.js')"));
+    });
+
+    test('la première installation ne recharge pas la page', () {
+      final flag = shell.indexOf(
+        'var hadController = !!navigator.serviceWorker.controller;',
+      );
+      final listener = shell.indexOf("addEventListener('controllerchange'");
+      final reload = shell.indexOf('window.location.reload();', listener);
+      expect(flag, isNonNegative);
+      expect(listener, greaterThan(flag));
+      final guard = shell.indexOf('if (!hadController) {', listener);
+      expect(guard, greaterThan(listener));
+      expect(reload, greaterThan(guard));
+    });
+
+    test(
       'les vidéos et les sons ne passent pas par le cache du service worker',
       () {
         // Téléchargés par morceaux (réponses 206), ils échouaient dans le

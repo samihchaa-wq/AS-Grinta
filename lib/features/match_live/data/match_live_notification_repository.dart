@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/matches/data/upcoming_match_states_loader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -39,12 +40,20 @@ abstract interface class MatchLiveNotificationRepository {
 
 class SupabaseMatchLiveNotificationRepository
     implements MatchLiveNotificationRepository {
-  SupabaseMatchLiveNotificationRepository(this._client);
+  SupabaseMatchLiveNotificationRepository(this._client, {this.statesLoader});
 
   final SupabaseClient _client;
 
+  /// Regroupe les lectures du calendrier en une requête ; sans lui (ou si le
+  /// serveur ne sait pas encore les regrouper), lecture individuelle.
+  final UpcomingMatchStatesLoader? statesLoader;
+
   @override
   Future<MatchLiveNotificationStatus> fetchStatus(String matchId) async {
+    final grouped = await statesLoader?.load(matchId);
+    if (grouped != null && grouped.liveNotificationsRead) {
+      return MatchLiveNotificationStatus.fromRpc(grouped.liveNotifications);
+    }
     final response = await _client.rpc(
       'get_match_live_notification_subscription',
       params: {'p_match_id': matchId},
@@ -72,11 +81,18 @@ final matchLiveNotificationRepositoryProvider =
     Provider<MatchLiveNotificationRepository>((ref) {
   return SupabaseMatchLiveNotificationRepository(
     ref.watch(supabaseClientProvider),
+    statesLoader: ref.watch(upcomingMatchStatesLoaderProvider),
   );
 });
 
 final matchLiveNotificationStatusProvider = FutureProvider.autoDispose
     .family<MatchLiveNotificationStatus, String>((ref, matchId) async {
+  // Gardé deux minutes après la dernière carte qui l'affiche : faire défiler
+  // le calendrier ne redemande plus l'état à chaque réapparition de la carte.
+  final link = ref.keepAlive();
+  final keepTimer = Timer(const Duration(minutes: 2), link.close);
+  ref.onDispose(keepTimer.cancel);
+
   final status = await ref
       .watch(matchLiveNotificationRepositoryProvider)
       .fetchStatus(matchId);

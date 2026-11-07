@@ -54,8 +54,33 @@
     return navigateToDeploymentVersion(freshVersion);
   }
 
+  // Préchargement : dès qu'une nouvelle version est repérée pendant que
+  // l'application est ouverte, son programme est téléchargé en arrière-plan.
+  // Le service worker le garde (adresse versionnée, voir web/sw.js) : la
+  // prochaine ouverture n'attend plus ce téléchargement.
+  var prefetchedProgramVersion = '';
+  function prefetchDeploymentProgram(freshVersion) {
+    if (!freshVersion || freshVersion === prefetchedProgramVersion) return;
+    if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+      return;
+    }
+    prefetchedProgramVersion = freshVersion;
+    try {
+      var programUrl = new URL(
+        'main.dart.js?v=' + encodeURIComponent(freshVersion),
+        document.baseURI
+      );
+      fetch(programUrl.toString()).catch(function () {
+        prefetchedProgramVersion = '';
+      });
+    } catch (_) {
+      prefetchedProgramVersion = '';
+    }
+  }
+
   function scheduleDeploymentVersion(freshVersion) {
     pendingDeploymentVersion = freshVersion;
+    prefetchDeploymentProgram(freshVersion);
     if (!flutterFirstFrameSeen || document.visibilityState !== 'visible') {
       applyPendingDeploymentWhenSafe();
       return;
@@ -232,8 +257,17 @@
       });
     }).catch(function () {});
 
+    // Première installation : la page n'avait pas encore de service worker,
+    // il en prend simplement le contrôle. Elle est déjà à jour, la recharger
+    // relançait tout le démarrage et retéléchargeait le programme. Seul un
+    // changement de version (un service worker en remplace un autre) recharge.
+    var hadController = !!navigator.serviceWorker.controller;
     var refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
       if (refreshing || updateNavigationInProgress) return;
       refreshing = true;
       window.location.reload();

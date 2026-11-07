@@ -406,15 +406,22 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
 
   @override
   Stream<void> watchChanges(String matchId) {
+    // La première émission de chaque flux n'est que sa lecture initiale :
+    // l'écran Live vient de lire l'état complet et le relit encore une fois
+    // juste après l'abonnement. La transmettre déclenchait deux relectures
+    // de plus à chaque ouverture. Les émissions suivantes (changements,
+    // relecture après reconnexion) passent toutes.
     final sessionStream = _client
         .from('match_live_sessions')
         .stream(primaryKey: ['match_id'])
         .eq('match_id', matchId)
+        .skip(1)
         .map((_) => null);
     final eventsStream = _client
         .from('match_live_events')
         .stream(primaryKey: ['id'])
         .eq('match_id', matchId)
+        .skip(1)
         .map((_) => null);
     return Stream<void>.multi((controller) {
       final subs = [

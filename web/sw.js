@@ -1,5 +1,6 @@
-// Service worker AS La Grinta : navigation fraîche, bundle applicatif frais,
-// fichiers statiques locaux, mise à jour contrôlée et réception des notifications Web Push.
+// Service worker AS La Grinta : navigation fraîche, programme gardé par
+// version, fichiers statiques locaux, mise à jour contrôlée et réception des
+// notifications Web Push.
 const workerUrl = new URL(self.location.href);
 const WEB_VERSION = workerUrl.searchParams.get('v') || 'dev';
 const CACHE_NAME = `as-grinta-${WEB_VERSION.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
@@ -17,9 +18,24 @@ const APP_SHELL = [
   'icons/notification-badge-96.png',
 ];
 
+// Programme principal de cette version. Son adresse porte la version
+// (tool/stamp_web_release.py la réécrit dans flutter_bootstrap.js) : une page
+// d'une version ne peut donc jamais recevoir le programme d'une autre.
+const VERSIONED_MAIN_JS = `main.dart.js?v=${encodeURIComponent(WEB_VERSION)}`;
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(APP_SHELL);
+      // Préchargement : une nouvelle version découverte pendant que
+      // l'application est ouverte télécharge son programme tout de suite, en
+      // arrière-plan. L'ouverture suivante n'attend plus ce téléchargement.
+      // Un échec (réseau coupé) ne bloque pas l'installation : le programme
+      // sera simplement demandé au réseau à l'ouverture.
+      if (WEB_VERSION !== 'dev') {
+        await cache.add(VERSIONED_MAIN_JS).catch(() => {});
+      }
+    }),
   );
 });
 
@@ -126,11 +142,36 @@ self.addEventListener('fetch', (event) => {
       }
 
       const path = url.pathname;
+
+      // Programme principal versionné : il ne change jamais pour une même
+      // adresse. Il est donc servi depuis le téléphone dès qu'il y est, y
+      // compris depuis le cache préchargé par une version plus récente pas
+      // encore activée (caches.match parcourt tous les caches). Sans version
+      // dans l'adresse (ancien bootstrap), il reste demandé au réseau.
+      if (path.endsWith('/main.dart.js') && url.searchParams.has('v')) {
+        const kept = await caches.match(request);
+        if (kept) return kept;
+        // Cache HTTP du navigateur autorisé (pas de `no-store`) : l'adresse
+        // porte la version. Le préchargement de l'installation et la page
+        // demandent souvent ce même programme au même moment, juste après
+        // une mise à jour ; le second est alors servi par le navigateur au
+        // lieu d'être téléchargé une deuxième fois.
+        const response = await fetch(request);
+        if (response && response.ok) {
+          await cache.put(request, response.clone());
+        }
+        return response;
+      }
+
       const mustStayFresh =
           path.endsWith('/build_version.js') ||
           path.endsWith('/sw.js') ||
           path.endsWith('/index.html') ||
-          path.endsWith('/main.dart.js');
+          path.endsWith('/main.dart.js') ||
+          // Morceaux de programme chargés à la demande : leur adresse ne
+          // porte pas la version, ils doivent donc toujours venir du réseau
+          // tant qu'il répond.
+          path.endsWith('.part.js');
 
       if (mustStayFresh) {
         return networkFirst(request, cache);

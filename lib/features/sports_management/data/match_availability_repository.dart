@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/matches/data/upcoming_match_states_loader.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -77,9 +78,13 @@ abstract interface class MatchAvailabilityRepository {
 
 class SupabaseMatchAvailabilityRepository
     implements MatchAvailabilityRepository {
-  SupabaseMatchAvailabilityRepository(this._client);
+  SupabaseMatchAvailabilityRepository(this._client, {this.statesLoader});
 
   final SupabaseClient _client;
+
+  /// Regroupe les lectures du calendrier en une requête ; sans lui (ou si le
+  /// serveur ne sait pas encore les regrouper), lecture individuelle.
+  final UpcomingMatchStatesLoader? statesLoader;
   final Map<String, Future<MatchAvailability?>> _fetchesInFlight = {};
 
   @override
@@ -97,6 +102,13 @@ class SupabaseMatchAvailabilityRepository
   }
 
   Future<MatchAvailability?> _fetchMyAvailability(String matchId) async {
+    final grouped = await statesLoader?.load(matchId);
+    if (grouped != null && grouped.availabilityRead) {
+      final availability = grouped.availability;
+      return availability == null
+          ? null
+          : MatchAvailability.fromRpc(availability);
+    }
     final response = await _client.rpc('get_my_match_availability',
         params: {'p_match_id': matchId}).timeout(_availabilityReadTimeout);
     if (response == null) return null;
@@ -155,5 +167,6 @@ final matchAvailabilityRepositoryProvider =
     Provider<MatchAvailabilityRepository>((ref) {
   return SupabaseMatchAvailabilityRepository(
     ref.watch(supabaseClientProvider),
+    statesLoader: ref.watch(upcomingMatchStatesLoaderProvider),
   );
 });

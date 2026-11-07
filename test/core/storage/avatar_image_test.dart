@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/storage/avatar_image.dart';
+import 'package:as_grinta/core/storage/avatar_image_codec.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 

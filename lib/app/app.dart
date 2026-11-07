@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:as_grinta/app/router/app_router.dart';
+import 'package:as_grinta/core/l10n/french_localizations.dart';
 import 'package:as_grinta/core/network/connectivity_service.dart';
 import 'package:as_grinta/core/push/push_client.dart';
+import 'package:as_grinta/core/sync/resume_refresh_policy.dart';
 import 'package:as_grinta/core/sync/shared_data_sync.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
@@ -13,7 +15,6 @@ import 'package:as_grinta/features/notifications/data/notification_inbox_reposit
 import 'package:as_grinta/features/notifications/presentation/push_device_banner.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AsGrintaApp extends ConsumerStatefulWidget {
@@ -25,6 +26,10 @@ class AsGrintaApp extends ConsumerStatefulWidget {
 
 class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
     with WidgetsBindingObserver {
+  /// Moment où l'application est passée en arrière-plan, `null` au premier
+  /// plan.
+  DateTime? _backgroundedAt;
+
   @override
   void initState() {
     super.initState();
@@ -76,20 +81,38 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.invalidate(featureFlagsControllerProvider);
-      // Reconnecte le signal Realtime et fait aussi un refresh explicite : un
-      // iPhone peut suspendre le websocket pendant que l'application est en
-      // arrière-plan, il ne faut donc pas dépendre d'un événement manqué.
-      ref.invalidate(sharedDataSignalProvider);
-      unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
-      // Une application installée sur iPhone reprend souvent sans relancer :
-      // le retour au premier plan compte comme une ouverture.
-      if (ref.read(authControllerProvider).isAuthenticated) {
-        unawaited(_resyncPushSubscription());
-      }
-      // Le joueur revient peut-être des réglages du téléphone.
-      ref.invalidate(pushStatusProvider);
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      _backgroundedAt ??= DateTime.now();
+      return;
+    }
+    if (state != AppLifecycleState.resumed) return;
+
+    final backgroundedAt = _backgroundedAt;
+    _backgroundedAt = null;
+    final awayFor = backgroundedAt == null
+        ? null
+        : DateTime.now().difference(backgroundedAt);
+
+    // Reconnecte le signal Realtime : un iPhone peut suspendre le websocket
+    // pendant l'arrière-plan. La reconnexion relit la révision courante ; si
+    // elle a bougé pendant l'absence, le rafraîchissement ciblé habituel se
+    // déclenche (sharedDataSyncListenerProvider). Rien n'a changé : rien
+    // n'est rechargé.
+    ref.invalidate(sharedDataSignalProvider);
+    // La cloche peut avoir reçu des notifications pendant l'absence.
+    ref.invalidate(unreadNotificationCountProvider);
+    // Le joueur revient peut-être des réglages du téléphone.
+    ref.invalidate(pushStatusProvider);
+
+    if (!shouldFullyRefreshOnResume(awayFor)) return;
+
+    // Longue absence : une application installée sur iPhone reprend souvent
+    // sans relancer, ce retour compte alors comme une ouverture.
+    ref.invalidate(featureFlagsControllerProvider);
+    unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
+    if (ref.read(authControllerProvider).isAuthenticated) {
+      unawaited(_resyncPushSubscription());
     }
   }
 
@@ -120,11 +143,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: frenchLocalizationsDelegates,
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: AppTheme.background,
         materialTapTargetSize: MaterialTapTargetSize.padded,

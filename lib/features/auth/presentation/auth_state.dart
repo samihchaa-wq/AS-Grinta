@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/features/auth/data/auth_profile_cache.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
@@ -77,8 +78,12 @@ class AuthState {
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._repository, {Future<void> Function()? unsubscribeDevice})
-      : _unsubscribeDevice = unsubscribeDevice,
+  AuthController(
+    this._repository, {
+    Future<void> Function()? unsubscribeDevice,
+    AuthProfileCache? profileCache,
+  })  : _unsubscribeDevice = unsubscribeDevice,
+        _profileCache = profileCache,
         super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((event) {
       // Supabase.initialize a déjà restauré la session avant que l'application
@@ -99,6 +104,8 @@ class AuthController extends StateNotifier<AuthState> {
                 : null);
         _signedOutErrorToPreserve = null;
         _retryRefreshQueued = false;
+        _profileFromCache = false;
+        unawaited(_profileCache?.clear());
         state = AuthState(isLoading: false, error: preservedError);
         return;
       }
@@ -108,6 +115,7 @@ class AuthController extends StateNotifier<AuthState> {
       unawaited(_refreshProfile(retryAfterSignIn: isFreshSignIn));
     });
     unawaited(_refreshProfile());
+    unawaited(_restoreCachedProfile());
     _loadingFallback = Timer(const Duration(seconds: 15), () {
       if (!state.isLoading) return;
       final hasSession = _repository.hasSession;
@@ -127,6 +135,13 @@ class AuthController extends StateNotifier<AuthState> {
 
   final AuthRepository _repository;
 
+  /// Dernier profil confirmé, gardé sur l'appareil (voir [AuthProfileCache]).
+  final AuthProfileCache? _profileCache;
+
+  /// Vrai tant que le profil affiché vient de la copie de l'appareil et n'a
+  /// pas encore été confirmé par le serveur.
+  bool _profileFromCache = false;
+
   /// Désinscrit cet appareil des notifications push. Appelée avant la
   /// déconnexion, tant que la session permet encore de supprimer
   /// l'abonnement enregistré.
@@ -137,6 +152,25 @@ class AuthController extends StateNotifier<AuthState> {
   bool _retryRefreshQueued = false;
   String? _signedOutErrorToPreserve;
   int _authGeneration = 0;
+
+  /// Affiche tout de suite le dernier profil confirmé de ce compte, le temps
+  /// que le serveur réponde. Sans effet si le serveur a déjà répondu, si une
+  /// connexion ou une déconnexion a eu lieu entre-temps, ou sans session.
+  Future<void> _restoreCachedProfile() async {
+    final cache = _profileCache;
+    if (cache == null || !_repository.hasSession) return;
+    final generation = _authGeneration;
+    final cached = await cache.read();
+    if (cached == null || generation != _authGeneration) return;
+    if (!mounted || !state.isLoading || state.profile != null) return;
+    _profileFromCache = true;
+    state = state.copyWith(
+      isLoading: false,
+      isAuthenticated: true,
+      hasSession: true,
+      profile: cached,
+    );
+  }
 
   Future<void> _refreshProfile({bool retryAfterSignIn = false}) {
     if (retryAfterSignIn) {
@@ -183,16 +217,24 @@ class AuthController extends StateNotifier<AuthState> {
 
       final hasSession = _repository.hasSession;
       if (profile == null && hasSession) {
+        // Un profil seulement lu sur l'appareil n'autorise rien : sans
+        // confirmation du serveur, retour au comportement d'origine.
+        final fromCache = _profileFromCache;
+        _profileFromCache = false;
+        if (fromCache) unawaited(_profileCache?.remember(null));
         state = state.copyWith(
           isLoading: false,
           hasSession: true,
-          isAuthenticated: state.profile?.isActive == true,
+          isAuthenticated: !fromCache && state.profile?.isActive == true,
+          clearProfile: fromCache,
           error:
               'Connexion temporairement indisponible. Réessaie dans un instant.',
         );
         return;
       }
 
+      _profileFromCache = false;
+      unawaited(_profileCache?.remember(profile));
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: profile != null && profile.isActive,
@@ -311,6 +353,8 @@ class AuthController extends StateNotifier<AuthState> {
     _signedOutErrorToPreserve = null;
     state = state.copyWith(isLoading: true, clearError: true);
     await _unsubscribeDeviceBestEffort();
+    _profileFromCache = false;
+    await _profileCache?.clear();
     try {
       await _repository.signOut();
       state = const AuthState(isLoading: false);
@@ -335,6 +379,8 @@ class AuthController extends StateNotifier<AuthState> {
         lastName: lastName,
         surnom: surnom,
       );
+      _profileFromCache = false;
+      unawaited(_profileCache?.remember(profile));
       state = state.copyWith(
         isSaving: false,
         isAuthenticated: profile.isActive,
@@ -361,6 +407,8 @@ class AuthController extends StateNotifier<AuthState> {
         bytes: bytes,
         fileExt: fileExt,
       );
+      _profileFromCache = false;
+      unawaited(_profileCache?.remember(profile));
       state = state.copyWith(
         isSaving: false,
         isAuthenticated: profile.isActive,
@@ -412,6 +460,10 @@ final authControllerProvider =
     repository,
     unsubscribeDevice: () =>
         ref.read(pushSubscriptionsRepositoryProvider).disable(),
+    profileCache: AuthProfileCache(
+      currentUserId: () =>
+          supabase.Supabase.instance.client.auth.currentUser?.id,
+    ),
   );
 });
 

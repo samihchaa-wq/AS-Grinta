@@ -20,6 +20,10 @@ dependencies:
   # Client HTTP placé sous Supabase pour le garde-fou anti-boucle
   # (lib/core/network/request_burst_guard.dart). Déjà présent via supabase.
   http: ^1.6.0
+  # Formats de date français des traductions Flutter réduites au français
+  # (lib/core/l10n/french_localizations.dart). Déjà présent via
+  # flutter_localizations, qui en impose la version.
+  intl: ^0.20.2
   image_picker: ^1.1.2
   audioplayers: ^6.1.0
   share_plus: ^10.1.4

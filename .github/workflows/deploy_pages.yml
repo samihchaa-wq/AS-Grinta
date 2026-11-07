@@ -107,6 +107,7 @@ jobs:
           grep -Fq "$WEB_VERSION" build/web/build_version.js
           grep -Fq "build_version.js?v=$WEB_VERSION" build/web/index.html
           grep -Fq "app_shell.js?v=$WEB_VERSION" build/web/index.html
+          grep -Fq '"mainJsPath":"main.dart.js?v=' build/web/flutter_bootstrap.js
           grep -q 'version-check' build/web/app_shell.js
           grep -q '/AS-Grinta/' build/web/index.html
           grep -q 'Content-Security-Policy' build/web/index.html

@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/core/config/app_config.dart';
+import 'package:as_grinta/core/l10n/french_localizations.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/network/request_burst_guard.dart';
 import 'package:as_grinta/core/storage/profile_photo_urls.dart';
@@ -13,7 +14,6 @@ import 'package:as_grinta/core/widgets/grinta_background.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/incident_error_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -172,11 +172,7 @@ class _BootstrapShell extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+      localizationsDelegates: frenchLocalizationsDelegates,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.transparent,
       ),

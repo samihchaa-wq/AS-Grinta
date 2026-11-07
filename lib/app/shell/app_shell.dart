@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/app/shell/player_preview_banner.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
@@ -207,26 +205,26 @@ class _AppShellState extends ConsumerState<AppShell>
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(24),
                   ),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                    child: NavigationBar(
-                      selectedIndex: _selectedIndex,
-                      labelBehavior:
-                          NavigationDestinationLabelBehavior.alwaysShow,
-                      onDestinationSelected: _selectDestination,
-                      destinations: const [
-                        NavigationDestination(
-                          icon: Icon(Icons.calendar_month_outlined),
-                          selectedIcon: Icon(Icons.calendar_month_rounded),
-                          label: 'Calendrier',
-                        ),
-                        NavigationDestination(
-                          icon: Icon(Icons.leaderboard_outlined),
-                          selectedIcon: Icon(Icons.leaderboard_rounded),
-                          label: 'Statistiques',
-                        ),
-                      ],
-                    ),
+                  // Pas de flou : rien ne défile sous la barre (corps non
+                  // étendu), il ne floutait qu'un fond uni, mais coûtait un
+                  // recalcul à chaque image pendant le défilement.
+                  child: NavigationBar(
+                    selectedIndex: _selectedIndex,
+                    labelBehavior:
+                        NavigationDestinationLabelBehavior.alwaysShow,
+                    onDestinationSelected: _selectDestination,
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.calendar_month_outlined),
+                        selectedIcon: Icon(Icons.calendar_month_rounded),
+                        label: 'Calendrier',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.leaderboard_outlined),
+                        selectedIcon: Icon(Icons.leaderboard_rounded),
+                        label: 'Statistiques',
+                      ),
+                    ],
                   ),
                 ),
         );

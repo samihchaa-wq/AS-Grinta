@@ -11,22 +11,27 @@ class BadgeInboxRepository {
     final profileId = _client.auth.currentUser?.id;
     if (profileId == null) return false;
 
-    final latestAward = await _client
-        .from('profile_badges')
-        .select('awarded_at')
-        .eq('profile_id', profileId)
-        .order('awarded_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
+    // Les deux lectures partent ensemble.
+    final results = await Future.wait<Map<String, dynamic>?>([
+      _client
+          .from('profile_badges')
+          .select('awarded_at')
+          .eq('profile_id', profileId)
+          .order('awarded_at', ascending: false)
+          .limit(1)
+          .maybeSingle(),
+      _client
+          .from('badge_inbox_state')
+          .select('seen_through')
+          .eq('profile_id', profileId)
+          .maybeSingle(),
+    ]);
+    final latestAward = results[0];
     final latestAwardedAt = DateTime.tryParse(
       latestAward?['awarded_at']?.toString() ?? '',
     );
 
-    final state = await _client
-        .from('badge_inbox_state')
-        .select('seen_through')
-        .eq('profile_id', profileId)
-        .maybeSingle();
+    final state = results[1];
     final seenThrough = DateTime.tryParse(
       state?['seen_through']?.toString() ?? '',
     );
