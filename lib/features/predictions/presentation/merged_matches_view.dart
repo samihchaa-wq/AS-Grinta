@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
@@ -20,8 +22,6 @@ import 'package:as_grinta/features/matches/presentation/widgets/admin_match_opti
 import 'package:as_grinta/features/matches/presentation/widgets/calendar_feed_event_card.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
-import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
-import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
@@ -31,27 +31,14 @@ import 'package:go_router/go_router.dart';
 
 double? _persistedMergedMatchesScrollOffset;
 
-/// Vote Homme du match du dernier match joué, utilisé pour choisir le match
-/// affiché en haut du calendrier.
-///
-/// Il ne dépend volontairement pas du réglage « gestion sportive » : pendant
-/// le chargement des réglages du club, ce réglage vaut d'abord `false`, puis
-/// bascule. Cette bascule relançait la lecture du vote au moment où l'écran
-/// défilait vers le prochain match, et le ramenait sur le dernier joué. Sans
-/// gestion sportive, le serveur refuse simplement la lecture : l'erreur est
-/// traitée comme « pas de vote ».
-final calendarFocusMotmVoteProvider =
-    FutureProvider.autoDispose.family<SportMotmVote?, String>((ref, matchId) {
-  return ref.watch(sportMotmVoteProvider(matchId).future);
-});
-
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key, this.focusMatchId});
 
   /// Match à amener en haut de l'écran à l'ouverture, par exemple depuis une
   /// notification de disponibilité. Sans lui, ou s'il ne figure pas dans le
-  /// calendrier, c'est le dernier match joué, jusqu'à 24 h après la
-  /// désignation de son Homme du match ; ensuite, le prochain match.
+  /// calendrier, c'est le dernier match joué pendant 48 h après son coup
+  /// d'envoi (le vote Homme du match, clos 24 h après le coup d'envoi, puis
+  /// 24 h pour en voir le résultat) ; ensuite, le prochain match.
   final String? focusMatchId;
 
   @override
@@ -68,6 +55,18 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   /// autre carte.
   String? _builtFocusKey;
   String? _positioningFocusKey;
+
+  /// Faux jusqu'au premier positionnement : la liste reste masquée le temps
+  /// de se placer sur le bon match, au lieu de montrer le haut de la liste
+  /// puis de défiler sous les yeux.
+  bool _revealed = false;
+  Timer? _revealFallback;
+
+  void _reveal() {
+    if (_revealed || !mounted) return;
+    setState(() => _revealed = true);
+  }
+
   bool _userScrollInterrupted = false;
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -87,10 +86,13 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     Future.microtask(
       () => ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
     );
+    // Filet de sécurité : la liste s'affiche quoi qu'il arrive.
+    _revealFallback = Timer(const Duration(seconds: 2), _reveal);
   }
 
   @override
   void dispose() {
+    _revealFallback?.cancel();
     if (_scrollController.hasClients) {
       _persistedMergedMatchesScrollOffset = _scrollController.offset;
     }
@@ -140,10 +142,16 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     if (!mounted ||
         _lastFocusSignature != signature ||
         _userScrollInterrupted) {
+      _reveal();
       return;
     }
 
-    if (_scrollController.hasClients && totalEntries > 0) {
+    // Le saut approximatif ne sert qu'à faire construire une carte encore
+    // hors de portée. Quand elle est déjà là, il faisait dépasser le bon match
+    // avant de revenir dessus.
+    if (_focusMatchKey.currentContext == null &&
+        _scrollController.hasClients &&
+        totalEntries > 0) {
       final position = _scrollController.position;
       final estimated = position.maxScrollExtent * (focusIndex / totalEntries);
       if ((position.pixels - estimated).abs() > 200) {
@@ -155,6 +163,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     if (targetContext == null) {
       if (attempt >= 20) {
         _lastFocusSignature = null;
+        _reveal();
         return;
       }
       await Future<void>.delayed(const Duration(milliseconds: 60));
@@ -179,16 +188,23 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
           _lastFocusSignature != signature ||
           _builtFocusKey != _positioningFocusKey ||
           _userScrollInterrupted) {
+        _reveal();
         return;
       }
       final ctx = _focusMatchKey.currentContext;
-      if (ctx == null || !ctx.mounted) return;
+      if (ctx == null || !ctx.mounted) {
+        _reveal();
+        return;
+      }
       await Scrollable.ensureVisible(
         ctx,
         alignment: 0,
         alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
         duration: Duration.zero,
       );
+      // Le premier passage suffit à placer la carte : on peut montrer la
+      // liste, les passages suivants ne font que corriger au pixel près.
+      _reveal();
       await Future<void>.delayed(const Duration(milliseconds: 60));
     }
   }
@@ -250,32 +266,24 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       focusIndex = 0;
     }
 
-    // Par défaut, le dernier match joué reste en haut jusqu'à 24 h après la
-    // désignation de son Homme du match. Passé ce délai, c'est le prochain
-    // match qui prend sa place.
-    var motmResolved = true;
+    // Par défaut, le dernier match joué reste en haut pendant 48 h après son
+    // coup d'envoi, puis le prochain match prend sa place. La règle se calcule
+    // sur place, sans attendre le serveur : l'écran se positionne dès que les
+    // matchs sont là.
     if (requestedIndex < 0) {
       final lastPlayedIndex = _lastPlayedMatchIndex(entries, now);
       final nextIndex = _nextMatchIndex(entries, now);
-      if (lastPlayedIndex != null && nextIndex != null) {
-        final lastPlayed = entries[lastPlayedIndex].match!;
-        final vote = ref.watch(calendarFocusMotmVoteProvider(lastPlayed.id));
-        // Une relecture garde la réponse précédente : seul le tout premier
-        // chargement fait attendre.
-        motmResolved = vote.hasValue || vote.hasError;
-        if (_lastPlayedMatchIsStale(lastPlayed, vote, now)) {
-          focusIndex = nextIndex;
-        }
+      if (lastPlayedIndex != null &&
+          nextIndex != null &&
+          _lastPlayedMatchIsStale(entries[lastPlayedIndex].match!, now)) {
+        focusIndex = nextIndex;
       }
     }
 
     final focusKey = focusIndex == null ? null : _entryKey(entries[focusIndex]);
     _builtFocusKey = focusKey;
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    // On attend de connaître le vote avant de positionner l'écran, pour ne pas
-    // sauter d'un match à l'autre pendant le chargement.
-    final focusCardIsReady =
-        focusKey != null && !state.isLoading && motmResolved;
+    final focusCardIsReady = focusKey != null && !state.isLoading;
 
     _focusRelevantMatch(
       focusKey: focusKey,
@@ -287,76 +295,86 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     const cacheExtent = 1800.0;
 
-    return RefreshIndicator(
-      onRefresh: _refresh,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: _handleScrollNotification,
-        child: CustomScrollView(
-          controller: _scrollController,
-          scrollCacheExtent: const ScrollCacheExtent.pixels(cacheExtent),
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            const SliverToBoxAdapter(
-              child: SizedBox(height: AppSpacing.microGap),
-            ),
-            if (state.isLoading)
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenGutter,
-                ),
-                sliver: SliverToBoxAdapter(child: _LoadingCard()),
-              )
-            else if (state.error != null)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenGutter,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: _MessageCard(
-                    title: 'Matchs indisponibles',
-                    icon: Icons.wifi_off_rounded,
-                    message: state.error!,
-                    tone: GrintaEmptyTone.alert,
-                  ),
-                ),
-              )
-            else if (entries.isEmpty)
-              const SliverPadding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenGutter,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _MessageCard(
-                        title: 'Aucun match',
-                        message:
-                            'Le premier match apparaîtra ici dès qu’il sera créé.',
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ..._buildFeedSlivers(
-                sections: feedSections,
-                focusKey: focusKey,
-                focusMatchKey: _focusMatchKey,
-                isAdmin: isAdmin,
-                now: now,
+    // Masquée seulement quand un positionnement va avoir lieu ; un écran de
+    // chargement, d'erreur ou une liste vide restent visibles.
+    final hideUntilPositioned = !_revealed && focusCardIsReady;
+
+    return AnimatedOpacity(
+      opacity: hideUntilPositioned ? 0 : 1,
+      duration: const Duration(milliseconds: 120),
+      child: RefreshIndicator(
+        onRefresh: _refresh,
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _handleScrollNotification,
+          child: CustomScrollView(
+            controller: _scrollController,
+            scrollCacheExtent: const ScrollCacheExtent.pixels(cacheExtent),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.microGap),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 40)),
-          ],
+              if (state.isLoading)
+                const SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenGutter,
+                  ),
+                  sliver: SliverToBoxAdapter(child: _LoadingCard()),
+                )
+              else if (state.error != null)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenGutter,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: _MessageCard(
+                      title: 'Matchs indisponibles',
+                      icon: Icons.wifi_off_rounded,
+                      message: state.error!,
+                      tone: GrintaEmptyTone.alert,
+                    ),
+                  ),
+                )
+              else if (entries.isEmpty)
+                const SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenGutter,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _MessageCard(
+                          title: 'Aucun match',
+                          message:
+                              'Le premier match apparaîtra ici dès qu’il sera créé.',
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ..._buildFeedSlivers(
+                  sections: feedSections,
+                  focusKey: focusKey,
+                  focusMatchKey: _focusMatchKey,
+                  isAdmin: isAdmin,
+                  now: now,
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Délai pendant lequel le dernier match reste en haut après la désignation
-/// de son Homme du match.
-const _lastMatchFocusGrace = Duration(hours: 24);
+/// Durée pendant laquelle le dernier match joué reste en haut du calendrier
+/// après son coup d'envoi. Le vote Homme du match se ferme 24 h après le coup
+/// d'envoi (`private.match_motm_closes_at`) ; le résultat reste ensuite en
+/// vue 24 h.
+const lastMatchFocusDuration = Duration(hours: 48);
 
 int? _lastPlayedMatchIndex(List<_FeedEntry> entries, DateTime now) {
   int? index;
@@ -381,33 +399,9 @@ int? _nextMatchIndex(List<_FeedEntry> entries, DateTime now) {
   return fallback;
 }
 
-/// Vrai quand le dernier match joué doit céder la place au prochain :
-/// - vote clos : 24 h après la désignation de l'Homme du match ;
-/// - pas de vote pour ce match (annulé, indisponible, ou illisible, par
-///   exemple si la gestion sportive est désactivée) : 24 h après la fin prévue
-///   du match, pour ne pas le garder en haut toute la semaine.
-/// Tant que le vote est en attente ou en cours, le match reste.
-bool _lastPlayedMatchIsStale(
-  MatchModel match,
-  AsyncValue<SportMotmVote?> vote,
-  DateTime now,
-) {
-  if (!vote.hasValue && !vote.hasError) return false;
-  final value = vote.hasError ? null : vote.valueOrNull;
-  final DateTime? reference;
-  if (value == null ||
-      value.state == SportMotmVoteState.cancelled ||
-      value.state == SportMotmVoteState.unavailable) {
-    reference = match.kickoffAt.add(
-      Duration(minutes: match.plannedDurationMinutes),
-    );
-  } else if (value.state == SportMotmVoteState.closed) {
-    reference = value.closedAt;
-  } else {
-    reference = null;
-  }
-  return reference != null && now.isAfter(reference.add(_lastMatchFocusGrace));
-}
+/// Vrai quand le dernier match joué doit céder la place au prochain.
+bool _lastPlayedMatchIsStale(MatchModel match, DateTime now) =>
+    now.isAfter(match.kickoffAt.add(lastMatchFocusDuration));
 
 String _entryKey(_FeedEntry entry) {
   if (entry.match != null) return 'match:${entry.match!.id}';

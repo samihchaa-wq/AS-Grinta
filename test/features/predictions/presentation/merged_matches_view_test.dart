@@ -10,8 +10,6 @@ import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
-import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
-import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,16 +24,20 @@ void main() {
     required int upcomingMatches,
     String? focusMatchId,
     List<MatchModel> extraMatches = const [],
-    // Par défaut le vote du dernier match n'est pas encore clos : il reste en
-    // haut, comme pendant la semaine qui suit un match.
-    SportMotmVote? Function(String matchId) motmVote = _pendingVote,
+    // Ancienneté du dernier match joué. Par défaut il date de la veille et
+    // reste donc en haut ; les autres sont espacés d'une semaine.
+    Duration lastPlayedAgo = const Duration(days: 1),
   }) async {
     await tester.binding.setSurfaceSize(const Size(420, 860));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final now = DateTime.now();
     final matches = [
       for (var i = pastMatches; i >= 1; i--)
-        _match('past-$i', now.subtract(Duration(days: 7 * i)), finished: true),
+        _match(
+          'past-$i',
+          now.subtract(lastPlayedAgo + Duration(days: 7 * (i - 1))),
+          finished: true,
+        ),
       for (var i = 1; i <= upcomingMatches; i++)
         _match('next-$i', now.add(Duration(days: 7 * i)), finished: false),
       ...extraMatches,
@@ -59,8 +61,6 @@ void main() {
             (ref) => Stream.value(const []),
           ),
           myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
-          calendarFocusMotmVoteProvider
-              .overrideWith((ref, id) async => motmVote(id)),
         ],
         child: MaterialApp(
           home: Scaffold(body: MergedMatchesView(focusMatchId: focusMatchId)),
@@ -98,17 +98,17 @@ void main() {
     await disposeCalendar(tester);
   });
 
+  // Le vote Homme du match se ferme 24 h après le coup d'envoi ; le résultat
+  // reste ensuite en vue 24 h. Au-delà de 48 h, le prochain match passe en
+  // haut.
   testWidgets(
-      'le dernier match reste en haut moins de 24 h après la désignation de '
-      'l’Homme du match', (tester) async {
+      'le dernier match reste en haut jusqu’à 48 h après son coup d’envoi',
+      (tester) async {
     await pumpCalendar(
       tester,
       pastMatches: 12,
       upcomingMatches: 12,
-      motmVote: (id) => _closedVote(
-        id,
-        DateTime.now().subtract(const Duration(hours: 23)),
-      ),
+      lastPlayedAgo: const Duration(hours: 47),
     );
 
     final header = headerRect(tester, 'Terminés');
@@ -120,36 +120,82 @@ void main() {
   });
 
   testWidgets(
-      'plus de 24 h après la désignation de l’Homme du match, le prochain '
+      'plus de 48 h après le coup d’envoi du dernier match, le prochain '
       'match passe en haut', (tester) async {
     await pumpCalendar(
       tester,
       pastMatches: 12,
       upcomingMatches: 12,
-      motmVote: (id) => _closedVote(
-        id,
-        DateTime.now().subtract(const Duration(hours: 25)),
-      ),
+      lastPlayedAgo: const Duration(hours: 49),
     );
 
     final header = headerRect(tester, 'À venir');
     final card = tester.getRect(find.text('Clubnext1'));
     expect(card.top, greaterThanOrEqualTo(header.bottom));
     expect(card.top - header.bottom, lessThan(120));
+    expect(find.text('Clubpast1'), findsNothing);
 
     await disposeCalendar(tester);
   });
 
   testWidgets(
-      'sans vote pour le dernier match, le prochain match passe en haut 24 h '
-      'après la fin du match', (tester) async {
-    await pumpCalendar(
-      tester,
-      pastMatches: 12,
-      upcomingMatches: 12,
-      motmVote: (_) => null,
+      'à l’ouverture, la liste reste masquée jusqu’à être placée sur le bon '
+      'match, sans défiler sous les yeux', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 860));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final now = DateTime.now();
+    final matches = [
+      for (var i = 12; i >= 1; i--)
+        _match(
+          'past-$i',
+          now.subtract(Duration(days: 7 * i - 2)),
+          finished: true,
+        ),
+      for (var i = 1; i <= 12; i++)
+        _match(
+          'next-$i',
+          now.add(Duration(days: 7 * i - 5)),
+          finished: false,
+        ),
+    ];
+    late _DelayedMatchesController controller;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(_FakeAuthRepository()),
+          ),
+          matchesControllerProvider.overrideWith(
+            (ref) => controller = _DelayedMatchesController(ref),
+          ),
+          isAdminViewProvider.overrideWithValue(false),
+          sportsManagementEnabledProvider.overrideWithValue(false),
+          clubEventsProvider.overrideWith(
+            (ref) => Stream.value(const <ClubEvent>[]),
+          ),
+          allHistoricalMatchesProvider.overrideWith(
+            (ref) => Stream.value(const []),
+          ),
+          myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
+        ],
+        child: const MaterialApp(home: Scaffold(body: MergedMatchesView())),
+      ),
     );
+    await tester.pump(const Duration(milliseconds: 50));
+    controller.emit(matches);
+    await tester.pump();
 
+    double opacity() =>
+        tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity;
+
+    // Les matchs sont là, mais pas encore à la bonne place : rien n'est
+    // montré, ni le haut de la liste ni une carte dépassée.
+    expect(opacity(), 0);
+
+    for (var i = 0; i < 20; i += 1) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(opacity(), 1);
     final header = headerRect(tester, 'À venir');
     final card = tester.getRect(find.text('Clubnext1'));
     expect(card.top, greaterThanOrEqualTo(header.bottom));
@@ -157,88 +203,6 @@ void main() {
 
     await disposeCalendar(tester);
   });
-
-  // Dans l'appli, les réglages du club arrivent après les matchs : la gestion
-  // sportive paraît d'abord coupée, puis s'allume, et le vote peut être relu
-  // pendant que l'écran défile. Rien de tout cela ne doit ramener l'écran sur
-  // le dernier match joué.
-  for (final reloadVote in [false, true]) {
-    testWidgets(
-        'vote clos depuis plusieurs jours : le prochain match reste en haut '
-        'malgré des chargements tardifs${reloadVote ? ' et une relecture du vote' : ''}',
-        (tester) async {
-      await tester.binding.setSurfaceSize(const Size(420, 860));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final now = DateTime.now();
-      final matches = [
-        for (var i = 6; i >= 1; i--)
-          _match(
-            'past-$i',
-            now.subtract(Duration(days: 7 * i - 2)),
-            finished: true,
-          ),
-        for (var i = 1; i <= 6; i++)
-          _match(
-            'next-$i',
-            now.add(Duration(days: 7 * i - 5)),
-            finished: false,
-          ),
-      ];
-      final sportsFlag = StateProvider<bool>((ref) => false);
-      late _DelayedMatchesController controller;
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authControllerProvider.overrideWith(
-              (ref) => AuthController(_FakeAuthRepository()),
-            ),
-            matchesControllerProvider.overrideWith(
-              (ref) => controller = _DelayedMatchesController(ref),
-            ),
-            isAdminViewProvider.overrideWithValue(false),
-            sportsManagementEnabledProvider.overrideWith(
-              (ref) => ref.watch(sportsFlag),
-            ),
-            clubEventsProvider.overrideWith(
-              (ref) => Stream.value(const <ClubEvent>[]),
-            ),
-            allHistoricalMatchesProvider.overrideWith(
-              (ref) => Stream.value(const []),
-            ),
-            myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
-            sportMotmVoteRepositoryProvider.overrideWithValue(
-              _DelayedClosedVoteRepository(),
-            ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(body: MergedMatchesView()),
-          ),
-        ),
-      );
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MergedMatchesView)),
-      );
-      await tester.pump(const Duration(milliseconds: 50));
-      controller.emit(matches);
-      await tester.pump(const Duration(milliseconds: 150));
-      container.read(sportsFlag.notifier).state = true;
-      if (reloadVote) {
-        await tester.pump(const Duration(milliseconds: 250));
-        container.invalidate(sportMotmVoteProvider);
-      }
-      for (var i = 0; i < 30; i += 1) {
-        await tester.pump(const Duration(milliseconds: 100));
-      }
-
-      final header = headerRect(tester, 'À venir');
-      final card = tester.getRect(find.text('Clubnext1'));
-      expect(card.top, greaterThanOrEqualTo(header.bottom));
-      expect(card.top - header.bottom, lessThan(120));
-      expect(find.text('Clubpast1'), findsNothing);
-
-      await disposeCalendar(tester);
-    });
-  }
 
   testWidgets(
       'dans les matchs à venir, seul l’en-tête « À venir » reste épinglé',
@@ -437,52 +401,6 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<Never> fetchProfile({bool retryAfterSignIn = false}) =>
       Completer<Never>().future;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-SportMotmVote _pendingVote(String matchId) =>
-    _vote(matchId, SportMotmVoteState.draft, closedAt: null);
-
-SportMotmVote _closedVote(String matchId, DateTime closedAt) =>
-    _vote(matchId, SportMotmVoteState.closed, closedAt: closedAt);
-
-SportMotmVote _vote(
-  String matchId,
-  SportMotmVoteState state, {
-  required DateTime? closedAt,
-}) =>
-    SportMotmVote(
-      matchId: matchId,
-      opponentName: 'Club',
-      isHome: true,
-      scoreAsGrinta: 1,
-      scoreAdverse: 0,
-      state: state,
-      opensAt: closedAt?.subtract(const Duration(hours: 24)),
-      closesAt: closedAt,
-      closedAt: closedAt,
-      finalizationVersion: 1,
-      hasVoted: false,
-      canVote: false,
-      isEligibleVoter: false,
-      totalVotes: 0,
-      maxVotes: 0,
-      candidates: const [],
-    );
-
-/// Répond comme le serveur pour un vote clos il y a trois jours, avec le
-/// délai d'un vrai appel réseau.
-class _DelayedClosedVoteRepository implements SportMotmVoteRepository {
-  @override
-  Future<SportMotmVote?> fetch(String matchId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    return _closedVote(
-      matchId,
-      DateTime.now().subtract(const Duration(days: 3)),
-    );
-  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
