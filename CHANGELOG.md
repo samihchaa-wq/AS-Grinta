@@ -380,6 +380,30 @@ Toutes les évolutions notables d’AS Grinta sont documentées ici.
 
 ### Performance
 
+- ouverture : le programme de l'application (1,7 Mo) n'est plus
+  retéléchargé à chaque ouverture. Il reste sur le téléphone jusqu'à la
+  version suivante, dont le programme est préchargé en arrière-plan dès
+  qu'elle est repérée, application ouverte. Dans une simulation sur une 4G
+  correcte, la réouverture passe d'environ 3 s à environ 1 s. La toute
+  première ouverture ne recharge plus la page en plein démarrage ;
+- programme allégé de 19 % (5,86 Mo -> 4,73 Mo ; 1,65 Mo -> 1,39 Mo
+  téléchargés) : traductions de Flutter réduites au français (plus de
+  quatre-vingts langues embarquées), outil de retouche photo, écrans admin
+  et bilan de saison téléchargés à leur première ouverture ;
+- calendrier : « ma dispo » et la cloche des buts de tous les matchs à venir
+  arrivent en une seule requête au lieu de deux par carte (environ 26) ;
+  l'état de la cloche n'est plus redemandé en faisant défiler ;
+- retour dans l'application après une courte absence : seuls le signal de
+  synchronisation et la cloche sont relus, au lieu de tout recharger
+  (calendrier complet, profil, une vingtaine de blocs) ; tout est rechargé
+  après 30 minutes d'absence ;
+- ouverture : le dernier profil confirmé s'affiche sans attendre le
+  serveur, qui le confirme ou le remplace juste après ;
+- fiche d'un match terminé, armoire à trophées, composition admin : les
+  lectures indépendantes partent ensemble au lieu de s'enchaîner (huit
+  requêtes successives sur la fiche d'un match terminé) ;
+- défilement : les barres du haut et du bas ne recalculent plus un flou
+  invisible à chaque image ; l'écusson est décodé à sa taille d'affichage ;
 - cloche des alertes de buts : pour un match dont les alertes ouvrent dans
   plus de 24,8 jours, l'application relisait l'état de la cloche sans fin
   (une minuterie trop longue se déclenche immédiatement dans un navigateur).
