@@ -286,24 +286,25 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                     onTap: onRelance,
                     radius: 15,
                     child: Padding(
-                      // Même marge qu'avant le badge : il déborde de la
-                      // cloche sans prendre de place au prénom.
                       padding: const EdgeInsets.all(2),
-                      // Petit nombre de relances, sans fond, uniquement si
-                      // le joueur a déjà été relancé par un admin.
-                      child: Badge(
-                        isLabelVisible: manualReminderCount > 0,
-                        label: Text('$manualReminderCount'),
-                        backgroundColor: Colors.transparent,
-                        textColor: color,
-                        textStyle: const TextStyle(fontSize: 10),
-                        padding: EdgeInsets.zero,
-                        offset: const Offset(5, -6),
-                        child: Icon(
-                          Icons.notifications_active_outlined,
-                          size: 14,
-                          color: color,
-                        ),
+                      // Le nombre de relances, lisible, à droite de la cloche.
+                      // Rien tant que le joueur n'a pas été relancé.
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.notifications_active_outlined,
+                            size: 14,
+                            color: color,
+                          ),
+                          if (manualReminderCount > 0) ...[
+                            const SizedBox(width: 2),
+                            Text(
+                              '$manualReminderCount',
+                              style: TextStyle(fontSize: 13, color: color),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ),
