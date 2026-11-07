@@ -4,6 +4,56 @@ import 'package:flutter/material.dart';
 /// Vignette d'un maillot proposé pour un match, avec sa coche quand il est
 /// choisi. Partagée par le formulaire de création et celui de modification
 /// d'un match.
+/// Rangée des maillots proposés. Chaque vignette prend une part égale de la
+/// largeur disponible, pour que les maillots restent sur une seule ligne quelle
+/// que soit la taille de l'écran (plafonnés pour ne pas devenir énormes sur
+/// tablette).
+class JerseyOptionPicker extends StatelessWidget {
+  const JerseyOptionPicker({
+    required this.selected,
+    required this.onChanged,
+    super.key,
+  });
+
+  final JerseyOption? selected;
+
+  /// Reçoit le maillot choisi, ou `null` quand on retape sur celui déjà
+  /// sélectionné. `null` désactive la sélection.
+  final ValueChanged<JerseyOption?>? onChanged;
+
+  static const double _spacing = 12;
+  static const double _maxTileWidth = 130;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = JerseyOption.values;
+    return Row(
+      children: [
+        for (var i = 0; i < options.length; i++) ...[
+          if (i > 0) const SizedBox(width: _spacing),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _maxTileWidth),
+                child: JerseyOptionTile(
+                  option: options[i],
+                  selected: selected == options[i],
+                  onTap: onChanged == null
+                      ? null
+                      : () => onChanged!(
+                            selected == options[i] ? null : options[i],
+                          ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class JerseyOptionTile extends StatelessWidget {
   const JerseyOptionTile({
     required this.option,
@@ -22,9 +72,8 @@ class JerseyOptionTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: SizedBox(
-        width: 96,
-        height: 108,
+      child: AspectRatio(
+        aspectRatio: 96 / 108,
         child: Stack(
           children: [
             Center(

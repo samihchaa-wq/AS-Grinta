@@ -656,22 +656,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                   ?.copyWith(fontWeight: FontWeight.w400),
             ),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (final option in JerseyOption.values)
-                  JerseyOptionTile(
-                    option: option,
-                    selected: _selectedJersey == option,
-                    onTap: busy
-                        ? null
-                        : () => setState(() {
-                              _selectedJersey =
-                                  _selectedJersey == option ? null : option;
-                            }),
-                  ),
-              ],
+            JerseyOptionPicker(
+              selected: _selectedJersey,
+              onChanged: busy
+                  ? null
+                  : (option) => setState(() => _selectedJersey = option),
             ),
           ],
         ),
