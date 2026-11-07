@@ -202,6 +202,12 @@ class _EffectifAvatarGrid extends StatelessWidget {
           onRelance: (player.isGuest || onRelance == null)
               ? null
               : () => onRelance!(player),
+          // Une relance manuelle a déjà été envoyée à ce joueur pour ce
+          // match : le serveur ne renvoie un délai de relance que dans ce cas.
+          manuallyReminded: owner?._reminders
+                  ?.playerFor(player.seasonPlayerId)
+                  ?.manualCooldownUntil !=
+              null,
         );
 
         Widget content = Semantics(
@@ -244,6 +250,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
     required this.selected,
     this.onTap,
     this.onRelance,
+    this.manuallyReminded = false,
   });
 
   final ConvocationPlayer player;
@@ -251,6 +258,10 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
   final VoidCallback? onRelance;
+
+  /// Affiche « 1 » sur la cloche si un admin a déjà relancé ce joueur pour
+  /// ce match, « 0 » sinon.
+  final bool manuallyReminded;
 
   @override
   Widget build(BuildContext context) {
@@ -271,16 +282,30 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
             )
           : onRelance != null
               ? Tooltip(
-                  message: 'Relancer ${player.displayName}',
+                  message: manuallyReminded
+                      ? 'Déjà relancé — relancer ${player.displayName}'
+                      : 'Relancer ${player.displayName}',
                   child: InkResponse(
                     onTap: onRelance,
                     radius: 15,
                     child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Icon(
-                        Icons.notifications_active_outlined,
-                        size: 14,
-                        color: color,
+                      padding: const EdgeInsets.fromLTRB(2, 4, 6, 2),
+                      child: Badge(
+                        label: Text(manuallyReminded ? '1' : '0'),
+                        backgroundColor:
+                            manuallyReminded ? AppTheme.accent : color,
+                        textColor: Colors.black,
+                        textStyle: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        offset: const Offset(6, -5),
+                        child: Icon(
+                          Icons.notifications_active_outlined,
+                          size: 14,
+                          color: color,
+                        ),
                       ),
                     ),
                   ),
