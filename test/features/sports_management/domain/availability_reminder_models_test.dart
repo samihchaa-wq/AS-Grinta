@@ -18,9 +18,20 @@ void main() {
             'season_player_id': 'player-1',
             'last_reminder_at': '2026-07-20T14:00:00Z',
             'manual_cooldown_until': '2026-07-20T14:10:00Z',
+            'manual_reminder_count': 3,
           },
+          {
+            // Serveur pas encore à jour : pas de nombre, mais une relance.
+            'season_player_id': 'player-2',
+            'manual_cooldown_until': '2026-07-20T14:10:00Z',
+          },
+          {'season_player_id': 'player-3'},
         ],
       });
+
+      expect(summary.playerFor('player-1')!.manualReminderCount, 3);
+      expect(summary.playerFor('player-2')!.manualReminderCount, 1);
+      expect(summary.playerFor('player-3')!.manualReminderCount, 0);
 
       expect(summary.matchId, 'match-1');
       expect(summary.noResponseCount, 2);

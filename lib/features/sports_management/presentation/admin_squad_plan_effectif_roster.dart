@@ -193,6 +193,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
                       player: player,
                     );
 
+        final reminder = owner?._reminders?.playerFor(player.seasonPlayerId);
         final tile = _EffectifAvatarPlayerTile(
           key: ValueKey('effectif-player-${player.participantId}'),
           player: player,
@@ -202,12 +203,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
           onRelance: (player.isGuest || onRelance == null)
               ? null
               : () => onRelance!(player),
-          // Une relance manuelle a déjà été envoyée à ce joueur pour ce
-          // match : le serveur ne renvoie un délai de relance que dans ce cas.
-          manuallyReminded: owner?._reminders
-                  ?.playerFor(player.seasonPlayerId)
-                  ?.manualCooldownUntil !=
-              null,
+          manualReminderCount: reminder?.manualReminderCount ?? 0,
         );
 
         Widget content = Semantics(
@@ -250,7 +246,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
     required this.selected,
     this.onTap,
     this.onRelance,
-    this.manuallyReminded = false,
+    this.manualReminderCount = 0,
   });
 
   final ConvocationPlayer player;
@@ -259,9 +255,9 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onRelance;
 
-  /// Affiche « 1 » sur la cloche si un admin a déjà relancé ce joueur pour
-  /// ce match, « 0 » sinon.
-  final bool manuallyReminded;
+  /// Nombre de relances faites par un admin pour ce match, affiché en petit
+  /// sur la cloche. Rien n'est affiché tant qu'il vaut zéro.
+  final int manualReminderCount;
 
   @override
   Widget build(BuildContext context) {
@@ -282,8 +278,9 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
             )
           : onRelance != null
               ? Tooltip(
-                  message: manuallyReminded
-                      ? 'Déjà relancé — relancer ${player.displayName}'
+                  message: manualReminderCount > 0
+                      ? 'Relancer ${player.displayName} '
+                          '(déjà $manualReminderCount fois)'
                       : 'Relancer ${player.displayName}',
                   child: InkResponse(
                     onTap: onRelance,
@@ -292,14 +289,16 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                       // Même marge qu'avant le badge : il déborde de la
                       // cloche sans prendre de place au prénom.
                       padding: const EdgeInsets.all(2),
+                      // Petit nombre de relances, sans fond, uniquement si
+                      // le joueur a déjà été relancé par un admin.
                       child: Badge(
-                        label: Text(manuallyReminded ? '1' : '0'),
-                        backgroundColor:
-                            manuallyReminded ? AppTheme.accent : color,
-                        textColor: Colors.black,
-                        textStyle: const TextStyle(fontSize: 9),
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        offset: const Offset(6, -5),
+                        isLabelVisible: manualReminderCount > 0,
+                        label: Text('$manualReminderCount'),
+                        backgroundColor: Colors.transparent,
+                        textColor: color,
+                        textStyle: const TextStyle(fontSize: 10),
+                        padding: EdgeInsets.zero,
+                        offset: const Offset(5, -6),
                         child: Icon(
                           Icons.notifications_active_outlined,
                           size: 14,
