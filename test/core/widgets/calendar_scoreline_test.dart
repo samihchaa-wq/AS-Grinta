@@ -59,11 +59,15 @@ void main() {
   testWidgets('seule AS Grinta porte son écusson', (tester) async {
     await pumpCard(tester, finished(opponent: 'FC Booster', isHome: false));
 
+    // L'écusson est décodé à sa taille d'affichage : l'image d'origine est
+    // alors enveloppée dans un ResizeImage.
+    ImageProvider<Object> source(ImageProvider<Object> image) =>
+        image is ResizeImage ? image.imageProvider : image;
     final crests = find.byWidgetPredicate(
       (widget) =>
           widget is Image &&
-          widget.image is AssetImage &&
-          (widget.image as AssetImage).assetName ==
+          source(widget.image) is AssetImage &&
+          (source(widget.image) as AssetImage).assetName ==
               CalendarScoreline.crestAsset,
     );
     expect(crests, findsOneWidget);

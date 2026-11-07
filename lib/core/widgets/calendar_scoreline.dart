@@ -165,9 +165,18 @@ class _ScorelineTeam extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // L'écusson source mesure 680 × 741 px pour un affichage de 32 px : le
+    // décoder à la taille affichée évite de redimensionner une grande image
+    // à chaque image de chaque carte pendant le défilement du calendrier.
+    final crestPixels =
+        (crestSize * MediaQuery.devicePixelRatioOf(context)).ceil();
     final crest = ExcludeSemantics(
       child: Image(
-        image: const AssetImage(CalendarScoreline.crestAsset),
+        image: ResizeImage.resizeIfNeeded(
+          null,
+          crestPixels,
+          const AssetImage(CalendarScoreline.crestAsset),
+        ),
         width: crestSize,
         height: crestSize,
         fit: BoxFit.contain,
