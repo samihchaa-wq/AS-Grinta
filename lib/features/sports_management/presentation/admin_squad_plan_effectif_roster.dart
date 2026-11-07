@@ -289,16 +289,15 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
                     onTap: onRelance,
                     radius: 15,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(2, 4, 6, 2),
+                      // Même marge qu'avant le badge : il déborde de la
+                      // cloche sans prendre de place au prénom.
+                      padding: const EdgeInsets.all(2),
                       child: Badge(
                         label: Text(manuallyReminded ? '1' : '0'),
                         backgroundColor:
                             manuallyReminded ? AppTheme.accent : color,
                         textColor: Colors.black,
-                        textStyle: const TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        textStyle: const TextStyle(fontSize: 9),
                         padding: const EdgeInsets.symmetric(horizontal: 3),
                         offset: const Offset(6, -5),
                         child: Icon(
