@@ -69,10 +69,17 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
   bool _userScrollInterrupted = false;
 
+  /// Vrai dès que la personne fait défiler elle-même. Une mise à jour des
+  /// données ne la ramène plus alors sur le match mis en avant ; seule une
+  /// vraie demande (retour sur l'onglet, notification) le fait.
+  bool _userHasScrolled = false;
+  String? _lastRequestToken;
+
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification is ScrollStartNotification &&
         notification.dragDetails != null) {
       _userScrollInterrupted = true;
+      _userHasScrolled = true;
     }
     return false;
   }
@@ -87,7 +94,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       () => ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
     );
     // Filet de sécurité : la liste s'affiche quoi qu'il arrive.
-    _revealFallback = Timer(const Duration(seconds: 2), _reveal);
+    _revealFallback = Timer(const Duration(seconds: 3), _reveal);
   }
 
   @override
@@ -115,11 +122,19 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     required int totalEntries,
     required bool cardIsReady,
     required String requestToken,
+    required int dataVersion,
   }) {
     if (focusKey == null || focusIndex == null || !cardIsReady) return;
 
-    final signature = '$focusKey:$requestToken';
+    // Des matchs ajoutés au-dessus (historique relu depuis le serveur, par
+    // exemple) décalent la liste : on se recale sur la même carte, sauf si la
+    // personne a déjà fait défiler.
+    final explicitRequest = requestToken != _lastRequestToken;
+    if (!explicitRequest && _userHasScrolled) return;
+    final signature = '$focusKey:$requestToken:$dataVersion';
     if (_lastFocusSignature == signature) return;
+    _lastRequestToken = requestToken;
+    if (explicitRequest) _userHasScrolled = false;
     _lastFocusSignature = signature;
     _positioningFocusKey = focusKey;
     _userScrollInterrupted = false;
@@ -139,9 +154,11 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     required int totalEntries,
     int attempt = 0,
   }) async {
-    if (!mounted ||
-        _lastFocusSignature != signature ||
-        _userScrollInterrupted) {
+    // Un positionnement plus récent a pris le relais (par exemple quand les
+    // matchs de la saison arrivent après l'historique) : c'est lui qui
+    // montrera la liste, une fois placé.
+    if (!mounted || _lastFocusSignature != signature) return;
+    if (_userScrollInterrupted) {
       _reveal();
       return;
     }
@@ -186,38 +203,36 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     for (var i = 0; i < 6; i += 1) {
       if (!mounted ||
           _lastFocusSignature != signature ||
-          _builtFocusKey != _positioningFocusKey ||
-          _userScrollInterrupted) {
+          _builtFocusKey != _positioningFocusKey) {
+        return;
+      }
+      if (_userScrollInterrupted) {
         _reveal();
         return;
       }
       final ctx = _focusMatchKey.currentContext;
-      if (ctx == null || !ctx.mounted) {
-        _reveal();
-        return;
-      }
+      if (ctx == null || !ctx.mounted) return;
       await Scrollable.ensureVisible(
         ctx,
         alignment: 0,
         alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
         duration: Duration.zero,
       );
-      // Le premier passage suffit à placer la carte : on peut montrer la
-      // liste, les passages suivants ne font que corriger au pixel près.
-      _reveal();
       await Future<void>.delayed(const Duration(milliseconds: 60));
     }
+    // Placée et stable : la liste peut apparaître.
+    if (mounted && _lastFocusSignature == signature) _reveal();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
-    final events =
-        ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
+    final eventsAsync = ref.watch(clubEventsProvider);
+    final historyAsync = ref.watch(allHistoricalMatchesProvider);
+    final events = eventsAsync.valueOrNull ?? const <ClubEvent>[];
     final historicalMatches =
-        ref.watch(allHistoricalMatchesProvider).valueOrNull ??
-            const <HistoricalMatchResult>[];
+        historyAsync.valueOrNull ?? const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
     final entries = <_FeedEntry>[];
@@ -283,7 +298,13 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final focusKey = focusIndex == null ? null : _entryKey(entries[focusIndex]);
     _builtFocusKey = focusKey;
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    final focusCardIsReady = focusKey != null && !state.isLoading;
+    // Toutes les sources du calendrier doivent être là avant de se placer :
+    // une source arrivée après coup déplacerait la liste sous les yeux.
+    final dataComplete = !state.isLoading &&
+        state.matches.isNotEmpty &&
+        (eventsAsync.hasValue || eventsAsync.hasError) &&
+        (historyAsync.hasValue || historyAsync.hasError);
+    final focusCardIsReady = focusKey != null && dataComplete;
 
     _focusRelevantMatch(
       focusKey: focusKey,
@@ -291,81 +312,93 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       totalEntries: entries.length,
       cardIsReady: focusCardIsReady,
       requestToken: '$focusRequest',
+      dataVersion: entries.length,
     );
 
     const cacheExtent = 1800.0;
 
-    // Masquée seulement quand un positionnement va avoir lieu ; un écran de
-    // chargement, d'erreur ou une liste vide restent visibles.
-    final hideUntilPositioned = !_revealed && focusCardIsReady;
+    // À l'ouverture, rien n'est montré tant que la liste n'est pas placée sur
+    // le bon match : seulement l'indicateur de chargement. Une erreur ou un
+    // calendrier vide s'affichent tout de suite.
+    final nothingToPlace = state.error != null ||
+        (!state.isLoading && dataComplete && entries.isEmpty);
+    final hideUntilPositioned = !_revealed && !nothingToPlace;
 
-    return AnimatedOpacity(
-      opacity: hideUntilPositioned ? 0 : 1,
-      duration: const Duration(milliseconds: 120),
-      child: RefreshIndicator(
-        onRefresh: _refresh,
-        child: NotificationListener<ScrollNotification>(
-          onNotification: _handleScrollNotification,
-          child: CustomScrollView(
-            controller: _scrollController,
-            scrollCacheExtent: const ScrollCacheExtent.pixels(cacheExtent),
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.microGap),
-              ),
-              if (state.isLoading)
-                const SliverPadding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenGutter,
+    return Stack(
+      children: [
+        AnimatedOpacity(
+          opacity: hideUntilPositioned ? 0 : 1,
+          duration: const Duration(milliseconds: 120),
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _handleScrollNotification,
+              child: CustomScrollView(
+                controller: _scrollController,
+                scrollCacheExtent: const ScrollCacheExtent.pixels(cacheExtent),
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.microGap),
                   ),
-                  sliver: SliverToBoxAdapter(child: _LoadingCard()),
-                )
-              else if (state.error != null)
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenGutter,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: _MessageCard(
-                      title: 'Matchs indisponibles',
-                      icon: Icons.wifi_off_rounded,
-                      message: state.error!,
-                      tone: GrintaEmptyTone.alert,
-                    ),
-                  ),
-                )
-              else if (entries.isEmpty)
-                const SliverPadding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenGutter,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _MessageCard(
-                          title: 'Aucun match',
-                          message:
-                              'Le premier match apparaîtra ici dès qu’il sera créé.',
+                  if (state.isLoading)
+                    const SliverPadding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenGutter,
+                      ),
+                      sliver: SliverToBoxAdapter(child: _LoadingCard()),
+                    )
+                  else if (state.error != null)
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenGutter,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: _MessageCard(
+                          title: 'Matchs indisponibles',
+                          icon: Icons.wifi_off_rounded,
+                          message: state.error!,
+                          tone: GrintaEmptyTone.alert,
                         ),
-                      ],
+                      ),
+                    )
+                  else if (entries.isEmpty)
+                    const SliverPadding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenGutter,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _MessageCard(
+                              title: 'Aucun match',
+                              message:
+                                  'Le premier match apparaîtra ici dès qu’il sera créé.',
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ..._buildFeedSlivers(
+                      sections: feedSections,
+                      focusKey: focusKey,
+                      focusMatchKey: _focusMatchKey,
+                      isAdmin: isAdmin,
+                      now: now,
                     ),
-                  ),
-                )
-              else
-                ..._buildFeedSlivers(
-                  sections: feedSections,
-                  focusKey: focusKey,
-                  focusMatchKey: _focusMatchKey,
-                  isAdmin: isAdmin,
-                  now: now,
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-            ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+        if (hideUntilPositioned)
+          const Positioned.fill(
+            child: IgnorePointer(child: _LoadingCard()),
+          ),
+      ],
     );
   }
 }

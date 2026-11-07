@@ -204,6 +204,169 @@ void main() {
     await disposeCalendar(tester);
   });
 
+  // Sur téléphone, l'historique des anciennes saisons (gardé sur
+  // l'appareil) arrive avant les matchs de la saison. Pendant tout ce
+  // chargement, l'écran ne doit jamais montrer la liste ailleurs que sur le
+  // bon match : ni le haut de l'historique, ni une carte dépassée.
+  testWidgets(
+      'l’historique arrivé avant les matchs ne s’affiche jamais avant que la '
+      'liste soit placée sur le bon match', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 860));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final now = DateTime.now();
+    final matches = [
+      for (var i = 8; i >= 1; i--)
+        _match(
+          'past-$i',
+          now.subtract(Duration(days: 7 * i - 2)),
+          finished: true,
+        ),
+      for (var i = 1; i <= 8; i++)
+        _match(
+          'next-$i',
+          now.add(Duration(days: 7 * i - 5)),
+          finished: false,
+        ),
+    ];
+    final history = [
+      for (var i = 0; i < 30; i++)
+        HistoricalMatchResult(
+          id: 'old-$i',
+          date: DateTime(2014, 4, 1).add(Duration(days: 7 * i)),
+          opponentName: 'Ancien$i',
+          grintaScore: 1,
+          opponentScore: 0,
+          isHome: true,
+        ),
+    ];
+    late _DelayedMatchesController controller;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(_FakeAuthRepository()),
+          ),
+          matchesControllerProvider.overrideWith(
+            (ref) => controller = _DelayedMatchesController(
+              ref,
+              initiallyLoading: false,
+            ),
+          ),
+          isAdminViewProvider.overrideWithValue(false),
+          sportsManagementEnabledProvider.overrideWithValue(false),
+          clubEventsProvider.overrideWith(
+            (ref) => Stream.value(const <ClubEvent>[]),
+          ),
+          allHistoricalMatchesProvider.overrideWith(
+            (ref) => Stream.value(history),
+          ),
+          myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
+        ],
+        child: const MaterialApp(home: Scaffold(body: MergedMatchesView())),
+      ),
+    );
+
+    double opacity() =>
+        tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity)).opacity;
+    void expectHiddenOrOnNextMatch(String moment) {
+      if (opacity() == 0) return;
+      final next = find.text('Clubnext1');
+      expect(next, findsOneWidget, reason: 'liste visible ailleurs ($moment)');
+      final header = headerRect(tester, 'À venir');
+      final card = tester.getRect(next);
+      expect(
+        card.top - header.bottom,
+        inInclusiveRange(0, 120),
+        reason: 'liste visible avant d’être placée ($moment)',
+      );
+    }
+
+    // L'historique est là, les matchs pas encore.
+    for (var i = 0; i < 5; i += 1) {
+      await tester.pump(const Duration(milliseconds: 20));
+      expectHiddenOrOnNextMatch('historique seul, passe $i');
+    }
+    controller.emit(matches);
+    for (var i = 0; i < 40; i += 1) {
+      await tester.pump(const Duration(milliseconds: 50));
+      expectHiddenOrOnNextMatch('après les matchs, passe $i');
+    }
+    expect(opacity(), 1);
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets('un historique complété après l’affichage ne décale pas la liste',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 860));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final now = DateTime.now();
+    final matches = [
+      for (var i = 8; i >= 1; i--)
+        _match(
+          'past-$i',
+          now.subtract(Duration(days: 7 * i - 2)),
+          finished: true,
+        ),
+      for (var i = 1; i <= 8; i++)
+        _match(
+          'next-$i',
+          now.add(Duration(days: 7 * i - 5)),
+          finished: false,
+        ),
+    ];
+    List<HistoricalMatchResult> history(int count) => [
+          for (var i = 0; i < count; i++)
+            HistoricalMatchResult(
+              id: 'old-$i',
+              date: DateTime(2014, 4, 1).add(Duration(days: 7 * i)),
+              opponentName: 'Ancien$i',
+              grintaScore: 1,
+              opponentScore: 0,
+              isHome: true,
+            ),
+        ];
+    final historyStream = StreamController<List<HistoricalMatchResult>>();
+    addTearDown(historyStream.close);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(_FakeAuthRepository()),
+          ),
+          matchesControllerProvider.overrideWith(
+            (ref) => _StaticMatchesController(ref, matches),
+          ),
+          isAdminViewProvider.overrideWithValue(false),
+          sportsManagementEnabledProvider.overrideWithValue(false),
+          clubEventsProvider.overrideWith(
+            (ref) => Stream.value(const <ClubEvent>[]),
+          ),
+          allHistoricalMatchesProvider.overrideWith(
+            (ref) => historyStream.stream,
+          ),
+          myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
+        ],
+        child: const MaterialApp(home: Scaffold(body: MergedMatchesView())),
+      ),
+    );
+    // Copie locale de l'historique, puis version complète du serveur.
+    historyStream.add(history(5));
+    for (var i = 0; i < 20; i += 1) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    historyStream.add(history(40));
+    for (var i = 0; i < 20; i += 1) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    final header = headerRect(tester, 'À venir');
+    final card = tester.getRect(find.text('Clubnext1'));
+    expect(card.top - header.bottom, inInclusiveRange(0, 120));
+
+    await disposeCalendar(tester);
+  });
+
   testWidgets(
       'dans les matchs à venir, seul l’en-tête « À venir » reste épinglé',
       (tester) async {
@@ -408,8 +571,9 @@ class _FakeAuthRepository implements AuthRepository {
 
 /// Comme dans l'appli : la liste des matchs arrive après le premier affichage.
 class _DelayedMatchesController extends MatchesController {
-  _DelayedMatchesController(Ref ref) : super(_UnusedMatchesRepository(), ref) {
-    state = const MatchesState(isLoading: true);
+  _DelayedMatchesController(Ref ref, {bool initiallyLoading = true})
+      : super(_UnusedMatchesRepository(), ref) {
+    state = MatchesState(isLoading: initiallyLoading);
   }
 
   void emit(List<MatchModel> matches) =>
