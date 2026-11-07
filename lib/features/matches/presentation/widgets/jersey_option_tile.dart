@@ -23,8 +23,8 @@ class JerseyOptionTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: SizedBox(
-        width: 84,
-        height: 96,
+        width: 96,
+        height: 108,
         child: Stack(
           children: [
             Center(
