@@ -1,18 +1,23 @@
 import 'dart:async';
 
 import 'package:as_grinta/app/router/auth_redirect.dart';
+import 'package:as_grinta/app/router/deferred_route_page.dart';
 import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/app/shell/app_shell.dart';
-import 'package:as_grinta/features/admin/presentation/admin_menu_page.dart';
-import 'package:as_grinta/features/admin/presentation/admin_notification_page.dart';
-import 'package:as_grinta/features/admin/presentation/admin_page.dart';
+import 'package:as_grinta/features/admin/presentation/admin_menu_page.dart'
+    deferred as admin_menu;
+import 'package:as_grinta/features/admin/presentation/admin_notification_page.dart'
+    deferred as admin_notification;
+import 'package:as_grinta/features/admin/presentation/admin_page.dart'
+    deferred as admin_administration;
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/forced_password_change_page.dart';
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
-import 'package:as_grinta/features/badges/presentation/badge_admin_page.dart';
+import 'package:as_grinta/features/badges/presentation/badge_admin_page.dart'
+    deferred as badge_admin;
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/presentation/historical_match_detail_page.dart';
@@ -28,10 +33,13 @@ import 'package:as_grinta/features/players/presentation/player_stat_ranking_page
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart'
+    deferred as season_wrapped;
+import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart'
+    deferred as admin_guests;
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart'
+    deferred as admin_waitlist;
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_report_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
@@ -168,17 +176,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: '/matches/:matchId/guests',
-                builder: (context, state) => AdminGuestsPage(
-                  initialMatchId: state.pathParameters['matchId'],
+                builder: (context, state) => DeferredRoutePage(
+                  load: admin_guests.loadLibrary,
+                  builder: (_) => admin_guests.AdminGuestsPage(
+                    initialMatchId: state.pathParameters['matchId'],
+                  ),
                 ),
               ),
               GoRoute(
                 path: '/admin',
-                builder: (_, __) => const AdminMenuPage(),
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_menu.loadLibrary,
+                  builder: (_) => admin_menu.AdminMenuPage(),
+                ),
               ),
               GoRoute(
                 path: '/admin/administration',
-                builder: (_, __) => const AdminPage(),
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_administration.loadLibrary,
+                  builder: (_) => admin_administration.AdminPage(),
+                ),
               ),
               GoRoute(
                 path: '/admin/matches',
@@ -190,23 +207,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: '/admin/guests',
-                builder: (_, __) => const AdminGuestsPage(),
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_guests.loadLibrary,
+                  builder: (_) => admin_guests.AdminGuestsPage(),
+                ),
               ),
               GoRoute(
                 path: '/admin/waitlist',
-                builder: (_, __) => const AdminWaitlistPage(),
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_waitlist.loadLibrary,
+                  builder: (_) => admin_waitlist.AdminWaitlistPage(),
+                ),
               ),
               GoRoute(
                 path: '/waitlist',
-                builder: (_, __) => const AdminWaitlistPage(editable: false),
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_waitlist.loadLibrary,
+                  builder: (_) =>
+                      admin_waitlist.AdminWaitlistPage(editable: false),
+                ),
               ),
               GoRoute(
                 path: '/admin/badges',
-                builder: (_, __) => const BadgeAdminPage(),
+                builder: (_, __) => DeferredRoutePage(
+                  load: badge_admin.loadLibrary,
+                  builder: (_) => badge_admin.BadgeAdminPage(),
+                ),
               ),
               GoRoute(
                 path: '/admin/notification',
-                builder: (_, __) => const AdminNotificationPage(),
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_notification.loadLibrary,
+                  builder: (_) => admin_notification.AdminNotificationPage(),
+                ),
               ),
               GoRoute(path: '/more', builder: (_, __) => const MorePage()),
               GoRoute(
@@ -281,8 +314,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ponctuel, ouvert depuis le calendrier pendant l'intersaison.
       GoRoute(
         path: '/wrapped',
-        builder: (context, state) => SeasonWrappedPage(
-          preview: state.uri.queryParameters['apercu'] == '1',
+        builder: (context, state) => DeferredRoutePage(
+          load: season_wrapped.loadLibrary,
+          builder: (_) => season_wrapped.SeasonWrappedPage(
+            preview: state.uri.queryParameters['apercu'] == '1',
+          ),
         ),
       ),
       GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
