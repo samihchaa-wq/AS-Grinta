@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:as_grinta/core/storage/avatar_image_codec.dart'
+    deferred as avatar_codec;
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
@@ -12,7 +14,6 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image/image.dart' as img;
 
 /// Ouvre l'éditeur partagé de visuel de badge et renvoie le JPEG final déjà
 /// recadré, ou `null` si l'administrateur annule.
@@ -263,14 +264,14 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       throw StateError('Impossible de générer le JPEG du badge.');
     }
 
-    final raw = img.Image.fromBytes(
-      width: _exportWidth,
-      height: outputHeight,
-      bytes: data.buffer,
-      numChannels: 4,
-      order: img.ChannelOrder.rgba,
+    // Encodeur chargé à la demande (voir avatar_image_codec.dart).
+    await avatar_codec.loadLibrary();
+    return avatar_codec.encodeJpegFromRawRgba(
+      data,
+      _exportWidth,
+      outputHeight,
+      quality: 85,
     );
-    return img.encodeJpg(raw, quality: 85);
   }
 
   Future<void> _confirm() async {

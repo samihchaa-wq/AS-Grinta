@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
-import 'package:as_grinta/core/storage/avatar_image.dart';
+import 'package:as_grinta/core/storage/avatar_image_codec.dart'
+    deferred as avatar_codec;
 import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:as_grinta/features/sports_management/domain/guest_player_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -154,7 +155,9 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
     // que la galerie l'a fournie. On la ramène à la taille d'affichage avant
     // l'envoi, sinon elle pèse cinq fois son utilité à chaque chargement.
     final image = validateImageUpload(bytes, fileExt: fileExt);
-    final prepared = downscaleAvatar(bytes);
+    // Redimensionnement chargé à la demande (voir avatar_image_codec.dart).
+    await avatar_codec.loadLibrary();
+    final prepared = avatar_codec.downscaleAvatar(bytes);
     final extension = prepared.reencoded ? 'jpg' : image.extension;
     final contentType =
         prepared.reencoded ? imageMimeForExt('jpg') : image.mimeType;

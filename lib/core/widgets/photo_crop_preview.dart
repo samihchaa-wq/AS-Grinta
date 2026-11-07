@@ -3,9 +3,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:as_grinta/core/storage/avatar_image.dart';
+import 'package:as_grinta/core/storage/avatar_image_codec.dart'
+    deferred as avatar_codec;
 import 'package:as_grinta/core/widgets/match_contribution_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:image/image.dart' as img;
 
 /// Ouvre l'éditeur utilisé pour les photos de profil : déplacement libre,
 /// pinch-to-zoom / dézoom et export JPEG, ou PNG si la photo a des zones
@@ -157,14 +158,9 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
       throw StateError('Impossible de générer la photo recadrée.');
     }
 
-    final raw = img.Image.fromBytes(
-      width: side,
-      height: side,
-      bytes: data.buffer,
-      numChannels: 4,
-      order: img.ChannelOrder.rgba,
-    );
-    return encodeAvatar(unpremultiplyAlpha(raw));
+    // Encodeur chargé à la demande (voir avatar_image_codec.dart).
+    await avatar_codec.loadLibrary();
+    return avatar_codec.encodeAvatarFromRawRgba(data, side, side);
   }
 
   Future<void> _confirm() async {
