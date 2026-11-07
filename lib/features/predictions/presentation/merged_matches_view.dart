@@ -8,7 +8,6 @@ import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/match_live/data/match_live_notification_repository.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_notification_bell.dart';
@@ -33,11 +32,16 @@ import 'package:go_router/go_router.dart';
 double? _persistedMergedMatchesScrollOffset;
 
 /// Vote Homme du match du dernier match joué, utilisé pour choisir le match
-/// affiché en haut du calendrier. Sans gestion sportive il n'y a pas de vote :
-/// on n'interroge pas le serveur.
+/// affiché en haut du calendrier.
+///
+/// Il ne dépend volontairement pas du réglage « gestion sportive » : pendant
+/// le chargement des réglages du club, ce réglage vaut d'abord `false`, puis
+/// bascule. Cette bascule relançait la lecture du vote au moment où l'écran
+/// défilait vers le prochain match, et le ramenait sur le dernier joué. Sans
+/// gestion sportive, le serveur refuse simplement la lecture : l'erreur est
+/// traitée comme « pas de vote ».
 final calendarFocusMotmVoteProvider =
     FutureProvider.autoDispose.family<SportMotmVote?, String>((ref, matchId) {
-  if (!ref.watch(sportsManagementEnabledProvider)) return null;
   return ref.watch(sportMotmVoteProvider(matchId).future);
 });
 
@@ -58,6 +62,12 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   final GlobalKey _focusMatchKey = GlobalKey();
   late final ScrollController _scrollController;
   String? _lastFocusSignature;
+
+  /// Carte visée par le dernier affichage. Le positionnement s'arrête si elle
+  /// change en cours de route, au lieu de suivre la clé de focus vers une
+  /// autre carte.
+  String? _builtFocusKey;
+  String? _positioningFocusKey;
   bool _userScrollInterrupted = false;
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -109,6 +119,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final signature = '$focusKey:$requestToken';
     if (_lastFocusSignature == signature) return;
     _lastFocusSignature = signature;
+    _positioningFocusKey = focusKey;
     _userScrollInterrupted = false;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -166,6 +177,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     for (var i = 0; i < 6; i += 1) {
       if (!mounted ||
           _lastFocusSignature != signature ||
+          _builtFocusKey != _positioningFocusKey ||
           _userScrollInterrupted) {
         return;
       }
@@ -248,7 +260,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       if (lastPlayedIndex != null && nextIndex != null) {
         final lastPlayed = entries[lastPlayedIndex].match!;
         final vote = ref.watch(calendarFocusMotmVoteProvider(lastPlayed.id));
-        motmResolved = !vote.isLoading;
+        // Une relecture garde la réponse précédente : seul le tout premier
+        // chargement fait attendre.
+        motmResolved = vote.hasValue || vote.hasError;
         if (_lastPlayedMatchIsStale(lastPlayed, vote, now)) {
           focusIndex = nextIndex;
         }
@@ -256,6 +270,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     }
 
     final focusKey = focusIndex == null ? null : _entryKey(entries[focusIndex]);
+    _builtFocusKey = focusKey;
     final focusRequest = ref.watch(matchesFocusRequestProvider);
     // On attend de connaître le vote avant de positionner l'écran, pour ne pas
     // sauter d'un match à l'autre pendant le chargement.
@@ -377,7 +392,7 @@ bool _lastPlayedMatchIsStale(
   AsyncValue<SportMotmVote?> vote,
   DateTime now,
 ) {
-  if (vote.isLoading) return false;
+  if (!vote.hasValue && !vote.hasError) return false;
   final value = vote.hasError ? null : vote.valueOrNull;
   final DateTime? reference;
   if (value == null ||
