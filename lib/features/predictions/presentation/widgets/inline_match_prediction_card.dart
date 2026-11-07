@@ -329,7 +329,8 @@ class _HeadToHead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final matches = data.headToHead.take(5).toList();
+    const slots = 5;
+    final matches = data.headToHead.take(slots).toList();
     final chips = <Widget>[];
     for (final match in matches) {
       final route = matchEncounterRoute(
@@ -352,6 +353,13 @@ class _HeadToHead extends StatelessWidget {
           ),
         ),
       );
+    }
+    // Cases vides pour garder la même largeur de score qu'avec cinq
+    // confrontations, même s'il n'y en a qu'une.
+    for (var i = matches.length; i < slots; i++) {
+      chips
+        ..add(const SizedBox(width: 5))
+        ..add(const Expanded(child: SizedBox.shrink()));
     }
 
     return Column(
