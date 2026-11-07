@@ -8,6 +8,7 @@ import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/match_live/data/match_live_notification_repository.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_notification_bell.dart';
@@ -20,6 +21,8 @@ import 'package:as_grinta/features/matches/presentation/widgets/admin_match_opti
 import 'package:as_grinta/features/matches/presentation/widgets/calendar_feed_event_card.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
+import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
@@ -29,12 +32,22 @@ import 'package:go_router/go_router.dart';
 
 double? _persistedMergedMatchesScrollOffset;
 
+/// Vote Homme du match du dernier match joué, utilisé pour choisir le match
+/// affiché en haut du calendrier. Sans gestion sportive il n'y a pas de vote :
+/// on n'interroge pas le serveur.
+final calendarFocusMotmVoteProvider =
+    FutureProvider.autoDispose.family<SportMotmVote?, String>((ref, matchId) {
+  if (!ref.watch(sportsManagementEnabledProvider)) return null;
+  return ref.watch(sportMotmVoteProvider(matchId).future);
+});
+
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key, this.focusMatchId});
 
   /// Match à amener en haut de l'écran à l'ouverture, par exemple depuis une
   /// notification de disponibilité. Sans lui, ou s'il ne figure pas dans le
-  /// calendrier, c'est le dernier match joué.
+  /// calendrier, c'est le dernier match joué, jusqu'à 24 h après la
+  /// désignation de son Homme du match ; ensuite, le prochain match.
   final String? focusMatchId;
 
   @override
@@ -225,9 +238,29 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       focusIndex = 0;
     }
 
+    // Par défaut, le dernier match joué reste en haut jusqu'à 24 h après la
+    // désignation de son Homme du match. Passé ce délai, c'est le prochain
+    // match qui prend sa place.
+    var motmResolved = true;
+    if (requestedIndex < 0) {
+      final lastPlayedIndex = _lastPlayedMatchIndex(entries, now);
+      final nextIndex = _nextMatchIndex(entries, now);
+      if (lastPlayedIndex != null && nextIndex != null) {
+        final lastPlayed = entries[lastPlayedIndex].match!;
+        final vote = ref.watch(calendarFocusMotmVoteProvider(lastPlayed.id));
+        motmResolved = !vote.isLoading;
+        if (_lastPlayedMatchIsStale(lastPlayed, vote, now)) {
+          focusIndex = nextIndex;
+        }
+      }
+    }
+
     final focusKey = focusIndex == null ? null : _entryKey(entries[focusIndex]);
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    final focusCardIsReady = focusKey != null && !state.isLoading;
+    // On attend de connaître le vote avant de positionner l'écran, pour ne pas
+    // sauter d'un match à l'autre pendant le chargement.
+    final focusCardIsReady =
+        focusKey != null && !state.isLoading && motmResolved;
 
     _focusRelevantMatch(
       focusKey: focusKey,
@@ -304,6 +337,61 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       ),
     );
   }
+}
+
+/// Délai pendant lequel le dernier match reste en haut après la désignation
+/// de son Homme du match.
+const _lastMatchFocusGrace = Duration(hours: 24);
+
+int? _lastPlayedMatchIndex(List<_FeedEntry> entries, DateTime now) {
+  int? index;
+  for (var i = 0; i < entries.length; i += 1) {
+    final match = entries[i].match;
+    if (entries[i].date.isAfter(now)) break;
+    if (match != null && match.phase(now: now) != MatchDisplayPhase.cancelled) {
+      index = i;
+    }
+  }
+  return index;
+}
+
+int? _nextMatchIndex(List<_FeedEntry> entries, DateTime now) {
+  int? fallback;
+  for (var i = 0; i < entries.length; i += 1) {
+    final match = entries[i].match;
+    if (match == null || !entries[i].date.isAfter(now)) continue;
+    if (match.phase(now: now) != MatchDisplayPhase.cancelled) return i;
+    fallback ??= i;
+  }
+  return fallback;
+}
+
+/// Vrai quand le dernier match joué doit céder la place au prochain :
+/// - vote clos : 24 h après la désignation de l'Homme du match ;
+/// - pas de vote pour ce match (annulé, indisponible, ou illisible, par
+///   exemple si la gestion sportive est désactivée) : 24 h après la fin prévue
+///   du match, pour ne pas le garder en haut toute la semaine.
+/// Tant que le vote est en attente ou en cours, le match reste.
+bool _lastPlayedMatchIsStale(
+  MatchModel match,
+  AsyncValue<SportMotmVote?> vote,
+  DateTime now,
+) {
+  if (vote.isLoading) return false;
+  final value = vote.hasError ? null : vote.valueOrNull;
+  final DateTime? reference;
+  if (value == null ||
+      value.state == SportMotmVoteState.cancelled ||
+      value.state == SportMotmVoteState.unavailable) {
+    reference = match.kickoffAt.add(
+      Duration(minutes: match.plannedDurationMinutes),
+    );
+  } else if (value.state == SportMotmVoteState.closed) {
+    reference = value.closedAt;
+  } else {
+    reference = null;
+  }
+  return reference != null && now.isAfter(reference.add(_lastMatchFocusGrace));
 }
 
 String _entryKey(_FeedEntry entry) {

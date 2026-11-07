@@ -10,6 +10,7 @@ import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
+import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +25,9 @@ void main() {
     required int upcomingMatches,
     String? focusMatchId,
     List<MatchModel> extraMatches = const [],
+    // Par défaut le vote du dernier match n'est pas encore clos : il reste en
+    // haut, comme pendant la semaine qui suit un match.
+    SportMotmVote? Function(String matchId) motmVote = _pendingVote,
   }) async {
     await tester.binding.setSurfaceSize(const Size(420, 860));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -54,6 +58,8 @@ void main() {
             (ref) => Stream.value(const []),
           ),
           myMatchAvailabilityProvider.overrideWith((ref, id) async => null),
+          calendarFocusMotmVoteProvider
+              .overrideWith((ref, id) async => motmVote(id)),
         ],
         child: MaterialApp(
           home: Scaffold(body: MergedMatchesView(focusMatchId: focusMatchId)),
@@ -85,6 +91,66 @@ void main() {
     final header = headerRect(tester, 'Terminés');
     final card = tester.getRect(find.text('Clubpast1'));
     // Ni caché sous l'en-tête épinglé, ni perdu plus bas dans l'écran.
+    expect(card.top, greaterThanOrEqualTo(header.bottom));
+    expect(card.top - header.bottom, lessThan(120));
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets(
+      'le dernier match reste en haut moins de 24 h après la désignation de '
+      'l’Homme du match', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 12,
+      upcomingMatches: 12,
+      motmVote: (id) => _closedVote(
+        id,
+        DateTime.now().subtract(const Duration(hours: 23)),
+      ),
+    );
+
+    final header = headerRect(tester, 'Terminés');
+    final card = tester.getRect(find.text('Clubpast1'));
+    expect(card.top, greaterThanOrEqualTo(header.bottom));
+    expect(card.top - header.bottom, lessThan(120));
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets(
+      'plus de 24 h après la désignation de l’Homme du match, le prochain '
+      'match passe en haut', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 12,
+      upcomingMatches: 12,
+      motmVote: (id) => _closedVote(
+        id,
+        DateTime.now().subtract(const Duration(hours: 25)),
+      ),
+    );
+
+    final header = headerRect(tester, 'À venir');
+    final card = tester.getRect(find.text('Clubnext1'));
+    expect(card.top, greaterThanOrEqualTo(header.bottom));
+    expect(card.top - header.bottom, lessThan(120));
+
+    await disposeCalendar(tester);
+  });
+
+  testWidgets(
+      'sans vote pour le dernier match, le prochain match passe en haut 24 h '
+      'après la fin du match', (tester) async {
+    await pumpCalendar(
+      tester,
+      pastMatches: 12,
+      upcomingMatches: 12,
+      motmVote: (_) => null,
+    );
+
+    final header = headerRect(tester, 'À venir');
+    final card = tester.getRect(find.text('Clubnext1'));
     expect(card.top, greaterThanOrEqualTo(header.bottom));
     expect(card.top - header.bottom, lessThan(120));
 
@@ -292,3 +358,33 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+SportMotmVote _pendingVote(String matchId) =>
+    _vote(matchId, SportMotmVoteState.draft, closedAt: null);
+
+SportMotmVote _closedVote(String matchId, DateTime closedAt) =>
+    _vote(matchId, SportMotmVoteState.closed, closedAt: closedAt);
+
+SportMotmVote _vote(
+  String matchId,
+  SportMotmVoteState state, {
+  required DateTime? closedAt,
+}) =>
+    SportMotmVote(
+      matchId: matchId,
+      opponentName: 'Club',
+      isHome: true,
+      scoreAsGrinta: 1,
+      scoreAdverse: 0,
+      state: state,
+      opensAt: closedAt?.subtract(const Duration(hours: 24)),
+      closesAt: closedAt,
+      closedAt: closedAt,
+      finalizationVersion: 1,
+      hasVoted: false,
+      canVote: false,
+      isEligibleVoter: false,
+      totalVotes: 0,
+      maxVotes: 0,
+      candidates: const [],
+    );
