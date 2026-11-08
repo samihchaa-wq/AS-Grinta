@@ -540,10 +540,17 @@ begin
       and (
         exists (select 1 from private.sport_waitlist_passage_ledger l
                 where l.match_id = m.id and l.credited_at is null)
-        or exists (select 1 from public.match_sport_participants p
-                where p.match_id = m.id and p.is_eligible
-                  and p.availability_status = 'available'
-                  and p.convocation_status = 'not_convoked')
+        or exists (
+          select 1 from public.match_sport_participants p
+          where p.match_id = m.id and p.is_eligible
+            and p.availability_status = 'available'
+            and p.convocation_status = 'not_convoked'
+            and not exists (
+              select 1 from private.sport_waitlist_passage_ledger l
+              where l.match_id = m.id
+                and l.season_player_id = p.season_player_id
+            )
+        )
       )
     order by m.kickoff_at, m.id
   loop
