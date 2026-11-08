@@ -421,7 +421,7 @@ $$;
 -- également disparaître. On ne supprime jamais le journal historique.
 create or replace function private.void_match_waitlist_credits(p_match_id uuid)
 returns integer language plpgsql security definer set search_path to ''
-as $
+as $$
 declare
   v_season_id uuid;
   v_count integer := 0;
@@ -455,18 +455,18 @@ begin
   end if;
   return v_count;
 end;
-$;
+$$;
 revoke all on function private.void_match_waitlist_credits(uuid)
   from public, anon, authenticated;
 
 create or replace function private.void_waitlist_on_exemption()
 returns trigger language plpgsql security definer set search_path to ''
-as $
+as $$
 begin
   perform private.void_match_waitlist_credits(new.match_id);
   return new;
 end;
-$;
+$$;
 revoke all on function private.void_waitlist_on_exemption()
   from public, anon, authenticated;
 
