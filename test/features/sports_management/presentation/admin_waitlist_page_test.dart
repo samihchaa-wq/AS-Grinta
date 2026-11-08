@@ -42,7 +42,7 @@ void main() {
   );
 
   testWidgets(
-    'manual reordering is no longer available',
+    'dragging the first table row onto the second reorders and saves the list',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -55,9 +55,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('waitlist-drag-alice')), findsNothing);
-      expect(find.text('Enregistrer l’ordre'), findsNothing);
-      expect(find.text('Recalculer'), findsNothing);
+      final aliceDrag = find.byKey(const ValueKey('waitlist-drag-alice'));
+      final gesture = await tester.startGesture(tester.getCenter(aliceDrag));
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(tester.getCenter(find.text('Bruno')));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
+      await tester.pumpAndSettle();
+
+      expect(repository.savedOrder, ['bruno', 'alice']);
+      expect(find.text('Liste d’attente enregistrée.'), findsOneWidget);
     },
   );
 
@@ -75,14 +86,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Recalculer'), findsNothing);
+      expect(find.text('Recalculer'), findsOneWidget);
       expect(find.text('Saison 2026-2027'), findsNothing);
       expect(find.textContaining('L’application commence'), findsNothing);
     },
   );
 
   testWidgets(
-    'les +1 restent visibles mais ne sont jamais modifiables manuellement',
+    'tapping + next to a player adjusts and persists their waitlist count',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -95,27 +106,55 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        tester
-            .widget<Text>(
-              find.byKey(const ValueKey('waitlist-count-bruno')),
-            )
-            .data,
-        '1',
-      );
-      expect(
+      Text countText() => tester.widget<Text>(
+            find.byKey(const ValueKey('waitlist-count-bruno')),
+          );
+
+      expect(countText().data, '1');
+
+      await tester.tap(
         find.byKey(const ValueKey('waitlist-increment-bruno')),
-        findsNothing,
       );
-      expect(
-        find.byKey(const ValueKey('waitlist-decrement-bruno')),
-        findsNothing,
+      await tester.pumpAndSettle();
+
+      expect(repository.lastManualCountSeasonPlayerId, 'bruno');
+      expect(repository.lastManualCount, 2);
+      expect(countText().data, '2');
+    },
+  );
+
+  testWidgets(
+    'Recalculer asks the server for the automatic order and shows it',
+    (tester) async {
+      final repository = _FakeSportWaitlistRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sportWaitlistRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(home: AdminWaitlistPage()),
+        ),
       );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Recalculer'));
+      await tester.pumpAndSettle();
+
+      expect(repository.recalculatedSeasonId, 'season');
+      expect(repository.savedOrder, isNull);
+      final alice = tester.getTopLeft(find.text('Alice').first).dy;
+      final bruno = tester.getTopLeft(find.text('Bruno').first).dy;
+      expect(bruno, lessThan(alice));
     },
   );
 }
 
 class _FakeSportWaitlistRepository implements SportWaitlistRepository {
+  List<String>? savedOrder;
+  String? recalculatedSeasonId;
+  String? lastManualCountSeasonPlayerId;
+  int? lastManualCount;
+
   SportWaitlist get _waitlist => const SportWaitlist(
         seasonId: 'season',
         seasonName: '2026-2027',
@@ -149,6 +188,72 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   @override
   Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId}) async =>
       _waitlist;
+
+  @override
+  Future<SportWaitlist> reorderWaitlist({
+    required String seasonId,
+    required List<String> orderedPlayerIds,
+    String? reason,
+  }) async {
+    savedOrder = List.of(orderedPlayerIds);
+    final byId = {
+      for (final entry in _waitlist.entries) entry.seasonPlayerId: entry,
+    };
+    return SportWaitlist(
+      seasonId: seasonId,
+      seasonName: _waitlist.seasonName,
+      entries: [
+        for (var index = 0; index < orderedPlayerIds.length; index++)
+          SportWaitlistEntry(
+            seasonPlayerId: orderedPlayerIds[index],
+            firstName: byId[orderedPlayerIds[index]]!.firstName,
+            lastName: byId[orderedPlayerIds[index]]!.lastName,
+            position: index + 1,
+            previousSeasonAttendanceCount:
+                byId[orderedPlayerIds[index]]!.previousSeasonAttendanceCount,
+            previousSeasonMatchCount:
+                byId[orderedPlayerIds[index]]!.previousSeasonMatchCount,
+            currentSeasonWaitlistCount:
+                byId[orderedPlayerIds[index]]!.currentSeasonWaitlistCount,
+            source: 'manual',
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<SportWaitlist> recalculateWaitlist({required String seasonId}) async {
+    recalculatedSeasonId = seasonId;
+    final entries = _waitlist.entries.reversed.toList();
+    return SportWaitlist(
+      seasonId: seasonId,
+      seasonName: _waitlist.seasonName,
+      entries: [
+        for (var index = 0; index < entries.length; index++)
+          SportWaitlistEntry(
+            seasonPlayerId: entries[index].seasonPlayerId,
+            firstName: entries[index].firstName,
+            lastName: entries[index].lastName,
+            position: index + 1,
+            previousSeasonAttendanceCount:
+                entries[index].previousSeasonAttendanceCount,
+            previousSeasonMatchCount: entries[index].previousSeasonMatchCount,
+            currentSeasonWaitlistCount:
+                entries[index].currentSeasonWaitlistCount,
+            source: entries[index].source,
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<void> setWaitlistManualCount({
+    required String seasonPlayerId,
+    required int count,
+  }) async {
+    lastManualCountSeasonPlayerId = seasonPlayerId;
+    lastManualCount = count;
+  }
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => const [];

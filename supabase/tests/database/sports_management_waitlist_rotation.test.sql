@@ -257,6 +257,49 @@ select is(
   'réordonner la liste conserve automatiquement la limite convoqués'
 );
 
+-- L'admin a placé Chloé tout en haut : c'est elle qui attend désormais,
+-- et un recalcul des convocations ne défait pas l'ordre choisi.
+select ok(
+  (
+    select convocation_status = 'not_convoked'
+    from public.match_sport_participants
+    where match_id = current_setting('test.waitlist_match_early')::uuid
+      and season_player_id = '74000000-0000-0000-0000-000000000023'
+  ),
+  'le déplacement manuel de l admin décide qui attend'
+);
+select is(
+  (
+    select array_agg(season_player_id order by position)
+    from public.sport_waitlist_entries
+    where season_id = '72000000-0000-0000-0000-000000000002'
+  ),
+  array[
+    '74000000-0000-0000-0000-000000000023'::uuid,
+    '74000000-0000-0000-0000-000000000022'::uuid,
+    '74000000-0000-0000-0000-000000000021'::uuid
+  ],
+  'l ordre manuel est conservé après un recalcul des convocations'
+);
+
+-- « Recalculer » remet l'ordre des trois critères.
+select public.admin_recalculate_sport_waitlist(
+  '72000000-0000-0000-0000-000000000002'
+);
+select is(
+  (
+    select array_agg(season_player_id order by position)
+    from public.sport_waitlist_entries
+    where season_id = '72000000-0000-0000-0000-000000000002'
+  ),
+  array[
+    '74000000-0000-0000-0000-000000000021'::uuid,
+    '74000000-0000-0000-0000-000000000022'::uuid,
+    '74000000-0000-0000-0000-000000000023'::uuid
+  ],
+  'Recalculer rétablit l ordre automatique'
+);
+
 -- Toute dérogation manuelle est désormais refusée, même avant T-15.
 select throws_ok(
   $$select public.admin_set_match_convocation(
@@ -359,6 +402,9 @@ select public.admin_override_match_availability(
   'absent', 'Désistement tardif', 'Annulation après la coupure'
 );
 
+-- Le journal des passages est privé : il se lit hors du rôle client.
+reset role;
+
 select ok(
   (
     select p.convocation_status = 'convoked'
@@ -385,6 +431,16 @@ select ok(
     where action = 'publish_convocations'
   ) >= 2,
   'les publications automatiques conservent un audit'
+);
+select ok(
+  exists (
+    select 1 from private.sport_admin_audit_log
+    where action = 'reorder_waitlist'
+  ) and exists (
+    select 1 from private.sport_admin_audit_log
+    where action = 'recalculate_waitlist'
+  ),
+  'le déplacement manuel et le recalcul sont audités'
 );
 
 select set_config(

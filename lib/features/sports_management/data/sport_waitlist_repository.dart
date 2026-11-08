@@ -12,6 +12,25 @@ abstract interface class SportWaitlistRepository {
   /// retard) et sans possibilité de modification.
   Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId});
 
+  /// Enregistre l'ordre choisi par l'admin. Les convocations des prochains
+  /// matchs suivent aussitôt ce nouvel ordre.
+  Future<SportWaitlist> reorderWaitlist({
+    required String seasonId,
+    required List<String> orderedPlayerIds,
+    String? reason,
+  });
+
+  /// Remet la liste dans l'ordre automatique, calculé par le serveur :
+  /// compteur, puis matchs de la saison précédente, puis ordre alphabétique.
+  Future<SportWaitlist> recalculateWaitlist({required String seasonId});
+
+  /// Corrige le compteur de passages en attente d'un joueur, sans le
+  /// déplacer : « Recalculer » applique ensuite le nouveau compteur.
+  Future<void> setWaitlistManualCount({
+    required String seasonPlayerId,
+    required int count,
+  });
+
   Future<List<AdminSportMatch>> fetchUpcomingMatches();
 
   Future<MatchConvocations> fetchMatchConvocations(String matchId);
@@ -71,6 +90,43 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       params: {'p_season_id': seasonId},
     );
     return SportWaitlist.fromRpc(response);
+  }
+
+  @override
+  Future<SportWaitlist> reorderWaitlist({
+    required String seasonId,
+    required List<String> orderedPlayerIds,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_reorder_sport_waitlist',
+      params: {
+        'p_season_id': seasonId,
+        'p_ordered_player_ids': orderedPlayerIds,
+        'p_reason': _clean(reason),
+      },
+    );
+    return SportWaitlist.fromRpc(response);
+  }
+
+  @override
+  Future<SportWaitlist> recalculateWaitlist({required String seasonId}) async {
+    final response = await _client.rpc(
+      'admin_recalculate_sport_waitlist',
+      params: {'p_season_id': seasonId},
+    );
+    return SportWaitlist.fromRpc(response);
+  }
+
+  @override
+  Future<void> setWaitlistManualCount({
+    required String seasonPlayerId,
+    required int count,
+  }) async {
+    await _client.rpc(
+      'admin_set_waitlist_manual_count',
+      params: {'p_season_player_id': seasonPlayerId, 'p_count': count},
+    );
   }
 
   @override

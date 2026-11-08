@@ -98,6 +98,42 @@ create trigger trg_exempt_waitlist_on_reschedule
 after update of kickoff_at, status on public.matches
 for each row execute function private.exempt_waitlist_on_reschedule();
 
+-- Une liste créée à l'instant est triée selon les trois critères ; une
+-- liste existante garde l'ordre choisi par l'administrateur. L'ancienne
+-- fonction est conservée sous un autre nom et enveloppée, pour que tous
+-- les appelants (lecture, convocations, coup d'envoi) se comportent pareil.
+do $$
+begin
+  if to_regprocedure('private.ensure_sport_waitlist_base(uuid,uuid)') is null then
+    alter function private.ensure_sport_waitlist(uuid, uuid)
+      rename to ensure_sport_waitlist_base;
+  end if;
+end;
+$$;
+revoke all on function private.ensure_sport_waitlist_base(uuid, uuid)
+  from public, anon, authenticated;
+
+create or replace function private.ensure_sport_waitlist(
+  p_season_id uuid, p_actor uuid default null
+)
+returns void language plpgsql security definer set search_path to ''
+as $$
+declare
+  v_was_empty boolean;
+begin
+  v_was_empty := not exists (
+    select 1 from public.sport_waitlist_entries e
+    where e.season_id = p_season_id
+  );
+  perform private.ensure_sport_waitlist_base(p_season_id, p_actor);
+  if v_was_empty then
+    perform private.rebuild_sport_waitlist_order(p_season_id, p_actor);
+  end if;
+end;
+$$;
+revoke all on function private.ensure_sport_waitlist(uuid, uuid)
+  from public, anon, authenticated;
+
 -- Règle 1 : le même calcul décide chaque convocation. Aucune exception
 -- convocation_manual_override, aucune promotion/rétrogradation spéciale.
 create or replace function private.recompute_match_convocations_internal(
@@ -130,8 +166,11 @@ begin
   if v_status = 'a_venir'
      and v_kickoff is not null
      and now() < v_kickoff - interval '15 minutes' then
+    -- Une liste toute neuve est triée selon les trois critères ; ensuite,
+    -- pas de retri ici : l'ordre choisi par l'administrateur est conservé.
+    -- La liste n'est retriée que lorsque des +1 changent (coup d'envoi,
+    -- annulation) ou lorsque l'administrateur clique sur « Recalculer ».
     perform private.ensure_sport_waitlist(v_season_id, v_actor);
-    perform private.rebuild_sport_waitlist_order(v_season_id, v_actor);
 
     -- Un seul passage fixe l'état de TOUS les membres du match :
     -- le rang ne concerne que les joueurs présents et éligibles.
@@ -375,14 +414,114 @@ begin
 end;
 $$;
 
--- Les modifications individuelles de rang sont interdites : seul le tri
--- des trois critères peut définir l'ordre. La signature est conservée.
+-- L'administrateur garde la main sur l'ordre : il peut placer un joueur
+-- où il le souhaite. Les convocations suivent immédiatement ce nouvel ordre
+-- (règle 1). L'ordre manuel tient jusqu'au prochain retri automatique
+-- (attribution ou annulation de +1) ou jusqu'à un clic sur « Recalculer ».
 create or replace function private.reorder_sport_waitlist(
   p_season_id uuid, p_ordered_player_ids uuid[], p_reason text default null
 )
 returns jsonb language plpgsql security definer set search_path to ''
 as $$
 declare
+  v_actor uuid := (select auth.uid());
+  v_season_id uuid;
+  v_expected integer;
+  v_given integer;
+  v_distinct integer;
+  v_old_order uuid[];
+  v_offset integer;
+  v_reason text := nullif(btrim(p_reason), '');
+begin
+  perform private.require_sports_management_enabled();
+  if not private.is_admin() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+  if v_reason is not null and char_length(v_reason) > 500 then
+    raise exception 'Reason cannot exceed 500 characters' using errcode = '22023';
+  end if;
+
+  v_season_id := private.resolve_open_sport_season(p_season_id);
+  perform private.ensure_sport_waitlist(v_season_id, v_actor);
+
+  -- Même verrou que le retri automatique : pas de croisement concurrent.
+  perform 1 from public.seasons where id = v_season_id for update;
+
+  select count(*)::integer into v_expected
+  from public.sport_waitlist_entries entry
+  where entry.season_id = v_season_id;
+
+  v_given := coalesce(cardinality(p_ordered_player_ids), 0);
+  select count(distinct item)::integer into v_distinct
+  from unnest(coalesce(p_ordered_player_ids, '{}'::uuid[])) item;
+
+  if v_given <> v_expected or v_distinct <> v_expected then
+    raise exception 'The complete waitlist must be supplied without duplicates'
+      using errcode = '22023';
+  end if;
+  if exists (
+    select 1
+    from unnest(p_ordered_player_ids) item
+    where not exists (
+      select 1 from public.sport_waitlist_entries entry
+      where entry.season_id = v_season_id
+        and entry.season_player_id = item
+    )
+  ) then
+    raise exception 'Waitlist contains an unknown player' using errcode = '22023';
+  end if;
+
+  select array_agg(entry.season_player_id order by entry.position)
+  into v_old_order
+  from public.sport_waitlist_entries entry
+  where entry.season_id = v_season_id;
+
+  if v_old_order is distinct from p_ordered_player_ids then
+    select coalesce(max(position), 0) + count(*)::integer + 1
+      into v_offset
+    from public.sport_waitlist_entries where season_id = v_season_id;
+
+    update public.sport_waitlist_entries
+    set position = position + v_offset
+    where season_id = v_season_id;
+
+    update public.sport_waitlist_entries entry
+    set position = ordered.ordinality::integer,
+        source = 'manual',
+        updated_by = v_actor,
+        updated_at = now()
+    from unnest(p_ordered_player_ids) with ordinality
+      as ordered(season_player_id, ordinality)
+    where entry.season_id = v_season_id
+      and entry.season_player_id = ordered.season_player_id;
+
+    insert into private.sport_admin_audit_log (
+      action, actor_profile_id, reason, metadata
+    ) values (
+      'reorder_waitlist', v_actor, v_reason,
+      jsonb_build_object(
+        'season_id', v_season_id,
+        'old_order', to_jsonb(v_old_order),
+        'new_order', to_jsonb(p_ordered_player_ids)
+      )
+    );
+
+    perform private.rebalance_upcoming_waitlist_matches(v_season_id);
+  end if;
+
+  return private.get_sport_waitlist(v_season_id);
+end;
+$$;
+
+-- « Recalculer » : remet la liste dans l'ordre des trois critères
+-- (compteur, matchs de la saison précédente, ordre alphabétique).
+create or replace function private.recalculate_sport_waitlist(
+  p_season_id uuid default null
+)
+returns jsonb language plpgsql security definer set search_path to ''
+as $$
+declare
+  v_actor uuid := (select auth.uid());
   v_season_id uuid;
 begin
   perform private.require_sports_management_enabled();
@@ -390,27 +529,84 @@ begin
     raise exception 'Active administrator role required' using errcode = '42501';
   end if;
   v_season_id := private.resolve_open_sport_season(p_season_id);
-  perform private.ensure_sport_waitlist(v_season_id, (select auth.uid()));
-  perform private.rebuild_sport_waitlist_order(v_season_id, (select auth.uid()));
+  perform private.ensure_sport_waitlist(v_season_id, v_actor);
+  perform private.rebuild_sport_waitlist_order(v_season_id, v_actor);
   perform private.rebalance_upcoming_waitlist_matches(v_season_id);
+
+  insert into private.sport_admin_audit_log (
+    action, actor_profile_id, reason, metadata
+  ) values (
+    'recalculate_waitlist', v_actor, 'Ordre recalculé automatiquement',
+    jsonb_build_object('season_id', v_season_id)
+  );
+
   return private.get_sport_waitlist(v_season_id);
 end;
 $$;
 
--- Toute modification validée du compteur réordonne automatiquement la liste.
--- Les +1 sont déduits exclusivement du journal des matchs.
--- Signature conservée pour empêcher les anciens clients de les modifier.
-create or replace function public.admin_set_waitlist_manual_count(
-  p_season_player_id uuid, p_count integer
+create or replace function public.admin_recalculate_sport_waitlist(
+  p_season_id uuid default null
 )
-returns void language plpgsql security definer set search_path to ''
+returns jsonb language plpgsql security definer set search_path to ''
 as $$
 begin
   if not private.is_admin() then
     raise exception 'Active administrator role required' using errcode = '42501';
   end if;
-  raise exception 'Les passages en attente sont calculés automatiquement.'
-    using errcode = '22023';
+  return private.enrich_sport_waitlist_history(
+    private.recalculate_sport_waitlist(p_season_id)
+  );
+end;
+$$;
+revoke all on function public.admin_recalculate_sport_waitlist(uuid)
+  from public, anon;
+grant execute on function public.admin_recalculate_sport_waitlist(uuid)
+  to authenticated, service_role;
+
+-- L'administrateur peut corriger le compteur de passages en attente.
+-- Comme avant, la correction ne déplace personne : « Recalculer » ou le
+-- prochain coup d'envoi appliquent le nouveau compteur au classement.
+create or replace function public.admin_set_waitlist_manual_count(
+  p_season_player_id uuid, p_count integer
+)
+returns void language plpgsql security definer set search_path to ''
+as $$
+declare
+  v_old integer;
+begin
+  if not private.is_admin() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+  if p_count is null or p_count < 0 then
+    raise exception 'Invalid count' using errcode = '22023';
+  end if;
+
+  select manual_waitlist_count into v_old
+  from public.sport_waitlist_entries
+  where season_player_id = p_season_player_id
+  for update;
+  if not found then
+    raise exception 'Waitlist entry not found' using errcode = 'P0002';
+  end if;
+
+  update public.sport_waitlist_entries
+  set manual_waitlist_count = p_count,
+      updated_at = now(),
+      updated_by = (select auth.uid())
+  where season_player_id = p_season_player_id;
+
+  if v_old is distinct from p_count then
+    insert into private.sport_admin_audit_log (
+      action, actor_profile_id, reason, metadata
+    ) values (
+      'set_waitlist_manual_count', (select auth.uid()), null,
+      jsonb_build_object(
+        'season_player_id', p_season_player_id,
+        'old_count', v_old,
+        'new_count', p_count
+      )
+    );
+  end if;
 end;
 $$;
 
@@ -748,6 +944,8 @@ revoke all on function private.publish_match_effectif(uuid,integer,jsonb,text)
 revoke all on function private.set_match_convocation(uuid,uuid,text,boolean,text)
   from public, anon, authenticated;
 revoke all on function private.reorder_sport_waitlist(uuid,uuid[],text)
+  from public, anon, authenticated;
+revoke all on function private.recalculate_sport_waitlist(uuid)
   from public, anon, authenticated;
 
 commit;

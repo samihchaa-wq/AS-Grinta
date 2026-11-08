@@ -158,15 +158,6 @@ select private.rebalance_upcoming_waitlist_matches(
   'b5200000-0000-0000-0000-000000000001'
 );
 
--- Aucun utilisateur, même administrateur, ne doit pouvoir fabriquer un +1.
-select throws_ok(
-  $$select public.admin_set_waitlist_manual_count(
-    'b5400000-0000-0000-0000-000000000001',999
-  )$$,
-  '22023',
-  'Les passages en attente sont calculés automatiquement.',
-  'la correction directe des compteurs est refusée'
-);
 select is(
   (select e.position from public.sport_waitlist_entries e
    where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
@@ -177,6 +168,90 @@ select is(
    where p.match_id=current_setting('test.waitlist_three_match')::uuid
      and p.season_player_id='b5400000-0000-0000-0000-000000000002'),
   'not_convoked','Bruno devient le joueur en attente après changement de rang'
+);
+
+-- L'administrateur peut corriger un compteur ; personne ne bouge tant
+-- qu'il ne clique pas sur « Recalculer ».
+select lives_ok(
+  $$select public.admin_set_waitlist_manual_count(
+    'b5400000-0000-0000-0000-000000000001',5
+  )$$,
+  'l admin peut corriger un compteur de passages'
+);
+select is(
+  (select e.manual_waitlist_count from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  5,'le compteur corrigé est enregistré'
+);
+select is(
+  (select e.position from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  3,'corriger un compteur ne déplace personne'
+);
+select throws_ok(
+  $$select public.admin_set_waitlist_manual_count(
+    'b5400000-0000-0000-0000-000000000001',-1
+  )$$,
+  '22023',
+  'Invalid count',
+  'un compteur négatif est refusé'
+);
+
+-- L'administrateur place Alice tout en haut : les convocations suivent.
+select public.admin_reorder_sport_waitlist(
+  'b5200000-0000-0000-0000-000000000001',
+  array[
+    'b5400000-0000-0000-0000-000000000001'::uuid,
+    'b5400000-0000-0000-0000-000000000002'::uuid,
+    'b5400000-0000-0000-0000-000000000003'::uuid
+  ],
+  'Choix de l admin'
+);
+select is(
+  (select p.convocation_status::text from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  'not_convoked','Alice placée en haut par l admin passe en attente'
+);
+select is(
+  (select p.convocation_status::text from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.season_player_id='b5400000-0000-0000-0000-000000000002'),
+  'convoked','Bruno descendu par l admin est convoqué'
+);
+
+-- Un changement de disponibilité ne défait pas l'ordre de l'admin.
+update public.match_sport_participants p
+set availability_status='absent',updated_at=now()
+where p.match_id=current_setting('test.waitlist_three_match')::uuid
+  and p.season_player_id='b5400000-0000-0000-0000-000000000003';
+update public.match_sport_participants p
+set availability_status='available',updated_at=now()
+where p.match_id=current_setting('test.waitlist_three_match')::uuid
+  and p.season_player_id='b5400000-0000-0000-0000-000000000003';
+select private.recompute_match_convocations_internal(
+  current_setting('test.waitlist_three_match')::uuid,false
+);
+select is(
+  (select e.position from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  1,'l ordre choisi par l admin survit aux recalculs de convocations'
+);
+
+-- « Recalculer » réapplique les trois critères.
+select public.admin_recalculate_sport_waitlist(
+  'b5200000-0000-0000-0000-000000000001'
+);
+select is(
+  (select e.position from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  3,'Recalculer replace Alice selon son compteur'
+);
+select is(
+  (select p.convocation_status::text from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.season_player_id='b5400000-0000-0000-0000-000000000002'),
+  'not_convoked','après Recalculer, Bruno redevient le joueur en attente'
 );
 
 -- L'augmentation du quota à tous les présents neutralise les +1 du match.

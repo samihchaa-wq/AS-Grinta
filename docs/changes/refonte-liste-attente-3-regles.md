@@ -8,9 +8,21 @@
 2. **Passages en attente** — Chaque joueur ayant figuré au moins une fois en attente entre **J−1 à 12 h, heure de Paris**, et le coup d'envoi acquiert **un seul +1** pour ce match, même s'il redevient convoqué ou absent avant le coup d'envoi. Le +1 est comptabilisé au coup d'envoi. Aucun +1 en cas d'annulation, de report, ou lorsque le quota a été ajusté pour accueillir tous les présents.
 3. **Ordre de la liste** — Tri ascendant par (a) total des passages en attente, (b) matchs joués lors de la saison précédente, (c) ordre alphabétique du nom, puis prénom. Un identifiant stable départage une homonymie parfaite.
 
+## Contrôle de l'administrateur (décision du 8 novembre 2026)
+
+L'administrateur garde la main sur la liste, comme avant la refonte :
+
+- **Glisser-déposer** : il peut placer un joueur où il le souhaite. Les convocations des prochains matchs non verrouillés suivent aussitôt ce nouvel ordre (la règle 1 s'applique à l'ordre choisi).
+- **Boutons +/−** : il peut corriger le compteur de passages d'un joueur. La correction ne déplace personne.
+- **« Recalculer »** : remet la liste dans l'ordre de la règle 3, calculé par le serveur.
+- **Durée d'un déplacement manuel** : il tient jusqu'au prochain retri automatique, c'est-à-dire l'attribution de +1 au coup d'envoi ou leur annulation (match annulé, reporté, quota élargi), ou jusqu'à un clic sur « Recalculer ». Un simple changement de disponibilité ne retrie pas la liste.
+- Une liste toute neuve (nouvelle saison) est triée selon la règle 3. Un joueur ajouté en cours de saison est placé en fin de liste, comme avant.
+- Chaque déplacement, recalcul et correction de compteur est inscrit dans le journal d'audit administrateur.
+- Forcer un joueur en « convoqué » ou « en attente » pour un match reste interdit : l'admin agit sur l'ordre ou les compteurs, pas sur le résultat.
+
 ## Invariants techniques obligatoires
 
-- En amont du verrouillage, aucune intervention administrative ni ancien état de promotion ne peut déroger à la règle 1.
+- En amont du verrouillage, aucune dérogation individuelle ni ancien état de promotion ne peut déroger à la règle 1 ; l'administrateur agit uniquement sur l'ordre de la liste et les compteurs.
 - L'effectif déjà verrouillé à l'ouverture du Live (T−15) ne se recompose pas lorsque les +1 sont attribués au coup d'envoi.
 - Les transitions de l'état `not_convoked` sont enregistrées **en tant qu'événement**, indépendamment du statut final du joueur.
 - L'attribution d'un +1 est **transactionnelle et idempotente**, avec une unicité `(match_id, season_player_id)`.
@@ -24,7 +36,6 @@
 - `private.recompute_match_convocations_internal` sanctuarise `convocation_manual_override`, qui peut faire passer une décision arbitraire avant la priorité de la liste.
 - `private.handle_convoked_withdrawal` et `private.restore_returning_convoked_player` opèrent des promotions et des retours particuliers au lieu de s'appuyer systématiquement sur le même calcul.
 - Le RPC `private.get_sport_waitlist` ne renvoie pas le champ `current_season_waitlist_count`, alors que le modèle Dart attend ce champ.
-- L'interface d'administration autorise un ordre manuel par glisser-déposer; ce comportement contredit le classement strict et doit être retiré ou remplacé par un recalcul.
 - Les opérations d'administration peuvent conserver des dérogations; elles devront être redéfinies pour modifier uniquement les entrées des règles, pas les résultats.
 
 ## Points d'intégration à préserver
