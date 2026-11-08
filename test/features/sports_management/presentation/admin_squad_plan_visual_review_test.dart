@@ -287,6 +287,16 @@ void main() {
     );
 
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
+    expect(find.text('Convoqués (3)'), findsOneWidget);
+
+    // Le chargement initialise l'effectif de manière asynchrone.
+    // Attendre explicitement la publication plutôt que supposer qu'elle
+    // est terminée après un nombre fixe de frames.
+    for (var attempt = 0;
+        attempt < 40 && repository.lastDecisions == null;
+        attempt++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(repository.lastDecisions, isEmpty);
     // Aucun choix individuel n'est envoyé : le quota suffit au serveur
     // pour recalculer les convocations selon la liste d'attente.
