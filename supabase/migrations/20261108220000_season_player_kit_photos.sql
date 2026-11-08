@@ -65,7 +65,7 @@ begin
       where bucket_id = 'profile-photos'
       and name like 'kits/' || old.season_player_id::text || '/%'
       and name = any(old_paths)
-      and not (name = any(keep_paths));
+      and not (name = any(array_remove(keep_paths, null)));
   exception when others then
     raise warning 'cleanup_player_kit_photos a echoue : %', sqlerrm;
   end;
