@@ -318,6 +318,16 @@ begin
   -- Les décisions manuelles reçues des anciens clients ne sont jamais
   -- appliquées : elles ne doivent pas pouvoir contourner la règle n°1.
   perform private.publish_match_convocations(p_match_id, p_reason);
+
+  -- Préserver l'audit de chaque enregistrement de quota : ce journal est
+  -- distinct du calcul des convocations et utile aux administrateurs.
+  insert into private.sport_admin_audit_log (
+    match_id, action, actor_profile_id, reason, metadata
+  ) values (
+    p_match_id, 'update_match_effectif', v_actor,
+    nullif(btrim(p_reason), ''),
+    jsonb_build_object('squad_size_limit', p_squad_size_limit)
+  );
   return private.get_match_convocations(p_match_id);
 end;
 $$;
