@@ -16,8 +16,8 @@ values(true) on conflict (singleton) do nothing;
 alter table public.match_sport_workflows
   add column if not exists waitlist_passages_exempt boolean not null default false;
 
--- Un quota élargi afin de pouvoir convoquer tous les présents annule
--- l'attribution des +1 pour ce match. L'admin ne choisit pas de joueurs.
+-- Un quota modifié pour accueillir tous les présents annule les +1
+-- si le match a connu une attente ; aucun joueur n'est choisi manuellement.
 create or replace function private.exempt_waitlist_when_all_fit()
 returns trigger language plpgsql
 set search_path to ''
@@ -25,7 +25,7 @@ as $$
 declare
   v_present integer;
 begin
-  if new.squad_size_limit <= old.squad_size_limit then
+  if new.squad_size_limit = old.squad_size_limit then
     return new;
   end if;
   select count(*)::integer into v_present
@@ -36,8 +36,15 @@ begin
     and p.availability_status = 'available'
     and not sp.is_coach;
 
-  if v_present > old.squad_size_limit
-     and new.squad_size_limit >= v_present then
+  if v_present > 0
+     and new.squad_size_limit >= v_present
+     and (
+       v_present > old.squad_size_limit
+       or exists (
+         select 1 from private.sport_waitlist_passage_ledger l
+         where l.match_id = new.match_id
+       )
+     ) then
     new.waitlist_passages_exempt := true;
   end if;
   return new;
@@ -51,8 +58,8 @@ create trigger trg_exempt_waitlist_when_all_fit
 before update of squad_size_limit on public.match_sport_workflows
 for each row execute function private.exempt_waitlist_when_all_fit();
 
--- Si le match est reporté après l'ouverture de la période de comptage,
--- les passages du match reporté n'ouvrent aucun +1.
+-- Tout report de l'heure ou du jour, après l'ouverture de la période,
+-- neutralise les +1 du match concerné.
 create or replace function private.exempt_waitlist_on_reschedule()
 returns trigger language plpgsql security definer
 set search_path to ''
@@ -60,8 +67,6 @@ as $$
 begin
   if old.kickoff_at is not null
      and new.kickoff_at is distinct from old.kickoff_at
-     and ((old.kickoff_at at time zone 'Europe/Paris')::date
-       is distinct from (new.kickoff_at at time zone 'Europe/Paris')::date)
      and now() >= private.waitlist_credit_cutoff(old.kickoff_at) then
     update public.match_sport_workflows
       set waitlist_passages_exempt = true
