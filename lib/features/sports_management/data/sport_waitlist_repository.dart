@@ -12,17 +12,6 @@ abstract interface class SportWaitlistRepository {
   /// retard) et sans possibilité de modification.
   Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId});
 
-  Future<SportWaitlist> reorderWaitlist({
-    required String seasonId,
-    required List<String> orderedPlayerIds,
-    String? reason,
-  });
-
-  Future<void> setWaitlistManualCount({
-    required String seasonPlayerId,
-    required int count,
-  });
-
   Future<List<AdminSportMatch>> fetchUpcomingMatches();
 
   Future<MatchConvocations> fetchMatchConvocations(String matchId);
@@ -37,9 +26,8 @@ abstract interface class SportWaitlistRepository {
 
   /// Écrit l'effectif du match.
   ///
-  /// [changedPlayerIds] désigne les joueurs que l'admin a réellement déplacés
-  /// depuis la dernière lecture. Seules ces décisions sont figées ; les autres
-  /// restent automatiques et suivent l'ordre de la liste d'attente.
+  /// Seul le quota peut être modifié. Les anciennes décisions individuelles
+  /// restent dans la signature pour compatibilité, mais le serveur les ignore.
   Future<MatchConvocations> publishEffectif({
     required String matchId,
     required int squadSizeLimit,
@@ -83,34 +71,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       params: {'p_season_id': seasonId},
     );
     return SportWaitlist.fromRpc(response);
-  }
-
-  @override
-  Future<SportWaitlist> reorderWaitlist({
-    required String seasonId,
-    required List<String> orderedPlayerIds,
-    String? reason,
-  }) async {
-    final response = await _client.rpc(
-      'admin_reorder_sport_waitlist',
-      params: {
-        'p_season_id': seasonId,
-        'p_ordered_player_ids': orderedPlayerIds,
-        'p_reason': _clean(reason),
-      },
-    );
-    return SportWaitlist.fromRpc(response);
-  }
-
-  @override
-  Future<void> setWaitlistManualCount({
-    required String seasonPlayerId,
-    required int count,
-  }) async {
-    await _client.rpc(
-      'admin_set_waitlist_manual_count',
-      params: {'p_season_player_id': seasonPlayerId, 'p_count': count},
-    );
   }
 
   @override
