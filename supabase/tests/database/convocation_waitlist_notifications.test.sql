@@ -240,13 +240,13 @@ select set_config(
   true
 );
 
--- L'admin reconvoque Alice : Alice est convoquée, Bruno passe en attente.
+-- Les anciens clients ne peuvent plus forcer Alice : aucun changement,
+-- donc aucune notification supplémentaire.
 select set_config(
   'test.decisions_admin',
   pg_temp.decisions(
     '{"d4000000-0000-0000-0000-000000000001": "convoked"}'::jsonb
-  )::text,
-  true
+  )::text, true
 );
 select set_config(
   'request.jwt.claims',
@@ -254,25 +254,64 @@ select set_config(
   true
 );
 set local role authenticated;
-
 select public.admin_save_match_effectif(
   current_setting('test.notif_match')::uuid,
   2,
   current_setting('test.decisions_admin')::jsonb,
-  'Alice reconvoquée'
+  'Ancien client : décision ignorée'
 );
-
 reset role;
 
 select is(
-  (
-    select string_agg(part, ' | ' order by part)
-    from unnest(string_to_array(
-      pg_temp.pushes_since(current_setting('test.marker')::bigint), ' | '
-    )) part
-  ),
-  'Tu es convoqué → Alice | Tu passes en liste d''attente → Bruno',
-  'chacun reçoit la notification de son changement, et elle seule'
+  pg_temp.pushes_since(current_setting('test.marker')::bigint),
+  '',
+  'aucune notification pour une convocation manuelle rejetée par le classement'
+);
+
+-- Un véritable désistement libère une place : Alice, première en attente,
+-- est promue par le moteur et reçoit une notification.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"d1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select public.admin_override_match_availability(
+  current_setting('test.notif_match')::uuid,
+  'd4000000-0000-0000-0000-000000000003', 'absent', null, 'Désistement Chloé'
+);
+reset role;
+
+select is(
+  pg_temp.pushes_since(current_setting('test.marker')::bigint),
+  'Tu es convoqué → Alice',
+  'Alice est informée de sa promotion automatique'
+);
+
+select set_config(
+  'test.marker',
+  (select coalesce(max(id), 0) from net.http_request_queue)::text,
+  true
+);
+
+-- Chloé revient présente : son rang la convoque de nouveau et
+-- Alice repasse en attente, sans dérogation manuelle.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"d1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select public.admin_override_match_availability(
+  current_setting('test.notif_match')::uuid,
+  'd4000000-0000-0000-0000-000000000003', 'available', null, 'Retour Chloé'
+);
+reset role;
+
+select is(
+  pg_temp.pushes_since(current_setting('test.marker')::bigint),
+  'Tu passes en liste d''attente → Alice',
+  'Alice est informée de la rétrogradation automatique'
 );
 
 select set_config(
