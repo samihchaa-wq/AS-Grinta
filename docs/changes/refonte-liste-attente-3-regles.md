@@ -13,7 +13,9 @@
 - **Liste d'attente — boutons +/−** : l'administrateur peut ajouter ou retirer un +1 à un joueur (inscrit au journal d'audit). Le classement est recalculé aussitôt selon la règle 3 et les convocations des prochains matchs suivent. L'écran montre le nouvel ordre quand on tire la liste vers le bas ou qu'on revient sur la page. Pas de glisser-déposer ni de bouton « Enregistrer », « Recalculer » ou « Actualiser ».
 - **Effectif — choix par match** : comme avant la refonte, l'administrateur peut glisser un joueur dans « Convoqués » ou « En attente » pour un match. Ce choix est conservé par les recalculs : un joueur forcé convoqué prend une place, un joueur forcé en attente en libère une ; les autres suivent la règle 1. Le choix s'efface si la disponibilité du joueur change (il répond, se désiste, revient, ou l'admin le déclare absent). Un joueur forcé en attente pendant le créneau de la règle 2 gagne son +1, comme tout joueur en attente.
 - **Retri automatique de la liste** : à chaque +1 attribué au coup d'envoi, annulé (match annulé, reporté, quota élargi) ou corrigé à la main.
-- Une liste toute neuve (nouvelle saison) est triée selon la règle 3. Un joueur ajouté en cours de saison est placé en fin de liste, comme avant.
+- **Mise en ligne sans effet rétroactif** : l'ordre actuel de la liste et les compteurs sont conservés tels quels. Ils servent de point de départ pour la saison en cours : le classement se fait d'abord sur les +1 gagnés depuis la mise en ligne, puis sur l'ordre de départ, puis sur les critères de la règle 3. Les compteurs affichés restent les totaux de la saison. Aucun +1 n'est crédité pour un match joué avant la mise en ligne.
+- Une liste toute neuve (nouvelle saison) est triée selon la règle 3, sans point de départ. Un joueur ajouté en cours de saison passe après les joueurs du point de départ à nombre de +1 égal.
+- **Matchs « entre nous »** : inchangés, tous les présents sont convoqués.
 
 ## Invariants techniques obligatoires
 
@@ -21,7 +23,7 @@
 - L'effectif déjà verrouillé à l'ouverture du Live (T−15) ne se recompose pas lorsque les +1 sont attribués au coup d'envoi.
 - Les transitions de l'état `not_convoked` sont enregistrées **en tant qu'événement**, indépendamment du statut final du joueur.
 - L'attribution d'un +1 est **transactionnelle et idempotente**, avec une unicité `(match_id, season_player_id)`.
-- Le compteur affiché et celui utilisé pour classer les joueurs doivent être la même donnée.
+- Le compteur affiché et celui utilisé pour classer les joueurs doivent être la même donnée (pour la saison en cours, le classement en retire la valeur mémorisée à la mise en ligne).
 - Les notifications de promotion/rétrogradation conservent leur fonctionnement uniquement sur un changement réel du statut calculé.
 - Les données et statistiques de production sont conservées; aucun effacement sans migration justifiée et sauvegarde.
 
@@ -52,5 +54,4 @@
 - Exécuter les tests SQL et Flutter, y compris les anciens tests métier qui peuvent nécessiter une adaptation explicite.
 - Tester sur une base isolée copie de la structure de production, jamais sur la production.
 - Vérifier `EXPLAIN`, la concurrence, les index et les droits des fonctions `SECURITY DEFINER`.
-- Réconcilier les anciens compteurs avec l'historique avant migration.
-- Examiner les invités et toute spécificité « entre nous » pour ne pas introduire d'exception implicite à la règle 1.
+- Examiner les invités. Les matchs « entre nous » gardent volontairement leur exception : tous les présents sont convoqués.

@@ -363,5 +363,50 @@ select is(
   'un +1 déjà crédité est retiré du classement après annulation'
 );
 
+-- Point de départ de la mise en ligne : l'ordre de départ prime, seuls les
+-- +1 gagnés ensuite font descendre un joueur.
+delete from private.sport_waitlist_start
+where season_id = 'b5200000-0000-0000-0000-000000000001';
+insert into private.sport_waitlist_start
+  (season_id, season_player_id, start_position, start_count)
+select e.season_id, e.season_player_id,
+  case e.season_player_id
+    when 'b5400000-0000-0000-0000-000000000001' then 1
+    when 'b5400000-0000-0000-0000-000000000002' then 2
+    else 3 end,
+  e.manual_waitlist_count
+from public.sport_waitlist_entries e
+where e.season_id = 'b5200000-0000-0000-0000-000000000001';
+select private.rebuild_sport_waitlist_order(
+  'b5200000-0000-0000-0000-000000000001', null
+);
+select is(
+  (select array_agg(e.season_player_id order by e.position)
+   from public.sport_waitlist_entries e
+   where e.season_id = 'b5200000-0000-0000-0000-000000000001'),
+  array[
+    'b5400000-0000-0000-0000-000000000001'::uuid,
+    'b5400000-0000-0000-0000-000000000002'::uuid,
+    'b5400000-0000-0000-0000-000000000003'::uuid
+  ],
+  'les anciens compteurs ne chamboulent pas l ordre de départ'
+);
+select public.admin_set_waitlist_manual_count(
+  'b5400000-0000-0000-0000-000000000002',
+  (select e.manual_waitlist_count + 1 from public.sport_waitlist_entries e
+   where e.season_player_id = 'b5400000-0000-0000-0000-000000000002')
+);
+select is(
+  (select array_agg(e.season_player_id order by e.position)
+   from public.sport_waitlist_entries e
+   where e.season_id = 'b5200000-0000-0000-0000-000000000001'),
+  array[
+    'b5400000-0000-0000-0000-000000000001'::uuid,
+    'b5400000-0000-0000-0000-000000000003'::uuid,
+    'b5400000-0000-0000-0000-000000000002'::uuid
+  ],
+  'un nouveau +1 fait descendre Bruno en bas de liste'
+);
+
 select * from finish();
 rollback;

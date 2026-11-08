@@ -98,6 +98,105 @@ create trigger trg_exempt_waitlist_on_reschedule
 after update of kickoff_at, status on public.matches
 for each row execute function private.exempt_waitlist_on_reschedule();
 
+-- Point de départ : à la mise en ligne, l'ordre actuel de la liste et les
+-- compteurs sont mémorisés. Pour la saison en cours, le classement se fait
+-- d'abord sur les +1 gagnés depuis la mise en ligne, puis sur cet ordre de
+-- départ : la liste n'est pas chamboulée, seuls les nouveaux +1 font bouger.
+-- Une nouvelle saison n'a pas de point de départ : les 3 règles s'appliquent.
+create table if not exists private.sport_waitlist_start (
+  season_id uuid not null references public.seasons(id) on delete cascade,
+  season_player_id uuid not null
+    references public.season_players(id) on delete cascade,
+  start_position integer not null,
+  start_count integer not null,
+  recorded_at timestamptz not null default now(),
+  primary key (season_id, season_player_id)
+);
+create index if not exists sport_waitlist_start_player_idx
+  on private.sport_waitlist_start(season_player_id);
+alter table private.sport_waitlist_start enable row level security;
+revoke all on private.sport_waitlist_start from public, anon, authenticated;
+
+insert into private.sport_waitlist_start
+  (season_id, season_player_id, start_position, start_count)
+select e.season_id, e.season_player_id, e.position, e.manual_waitlist_count
+from public.sport_waitlist_entries e
+join public.seasons s on s.id = e.season_id
+where s.status = 'open'
+on conflict (season_id, season_player_id) do nothing;
+
+-- Classement : +1 depuis le point de départ, ordre de départ, puis les
+-- critères de la règle 3 (matchs de la saison précédente, nom, prénom).
+create or replace function private.rebuild_sport_waitlist_order(
+  p_season_id uuid, p_actor uuid default null
+)
+returns void language plpgsql security definer set search_path to ''
+as $$
+declare
+  v_offset integer;
+begin
+  -- Sérialiser les reclassements de la même saison.
+  perform 1 from public.seasons where id = p_season_id for update;
+  if not found then
+    raise exception 'Season not found' using errcode = 'P0002';
+  end if;
+
+  -- Pas d'écriture quand le classement est déjà le bon.
+  if not exists (
+    select 1 from (
+      select e.position, row_number() over (
+        order by e.manual_waitlist_count - coalesce(st.start_count, 0),
+          st.start_position nulls last,
+          e.previous_season_attendance_count,
+          lower(p.last_name), lower(p.first_name), e.season_player_id
+      )::integer as expected
+      from public.sport_waitlist_entries e
+      join public.season_players p on p.id = e.season_player_id
+      left join private.sport_waitlist_start st
+        on st.season_id = e.season_id
+       and st.season_player_id = e.season_player_id
+      where e.season_id = p_season_id
+    ) ranks where ranks.position <> ranks.expected
+  ) then
+    return;
+  end if;
+
+  -- Positions intermédiaires au-delà des anciennes : respecte
+  -- UNIQUE(season_id, position) pendant la réécriture.
+  select coalesce(max(position), 0) + count(*)::integer + 1
+    into v_offset
+  from public.sport_waitlist_entries where season_id = p_season_id;
+
+  update public.sport_waitlist_entries
+     set position = position + v_offset
+   where season_id = p_season_id;
+
+  with ranked as (
+    select e.season_player_id, row_number() over (
+      order by e.manual_waitlist_count - coalesce(st.start_count, 0),
+        st.start_position nulls last,
+        e.previous_season_attendance_count,
+        lower(p.last_name), lower(p.first_name), e.season_player_id
+    )::integer as position
+    from public.sport_waitlist_entries e
+    join public.season_players p on p.id = e.season_player_id
+    left join private.sport_waitlist_start st
+      on st.season_id = e.season_id
+     and st.season_player_id = e.season_player_id
+    where e.season_id = p_season_id
+  )
+  update public.sport_waitlist_entries e
+     set position = r.position,
+         updated_by = coalesce(p_actor, e.updated_by),
+         updated_at = now()
+    from ranked r
+   where e.season_id = p_season_id
+     and e.season_player_id = r.season_player_id;
+end;
+$$;
+revoke all on function private.rebuild_sport_waitlist_order(uuid, uuid)
+  from public, anon, authenticated;
+
 -- Une liste créée à l'instant est triée selon les trois critères ; une
 -- liste existante garde l'ordre choisi par l'administrateur. L'ancienne
 -- fonction est conservée sous un autre nom et enveloppée, pour que tous
@@ -176,6 +275,7 @@ declare
   v_actor uuid := (select auth.uid());
   v_season_id uuid;
   v_limit integer;
+  v_match_type text;
   v_kickoff timestamptz;
   v_status text;
   v_available integer;
@@ -184,8 +284,8 @@ declare
   v_auto_slots integer;
 begin
   perform private.require_sports_management_enabled();
-  select m.season_id, w.squad_size_limit, m.kickoff_at, m.status
-    into v_season_id, v_limit, v_kickoff, v_status
+  select m.season_id, w.squad_size_limit, m.match_type, m.kickoff_at, m.status
+    into v_season_id, v_limit, v_match_type, v_kickoff, v_status
   from public.matches m
   join public.match_sport_workflows w on w.match_id = m.id
   where m.id = p_match_id for update of w;
@@ -226,6 +326,11 @@ begin
       and p.convocation_manual_override
       and p.convocation_status = 'convoked'
       and not sp.is_coach;
+
+    -- Match « entre nous » : inchangé, tous les présents sont convoqués.
+    if v_match_type = 'entre_nous' then
+      v_auto_slots := 2147483647;
+    end if;
 
     -- Un seul passage fixe l'état de TOUS les membres du match :
     -- le rang ne concerne que les joueurs présents, éligibles et non forcés.
@@ -1206,53 +1311,10 @@ begin
 end;
 $$;
 
--- Réconciliation non destructive de l'historique déjà enregistré.
--- Avant cette refonte, le +1 déplaçait un joueur sans toujours augmenter
--- le compteur. On récupère les passages des matchs réellement joués,
--- sans doublonner un même match, tout en conservant toute correction manuelle
--- existante qui serait supérieure à l'historique reconstitué.
-with historic_passages as (
-  select p.season_player_id, count(distinct p.match_id)::integer as turns
-  from public.match_sport_participants p
-  join public.matches m on m.id = p.match_id
-  where m.status in ('termine', 'archive')
-    and p.season_player_id is not null
-    and (
-      p.waitlist_turn_state = 'consumed'
-      or exists (
-        select 1
-        from public.match_sport_participant_events ev
-        where ev.participant_id = p.id
-          and ev.event_type = 'waitlist_turn_consumed'
-      )
-    )
-  group by p.season_player_id
-)
-update public.sport_waitlist_entries e
-set manual_waitlist_count = h.turns,
-    updated_at = now()
-from historic_passages h, public.seasons s
-where e.season_player_id = h.season_player_id
-  and e.season_id = s.id
-  and s.status = 'open'
-  and h.turns > e.manual_waitlist_count;
-
--- À l'installation, l'ordre existant est rétabli selon les trois critères
--- puis répercuté sur les seuls matchs non verrouillés.
-do $$
-declare
-  v_season record;
-begin
-  for v_season in
-    select distinct e.season_id from public.sport_waitlist_entries e
-    join public.seasons s on s.id = e.season_id
-    where s.status = 'open'
-  loop
-    perform private.rebuild_sport_waitlist_order(v_season.season_id, null);
-    perform private.rebalance_upcoming_waitlist_matches(v_season.season_id);
-  end loop;
-end;
-$$;
+-- Aucune modification rétroactive à l'installation : l'ordre actuel de la
+-- liste et les compteurs de +1 sont conservés tels quels. Les nouvelles
+-- règles s'appliquent à partir de la mise en ligne (les +1 ne sont crédités
+-- que pour les matchs dont le coup d'envoi suit l'activation du moteur).
 
 -- Exécuter exactement une fois par minute ; doublons sans effet grâce au PK.
 select cron.schedule(
