@@ -8,17 +8,15 @@
 2. **Passages en attente** — Chaque joueur ayant figuré au moins une fois en attente entre **J−1 à 12 h, heure de Paris**, et le coup d'envoi acquiert **un seul +1** pour ce match, même s'il redevient convoqué ou absent avant le coup d'envoi. Le +1 est comptabilisé au coup d'envoi. Aucun +1 en cas d'annulation, de report, ou lorsque le quota a été ajusté pour accueillir tous les présents.
 3. **Ordre de la liste** — Tri ascendant par (a) total des passages en attente, (b) matchs joués lors de la saison précédente, (c) ordre alphabétique du nom, puis prénom. Un identifiant stable départage une homonymie parfaite.
 
-## Contrôle de l'administrateur (décision du 8 novembre 2026)
+## Contrôle de l'administrateur (décisions du 8 novembre 2026)
 
-L'administrateur garde la main sur la liste, comme avant la refonte :
-
-- **Glisser-déposer** : il peut placer un joueur où il le souhaite ; chaque déplacement est enregistré immédiatement, sans bouton. Les convocations des prochains matchs non verrouillés suivent aussitôt ce nouvel ordre (la règle 1 s'applique à l'ordre choisi).
-- **Boutons +/−** : il peut corriger le compteur de passages d'un joueur. La correction ne déplace personne.
-- **Aucun bouton « Enregistrer », « Recalculer » ni « Actualiser »** : pour mettre à jour l'écran, tirer la liste vers le bas, ou quitter la page et revenir. La fonction serveur `admin_recalculate_sport_waitlist` existe mais n'est pas exposée dans l'écran.
-- **Durée d'un déplacement manuel** : il tient jusqu'au prochain retri automatique, c'est-à-dire l'attribution de +1 au coup d'envoi ou leur annulation (match annulé, reporté, quota élargi). Un simple changement de disponibilité ne retrie pas la liste.
+- **Boutons +/−** : l'administrateur peut corriger le compteur de passages d'un joueur (inscrit au journal d'audit). La correction ne déplace personne : elle s'applique au prochain retri automatique.
+- **Pas de glisser-déposer** dans l'écran : l'ordre suit les trois règles.
+- **Retri automatique** : uniquement lors de l'attribution de +1 au coup d'envoi ou de leur annulation (match annulé, reporté, quota élargi). Un simple changement de disponibilité ne retrie pas la liste.
+- **Aucun bouton « Enregistrer », « Recalculer » ni « Actualiser »** : pour mettre à jour l'écran, tirer la liste vers le bas, ou quitter la page et revenir.
 - Une liste toute neuve (nouvelle saison) est triée selon la règle 3. Un joueur ajouté en cours de saison est placé en fin de liste, comme avant.
-- Chaque déplacement, recalcul et correction de compteur est inscrit dans le journal d'audit administrateur.
-- Forcer un joueur en « convoqué » ou « en attente » pour un match reste interdit : l'admin agit sur l'ordre ou les compteurs, pas sur le résultat.
+- Côté serveur, `admin_reorder_sport_waitlist` et `admin_recalculate_sport_waitlist` restent disponibles (réservés aux administrateurs, audités) mais ne sont plus utilisés par l'écran.
+- Forcer un joueur en « convoqué » ou « en attente » pour un match reste interdit.
 
 ## Invariants techniques obligatoires
 

@@ -42,7 +42,7 @@ void main() {
   );
 
   testWidgets(
-    'dragging a row saves the new order immediately, without a save button',
+    'players cannot be dragged to another place in the list',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -55,15 +55,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final aliceDrag = find.byKey(const ValueKey('waitlist-drag-alice'));
-      final gesture = await tester.startGesture(tester.getCenter(aliceDrag));
-      await tester.pump(const Duration(milliseconds: 600));
-      await gesture.moveTo(tester.getCenter(find.text('Bruno')));
-      await tester.pump();
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      expect(repository.savedOrder, ['bruno', 'alice']);
+      expect(find.byKey(const ValueKey('waitlist-drag-alice')), findsNothing);
+      expect(
+        find.byType(LongPressDraggable<SportWaitlistEntry>),
+        findsNothing,
+      );
+      expect(find.byType(DragTarget<SportWaitlistEntry>), findsNothing);
     },
   );
 
@@ -128,7 +125,6 @@ void main() {
 }
 
 class _FakeSportWaitlistRepository implements SportWaitlistRepository {
-  List<String>? savedOrder;
   String? lastManualCountSeasonPlayerId;
   int? lastManualCount;
 
@@ -165,38 +161,6 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   @override
   Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId}) async =>
       _waitlist;
-
-  @override
-  Future<SportWaitlist> reorderWaitlist({
-    required String seasonId,
-    required List<String> orderedPlayerIds,
-    String? reason,
-  }) async {
-    savedOrder = List.of(orderedPlayerIds);
-    final byId = {
-      for (final entry in _waitlist.entries) entry.seasonPlayerId: entry,
-    };
-    return SportWaitlist(
-      seasonId: seasonId,
-      seasonName: _waitlist.seasonName,
-      entries: [
-        for (var index = 0; index < orderedPlayerIds.length; index++)
-          SportWaitlistEntry(
-            seasonPlayerId: orderedPlayerIds[index],
-            firstName: byId[orderedPlayerIds[index]]!.firstName,
-            lastName: byId[orderedPlayerIds[index]]!.lastName,
-            position: index + 1,
-            previousSeasonAttendanceCount:
-                byId[orderedPlayerIds[index]]!.previousSeasonAttendanceCount,
-            previousSeasonMatchCount:
-                byId[orderedPlayerIds[index]]!.previousSeasonMatchCount,
-            currentSeasonWaitlistCount:
-                byId[orderedPlayerIds[index]]!.currentSeasonWaitlistCount,
-            source: 'manual',
-          ),
-      ],
-    );
-  }
 
   @override
   Future<void> setWaitlistManualCount({
