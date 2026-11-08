@@ -151,8 +151,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   /// Programme l'écriture de l'effectif juste après le geste de l'admin.
   ///
-  /// Le court délai évite d'écrire une fois par doigt qui glisse : plusieurs
-  /// décisions enchaînées partent en une seule écriture.
+  /// Le court délai regroupe les modifications successives du quota.
   void _scheduleEffectifSave() {
     _effectifAutosave?.cancel();
     _effectifAutosave = Timer(
@@ -172,50 +171,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     return limit;
   }
 
-  Map<String, ConvocationStatus> _effectifDecisions(
-    MatchConvocations convocations,
-  ) {
-    // Le coach n'entre dans aucune décision : sa propre réponse suffit à le
-    // poser dans l'effectif, et le serveur refuse une décision à son nom.
-    return {
-      for (final player in convocations.players)
-        if (!player.isGuest &&
-            !player.isCoach &&
-            player.seasonPlayerId.isNotEmpty &&
-            _desiredEffectifStatus(player) != ConvocationStatus.notApplicable)
-          player.seasonPlayerId: _desiredEffectifStatus(player),
-    };
-  }
-
-  /// Joueurs que l'admin a déplacés depuis la dernière réponse du serveur.
-  ///
-  /// Les autres décisions envoyées ne font que recopier ce que le serveur a
-  /// calculé : les figer bloquerait des places et empêcherait la liste
-  /// d'attente de s'appliquer aux joueurs qui répondent plus tard. Un joueur
-  /// disponible encore sans décision côté serveur arrive en attente par
-  /// défaut à l'écran, ce qui n'est pas non plus un choix de l'admin.
-  Set<String> _effectifChangedPlayerIds(MatchConvocations convocations) {
-    return {
-      for (final player in convocations.players)
-        if (!player.isGuest &&
-            !player.isCoach &&
-            player.seasonPlayerId.isNotEmpty &&
-            _desiredEffectifStatus(player) != ConvocationStatus.notApplicable &&
-            _desiredEffectifStatus(player) != player.convocationStatus &&
-            !(player.isAvailable &&
-                player.convocationStatus == ConvocationStatus.notApplicable &&
-                _desiredEffectifStatus(player) ==
-                    ConvocationStatus.notConvoked))
-          player.seasonPlayerId,
-    };
-  }
-
-  /// Écrit l'effectif tel qu'il est à l'écran.
-  ///
-  /// Rien n'est rechargé : la réponse du serveur suffit à remettre l'écran à
-  /// jour, et la composition en cours de préparation n'est pas perdue. Elle est
-  /// simplement réajustée — un joueur qui rejoint arrive sur le banc, un joueur
-  /// qui s'en va laisse son emplacement vide.
+  /// Enregistre le quota ; le serveur déduit seul les convocations des règles.
   Future<void> _persistEffectif({bool recoverOnError = true}) async {
     final convocations = _convocations;
     if (convocations == null) return;
@@ -240,8 +196,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
                 matchId: convocations.matchId,
                 squadSizeLimit: limit,
-                decisions: _effectifDecisions(convocations),
-                changedPlayerIds: _effectifChangedPlayerIds(convocations),
+                // Aucun choix individuel ne peut modifier les convocations.
+                decisions: const <String, ConvocationStatus>{},
                 reason: 'Effectif enregistré depuis le match',
               );
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
