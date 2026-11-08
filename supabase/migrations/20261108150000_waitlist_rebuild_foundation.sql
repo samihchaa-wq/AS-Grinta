@@ -9,6 +9,10 @@ create table if not exists private.sport_waitlist_passage_ledger (
   credited_at timestamptz,
   primary key (match_id, season_player_id)
 );
+-- La PK commence par match_id : cet index supplémentaire couvre la FK
+-- season_player_id lors des suppressions de joueurs et des vérifications.
+create index if not exists sport_waitlist_passage_ledger_player_idx
+  on private.sport_waitlist_passage_ledger (season_player_id);
 alter table private.sport_waitlist_passage_ledger enable row level security;
 revoke all on private.sport_waitlist_passage_ledger from public, anon, authenticated;
 
