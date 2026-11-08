@@ -690,8 +690,15 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
 
   Widget _buildComposition() {
     final composition = _composition!;
-    final field = composition.entriesFor(MatchCompositionZone.field);
-    final bench = composition.entriesFor(MatchCompositionZone.bench)
+    final matchId = _selectedMatchId;
+    final kitPhotos = matchId == null
+        ? const <String, String>{}
+        : ref.watch(matchKitPhotoOverridesProvider(matchId)).valueOrNull ??
+            const <String, String>{};
+    final field = withMatchKitPhotos(
+        composition.entriesFor(MatchCompositionZone.field), kitPhotos);
+    final bench = withMatchKitPhotos(
+        composition.entriesFor(MatchCompositionZone.bench), kitPhotos)
       ..removeWhere(
         (entry) =>
             _desiredEffectifStatuses[entry.participantId] !=

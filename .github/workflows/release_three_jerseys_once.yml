@@ -1,0 +1,44 @@
+name: Release three-jersey photos via approved Supabase workflow
+
+# Un seul declenchement : ce fichier de migration est cree une seule fois.
+# La migration se fait par la procedure de production existante, jamais
+# par une requete SQL parallele qui casserait l'historique des versions.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261108220000_season_player_kit_photos.sql'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: dispatch-three-jersey-migration
+  cancel-in-progress: false
+
+jobs:
+  request-approved-production-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Launch the canonical Supabase production release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/${REPOSITORY}/actions/workflows/deploy_sports_management.yml/dispatches" \
+            --input - <<'JSON'
+          {
+            "ref": "main",
+            "inputs": {
+              "apply_migrations": true,
+              "deploy_send_push": false,
+              "deploy_calendar_feed": false,
+              "deploy_register_account": false
+            }
+          }
+          JSON

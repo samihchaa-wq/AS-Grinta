@@ -5,6 +5,7 @@ import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/features/sports_management/domain/formation_display.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -339,10 +340,21 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     } catch (_) {
       // Sans l'effectif, la vidéo se passe de l'écran du coach.
     }
+    // La vidéo et le terrain utilisent les mêmes photos du maillot choisi.
+    var kitPhotos = const <String, String>{};
+    try {
+      kitPhotos = await ref
+          .read(matchKitPhotoOverridesProvider(matchId).future)
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Les portraits France restent toujours disponibles en repli.
+    }
     return buildCompositionPresentationData(
       formationCode: composition.formationCode,
-      field: composition.entriesFor(MatchCompositionZone.field),
-      bench: composition.entriesFor(MatchCompositionZone.bench),
+      field: withMatchKitPhotos(
+          composition.entriesFor(MatchCompositionZone.field), kitPhotos),
+      bench: withMatchKitPhotos(
+          composition.entriesFor(MatchCompositionZone.bench), kitPhotos),
       fixture: fixture,
       fallbackKickoffAt: kickoffAt,
       coach: coach,
