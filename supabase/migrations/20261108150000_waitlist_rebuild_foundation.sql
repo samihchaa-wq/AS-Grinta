@@ -117,6 +117,18 @@ begin
   join public.season_players p on p.id = e.season_player_id
   where e.season_id = p_season_id;
 
+  -- Aucun UPDATE si l'ordre est déjà bon : évite les changements inutiles
+  -- et leurs notifications sur chaque modification de disponibilité.
+  if not exists (
+    select 1
+    from pg_temp.waitlist_new_ranks r
+    join public.sport_waitlist_entries e
+      on e.season_player_id = r.season_player_id
+    where e.season_id = p_season_id and e.position <> r.rank
+  ) then
+    return;
+  end if;
+
   -- Deux étapes pour respecter UNIQUE(season_id, position) pendant l'UPDATE.
   update public.sport_waitlist_entries e
      set position = e.position + v_offset
