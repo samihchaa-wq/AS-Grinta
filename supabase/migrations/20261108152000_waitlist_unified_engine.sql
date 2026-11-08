@@ -874,9 +874,9 @@ revoke all on function public.admin_recalculate_sport_waitlist(uuid)
 grant execute on function public.admin_recalculate_sport_waitlist(uuid)
   to authenticated, service_role;
 
--- L'administrateur peut corriger le compteur de passages en attente.
--- Comme avant, la correction ne déplace personne : « Recalculer » ou le
--- prochain coup d'envoi appliquent le nouveau compteur au classement.
+-- L'administrateur peut ajouter ou retirer un +1 à la main. Le classement
+-- est recalculé aussitôt (et les convocations des prochains matchs suivent) :
+-- l'écran le montre dès qu'on le rafraîchit.
 create or replace function public.admin_set_waitlist_manual_count(
   p_season_player_id uuid, p_count integer
 )
@@ -884,6 +884,7 @@ returns void language plpgsql security definer set search_path to ''
 as $$
 declare
   v_old integer;
+  v_season_id uuid;
 begin
   if not private.is_admin() then
     raise exception 'Active administrator role required' using errcode = '42501';
@@ -917,6 +918,16 @@ begin
         'new_count', p_count
       )
     );
+
+    for v_season_id in
+      select e.season_id from public.sport_waitlist_entries e
+      where e.season_player_id = p_season_player_id
+    loop
+      perform private.rebuild_sport_waitlist_order(
+        v_season_id, (select auth.uid())
+      );
+      perform private.rebalance_upcoming_waitlist_matches(v_season_id);
+    end loop;
   end if;
 end;
 $$;

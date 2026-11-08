@@ -12,8 +12,8 @@ abstract interface class SportWaitlistRepository {
   /// retard) et sans possibilité de modification.
   Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId});
 
-  /// Corrige le compteur de passages en attente d'un joueur, sans le
-  /// déplacer : le prochain retri automatique applique le nouveau compteur.
+  /// Corrige le compteur de passages en attente d'un joueur. Le serveur
+  /// recalcule aussitôt le classement ; l'écran le montre au rafraîchissement.
   Future<void> setWaitlistManualCount({
     required String seasonPlayerId,
     required int count,

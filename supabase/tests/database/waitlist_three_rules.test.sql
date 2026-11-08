@@ -201,13 +201,31 @@ select is(
   'not_convoked','Bruno devient le joueur en attente après changement de rang'
 );
 
--- L'administrateur peut corriger un compteur ; personne ne bouge tant
--- qu'il ne clique pas sur « Recalculer ».
+-- L'administrateur retire les +1 d'Alice : le classement est recalculé
+-- aussitôt et les convocations suivent.
+select lives_ok(
+  $$select public.admin_set_waitlist_manual_count(
+    'b5400000-0000-0000-0000-000000000001',0
+  )$$,
+  'l admin peut retirer des +1 à la main'
+);
+select is(
+  (select e.position from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  1,'sans +1, Alice remonte aussitôt en haut de liste'
+);
+select is(
+  (select p.convocation_status::text from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  'not_convoked','Alice redevient la joueuse en attente'
+);
+-- Il les rajoute : Alice redescend en bas de liste.
 select lives_ok(
   $$select public.admin_set_waitlist_manual_count(
     'b5400000-0000-0000-0000-000000000001',5
   )$$,
-  'l admin peut corriger un compteur de passages'
+  'l admin peut ajouter des +1 à la main'
 );
 select is(
   (select e.manual_waitlist_count from public.sport_waitlist_entries e
@@ -217,7 +235,7 @@ select is(
 select is(
   (select e.position from public.sport_waitlist_entries e
    where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
-  3,'corriger un compteur ne déplace personne'
+  3,'avec 5 passages, Alice redescend aussitôt en bas de liste'
 );
 select throws_ok(
   $$select public.admin_set_waitlist_manual_count(

@@ -10,13 +10,10 @@
 
 ## Contrôle de l'administrateur (décisions du 8 novembre 2026)
 
-- **Boutons +/−** : l'administrateur peut corriger le compteur de passages d'un joueur (inscrit au journal d'audit). La correction ne déplace personne : elle s'applique au prochain retri automatique.
-- **Pas de glisser-déposer** dans l'écran : l'ordre suit les trois règles.
-- **Retri automatique** : uniquement lors de l'attribution de +1 au coup d'envoi ou de leur annulation (match annulé, reporté, quota élargi). Un simple changement de disponibilité ne retrie pas la liste.
-- **Aucun bouton « Enregistrer », « Recalculer » ni « Actualiser »** : pour mettre à jour l'écran, tirer la liste vers le bas, ou quitter la page et revenir.
+- **Liste d'attente — boutons +/−** : l'administrateur peut ajouter ou retirer un +1 à un joueur (inscrit au journal d'audit). Le classement est recalculé aussitôt selon la règle 3 et les convocations des prochains matchs suivent. L'écran montre le nouvel ordre quand on tire la liste vers le bas ou qu'on revient sur la page. Pas de glisser-déposer ni de bouton « Enregistrer », « Recalculer » ou « Actualiser ».
+- **Effectif — choix par match** : comme avant la refonte, l'administrateur peut glisser un joueur dans « Convoqués » ou « En attente » pour un match. Ce choix est conservé par les recalculs : un joueur forcé convoqué prend une place, un joueur forcé en attente en libère une ; les autres suivent la règle 1. Le choix s'efface si la disponibilité du joueur change (il répond, se désiste, revient, ou l'admin le déclare absent). Un joueur forcé en attente pendant le créneau de la règle 2 gagne son +1, comme tout joueur en attente.
+- **Retri automatique de la liste** : à chaque +1 attribué au coup d'envoi, annulé (match annulé, reporté, quota élargi) ou corrigé à la main.
 - Une liste toute neuve (nouvelle saison) est triée selon la règle 3. Un joueur ajouté en cours de saison est placé en fin de liste, comme avant.
-- Côté serveur, `admin_reorder_sport_waitlist` et `admin_recalculate_sport_waitlist` restent disponibles (réservés aux administrateurs, audités) mais ne sont plus utilisés par l'écran.
-- Forcer un joueur en « convoqué » ou « en attente » pour un match reste interdit.
 
 ## Invariants techniques obligatoires
 
