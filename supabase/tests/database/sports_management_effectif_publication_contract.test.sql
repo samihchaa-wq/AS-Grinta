@@ -147,7 +147,10 @@ as $function$
         when p_version = 1 and player.position <= 2 then 'convoked'
         when p_version = 2 and player.position >= 2 then 'convoked'
         else 'not_convoked'
-      end
+      end,
+      -- Version 1 : l'admin glisse lui-même Bruno (absent) chez les
+      -- convoqués et Chloé (sans réponse) en attente.
+      'changed', p_version = 1 and player.position in (2, 3)
     ) order by player.position
   )
   from public.season_players player
@@ -215,8 +218,8 @@ select is(
     where player ->> 'season_player_id'
       = 'b4000000-0000-0000-0000-000000000001'
   ),
-  'not_convoked',
-  'l’administration relit immédiatement le classement calculé, sans dérogation'
+  'convoked',
+  'l’administration relit immédiatement la décision enregistrée'
 );
 
 reset role;
@@ -231,8 +234,8 @@ select is(
   public.get_my_match_availability(
     current_setting('test.effectif_match')::uuid
   ) #>> '{convocation_status}',
-  'not_convoked',
-  'Alice voit immédiatement sa mise en attente automatique'
+  'convoked',
+  'Alice voit immédiatement sa convocation'
 );
 
 reset role;
@@ -277,13 +280,14 @@ select is(
     current_setting('test.effectif_match')::uuid
   ) #>> '{convocation_status}',
   'not_convoked',
-  'Alice garde son statut calculé malgré une décision manuelle différente'
+  'Alice voit immédiatement la nouvelle décision sans étape de publication'
 );
 
 reset role;
 
--- Les joueurs absents ou sans réponse n'occupent aucune place ; la
--- disponibilité reste la seule source de vérité, jamais une pré-convocation.
+-- La sélection sportive ne doit plus écraser la disponibilité. Bruno reste
+-- absent mais peut être pré-convoqué ; Chloé reste sans réponse mais peut être
+-- placée en liste d'attente.
 update public.match_sport_participants participant
 set availability_status = case player.position
       when 2 then 'absent'::public.sport_availability_status
@@ -318,20 +322,20 @@ reset role;
 select ok(
   (
     select participant.availability_status = 'absent'
-      and participant.convocation_status = 'not_applicable'
-      and not participant.convocation_manual_override
+      and participant.convocation_status = 'convoked'
+      and participant.convocation_manual_override
     from public.match_sport_participants participant
     where participant.season_player_id =
       'b4000000-0000-0000-0000-000000000002'
       and participant.match_id = current_setting('test.effectif_match')::uuid
   ),
-  'un absent ne peut pas être pré-convoqué par l’administration'
+  'un absent reste absent tout en étant pré-convoqué'
 );
 select ok(
   (
     select participant.availability_status = 'no_response'
-      and participant.convocation_status = 'not_applicable'
-      and not participant.convocation_manual_override
+      and participant.convocation_status = 'not_convoked'
+      and participant.convocation_manual_override
       and not participant.waitlist_turn_should_consume
       and participant.waitlist_turn_state = 'not_applicable'
     from public.match_sport_participants participant
@@ -339,11 +343,11 @@ select ok(
       'b4000000-0000-0000-0000-000000000003'
       and participant.match_id = current_setting('test.effectif_match')::uuid
   ),
-  'une sans réponse ne peut pas être inscrite en attente manuellement'
+  'une sans réponse reste identifiable et ne consomme aucun tour'
 );
 
--- Aucun changement de statut sportif ne doit être imposé par le payload ;
--- les réponses des joueurs restent intactes.
+-- Replacer les joueurs dans leur colonne d'origine les retire du payload et
+-- efface uniquement leur décision sportive, jamais leur disponibilité.
 select set_config(
   'request.jwt.claims',
   '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -388,7 +392,7 @@ select is(
       )
   ),
   2::bigint,
-  'la disponibilité reste intacte et aucune décision individuelle n’est conservée'
+  'le retour source efface les deux décisions sans changer les réponses'
 );
 
 select set_config(
@@ -405,12 +409,12 @@ select is(
     'Réapplication avant réponse'
   ) #>> '{convocation_version}',
   '6',
-  'les anciens payloads sont acceptés mais ignorés pour la sélection'
+  'les décisions indisponibles peuvent être réappliquées'
 );
 reset role;
 
--- Quand les joueurs répondent finalement présent, le classement décide
--- seul de la convocation et du passage éventuel en attente.
+-- Quand ces joueurs répondent ensuite présent, la décision manuelle est
+-- conservée et le tour de liste d'attente devient actif seulement à ce moment.
 select set_config(
   'request.jwt.claims',
   '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -445,24 +449,25 @@ reset role;
 select ok(
   (
     select participant.convocation_status = 'convoked'
-      and not participant.convocation_manual_override
+      and participant.convocation_manual_override
     from public.match_sport_participants participant
     where participant.season_player_id =
       'b4000000-0000-0000-0000-000000000002'
       and participant.match_id = current_setting('test.effectif_match')::uuid
   ),
-  'Bruno est convoqué automatiquement, sans décision manuelle'
+  'la pré-convocation manuelle survit au retour disponible'
 );
 select ok(
   (
-    select participant.convocation_status = 'convoked'
-      and not participant.waitlist_turn_should_consume
+    select participant.convocation_status = 'not_convoked'
+      and participant.waitlist_turn_should_consume
+      and participant.waitlist_turn_state = 'pending'
     from public.match_sport_participants participant
     where participant.season_player_id =
       'b4000000-0000-0000-0000-000000000003'
       and participant.match_id = current_setting('test.effectif_match')::uuid
   ),
-  'Chloé est également convoquée selon son rang, sans +1'
+  'le tour en attente ne devient consommable qu’après la réponse présente'
 );
 
 select ok(

@@ -3,8 +3,10 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
--- Enregistrer l'effectif n'autorise plus aucune dérogation :
--- seuls le nombre de places, les disponibilités et le classement décident.
+-- Enregistrer l'effectif ne fige que les joueurs que l'admin a déplacés. Les
+-- autres suivent toujours la liste d'attente : un joueur qui répond plus tard
+-- fait passer en attente le joueur le plus haut de la liste, même s'il était
+-- déjà convoqué.
 
 insert into auth.users(id, email, raw_user_meta_data)
 values
@@ -184,8 +186,8 @@ select is(
   'une réponse tardive fait passer en attente le n°1 de la liste, même déjà convoqué'
 );
 
--- Même si un ancien client envoie une décision « changed » incompatible,
--- le serveur conserve les convocations entièrement automatiques.
+-- Un vrai déplacement de l'admin est figé, et la liste d'attente se
+-- réapplique aux places restantes.
 select set_config(
   'test.decisions_admin',
   pg_temp.decisions(
@@ -213,12 +215,12 @@ select is(
   pg_temp.status_of('c4000000-0000-0000-0000-000000000001')
     || ' ' || pg_temp.status_of('c4000000-0000-0000-0000-000000000002')
     || ' ' || pg_temp.status_of('c4000000-0000-0000-0000-000000000003'),
-  'not_convoked/auto convoked/auto convoked/auto',
-  'une décision manuelle contradictoire ne modifie aucune convocation'
+  'convoked/manuel not_convoked/auto convoked/auto',
+  'seul le joueur déplacé est figé ; le suivant de la liste passe en attente'
 );
 
--- Un ancien client sans drapeau « changed » ne peut pas non plus
--- rétablir les dérogations supprimées.
+-- Un ancien client n'envoie pas « changed » : recopier le statut calculé ne
+-- fige rien, et la décision déjà figée le reste.
 select set_config(
   'test.decisions_legacy', pg_temp.decisions('{}'::jsonb)::text, true
 );
@@ -242,8 +244,8 @@ select is(
   pg_temp.status_of('c4000000-0000-0000-0000-000000000001')
     || ' ' || pg_temp.status_of('c4000000-0000-0000-0000-000000000002')
     || ' ' || pg_temp.status_of('c4000000-0000-0000-0000-000000000003'),
-  'not_convoked/auto convoked/auto convoked/auto',
-  'un ancien client ne fige aucune décision individuelle'
+  'convoked/manuel not_convoked/auto convoked/auto',
+  'un ancien client qui recopie le calcul ne fige aucun joueur de plus'
 );
 
 select * from finish();

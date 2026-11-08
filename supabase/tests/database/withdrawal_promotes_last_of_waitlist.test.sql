@@ -300,7 +300,7 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- Le recalcul reste prioritaire même si un ancien client force une décision
+-- Retour d'un convoqué dont la place a été reprise à la main
 -- ---------------------------------------------------------------------------
 
 -- Damien se désiste de nouveau : Bruno, dernier en attente, monte.
@@ -317,8 +317,9 @@ select is(
   'second désistement de Damien : Bruno monte'
 );
 
--- L'ancien client essaie de forcer Bruno en attente ;
--- le serveur ignore cette dérogation, et Alice reste en attente.
+-- Comme Poulain pour le match du 9 novembre, l'admin renvoie à la main le
+-- remplaçant en liste d'attente. Le recalcul donne la place libre à Alice,
+-- sans la noter comme remplaçante de Damien.
 select set_config(
   'test.decisions_manual',
   (
@@ -352,12 +353,12 @@ reset role;
 
 select is(
   pg_temp.effectif(current_setting('test.match')::uuid),
-  'Alice not_convoked / Bruno convoked / Chloé convoked / Damien not_applicable',
-  'le payload manuel ne modifie pas les convocations automatiques'
+  'Alice convoked / Bruno not_convoked / Chloé convoked / Damien not_applicable',
+  'après la correction manuelle, Alice occupe la place de Damien'
 );
 
--- Damien revient : Bruno, dernier promu, retourne en attente,
--- sans jamais dépasser le quota de deux joueurs.
+-- Damien revient. Personne n'est noté comme son remplaçant : sans
+-- correction, il reprenait sa place et l'effectif passait à 3 pour 2.
 select pg_temp.mark();
 select pg_temp.as_profile('f5710000-0000-0000-0000-000000000005');
 set local role authenticated;
@@ -369,13 +370,13 @@ reset role;
 select is(
   pg_temp.effectif(current_setting('test.match')::uuid),
   'Alice not_convoked / Bruno not_convoked / Chloé convoked / Damien convoked',
-  'Damien reprend sa place et Bruno, le moins prioritaire des convoqués restants, repasse en attente'
+  'Damien récupère sa place et Alice, la plus haute des convoqués dans la liste, repasse en attente'
 );
 
 select is(
   pg_temp.pushes_since(current_setting('test.marker')::bigint),
-  'Tu passes en liste d''attente → Bruno',
-  'seul Bruno, qui perd réellement sa place, est prévenu'
+  'Tu passes en liste d''attente → Alice',
+  'seule Alice, qui perd sa place, est prévenue'
 );
 
 select * from finish();

@@ -105,9 +105,10 @@ select set_config(
   true
 );
 
--- Le moteur ne dépend plus du statut historique, des overrides ou du
--- drapeau de tour : chaque désistement recalcule uniquement les X présents
--- aux positions les plus basses de la liste d'attente.
+-- Chaque désistement recalcule les convocations : les X présents aux
+-- positions les plus basses de la liste d'attente, sauf les joueurs que
+-- l'admin a placés à la main dans « Effectif » (choix conservé). Le joueur
+-- qui se désiste quitte toujours l'effectif.
 create temporary table pg_temp.waitlist_three_rules_state_space (
   case_number integer primary key,
   cutoff_mode text not null,
@@ -175,8 +176,10 @@ begin
               where id = current_setting('test.waitlist_space_withdrawn')::uuid;
 
               update public.match_sport_participants
-              set availability_status = v_candidate::public.sport_availability_status,
-                  convocation_status = 'not_convoked',
+              set availability_status = v_candidate::public.sport_availability_status
+              where id = current_setting('test.waitlist_space_candidate')::uuid;
+              update public.match_sport_participants
+              set convocation_status = 'not_convoked',
                   convocation_manual_override = v_manual,
                   waitlist_turn_state = v_old_turn::public.sport_waitlist_turn_state,
                   waitlist_turn_should_consume = true
@@ -185,7 +188,7 @@ begin
               update public.match_sport_participants
               set availability_status = 'available',
                   convocation_status = 'not_convoked',
-                  convocation_manual_override = true,
+                  convocation_manual_override = false,
                   waitlist_turn_state = 'pending',
                   waitlist_turn_should_consume = true
               where id = current_setting('test.waitlist_space_witness')::uuid;
@@ -221,12 +224,15 @@ begin
                 and p.convocation_status = 'convoked'
                 and p.availability_status = 'available';
 
+              -- Un joueur que l'admin a placé en attente le reste, même
+              -- absent ou sans réponse ; il ne compte un tour que présent.
               v_expected := case
+                when v_manual then 'not_convoked'
                 when v_candidate <> 'available' then 'not_applicable'
                 when v_quota = 1 then 'not_convoked'
                 else 'convoked' end;
               v_expected_convoked := case
-                when v_candidate = 'available' then v_quota
+                when v_candidate = 'available' and not v_manual then v_quota
                 else 1 end;
 
               insert into pg_temp.waitlist_three_rules_state_space
@@ -239,9 +245,9 @@ begin
                 or v_convoked is distinct from v_expected_convoked
                 or v_withdrawn is distinct from 'not_applicable'
                 or v_witness is distinct from 'convoked'
-                or v_candidate_manual is distinct from false
+                or v_candidate_manual is distinct from v_manual
                 or v_candidate_should is distinct from
-                   (v_candidate = 'available' and v_quota = 1)
+                   (v_candidate = 'available' and (v_manual or v_quota = 1))
               );
             end loop;
           end loop;
@@ -269,7 +275,7 @@ order by case_number;
 select is(
   (select count(*) from pg_temp.waitlist_three_rules_state_space where mismatch),
   0::bigint,
-  'les 216 combinaisons respectent le calcul unique et ignorent les overrides'
+  'les 216 combinaisons respectent le calcul et les choix manuels de l admin'
 );
 select is(
   (

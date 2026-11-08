@@ -143,8 +143,8 @@ as $function$
     and participant.season_player_id = p_season_player;
 $function$;
 
--- Le payload historique est accepté mais ignoré : le quota et
--- la liste d'attente déterminent seuls les trois convoqués.
+-- L'écran recopie le calcul du serveur sans rien déplacer (« changed »
+-- à faux) : rien n'est figé, la liste d'attente décide des trois convoqués.
 create or replace function pg_temp.compo_suit_decisions()
 returns jsonb
 language sql
@@ -157,7 +157,8 @@ as $function$
         when player.id = 'c9400000-0000-0000-0000-000000000003'::uuid
           then 'not_convoked'
         else 'convoked'
-      end
+      end,
+      'changed', false
     ) order by player.position
   )
   from public.season_players player

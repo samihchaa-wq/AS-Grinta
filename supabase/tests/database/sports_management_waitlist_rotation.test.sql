@@ -300,15 +300,37 @@ select is(
   'Recalculer rétablit l ordre automatique'
 );
 
--- Toute dérogation manuelle est désormais refusée, même avant T-15.
-select throws_ok(
-  $$select public.admin_set_match_convocation(
-    current_setting('test.waitlist_match_early')::uuid,
-    '74000000-0000-0000-0000-000000000023',
-    'convoked', false, 'Choix manuel')$$,
-  '22023',
-  'Convocations automatiques : modifier les disponibilités ou le quota.',
-  'l admin ne peut pas imposer une convocation'
+-- Dans « Effectif », l'admin peut imposer une convocation pour ce match :
+-- le joueur imposé prend une place, le quota reste respecté.
+select public.admin_set_match_convocation(
+  current_setting('test.waitlist_match_early')::uuid,
+  '74000000-0000-0000-0000-000000000021',
+  'convoked', false, 'Choix manuel'
+);
+select ok(
+  (
+    select convocation_status = 'convoked' and convocation_manual_override
+    from public.match_sport_participants
+    where match_id = current_setting('test.waitlist_match_early')::uuid
+      and season_player_id = '74000000-0000-0000-0000-000000000021'
+  ),
+  'l admin peut imposer une convocation'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.match_sport_participants
+    where match_id = current_setting('test.waitlist_match_early')::uuid
+      and availability_status = 'available'
+      and convocation_status = 'convoked'
+  ),
+  2,
+  'la convocation imposée prend une place sans dépasser le quota'
+);
+-- Un recalcul demandé avec remise à zéro rend la main à la liste d'attente.
+select public.admin_recompute_match_convocations(
+  current_setting('test.waitlist_match_early')::uuid,
+  true
 );
 select public.admin_publish_match_convocations(
   current_setting('test.waitlist_match_early')::uuid,

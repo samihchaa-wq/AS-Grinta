@@ -134,14 +134,18 @@ $$;
 revoke all on function private.ensure_sport_waitlist(uuid, uuid)
   from public, anon, authenticated;
 
--- Un changement de disponibilité (le joueur répond, se désiste, revient,
--- ou l'admin le déclare absent) efface le choix manuel de l'admin pour ce
--- match : le joueur repasse sous la règle automatique.
+-- Un joueur présent qui se désiste (ou que l'admin déclare absent) perd le
+-- choix manuel de l'admin pour ce match. À l'inverse, un joueur absent ou
+-- sans réponse que l'admin a pré-placé garde ce choix s'il répond présent,
+-- comme avant la refonte.
 create or replace function private.clear_manual_override_on_availability()
 returns trigger language plpgsql security definer set search_path to ''
 as $$
 begin
-  if new.availability_status is distinct from old.availability_status
+  -- Sauf si la même écriture pose elle-même un nouveau choix manuel.
+  if old.availability_status = 'available'
+     and new.availability_status <> 'available'
+     and new.convocation_manual_override = old.convocation_manual_override
      and new.season_player_id is not null then
     new.convocation_manual_override := false;
   end if;
@@ -200,9 +204,9 @@ begin
     perform private.ensure_sport_waitlist(v_season_id, v_actor);
 
     -- Un choix manuel de l'admin est conservé (comme avant la refonte, il
-    -- peut même convoquer un joueur déclaré absent). Il disparaît sur
-    -- demande explicite, pour un joueur inéligible, ou dès que la
-    -- disponibilité du joueur change (voir clear_manual_override_on_availability).
+    -- peut pré-placer un joueur absent ou sans réponse). Il disparaît sur
+    -- demande explicite, pour un joueur inéligible, ou quand un joueur
+    -- présent se désiste (voir clear_manual_override_on_availability).
     update public.match_sport_participants p
        set convocation_manual_override = false,
            updated_at = now()
@@ -292,12 +296,15 @@ begin
              case when d.is_coach then null else d.position end,
            waitlist_recommended_not_convoked =
              not d.manual and coalesce(d.priority > v_auto_slots, false),
-           waitlist_turn_should_consume = d.status = 'not_convoked',
+           -- Un tour d'attente ne compte que pour un joueur présent.
+           waitlist_turn_should_consume = d.status = 'not_convoked'
+             and p.availability_status = 'available',
            waitlist_turn_state = case
              when d.is_coach then 'not_applicable'::public.sport_waitlist_turn_state
              when p.waitlist_turn_state = 'consumed'
                then 'consumed'::public.sport_waitlist_turn_state
              when d.status = 'not_convoked'
+              and p.availability_status = 'available'
                then 'pending'::public.sport_waitlist_turn_state
              when d.status = 'convoked'
                then 'waived'::public.sport_waitlist_turn_state
@@ -354,6 +361,14 @@ begin
     and p.is_eligible
     and p.convocation_status = 'not_convoked'
   order by e.position desc, p.id limit 1;
+
+  -- Le joueur qui se désiste quitte l'effectif, même s'il y avait été
+  -- placé à la main par l'admin.
+  update public.match_sport_participants
+     set convocation_manual_override = false,
+         updated_at = now()
+   where id = p_participant_id
+     and convocation_manual_override;
 
   perform private.recompute_match_convocations_internal(p_match_id, false);
 
