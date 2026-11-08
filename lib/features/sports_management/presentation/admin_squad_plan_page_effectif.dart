@@ -234,7 +234,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         _validatedSquadLimit(showError: false) ?? convocations.squadSizeLimit;
 
     _effectifAutosave?.cancel();
-    final revision = _effectifRevision;
     _updateState(() => _effectifSaving = true);
     try {
       final updated =
@@ -247,8 +246,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               );
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
       if (!mounted || _selectedMatchId != convocations.matchId) return;
-      _applyConvocations(updated,
-          adoptDecisions: revision == _effectifRevision);
+      _applyConvocations(updated, adoptDecisions: true);
     } catch (error) {
       if (!mounted) return;
       _showMessage(humanizeError(error));
