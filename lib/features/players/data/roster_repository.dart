@@ -349,13 +349,16 @@ class RosterRepository {
       fileOptions: FileOptions(contentType: image.mimeType, upsert: false),
     );
     try {
-      final updated = await table.upsert({
-        'season_player_id': seasonPlayerId,
-        'brazil_url': kitId == 'brazil' ? path : existing?['brazil_url'],
-        'netherlands_url':
-            kitId == 'netherlands' ? path : existing?['netherlands_url'],
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'season_player_id').select('season_player_id').maybeSingle();
+      final updated = await table
+          .upsert({
+            'season_player_id': seasonPlayerId,
+            'brazil_url': kitId == 'brazil' ? path : existing?['brazil_url'],
+            'netherlands_url':
+                kitId == 'netherlands' ? path : existing?['netherlands_url'],
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'season_player_id')
+          .select('season_player_id')
+          .maybeSingle();
       if (updated == null) {
         throw StateError('La photo du maillot n’a pas pu être enregistrée.');
       }
