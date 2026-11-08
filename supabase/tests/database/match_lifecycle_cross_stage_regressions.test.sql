@@ -124,13 +124,35 @@ set local role authenticated;
 select public.set_my_match_availability(current_setting('test.cross_match')::uuid,'available',null);
 reset role;
 
+-- La sélection est entièrement automatique : Alpha a plus de passages
+-- historiques que Beta et doit donc occuper la seule place disponible.
+-- Ces compteurs appartiennent uniquement aux données de ce test isolé.
+select private.ensure_sport_waitlist(
+  'fa200000-0000-0000-0000-000000000001', null
+);
+update public.sport_waitlist_entries
+set manual_waitlist_count=2
+where season_player_id='fa400000-0000-0000-0000-000000000001';
+select private.rebuild_sport_waitlist_order(
+  'fa200000-0000-0000-0000-000000000001', null
+);
+update public.match_sport_workflows
+set squad_size_limit=1
+where match_id=current_setting('test.cross_match')::uuid;
+select private.recompute_match_convocations_internal(
+  current_setting('test.cross_match')::uuid, false
+);
+select is(
+  (select convocation_status::text
+   from public.match_sport_participants
+   where match_id=current_setting('test.cross_match')::uuid
+     and season_player_id='fa400000-0000-0000-0000-000000000002'),
+  'not_convoked',
+  'Beta attend car Alpha est plus bas dans le classement permanent'
+);
+
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
-select public.admin_set_match_convocation(
- current_setting('test.cross_match')::uuid,
- 'fa400000-0000-0000-0000-000000000002',
- 'not_convoked',true,'Cross stage'
-);
 select public.admin_publish_match_convocations(current_setting('test.cross_match')::uuid,'Cross stage');
 select public.admin_save_match_composition(
  current_setting('test.cross_match')::uuid,
