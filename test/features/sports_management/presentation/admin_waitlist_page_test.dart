@@ -195,8 +195,8 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
         );
         if (byPrevious != 0) return byPrevious;
         return a.displayName.toLowerCase().compareTo(
-          b.displayName.toLowerCase(),
-        );
+              b.displayName.toLowerCase(),
+            );
       });
     returnedOrder = entries.map((e) => e.seasonPlayerId).toList();
     return SportWaitlist(
