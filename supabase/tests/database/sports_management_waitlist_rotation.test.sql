@@ -259,10 +259,10 @@ select is(
 
 -- Toute dérogation manuelle est désormais refusée, même avant T-15.
 select throws_ok(
-  $select public.admin_set_match_convocation(
+  $$select public.admin_set_match_convocation(
     current_setting('test.waitlist_match_early')::uuid,
     '74000000-0000-0000-0000-000000000023',
-    'convoked', false, 'Choix manuel')$,
+    'convoked', false, 'Choix manuel')$$,
   '22023',
   'Convocations automatiques : modifier les disponibilités ou le quota.',
   'l admin ne peut pas imposer une convocation'
