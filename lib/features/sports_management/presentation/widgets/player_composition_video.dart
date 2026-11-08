@@ -306,6 +306,7 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
       // Sans la fiche du match, l'accroche se contente de l'effectif.
     }
     CompositionPresentationCoach? coach;
+    String? coachSeasonPlayerId;
     DateTime? kickoffAt;
     try {
       final board = await ref
@@ -322,6 +323,7 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
       if (player != null) {
         String? photoUrl;
         final seasonPlayerId = player.seasonPlayerId;
+        coachSeasonPlayerId = seasonPlayerId;
         if (seasonPlayerId != null) {
           try {
             photoUrl = await ref
@@ -357,7 +359,17 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
           composition.entriesFor(MatchCompositionZone.bench), kitPhotos),
       fixture: fixture,
       fallbackKickoffAt: kickoffAt,
-      coach: coach,
+      coach: coach == null
+          ? null
+          : CompositionPresentationCoach(
+              id: coach.id,
+              name: coach.name,
+              photoUrl: coachPhotoForMatchKit(
+                seasonPlayerId: coachSeasonPlayerId,
+                francePhotoUrl: coach.photoUrl,
+                photoOverrides: kitPhotos,
+              ),
+            ),
     );
   }
 }
