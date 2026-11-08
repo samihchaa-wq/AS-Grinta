@@ -58,20 +58,15 @@ create trigger trg_exempt_waitlist_when_all_fit
 before update of squad_size_limit on public.match_sport_workflows
 for each row execute function private.exempt_waitlist_when_all_fit();
 
--- Tout report de l'heure ou du jour, après l'ouverture de la période,
--- neutralise les +1 du match concerné.
+-- Tout report de l'heure ou du jour neutralise les +1 du match,
+-- même avant l'ouverture de la période de comptage.
 create or replace function private.exempt_waitlist_on_reschedule()
 returns trigger language plpgsql security definer
 set search_path to ''
 as $$
 begin
   if old.kickoff_at is not null
-     and new.kickoff_at is distinct from old.kickoff_at
-     and (
-       (new.kickoff_at at time zone 'Europe/Paris')::date
-          is distinct from (old.kickoff_at at time zone 'Europe/Paris')::date
-       or now() >= private.waitlist_credit_cutoff(old.kickoff_at)
-     ) then
+     and new.kickoff_at is distinct from old.kickoff_at then
     update public.match_sport_workflows
       set waitlist_passages_exempt = true
     where match_id = new.id;
