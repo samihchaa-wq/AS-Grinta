@@ -369,30 +369,19 @@ end;
 $$;
 
 -- Toute modification validée du compteur réordonne automatiquement la liste.
+-- Les +1 sont déduits exclusivement du journal des matchs.
+-- Signature conservée pour empêcher les anciens clients de les modifier.
 create or replace function public.admin_set_waitlist_manual_count(
   p_season_player_id uuid, p_count integer
 )
 returns void language plpgsql security definer set search_path to ''
 as $$
-declare
-  v_season_id uuid;
 begin
   if not private.is_admin() then
     raise exception 'Active administrator role required' using errcode = '42501';
   end if;
-  if p_count is null or p_count < 0 then
-    raise exception 'Invalid count' using errcode = '22023';
-  end if;
-  update public.sport_waitlist_entries
-     set manual_waitlist_count = p_count,
-         updated_at = now(), updated_by = (select auth.uid())
-   where season_player_id = p_season_player_id
-   returning season_id into v_season_id;
-  if not found then
-    raise exception 'Waitlist entry not found' using errcode = 'P0002';
-  end if;
-  perform private.rebuild_sport_waitlist_order(v_season_id, (select auth.uid()));
-  perform private.rebalance_upcoming_waitlist_matches(v_season_id);
+  raise exception 'Les passages en attente sont calculés automatiquement.'
+    using errcode = '22023';
 end;
 $$;
 
