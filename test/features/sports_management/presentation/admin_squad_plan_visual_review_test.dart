@@ -265,7 +265,7 @@ void main() {
       // Les colonnes ne doivent pas permettre de contourner le classement.
       await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
       expect(find.text('Convoqués (3)'), findsOneWidget);
-      expect(repository.lastChangedPlayerIds, isEmpty);
+      expect(repository.lastDecisions, isNull);
       await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
       expect(find.text('Liste d’attente (0)'), findsOneWidget);
       expect(find.text('Sans réponse (1)'), findsOneWidget);
@@ -290,7 +290,7 @@ void main() {
     expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
     // Recopier le calcul du serveur n'est pas une décision de l'admin : rien
     // n'est figé, la liste d'attente reste automatique.
-    expect(repository.lastChangedPlayerIds, isEmpty);
+    expect(repository.lastDecisions, isNull);
   });
 
   testWidgets('la liste d’attente ne permet pas une convocation imposée', (
@@ -309,7 +309,7 @@ void main() {
     await _dragPlayerToColumn(tester, playerName: 'Clara', columnIndex: 0);
     expect(find.text('Prévenir Clara ?'), findsNothing);
     expect(find.text('Liste d’attente (1)'), findsOneWidget);
-    expect(repository.lastChangedPlayerIds, isEmpty);
+    expect(repository.lastDecisions, isNull);
   });
 
   testWidgets('un absent ne peut pas être convoqué manuellement', (
@@ -328,7 +328,7 @@ void main() {
     await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
     expect(find.textContaining('Prévenir'), findsNothing);
     expect(find.text('Absents (1)'), findsOneWidget);
-    expect(repository.lastChangedPlayerIds, isEmpty);
+    expect(repository.lastDecisions, isNull);
   });
 
   testWidgets('un convoqué peut passer chez les absents', (tester) async {
