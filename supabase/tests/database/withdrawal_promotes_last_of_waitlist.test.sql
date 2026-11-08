@@ -251,20 +251,15 @@ select is(
   'seul Bruno est prévenu de sa convocation'
 );
 
-select is(
+select ok(
   (
-    select participant.promoted_from_participant_id
+    select participant.promoted_from_participant_id is null
+       and not participant.convocation_manual_override
     from public.match_sport_participants participant
     where participant.match_id = current_setting('test.match')::uuid
       and participant.season_player_id = 'f5740000-0000-0000-0000-000000000002'
   ),
-  (
-    select participant.id
-    from public.match_sport_participants participant
-    where participant.match_id = current_setting('test.match')::uuid
-      and participant.season_player_id = 'f5740000-0000-0000-0000-000000000004'
-  ),
-  'Bruno est noté comme remplaçant de Damien'
+  'Bruno est convoqué par le calcul unique, sans lien arbitraire de remplacement'
 );
 
 -- Le désistement suit le même ordre que le recalcul de l'effectif : un
@@ -305,7 +300,7 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- Retour d'un convoqué dont la place a été reprise à la main
+-- Le recalcul reste prioritaire même si un ancien client force une décision
 -- ---------------------------------------------------------------------------
 
 -- Damien se désiste de nouveau : Bruno, dernier en attente, monte.
@@ -322,9 +317,8 @@ select is(
   'second désistement de Damien : Bruno monte'
 );
 
--- Comme Poulain pour le match du 9 novembre, l'admin renvoie à la main le
--- remplaçant en liste d'attente. Le recalcul donne la place libre à Alice,
--- sans la noter comme remplaçante de Damien.
+-- L'ancien client essaie de forcer Bruno en attente ;
+-- le serveur ignore cette dérogation, et Alice reste en attente.
 select set_config(
   'test.decisions_manual',
   (
@@ -358,12 +352,12 @@ reset role;
 
 select is(
   pg_temp.effectif(current_setting('test.match')::uuid),
-  'Alice convoked / Bruno not_convoked / Chloé convoked / Damien not_applicable',
-  'après la correction manuelle, Alice occupe la place de Damien'
+  'Alice not_convoked / Bruno convoked / Chloé convoked / Damien not_applicable',
+  'le payload manuel ne modifie pas les convocations automatiques'
 );
 
--- Damien revient. Personne n'est noté comme son remplaçant : sans
--- correction, il reprenait sa place et l'effectif passait à 3 pour 2.
+-- Damien revient : Bruno, dernier promu, retourne en attente,
+-- sans jamais dépasser le quota de deux joueurs.
 select pg_temp.mark();
 select pg_temp.as_profile('f5710000-0000-0000-0000-000000000005');
 set local role authenticated;
@@ -375,13 +369,13 @@ reset role;
 select is(
   pg_temp.effectif(current_setting('test.match')::uuid),
   'Alice not_convoked / Bruno not_convoked / Chloé convoked / Damien convoked',
-  'Damien récupère sa place et Alice, la plus haute des convoqués dans la liste, repasse en attente'
+  'Damien reprend sa place et Bruno, le moins prioritaire des convoqués restants, repasse en attente'
 );
 
 select is(
   pg_temp.pushes_since(current_setting('test.marker')::bigint),
-  'Tu passes en liste d''attente → Alice',
-  'seule Alice, qui perd sa place, est prévenue'
+  'Tu passes en liste d''attente → Bruno',
+  'seul Bruno, qui perd réellement sa place, est prévenu'
 );
 
 select * from finish();
