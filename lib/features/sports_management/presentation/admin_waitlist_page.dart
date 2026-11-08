@@ -315,4 +315,3 @@ class _WaitlistScrollableRow extends StatelessWidget {
     return content;
   }
 }
-
