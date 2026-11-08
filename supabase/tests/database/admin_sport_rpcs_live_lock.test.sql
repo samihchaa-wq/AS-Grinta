@@ -266,9 +266,9 @@ select lives_ok(
 -- Les convocations ne sont plus modifiables individuellement :
 -- avant T-15, l'administrateur modifie uniquement la disponibilité ou le quota.
 select throws_ok(
-  $select public.admin_set_match_convocation(
+  $$select public.admin_set_match_convocation(
     current_setting('test.lock_open_match')::uuid,
-    '7a000000-0000-0000-0000-000000000021', 'convoked', true, 'Convocation confirmée')$,
+    '7a000000-0000-0000-0000-000000000021', 'convoked', true, 'Convocation confirmée')$$,
   '22023',
   'Convocations automatiques : modifier les disponibilités ou le quota.',
   'aucune dérogation manuelle aux trois règles, même avant T-15'
