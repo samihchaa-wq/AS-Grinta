@@ -211,8 +211,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
             position: index + 1,
             previousSeasonAttendanceCount:
                 entries[index].previousSeasonAttendanceCount,
-            previousSeasonMatchCount:
-                entries[index].previousSeasonMatchCount,
+            previousSeasonMatchCount: entries[index].previousSeasonMatchCount,
             currentSeasonWaitlistCount:
                 entries[index].currentSeasonWaitlistCount,
             source: 'manual',
