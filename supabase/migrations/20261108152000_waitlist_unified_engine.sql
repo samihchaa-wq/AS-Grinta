@@ -168,6 +168,30 @@ begin
     update public.match_sport_participants p
        set convocation_status = d.status,
            convocation_manual_override = false,
+           -- Compatibilité avec le Live : un joueur qui figurait en attente
+           -- dans la dernière composition publiée rejoint le banc s'il est
+           -- ensuite convoqué. Cette trace ne modifie jamais sa priorité.
+           promoted_after_withdrawal_at = case
+             when d.status = 'convoked'
+              and exists (
+                select 1
+                from public.match_composition_publications pub
+                where pub.match_id = p_match_id
+                  and pub.version = (
+                    select max(latest.version)
+                    from public.match_composition_publications latest
+                    where latest.match_id = p_match_id
+                  )
+                  and (pub.snapshot -> 'entries') @> jsonb_build_array(
+                    jsonb_build_object(
+                      'participant_id', p.id::text,
+                      'convocation_status', 'not_convoked'
+                    )
+                  )
+              ) then coalesce(p.promoted_after_withdrawal_at, now())
+             else null
+           end,
+           promoted_from_participant_id = null,
            waitlist_position_snapshot =
              case when d.is_coach then null else d.position end,
            waitlist_recommended_not_convoked =
