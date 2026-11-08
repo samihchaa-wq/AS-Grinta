@@ -676,7 +676,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               icon: Icons.schedule_outlined,
               players: _unansweredPlayers,
               acceptsDrops: false,
-              draggable: false,
+              draggable: true, // autorise le déplacement vers « Absents »
               locked: _busy || _locked,
               onShowInfo: _showPlayerInfo,
               onRelanceAll: (_reminders?.canRemind ?? false)
