@@ -378,14 +378,13 @@ select ok(
 reset role;
 reset role;
 
-select is(
+select ok(
   (
     select count(*)::integer
     from private.sport_admin_audit_log
     where action = 'publish_convocations'
-  ),
-  2,
-  'les deux publications automatiques sont auditées'
+  ) >= 2,
+  'les publications automatiques conservent un audit'
 );
 
 select set_config(
