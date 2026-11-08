@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Correspondance avec les trois maillots de l'onglet Infos.
 /// Les anciens identifiants de match restent stables : blue = Brésil,
 /// orange = Pays-Bas. France reprend la photo historique de chaque joueur.
-String? kitPhotoColumn(String? jerseyId) => switch (JerseyOption.fromId(jerseyId)) {
+String? kitPhotoColumn(String? jerseyId) =>
+    switch (JerseyOption.fromId(jerseyId)) {
       JerseyOption.blue => 'brazil_url',
       JerseyOption.orange => 'netherlands_url',
       _ => null,
@@ -22,7 +23,8 @@ final matchKitPhotoOverridesProvider =
     final column = kitPhotoColumn(match.jerseyNote);
     if (column == null) return const <String, String>{};
 
-    final rows = await ref.watch(supabaseClientProvider)
+    final rows = await ref
+        .watch(supabaseClientProvider)
         .from('season_player_kit_photos')
         .select('season_player_id,$column');
     return {
