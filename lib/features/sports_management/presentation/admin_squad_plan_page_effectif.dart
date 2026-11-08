@@ -147,7 +147,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!mounted || _selectedMatchId != matchId) return;
     await _loadWorkspace(matchId);
     if (!mounted || _selectedMatchId != matchId) return;
-
   }
 
   /// Programme l'écriture de l'effectif juste après le geste de l'admin.
