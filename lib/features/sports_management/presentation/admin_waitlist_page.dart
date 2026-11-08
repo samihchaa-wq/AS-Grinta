@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -28,7 +27,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
-  bool _dirty = false;
 
   @override
   void initState() {
@@ -50,7 +48,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       setState(() {
         _waitlist = value;
         _entries = List.of(value.entries);
-        _dirty = false;
         _loading = false;
       });
     } catch (error) {
@@ -60,24 +57,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         _loading = false;
       });
     }
-  }
-
-  void _reorderByDrag(SportWaitlistEntry dragged, SportWaitlistEntry target) {
-    if (dragged.seasonPlayerId == target.seasonPlayerId) return;
-    setState(() {
-      final entries = List<SportWaitlistEntry>.of(_entries);
-      final fromIndex = entries.indexWhere(
-        (e) => e.seasonPlayerId == dragged.seasonPlayerId,
-      );
-      final toIndex = entries.indexWhere(
-        (e) => e.seasonPlayerId == target.seasonPlayerId,
-      );
-      if (fromIndex == -1 || toIndex == -1) return;
-      final item = entries.removeAt(fromIndex);
-      entries.insert(toIndex, item);
-      _entries = entries;
-      _dirty = true;
-    });
   }
 
   Future<void> _adjustWaitlistCount(SportWaitlistEntry entry, int delta) async {
@@ -103,6 +82,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       await ref
           .read(sportWaitlistRepositoryProvider)
           .setWaitlistManualCount(seasonPlayerId: playerId, count: newCount);
+      // Le serveur a déjà recalculé le nouvel ordre selon les compteurs.
+      if (mounted) await _load();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -123,52 +104,22 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     }
   }
 
-  /// Remet la liste dans l'ordre équitable : d'abord les joueurs les moins
-  /// souvent mis en liste d'attente cette saison, puis, à égalité, les
-  /// joueurs les moins présents la saison précédente. Le nouvel ordre est
-  /// enregistré immédiatement afin que Recalculer soit une action complète.
+  /// Le serveur applique les trois critères, sans ordre manuel.
   Future<void> _recalculateOrder() async {
-    if (_saving) return;
-    setState(() {
-      final entries = List<SportWaitlistEntry>.of(_entries)
-        ..sort((a, b) {
-          final byWaitlistCount = a.currentSeasonWaitlistCount.compareTo(
-            b.currentSeasonWaitlistCount,
-          );
-          if (byWaitlistCount != 0) return byWaitlistCount;
-          return a.previousSeasonAttendanceCount.compareTo(
-            b.previousSeasonAttendanceCount,
-          );
-        });
-      _entries = entries;
-      _dirty = true;
-    });
-    await _save(reason: 'Ordre recalculé automatiquement');
-  }
-
-  Future<void> _save({
-    String reason = 'Ordre modifié depuis les paramètres',
-  }) async {
     final waitlist = _waitlist;
-    if (waitlist == null || !_dirty) return;
+    if (waitlist == null || _saving) return;
     setState(() => _saving = true);
     try {
-      final saved =
-          await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
-                seasonId: waitlist.seasonId,
-                orderedPlayerIds:
-                    _entries.map((entry) => entry.seasonPlayerId).toList(),
-                reason: reason,
-              );
+      final saved = await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
+        seasonId: waitlist.seasonId,
+        orderedPlayerIds: _entries.map((e) => e.seasonPlayerId).toList(),
+        reason: 'Recalcul automatique selon les trois critères',
+      );
       if (!mounted) return;
       setState(() {
         _waitlist = saved;
         _entries = List.of(saved.entries);
-        _dirty = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Liste d’attente enregistrée.')),
-      );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -180,24 +131,16 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
   StickyTableRow _tableRow(int index) {
     final entry = _entries[index];
-    ValueChanged<SportWaitlistEntry>? onReorderDrop;
-    if (widget.editable) {
-      onReorderDrop = (dragged) => _reorderByDrag(dragged, entry);
-    }
-
     return StickyTableRow(
       pinned: _WaitlistPinnedRow(
         key: ValueKey('waitlist-row-${entry.seasonPlayerId}'),
         index: index,
         entry: entry,
-        editable: widget.editable,
-        onReorderDrop: onReorderDrop,
       ),
       scrollable: _WaitlistScrollableRow(
         entry: entry,
         editable: widget.editable,
         adjustingCount: _adjustingCounts.contains(entry.seasonPlayerId),
-        onReorderDrop: onReorderDrop,
         onIncrement: () => _adjustWaitlistCount(entry, 1),
         onDecrement: () => _adjustWaitlistCount(entry, -1),
       ),
@@ -218,22 +161,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         ],
       ),
       body: _body(context),
-      bottomNavigationBar: widget.editable
-          ? SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: FilledButton.icon(
-                onPressed: _dirty && !_saving ? _save : null,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: GrintaProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Enregistrer l’ordre'),
-              ),
-            )
-          : null,
+
     );
   }
 
@@ -391,22 +319,15 @@ class _WaitlistPinnedRow extends StatelessWidget {
     super.key,
     required this.index,
     required this.entry,
-    required this.editable,
-    this.onReorderDrop,
   });
 
   final int index;
   final SportWaitlistEntry entry;
-  final bool editable;
-  final ValueChanged<SportWaitlistEntry>? onReorderDrop;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final borderColor = theme.colorScheme.outlineVariant;
-    final autoScroll = DragAutoScroller(context);
-
-    final content = Container(
+    final borderColor = Theme.of(context).colorScheme.outlineVariant;
+    return Container(
       decoration: BoxDecoration(
         border: Border(right: BorderSide(color: borderColor)),
       ),
@@ -430,55 +351,6 @@ class _WaitlistPinnedRow extends StatelessWidget {
         ),
       ),
     );
-
-    Widget row = content;
-    if (editable) {
-      row = LongPressDraggable<SportWaitlistEntry>(
-        key: ValueKey('waitlist-drag-${entry.seasonPlayerId}'),
-        data: entry,
-        feedback: Material(
-          type: MaterialType.transparency,
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 260),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(blurRadius: 12, color: Color(0x33000000)),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GrintaTableRankCell(rank: index + 1),
-                Flexible(
-                  child: Text(
-                    entry.displayName,
-                    overflow: TextOverflow.ellipsis,
-                    style: grintaTableCellTextStyle(
-                      context,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        childWhenDragging: Opacity(opacity: .3, child: content),
-        onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-        onDragEnd: (_) => autoScroll.stop(),
-        onDraggableCanceled: (_, __) => autoScroll.stop(),
-        child: content,
-      );
-    }
-
-    return _WaitlistDropTarget(
-      entry: entry,
-      onReorderDrop: onReorderDrop,
-      child: row,
-    );
   }
 }
 
@@ -489,7 +361,6 @@ class _WaitlistScrollableRow extends StatelessWidget {
     required this.adjustingCount,
     required this.onIncrement,
     required this.onDecrement,
-    this.onReorderDrop,
   });
 
   final SportWaitlistEntry entry;
@@ -497,7 +368,6 @@ class _WaitlistScrollableRow extends StatelessWidget {
   final bool adjustingCount;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
-  final ValueChanged<SportWaitlistEntry>? onReorderDrop;
 
   @override
   Widget build(BuildContext context) {
@@ -577,42 +447,7 @@ class _WaitlistScrollableRow extends StatelessWidget {
       ],
     );
 
-    return _WaitlistDropTarget(
-      entry: entry,
-      onReorderDrop: onReorderDrop,
-      child: content,
-    );
-  }
-}
-
-class _WaitlistDropTarget extends StatelessWidget {
-  const _WaitlistDropTarget({
-    required this.entry,
-    required this.onReorderDrop,
-    required this.child,
-  });
-
-  final SportWaitlistEntry entry;
-  final ValueChanged<SportWaitlistEntry>? onReorderDrop;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final onDrop = onReorderDrop;
-    if (onDrop == null) return child;
-
-    return DragTarget<SportWaitlistEntry>(
-      onWillAcceptWithDetails: (details) =>
-          details.data.seasonPlayerId != entry.seasonPlayerId,
-      onAcceptWithDetails: (details) => onDrop(details.data),
-      builder: (context, candidates, rejected) {
-        if (candidates.isEmpty) return child;
-        return ColoredBox(
-          color: Theme.of(context).colorScheme.primary.withAlpha(18),
-          child: child,
-        );
-      },
-    );
+    return content;
   }
 }
 
