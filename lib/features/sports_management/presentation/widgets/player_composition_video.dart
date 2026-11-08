@@ -352,9 +352,9 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     return buildCompositionPresentationData(
       formationCode: composition.formationCode,
       field: withMatchKitPhotos(
-        composition.entriesFor(MatchCompositionZone.field), kitPhotos),
+          composition.entriesFor(MatchCompositionZone.field), kitPhotos),
       bench: withMatchKitPhotos(
-        composition.entriesFor(MatchCompositionZone.bench), kitPhotos),
+          composition.entriesFor(MatchCompositionZone.bench), kitPhotos),
       fixture: fixture,
       fallbackKickoffAt: kickoffAt,
       coach: coach,
