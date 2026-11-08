@@ -96,9 +96,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.widget<Text>(
-          find.byKey(const ValueKey('waitlist-count-bruno')),
-        ).data,
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('waitlist-count-bruno')),
+            )
+            .data,
         '1',
       );
       expect(
