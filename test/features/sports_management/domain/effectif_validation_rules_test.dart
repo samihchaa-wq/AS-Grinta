@@ -170,7 +170,8 @@ void main() {
     // La décision individuelle a disparu : les notifications sont désormais
     // produites par les changements réels de statut calculés côté serveur.
     expect(effectif, isNot(contains('_setEffectifStatus(')));
-    expect(effectif, contains('decisions: const <String, ConvocationStatus>{}'));
+    expect(
+        effectif, contains('decisions: const <String, ConvocationStatus>{}'));
     expect(effectif, isNot(contains("label: const Text('Enregistrer')")));
   });
 
