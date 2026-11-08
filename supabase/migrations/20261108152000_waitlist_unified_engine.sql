@@ -67,7 +67,11 @@ as $$
 begin
   if old.kickoff_at is not null
      and new.kickoff_at is distinct from old.kickoff_at
-     and now() >= private.waitlist_credit_cutoff(old.kickoff_at) then
+     and (
+       (new.kickoff_at at time zone 'Europe/Paris')::date
+          is distinct from (old.kickoff_at at time zone 'Europe/Paris')::date
+       or now() >= private.waitlist_credit_cutoff(old.kickoff_at)
+     ) then
     update public.match_sport_workflows
       set waitlist_passages_exempt = true
     where match_id = new.id;
