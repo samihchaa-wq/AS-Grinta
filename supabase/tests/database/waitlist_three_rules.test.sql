@@ -148,8 +148,24 @@ select is(
 );
 
 -- Les compteurs déterminent l'ordre et les futures convocations.
-select public.admin_set_waitlist_manual_count(
-  'b5400000-0000-0000-0000-000000000001',2
+update public.sport_waitlist_entries
+set manual_waitlist_count = 2
+where season_player_id = 'b5400000-0000-0000-0000-000000000001';
+select private.rebuild_sport_waitlist_order(
+  'b5200000-0000-0000-0000-000000000001', null
+);
+select private.rebalance_upcoming_waitlist_matches(
+  'b5200000-0000-0000-0000-000000000001'
+);
+
+-- Aucun utilisateur, même administrateur, ne doit pouvoir fabriquer un +1.
+select throws_ok(
+  $select public.admin_set_waitlist_manual_count(
+    'b5400000-0000-0000-0000-000000000001',999
+  )$,
+  '22023',
+  'Les passages en attente sont calculés automatiquement.',
+  'la correction directe des compteurs est refusée'
 );
 select is(
   (select e.position from public.sport_waitlist_entries e
