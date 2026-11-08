@@ -257,15 +257,15 @@ select is(
   'réordonner la liste conserve automatiquement la limite convoqués'
 );
 
-select public.admin_set_match_convocation(
-  current_setting('test.waitlist_match_early')::uuid,
-  '74000000-0000-0000-0000-000000000023',
-  'convoked', false, 'Retour de blessure'
-);
-select public.admin_set_match_convocation(
-  current_setting('test.waitlist_match_early')::uuid,
-  '74000000-0000-0000-0000-000000000022',
-  'not_convoked', true, 'Exception pour ce match'
+-- Toute dérogation manuelle est désormais refusée, même avant T-15.
+select throws_ok(
+  $select public.admin_set_match_convocation(
+    current_setting('test.waitlist_match_early')::uuid,
+    '74000000-0000-0000-0000-000000000023',
+    'convoked', false, 'Choix manuel')$,
+  '22023',
+  'Convocations automatiques : modifier les disponibilités ou le quota.',
+  'l admin ne peut pas imposer une convocation'
 );
 select public.admin_publish_match_convocations(
   current_setting('test.waitlist_match_early')::uuid,
@@ -274,18 +274,18 @@ select public.admin_publish_match_convocations(
 
 select ok(
   (
-    select convocation_status = 'convoked'
-      and not waitlist_turn_should_consume
+    select convocation_status = 'not_convoked'
+      and waitlist_turn_should_consume
     from public.match_sport_participants
     where match_id = current_setting('test.waitlist_match_early')::uuid
-      and season_player_id = '74000000-0000-0000-0000-000000000023'
+      and season_player_id = '74000000-0000-0000-0000-000000000021'
   ),
-  'l’admin peut garder le joueur proposé sans lui faire consommer son tour'
+  'les joueurs les plus hauts de la liste restent en attente'
 );
 
 select public.admin_override_match_availability(
   current_setting('test.waitlist_match_early')::uuid,
-  '74000000-0000-0000-0000-000000000021',
+  '74000000-0000-0000-0000-000000000023',
   'absent', 'Désistement', 'Annulation avant la coupure'
 );
 
@@ -296,9 +296,9 @@ select ok(
       and not waitlist_turn_should_consume
     from public.match_sport_participants
     where match_id = current_setting('test.waitlist_match_early')::uuid
-      and season_player_id = '74000000-0000-0000-0000-000000000022'
+      and season_player_id = '74000000-0000-0000-0000-000000000021'
   ),
-  'avant J−1 12h, le remplaçant est promu sans consommer son tour'
+  'avant J−1 12h, Alice est promue sans passage à créditer'
 );
 
 select set_config(
@@ -328,10 +328,16 @@ select public.admin_override_match_availability(
   '74000000-0000-0000-0000-000000000023',
   'available', null, 'Disponible'
 );
-select public.admin_set_match_convocation(
-  current_setting('test.waitlist_match_late')::uuid,
-  '74000000-0000-0000-0000-000000000023',
-  'not_convoked', true, 'Rotation tardive'
+-- Le classement permanent décide : Alice est en attente. Le +1 doit
+-- survivre à son éventuelle promotion après la coupure.
+select ok(
+  (
+    select p.convocation_status = 'not_convoked'
+    from public.match_sport_participants p
+    where p.match_id = current_setting('test.waitlist_match_late')::uuid
+      and p.season_player_id = '74000000-0000-0000-0000-000000000021'
+  ),
+  'le match tardif classe Alice en attente automatiquement'
 );
 select public.admin_publish_match_convocations(
   current_setting('test.waitlist_match_late')::uuid,
@@ -349,20 +355,24 @@ select ok(
 
 select public.admin_override_match_availability(
   current_setting('test.waitlist_match_late')::uuid,
-  '74000000-0000-0000-0000-000000000021',
+  '74000000-0000-0000-0000-000000000023',
   'absent', 'Désistement tardif', 'Annulation après la coupure'
 );
 
 select ok(
   (
-    select convocation_status = 'convoked'
-      and waitlist_turn_state = 'consumed'
-      and waitlist_turn_should_consume
-    from public.match_sport_participants
-    where match_id = current_setting('test.waitlist_match_late')::uuid
-      and season_player_id = '74000000-0000-0000-0000-000000000023'
+    select p.convocation_status = 'convoked'
+      and exists (
+        select 1 from private.sport_waitlist_passage_ledger l
+        where l.match_id = p.match_id
+          and l.season_player_id = p.season_player_id
+          and l.credited_at is null
+      )
+    from public.match_sport_participants p
+    where p.match_id = current_setting('test.waitlist_match_late')::uuid
+      and p.season_player_id = '74000000-0000-0000-0000-000000000021'
   ),
-  'après J−1 12h, le remplaçant est promu mais son tour reste consommé'
+  'après J−1 12h, Alice promue conserve son droit au +1'
 );
 
 reset role;
@@ -372,14 +382,10 @@ select is(
   (
     select count(*)::integer
     from private.sport_admin_audit_log
-    where action in (
-      'reorder_waitlist',
-      'override_convocation',
-      'publish_convocations'
-    )
+    where action = 'publish_convocations'
   ),
-  6,
-  'les réordonnancements, dérogations et publications sont audités'
+  2,
+  'les deux publications automatiques sont auditées'
 );
 
 select set_config(
