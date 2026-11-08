@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
@@ -302,6 +303,8 @@ Future<void> _pickAndUploadRosterPhoto(
       );
     }
     ref.invalidate(rosterProvider(seasonId));
+    // Toute composition ouverte recupere aussitot la nouvelle variante.
+    ref.invalidate(matchKitPhotoOverridesProvider);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Photo de ${player.displayName} mise à jour.')),
