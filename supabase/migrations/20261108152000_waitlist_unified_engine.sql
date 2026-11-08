@@ -116,10 +116,12 @@ begin
     perform private.ensure_sport_waitlist(v_season_id, v_actor);
     perform private.rebuild_sport_waitlist_order(v_season_id, v_actor);
 
-    -- Seuls les présents de l'effectif permanent entrent dans ce classement.
+    -- Un seul passage fixe l'état de TOUS les membres du match :
+    -- le rang ne concerne que les joueurs présents et éligibles.
     with ranked as (
-      select p.id, e.position,
-        row_number() over (order by e.position desc, p.id) as priority
+      select p.id, row_number() over (
+        order by e.position desc, p.id
+      ) as priority
       from public.match_sport_participants p
       join public.sport_waitlist_entries e
         on e.season_player_id = p.season_player_id
@@ -127,56 +129,48 @@ begin
       where p.match_id = p_match_id
         and p.is_eligible
         and p.availability_status = 'available'
+    ), decision as (
+      select p.id, e.position, sp.is_coach, r.priority,
+        case
+          when sp.is_coach and p.availability_status = 'available'
+            then 'convoked'::public.sport_convocation_status
+          when r.priority <= v_limit
+            then 'convoked'::public.sport_convocation_status
+          when r.priority > v_limit
+            then 'not_convoked'::public.sport_convocation_status
+          else 'not_applicable'::public.sport_convocation_status
+        end as status
+      from public.match_sport_participants p
+      join public.season_players sp on sp.id = p.season_player_id
+      left join public.sport_waitlist_entries e
+        on e.season_player_id = p.season_player_id
+       and e.season_id = v_season_id
+      left join ranked r on r.id = p.id
+      where p.match_id = p_match_id
     )
     update public.match_sport_participants p
-    set convocation_status = case when r.priority <= v_limit
-          then 'convoked'::public.sport_convocation_status
-          else 'not_convoked'::public.sport_convocation_status end,
-        convocation_manual_override = false,
-        waitlist_position_snapshot = r.position,
-        waitlist_recommended_not_convoked = r.priority > v_limit,
-        waitlist_turn_should_consume = r.priority > v_limit,
-        waitlist_turn_state = case
-          when p.waitlist_turn_state = 'consumed'
-            then 'consumed'::public.sport_waitlist_turn_state
-          when r.priority > v_limit
-            then 'pending'::public.sport_waitlist_turn_state
-          else 'waived'::public.sport_waitlist_turn_state end,
-        waitlist_turn_updated_at = now(),
-        updated_at = now()
-    from ranked r where p.id = r.id;
-
-    -- Les absents et sans réponse ne figurent pas parmi les convoqués.
-    update public.match_sport_participants p
-    set convocation_status = 'not_applicable',
-        convocation_manual_override = false,
-        waitlist_recommended_not_convoked = false,
-        waitlist_turn_should_consume = false,
-        waitlist_turn_state = case
-          when p.waitlist_turn_state = 'consumed'
-            then 'consumed'::public.sport_waitlist_turn_state
-          else 'not_applicable'::public.sport_waitlist_turn_state end,
-        updated_at = now()
-    where p.match_id = p_match_id
-      and p.season_player_id is not null
-      and (not p.is_eligible or p.availability_status <> 'available');
-
-    -- Les coachs restent hors quota, conformément au comportement existant.
-    update public.match_sport_participants p
-    set convocation_status = case
-          when p.availability_status = 'available'
-            then 'convoked'::public.sport_convocation_status
-          else 'not_applicable'::public.sport_convocation_status end,
-        convocation_manual_override = false,
-        waitlist_position_snapshot = null,
-        waitlist_recommended_not_convoked = false,
-        waitlist_turn_should_consume = false,
-        waitlist_turn_state = 'not_applicable',
-        updated_at = now()
-    from public.season_players sp
-    where p.match_id = p_match_id
-      and p.season_player_id = sp.id
-      and sp.is_coach;
+       set convocation_status = d.status,
+           convocation_manual_override = false,
+           waitlist_position_snapshot =
+             case when d.is_coach then null else d.position end,
+           waitlist_recommended_not_convoked =
+             coalesce(d.priority > v_limit, false),
+           waitlist_turn_should_consume =
+             coalesce(d.priority > v_limit, false),
+           waitlist_turn_state = case
+             when d.is_coach then 'not_applicable'::public.sport_waitlist_turn_state
+             when p.waitlist_turn_state = 'consumed'
+               then 'consumed'::public.sport_waitlist_turn_state
+             when d.priority is null
+               then 'not_applicable'::public.sport_waitlist_turn_state
+             when d.priority > v_limit
+               then 'pending'::public.sport_waitlist_turn_state
+             else 'waived'::public.sport_waitlist_turn_state
+           end,
+           waitlist_turn_updated_at = now(),
+           updated_at = now()
+      from decision d
+     where p.id = d.id;
 
     update public.match_sport_workflows
        set convocation_generated_at = now(),
