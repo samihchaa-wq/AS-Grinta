@@ -19,7 +19,7 @@ alter table public.match_sport_workflows
 -- Un quota modifié pour accueillir tous les présents annule les +1
 -- si le match a connu une attente ; aucun joueur n'est choisi manuellement.
 create or replace function private.exempt_waitlist_when_all_fit()
-returns trigger language plpgsql
+returns trigger language plpgsql security definer
 set search_path to ''
 as $$
 declare
