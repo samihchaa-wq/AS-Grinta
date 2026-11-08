@@ -11,9 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class AdminWaitlistPage extends ConsumerStatefulWidget {
   const AdminWaitlistPage({super.key, this.editable = true});
 
-  /// Faux pour l'écran accessible à tout joueur depuis Paramètres : la
-  /// liste s'affiche alors en lecture seule, sans réordonner ni modifier
-  /// le nombre de fois en liste d'attente.
+  /// Faux pour l'écran de lecture accessible aux joueurs depuis Paramètres.
   final bool editable;
 
   @override
@@ -23,9 +21,7 @@ class AdminWaitlistPage extends ConsumerStatefulWidget {
 class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
   SportWaitlist? _waitlist;
   List<SportWaitlistEntry> _entries = const [];
-  final Set<String> _adjustingCounts = <String>{};
   bool _loading = true;
-  bool _saving = false;
   String? _error;
 
   @override
@@ -59,78 +55,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     }
   }
 
-  Future<void> _adjustWaitlistCount(SportWaitlistEntry entry, int delta) async {
-    final playerId = entry.seasonPlayerId;
-    if (_adjustingCounts.contains(playerId)) return;
-
-    final previousCount = entry.currentSeasonWaitlistCount;
-    final newCount = previousCount + delta;
-    if (newCount < 0) return;
-
-    setState(() {
-      _adjustingCounts.add(playerId);
-      _entries = [
-        for (final current in _entries)
-          if (current.seasonPlayerId == playerId)
-            current.copyWith(currentSeasonWaitlistCount: newCount)
-          else
-            current,
-      ];
-    });
-
-    try {
-      await ref
-          .read(sportWaitlistRepositoryProvider)
-          .setWaitlistManualCount(seasonPlayerId: playerId, count: newCount);
-      // Le serveur a déjà recalculé le nouvel ordre selon les compteurs.
-      if (mounted) await _load();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _entries = [
-          for (final current in _entries)
-            if (current.seasonPlayerId == playerId)
-              current.copyWith(currentSeasonWaitlistCount: previousCount)
-            else
-              current,
-        ];
-      });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
-    } finally {
-      if (mounted) {
-        setState(() => _adjustingCounts.remove(playerId));
-      }
-    }
-  }
-
-  /// Le serveur applique les trois critères, sans ordre manuel.
-  Future<void> _recalculateOrder() async {
-    final waitlist = _waitlist;
-    if (waitlist == null || _saving) return;
-    setState(() => _saving = true);
-    try {
-      final saved = await ref
-          .read(sportWaitlistRepositoryProvider)
-          .reorderWaitlist(
-            seasonId: waitlist.seasonId,
-            orderedPlayerIds: _entries.map((e) => e.seasonPlayerId).toList(),
-            reason: 'Recalcul automatique selon les trois critères',
-          );
-      if (!mounted) return;
-      setState(() {
-        _waitlist = saved;
-        _entries = List.of(saved.entries);
-      });
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   StickyTableRow _tableRow(int index) {
     final entry = _entries[index];
     return StickyTableRow(
@@ -139,13 +63,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         index: index,
         entry: entry,
       ),
-      scrollable: _WaitlistScrollableRow(
-        entry: entry,
-        editable: widget.editable,
-        adjustingCount: _adjustingCounts.contains(entry.seasonPlayerId),
-        onIncrement: () => _adjustWaitlistCount(entry, 1),
-        onDecrement: () => _adjustWaitlistCount(entry, -1),
-      ),
+      scrollable: _WaitlistScrollableRow(entry: entry),
     );
   }
 
@@ -157,7 +75,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         actions: [
           IconButton(
             tooltip: 'Actualiser',
-            onPressed: _loading || _saving ? null : _load,
+            onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -197,17 +115,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
         children: [
-          if (widget.editable) ...[
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _saving ? null : _recalculateOrder,
-                icon: const Icon(Icons.auto_fix_high_outlined),
-                label: const Text('Recalculer'),
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -356,19 +263,9 @@ class _WaitlistPinnedRow extends StatelessWidget {
 }
 
 class _WaitlistScrollableRow extends StatelessWidget {
-  const _WaitlistScrollableRow({
-    required this.entry,
-    required this.editable,
-    required this.adjustingCount,
-    required this.onIncrement,
-    required this.onDecrement,
-  });
+  const _WaitlistScrollableRow({required this.entry});
 
   final SportWaitlistEntry entry;
-  final bool editable;
-  final bool adjustingCount;
-  final VoidCallback onIncrement;
-  final VoidCallback onDecrement;
 
   @override
   Widget build(BuildContext context) {
@@ -404,45 +301,12 @@ class _WaitlistScrollableRow extends StatelessWidget {
           child: Container(
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-            child: editable
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _CompactIconButton(
-                        key: ValueKey(
-                          'waitlist-decrement-${entry.seasonPlayerId}',
-                        ),
-                        icon: Icons.remove_circle_outline,
-                        onPressed: !adjustingCount && waitlistCount > 0
-                            ? onDecrement
-                            : null,
-                      ),
-                      SizedBox(
-                        width: 26,
-                        child: Text(
-                          '$waitlistCount',
-                          key: ValueKey(
-                            'waitlist-count-${entry.seasonPlayerId}',
-                          ),
-                          textAlign: TextAlign.center,
-                          style: valueStyle,
-                        ),
-                      ),
-                      _CompactIconButton(
-                        key: ValueKey(
-                          'waitlist-increment-${entry.seasonPlayerId}',
-                        ),
-                        icon: Icons.add_circle_outline,
-                        onPressed: adjustingCount ? null : onIncrement,
-                      ),
-                    ],
-                  )
-                : Text(
-                    '$waitlistCount',
-                    key: ValueKey('waitlist-count-${entry.seasonPlayerId}'),
-                    textAlign: TextAlign.center,
-                    style: valueStyle,
-                  ),
+            child: Text(
+              '$waitlistCount',
+              key: ValueKey('waitlist-count-${entry.seasonPlayerId}'),
+              textAlign: TextAlign.center,
+              style: valueStyle,
+            ),
           ),
         ),
       ],
@@ -452,24 +316,3 @@ class _WaitlistScrollableRow extends StatelessWidget {
   }
 }
 
-class _CompactIconButton extends StatelessWidget {
-  const _CompactIconButton({
-    super.key,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon, size: 20),
-      onPressed: onPressed,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 34, height: 44),
-    );
-  }
-}
