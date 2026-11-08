@@ -160,9 +160,9 @@ select private.rebalance_upcoming_waitlist_matches(
 
 -- Aucun utilisateur, même administrateur, ne doit pouvoir fabriquer un +1.
 select throws_ok(
-  $select public.admin_set_waitlist_manual_count(
+  $$select public.admin_set_waitlist_manual_count(
     'b5400000-0000-0000-0000-000000000001',999
-  )$,
+  )$$,
   '22023',
   'Les passages en attente sont calculés automatiquement.',
   'la correction directe des compteurs est refusée'
