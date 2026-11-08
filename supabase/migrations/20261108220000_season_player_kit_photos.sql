@@ -15,6 +15,12 @@ create table if not exists public.season_player_kit_photos (
 );
 
 alter table public.season_player_kit_photos enable row level security;
+-- Contrat de securite commun a toutes les tables applicatives.
+create policy active_authenticated_profile_only
+  on public.season_player_kit_photos
+  as restrictive for all to authenticated
+  using ((select private.is_active_profile()))
+  with check ((select private.is_active_profile()));
 revoke all on public.season_player_kit_photos from public, anon;
 grant select, insert, update, delete
   on public.season_player_kit_photos to authenticated;
