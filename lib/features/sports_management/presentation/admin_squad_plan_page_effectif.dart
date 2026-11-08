@@ -676,11 +676,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               color: _effectifNoResponseColor,
               icon: Icons.schedule_outlined,
               players: _unansweredPlayers,
-              acceptsDrops: true,
-              acceptsPlayer: (player) =>
-                  player.availabilityStatus == 'no_response',
-              draggable: true,
-              onAccept: (player) {},
+              acceptsDrops: false,
+              draggable: false,
               locked: _busy || _locked,
               onShowInfo: _showPlayerInfo,
               onRelanceAll: (_reminders?.canRemind ?? false)
