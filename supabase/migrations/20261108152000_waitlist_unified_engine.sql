@@ -2,6 +2,13 @@
 -- À valider sur base de test AVANT toute fusion en production.
 begin;
 
+-- Ancien déclencheur : il décidait qu'un désistement effaçait le passage
+-- en attente selon une coupure distincte. Le journal d'événements v2
+-- remplace entièrement cette règle, sans exception par statut final.
+drop trigger if exists normalize_waitlisted_withdrawal_before_update
+  on public.match_sport_participants;
+drop function if exists private.normalize_waitlisted_withdrawal();
+
 -- Évite de créditer les anciens matchs lors de l'installation initiale.
 create table if not exists private.sport_waitlist_engine_activation (
   singleton boolean primary key default true check (singleton),
