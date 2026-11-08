@@ -82,65 +82,61 @@ for each row execute function private.record_waitlist_presence();
 create or replace function private.rebuild_sport_waitlist_order(
   p_season_id uuid, p_actor uuid default null
 )
-returns void
-language plpgsql security definer set search_path to ''
+returns void language plpgsql security definer set search_path to ''
 as $$
 declare
   v_offset integer;
 begin
-  perform 1 from public.seasons s where s.id = p_season_id for update;
+  -- Sérialiser les reclassements de la même saison.
+  perform 1 from public.seasons where id = p_season_id for update;
   if not found then
     raise exception 'Season not found' using errcode = 'P0002';
   end if;
 
-  select coalesce(max(e.position), 0) +
-         count(*)::integer + 1
-    into v_offset
-  from public.sport_waitlist_entries e
-  where e.season_id = p_season_id;
-
-  create temporary table if not exists pg_temp.waitlist_new_ranks (
-    season_player_id uuid primary key, rank integer not null
-  ) on commit drop;
-  truncate pg_temp.waitlist_new_ranks;
-
-  insert into pg_temp.waitlist_new_ranks (season_player_id, rank)
-  select e.season_player_id,
-    row_number() over (
-      order by e.manual_waitlist_count asc,
-               e.previous_season_attendance_count asc,
-               lower(p.last_name) asc,
-               lower(p.first_name) asc,
-               e.season_player_id asc
-    )::integer
-  from public.sport_waitlist_entries e
-  join public.season_players p on p.id = e.season_player_id
-  where e.season_id = p_season_id;
-
-  -- Aucun UPDATE si l'ordre est déjà bon : évite les changements inutiles
-  -- et leurs notifications sur chaque modification de disponibilité.
+  -- Pas d'écriture quand le classement respecte déjà les trois critères.
   if not exists (
-    select 1
-    from pg_temp.waitlist_new_ranks r
-    join public.sport_waitlist_entries e
-      on e.season_player_id = r.season_player_id
-    where e.season_id = p_season_id and e.position <> r.rank
+    select 1 from (
+      select e.position, row_number() over (
+        order by e.manual_waitlist_count,
+          e.previous_season_attendance_count,
+          lower(p.last_name), lower(p.first_name), e.season_player_id
+      )::integer as expected
+      from public.sport_waitlist_entries e
+      join public.season_players p on p.id = e.season_player_id
+      where e.season_id = p_season_id
+    ) ranks where ranks.position <> ranks.expected
   ) then
     return;
   end if;
 
-  -- Deux étapes pour respecter UNIQUE(season_id, position) pendant l'UPDATE.
-  update public.sport_waitlist_entries e
-     set position = e.position + v_offset
-  where e.season_id = p_season_id;
+  -- Les positions intermédiaires dépassent toutes les anciennes positions :
+  -- on respecte UNIQUE(season_id, position) sans table temporaire.
+  select coalesce(max(position), 0) + count(*)::integer + 1
+    into v_offset
+  from public.sport_waitlist_entries where season_id = p_season_id;
 
+  update public.sport_waitlist_entries
+     set position = position + v_offset
+   where season_id = p_season_id;
+
+  with ranked as (
+    select e.season_player_id,
+      row_number() over (
+        order by e.manual_waitlist_count,
+          e.previous_season_attendance_count,
+          lower(p.last_name), lower(p.first_name), e.season_player_id
+      )::integer as position
+    from public.sport_waitlist_entries e
+    join public.season_players p on p.id = e.season_player_id
+    where e.season_id = p_season_id
+  )
   update public.sport_waitlist_entries e
-     set position = r.rank,
+     set position = r.position,
          updated_by = coalesce(p_actor, e.updated_by),
          updated_at = now()
-    from pg_temp.waitlist_new_ranks r
-  where e.season_id = p_season_id
-    and r.season_player_id = e.season_player_id;
+    from ranked r
+   where e.season_id = p_season_id
+     and e.season_player_id = r.season_player_id;
 end;
 $$;
 revoke all on function private.rebuild_sport_waitlist_order(uuid, uuid)
