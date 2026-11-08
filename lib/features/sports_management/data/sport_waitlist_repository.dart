@@ -20,12 +20,8 @@ abstract interface class SportWaitlistRepository {
     String? reason,
   });
 
-  /// Remet la liste dans l'ordre automatique, calculé par le serveur :
-  /// compteur, puis matchs de la saison précédente, puis ordre alphabétique.
-  Future<SportWaitlist> recalculateWaitlist({required String seasonId});
-
   /// Corrige le compteur de passages en attente d'un joueur, sans le
-  /// déplacer : « Recalculer » applique ensuite le nouveau compteur.
+  /// déplacer : le prochain retri automatique applique le nouveau compteur.
   Future<void> setWaitlistManualCount({
     required String seasonPlayerId,
     required int count,
@@ -105,15 +101,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
         'p_ordered_player_ids': orderedPlayerIds,
         'p_reason': _clean(reason),
       },
-    );
-    return SportWaitlist.fromRpc(response);
-  }
-
-  @override
-  Future<SportWaitlist> recalculateWaitlist({required String seasonId}) async {
-    final response = await _client.rpc(
-      'admin_recalculate_sport_waitlist',
-      params: {'p_season_id': seasonId},
     );
     return SportWaitlist.fromRpc(response);
   }

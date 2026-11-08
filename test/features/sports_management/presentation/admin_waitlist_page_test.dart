@@ -42,7 +42,7 @@ void main() {
   );
 
   testWidgets(
-    'dragging the first table row onto the second reorders and saves the list',
+    'dragging a row saves the new order immediately, without a save button',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -63,17 +63,12 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
-      await tester.pumpAndSettle();
-
       expect(repository.savedOrder, ['bruno', 'alice']);
-      expect(find.text('Liste d’attente enregistrée.'), findsOneWidget);
     },
   );
 
   testWidgets(
-    'waitlist opens directly on recalculate without the explanatory card',
+    'waitlist has no save, recalculate or refresh button: pull to refresh',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -86,9 +81,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Recalculer'), findsOneWidget);
+      expect(find.text('Recalculer'), findsNothing);
+      expect(find.text('Enregistrer l’ordre'), findsNothing);
+      expect(find.byTooltip('Actualiser'), findsNothing);
+      expect(find.byIcon(Icons.refresh), findsNothing);
       expect(find.text('Saison 2026-2027'), findsNothing);
       expect(find.textContaining('L’application commence'), findsNothing);
+
+      final table = tester.widget<StickyHeaderTableCard>(
+        find.byType(StickyHeaderTableCard),
+      );
+      expect(table.onRefresh, isNotNull);
     },
   );
 
@@ -122,36 +125,10 @@ void main() {
       expect(countText().data, '2');
     },
   );
-
-  testWidgets(
-    'Recalculer asks the server for the automatic order and shows it',
-    (tester) async {
-      final repository = _FakeSportWaitlistRepository();
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sportWaitlistRepositoryProvider.overrideWithValue(repository),
-          ],
-          child: const MaterialApp(home: AdminWaitlistPage()),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Recalculer'));
-      await tester.pumpAndSettle();
-
-      expect(repository.recalculatedSeasonId, 'season');
-      expect(repository.savedOrder, isNull);
-      final alice = tester.getTopLeft(find.text('Alice').first).dy;
-      final bruno = tester.getTopLeft(find.text('Bruno').first).dy;
-      expect(bruno, lessThan(alice));
-    },
-  );
 }
 
 class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   List<String>? savedOrder;
-  String? recalculatedSeasonId;
   String? lastManualCountSeasonPlayerId;
   int? lastManualCount;
 
@@ -216,31 +193,6 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
             currentSeasonWaitlistCount:
                 byId[orderedPlayerIds[index]]!.currentSeasonWaitlistCount,
             source: 'manual',
-          ),
-      ],
-    );
-  }
-
-  @override
-  Future<SportWaitlist> recalculateWaitlist({required String seasonId}) async {
-    recalculatedSeasonId = seasonId;
-    final entries = _waitlist.entries.reversed.toList();
-    return SportWaitlist(
-      seasonId: seasonId,
-      seasonName: _waitlist.seasonName,
-      entries: [
-        for (var index = 0; index < entries.length; index++)
-          SportWaitlistEntry(
-            seasonPlayerId: entries[index].seasonPlayerId,
-            firstName: entries[index].firstName,
-            lastName: entries[index].lastName,
-            position: index + 1,
-            previousSeasonAttendanceCount:
-                entries[index].previousSeasonAttendanceCount,
-            previousSeasonMatchCount: entries[index].previousSeasonMatchCount,
-            currentSeasonWaitlistCount:
-                entries[index].currentSeasonWaitlistCount,
-            source: entries[index].source,
           ),
       ],
     );

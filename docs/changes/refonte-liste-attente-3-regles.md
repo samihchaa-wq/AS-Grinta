@@ -12,10 +12,10 @@
 
 L'administrateur garde la main sur la liste, comme avant la refonte :
 
-- **Glisser-déposer** : il peut placer un joueur où il le souhaite. Les convocations des prochains matchs non verrouillés suivent aussitôt ce nouvel ordre (la règle 1 s'applique à l'ordre choisi).
+- **Glisser-déposer** : il peut placer un joueur où il le souhaite ; chaque déplacement est enregistré immédiatement, sans bouton. Les convocations des prochains matchs non verrouillés suivent aussitôt ce nouvel ordre (la règle 1 s'applique à l'ordre choisi).
 - **Boutons +/−** : il peut corriger le compteur de passages d'un joueur. La correction ne déplace personne.
-- **« Recalculer »** : remet la liste dans l'ordre de la règle 3, calculé par le serveur.
-- **Durée d'un déplacement manuel** : il tient jusqu'au prochain retri automatique, c'est-à-dire l'attribution de +1 au coup d'envoi ou leur annulation (match annulé, reporté, quota élargi), ou jusqu'à un clic sur « Recalculer ». Un simple changement de disponibilité ne retrie pas la liste.
+- **Aucun bouton « Enregistrer », « Recalculer » ni « Actualiser »** : pour mettre à jour l'écran, tirer la liste vers le bas, ou quitter la page et revenir. La fonction serveur `admin_recalculate_sport_waitlist` existe mais n'est pas exposée dans l'écran.
+- **Durée d'un déplacement manuel** : il tient jusqu'au prochain retri automatique, c'est-à-dire l'attribution de +1 au coup d'envoi ou leur annulation (match annulé, reporté, quota élargi). Un simple changement de disponibilité ne retrie pas la liste.
 - Une liste toute neuve (nouvelle saison) est triée selon la règle 3. Un joueur ajouté en cours de saison est placé en fin de liste, comme avant.
 - Chaque déplacement, recalcul et correction de compteur est inscrit dans le journal d'audit administrateur.
 - Forcer un joueur en « convoqué » ou « en attente » pour un match reste interdit : l'admin agit sur l'ordre ou les compteurs, pas sur le résultat.

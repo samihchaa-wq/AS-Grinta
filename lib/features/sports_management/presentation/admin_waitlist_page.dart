@@ -28,7 +28,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
   bool _loading = true;
   bool _saving = false;
   String? _error;
-  bool _dirty = false;
 
   @override
   void initState() {
@@ -50,7 +49,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       setState(() {
         _waitlist = value;
         _entries = List.of(value.entries);
-        _dirty = false;
         _loading = false;
       });
     } catch (error) {
@@ -62,22 +60,51 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     }
   }
 
-  void _reorderByDrag(SportWaitlistEntry dragged, SportWaitlistEntry target) {
+  /// Chaque glisser-déposer est enregistré tout de suite : pas de bouton
+  /// à penser. En cas d'échec, l'ordre précédent est remis à l'écran.
+  Future<void> _reorderByDrag(
+    SportWaitlistEntry dragged,
+    SportWaitlistEntry target,
+  ) async {
+    final waitlist = _waitlist;
+    if (_saving || waitlist == null) return;
     if (dragged.seasonPlayerId == target.seasonPlayerId) return;
+    final previous = _entries;
+    final entries = List<SportWaitlistEntry>.of(previous);
+    final fromIndex = entries.indexWhere(
+      (e) => e.seasonPlayerId == dragged.seasonPlayerId,
+    );
+    final toIndex = entries.indexWhere(
+      (e) => e.seasonPlayerId == target.seasonPlayerId,
+    );
+    if (fromIndex == -1 || toIndex == -1) return;
+    final item = entries.removeAt(fromIndex);
+    entries.insert(toIndex, item);
     setState(() {
-      final entries = List<SportWaitlistEntry>.of(_entries);
-      final fromIndex = entries.indexWhere(
-        (e) => e.seasonPlayerId == dragged.seasonPlayerId,
-      );
-      final toIndex = entries.indexWhere(
-        (e) => e.seasonPlayerId == target.seasonPlayerId,
-      );
-      if (fromIndex == -1 || toIndex == -1) return;
-      final item = entries.removeAt(fromIndex);
-      entries.insert(toIndex, item);
       _entries = entries;
-      _dirty = true;
+      _saving = true;
     });
+    try {
+      final saved =
+          await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
+                seasonId: waitlist.seasonId,
+                orderedPlayerIds:
+                    entries.map((entry) => entry.seasonPlayerId).toList(),
+                reason: 'Ordre modifié depuis la liste d’attente',
+              );
+      if (!mounted) return;
+      setState(() {
+        _waitlist = saved;
+        _entries = List.of(saved.entries);
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _entries = previous);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _adjustWaitlistCount(SportWaitlistEntry entry, int delta) async {
@@ -123,67 +150,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     }
   }
 
-  /// Remet la liste dans l'ordre automatique calculé par le serveur :
-  /// moins de passages en attente, puis moins de matchs joués la saison
-  /// précédente, puis ordre alphabétique. Les convocations suivent.
-  Future<void> _recalculateOrder() async {
-    final waitlist = _waitlist;
-    if (_saving || waitlist == null) return;
-    setState(() => _saving = true);
-    try {
-      final saved = await ref
-          .read(sportWaitlistRepositoryProvider)
-          .recalculateWaitlist(seasonId: waitlist.seasonId);
-      if (!mounted) return;
-      setState(() {
-        _waitlist = saved;
-        _entries = List.of(saved.entries);
-        _dirty = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Liste d’attente recalculée.')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  Future<void> _save({
-    String reason = 'Ordre modifié depuis les paramètres',
-  }) async {
-    final waitlist = _waitlist;
-    if (waitlist == null || !_dirty) return;
-    setState(() => _saving = true);
-    try {
-      final saved =
-          await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
-                seasonId: waitlist.seasonId,
-                orderedPlayerIds:
-                    _entries.map((entry) => entry.seasonPlayerId).toList(),
-                reason: reason,
-              );
-      if (!mounted) return;
-      setState(() {
-        _waitlist = saved;
-        _entries = List.of(saved.entries);
-        _dirty = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Liste d’attente enregistrée.')),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   StickyTableRow _tableRow(int index) {
     final entry = _entries[index];
     ValueChanged<SportWaitlistEntry>? onReorderDrop;
@@ -215,31 +181,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Liste d’attente'),
-        actions: [
-          IconButton(
-            tooltip: 'Actualiser',
-            onPressed: _loading || _saving ? null : _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
       ),
       body: _body(context),
-      bottomNavigationBar: widget.editable
-          ? SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: FilledButton.icon(
-                onPressed: _dirty && !_saving ? _save : null,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: GrintaProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Enregistrer l’ordre'),
-              ),
-            )
-          : null,
     );
   }
 
@@ -274,17 +217,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
         children: [
-          if (widget.editable) ...[
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _saving ? null : _recalculateOrder,
-                icon: const Icon(Icons.auto_fix_high_outlined),
-                label: const Text('Recalculer'),
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
