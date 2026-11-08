@@ -50,3 +50,19 @@ List<MatchCompositionEntry> withMatchKitPhotos(
         entry,
   ];
 }
+
+/// Choisit le portrait du coach pour le maillot du match, avec France en
+/// repli. Il est identifié par sa fiche de saison, comme les joueurs.
+String? coachPhotoForMatchKit({
+  required String? seasonPlayerId,
+  required String? francePhotoUrl,
+  required Map<String, String> photoOverrides,
+}) {
+  if (seasonPlayerId == null || seasonPlayerId.isEmpty) {
+    return francePhotoUrl;
+  }
+  final alternative = photoOverrides[seasonPlayerId];
+  return alternative == null || alternative.trim().isEmpty
+      ? francePhotoUrl
+      : alternative;
+}
