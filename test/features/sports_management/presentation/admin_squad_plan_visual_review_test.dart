@@ -259,8 +259,8 @@ void main() {
       expect(find.text('Liste d’attente (0)'), findsOneWidget);
       expect(find.text('Absents (1)'), findsOneWidget);
       expect(find.text('Sans réponse (1)'), findsOneWidget);
-      expect(find.byType(LongPressDraggable<ConvocationPlayer>),
-          findsNWidgets(5));
+      expect(
+          find.byType(LongPressDraggable<ConvocationPlayer>), findsNWidgets(5));
 
       // Les colonnes ne doivent pas permettre de contourner le classement.
       await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
