@@ -105,236 +105,145 @@ select set_config(
   true
 );
 
-create temporary table pg_temp.waitlist_withdrawal_state_space(
+-- Le moteur ne dépend plus du statut historique, des overrides ou du
+-- drapeau de tour : chaque désistement recalcule uniquement les X présents
+-- aux positions les plus basses de la liste d'attente.
+create temporary table pg_temp.waitlist_three_rules_state_space (
   case_number integer primary key,
   cutoff_mode text not null,
-  convocation_state text not null,
-  withdrawn_status text not null,
-  initial_should_consume boolean not null,
-  initial_turn_state text not null,
-  expected_promotion boolean not null,
-  observed_promotion boolean not null,
-  expected_candidate_status text not null,
-  observed_candidate_status text not null,
-  expected_candidate_should_consume boolean not null,
-  observed_candidate_should_consume boolean not null,
-  expected_candidate_turn_state text not null,
-  observed_candidate_turn_state text not null,
-  expected_candidate_position integer not null,
-  observed_candidate_position integer not null,
-  expected_withdrawn_status text not null,
-  observed_withdrawn_status text not null,
-  observed_sqlstate text,
-  observed_message text,
+  previous_status text not null,
+  candidate_availability text not null,
+  manual_override boolean not null,
+  quota integer not null,
+  old_turn_state text not null,
+  actual_candidate text,
+  expected_candidate text,
+  actual_convoked integer,
+  expected_convoked integer,
+  sqlstate text,
   mismatch boolean not null
 ) on commit drop;
 
--- L'ordre est réinitialisé à chaque scénario : candidat en première position,
--- convoqué en deuxième et témoin indisponible en troisième.
 do $state_space$
 declare
   v_case integer := 0;
-  v_cutoff_mode text;
-  v_convocation_state text;
-  v_withdrawn_status text;
-  v_should_consume boolean;
-  v_turn_state text;
-  v_returned_player uuid;
-  v_sqlstate text;
-  v_message text;
-  v_expected_promotion boolean;
-  v_expected_candidate_status text;
-  v_expected_candidate_should boolean;
-  v_expected_candidate_turn text;
-  v_expected_candidate_position integer;
-  v_expected_withdrawn_status text;
-  v_observed_candidate_status text;
-  v_observed_candidate_should boolean;
-  v_observed_candidate_turn text;
-  v_observed_candidate_position integer;
-  v_observed_withdrawn_status text;
-  v_mismatch boolean;
+  v_cutoff text;
+  v_previous text;
+  v_candidate text;
+  v_manual boolean;
+  v_quota integer;
+  v_old_turn text;
+  v_error text;
+  v_actual text;
+  v_expected text;
+  v_candidate_manual boolean;
+  v_candidate_should boolean;
+  v_withdrawn text;
+  v_witness text;
+  v_convoked integer;
+  v_expected_convoked integer;
 begin
-  foreach v_cutoff_mode in array array['none', 'future', 'past'] loop
-    foreach v_convocation_state in array array['draft', 'published', 'closed'] loop
-      foreach v_withdrawn_status in array array['convoked', 'not_convoked', 'not_applicable'] loop
-        foreach v_should_consume in array array[false, true] loop
-          foreach v_turn_state in array array['not_applicable', 'pending', 'consumed', 'waived'] loop
-            v_case := v_case + 1;
-            v_returned_player := null;
-            v_sqlstate := null;
-            v_message := null;
+  foreach v_cutoff in array array['none', 'future', 'past'] loop
+    foreach v_previous in array array[
+      'convoked', 'not_convoked', 'not_applicable'
+    ] loop
+      foreach v_candidate in array array[
+        'available', 'absent', 'no_response'
+      ] loop
+        foreach v_manual in array array[false, true] loop
+          foreach v_quota in array array[1, 2] loop
+            foreach v_old_turn in array array['pending', 'consumed'] loop
+              v_case := v_case + 1;
+              v_error := null;
 
-            update public.sport_waitlist_entries
-            set position = position + 1000
-            where season_id = 'a5200000-0000-0000-0000-000000000001';
-            update public.sport_waitlist_entries
-            set position = case season_player_id
-                  when 'a5400000-0000-0000-0000-000000000002'::uuid then 1
-                  when 'a5400000-0000-0000-0000-000000000001'::uuid then 2
-                  else 3
-                end,
-                source = 'manual',
-                updated_by = 'a5100000-0000-0000-0000-000000000001',
-                updated_at = now()
-            where season_id = 'a5200000-0000-0000-0000-000000000001';
+              update public.match_sport_workflows
+              set convocation_state = 'published',
+                  squad_size_limit = v_quota,
+                  late_withdrawal_cutoff_at = case v_cutoff
+                    when 'none' then null
+                    when 'future' then now() + interval '1 hour'
+                    else now() - interval '1 hour' end
+              where match_id = current_setting('test.waitlist_space_match')::uuid;
 
-            update public.match_sport_workflows
-            set convocation_state = v_convocation_state::public.sport_convocation_state,
-                late_withdrawal_cutoff_at = case v_cutoff_mode
-                  when 'none' then null
-                  when 'future' then now() + interval '1 hour'
-                  else now() - interval '1 hour'
-                end,
-                updated_by = 'a5100000-0000-0000-0000-000000000001',
-                updated_at = now()
-            where match_id = current_setting('test.waitlist_space_match')::uuid;
+              -- Celui qui se désiste est absent, quel que soit son ancien statut.
+              update public.match_sport_participants
+              set availability_status = 'absent',
+                  convocation_status = v_previous::public.sport_convocation_status,
+                  convocation_manual_override = v_manual,
+                  waitlist_turn_state = 'not_applicable',
+                  waitlist_turn_should_consume = false
+              where id = current_setting('test.waitlist_space_withdrawn')::uuid;
 
-            update public.match_sport_participants
-            set availability_status = 'available',
-                convocation_status = v_withdrawn_status::public.sport_convocation_status,
-                convocation_manual_override = false,
-                waitlist_turn_should_consume = false,
-                waitlist_turn_state = 'not_applicable',
-                waitlist_turn_updated_at = null,
-                promoted_after_withdrawal_at = null,
-                promoted_from_participant_id = null,
-                updated_at = now()
-            where id = current_setting('test.waitlist_space_withdrawn')::uuid;
+              update public.match_sport_participants
+              set availability_status = v_candidate::public.sport_availability_status,
+                  convocation_status = 'not_convoked',
+                  convocation_manual_override = v_manual,
+                  waitlist_turn_state = v_old_turn::public.sport_waitlist_turn_state,
+                  waitlist_turn_should_consume = true
+              where id = current_setting('test.waitlist_space_candidate')::uuid;
 
-            update public.match_sport_participants
-            set availability_status = 'available',
-                convocation_status = 'not_convoked',
-                convocation_manual_override = false,
-                waitlist_turn_should_consume = v_should_consume,
-                waitlist_turn_state = v_turn_state::public.sport_waitlist_turn_state,
-                waitlist_turn_updated_at = null,
-                promoted_after_withdrawal_at = null,
-                promoted_from_participant_id = null,
-                updated_at = now()
-            where id = current_setting('test.waitlist_space_candidate')::uuid;
+              update public.match_sport_participants
+              set availability_status = 'available',
+                  convocation_status = 'not_convoked',
+                  convocation_manual_override = true,
+                  waitlist_turn_state = 'pending',
+                  waitlist_turn_should_consume = true
+              where id = current_setting('test.waitlist_space_witness')::uuid;
 
-            update public.match_sport_participants
-            set availability_status = 'absent',
-                convocation_status = 'not_applicable',
-                convocation_manual_override = false,
-                waitlist_turn_should_consume = false,
-                waitlist_turn_state = 'not_applicable',
-                waitlist_turn_updated_at = null,
-                promoted_after_withdrawal_at = null,
-                promoted_from_participant_id = null,
-                updated_at = now()
-            where id = current_setting('test.waitlist_space_witness')::uuid;
+              begin
+                perform private.handle_convoked_withdrawal(
+                  current_setting('test.waitlist_space_match')::uuid,
+                  current_setting('test.waitlist_space_withdrawn')::uuid,
+                  'a5100000-0000-0000-0000-000000000001', 'staff'
+                );
+              exception when others then
+                v_error := sqlstate;
+              end;
 
-            begin
-              v_returned_player := private.handle_convoked_withdrawal(
-                current_setting('test.waitlist_space_match')::uuid,
-                current_setting('test.waitlist_space_withdrawn')::uuid,
-                'a5100000-0000-0000-0000-000000000001',
-                'staff'
+              select p.convocation_status::text, p.convocation_manual_override,
+                     p.waitlist_turn_should_consume
+                into v_actual, v_candidate_manual, v_candidate_should
+              from public.match_sport_participants p
+              where p.id = current_setting('test.waitlist_space_candidate')::uuid;
+
+              select p.convocation_status::text into v_withdrawn
+              from public.match_sport_participants p
+              where p.id = current_setting('test.waitlist_space_withdrawn')::uuid;
+
+              select p.convocation_status::text into v_witness
+              from public.match_sport_participants p
+              where p.id = current_setting('test.waitlist_space_witness')::uuid;
+
+              select count(*)::integer into v_convoked
+              from public.match_sport_participants p
+              where p.match_id = current_setting('test.waitlist_space_match')::uuid
+                and p.is_eligible
+                and p.convocation_status = 'convoked'
+                and p.availability_status = 'available';
+
+              v_expected := case
+                when v_candidate <> 'available' then 'not_applicable'
+                when v_quota = 1 then 'not_convoked'
+                else 'convoked' end;
+              v_expected_convoked := case
+                when v_candidate = 'available' then v_quota
+                else 1 end;
+
+              insert into pg_temp.waitlist_three_rules_state_space
+              values (
+                v_case, v_cutoff, v_previous, v_candidate, v_manual,
+                v_quota, v_old_turn, v_actual, v_expected,
+                v_convoked, v_expected_convoked, v_error,
+                v_error is not null
+                or v_actual is distinct from v_expected
+                or v_convoked is distinct from v_expected_convoked
+                or v_withdrawn is distinct from 'not_applicable'
+                or v_witness is distinct from 'convoked'
+                or v_candidate_manual is distinct from false
+                or v_candidate_should is distinct from
+                   (v_candidate = 'available' and v_quota = 1)
               );
-            exception when others then
-              v_sqlstate := sqlstate;
-              v_message := sqlerrm;
-            end;
-
-            v_expected_promotion :=
-              v_convocation_state = 'published'
-              and v_withdrawn_status = 'convoked';
-            v_expected_candidate_status := case
-              when v_expected_promotion then 'convoked'
-              else 'not_convoked'
-            end;
-            v_expected_candidate_should := case
-              when not v_expected_promotion then v_should_consume
-              when v_cutoff_mode = 'past' then v_should_consume
-              else false
-            end;
-            v_expected_candidate_turn := case
-              when not v_expected_promotion then v_turn_state
-              when v_cutoff_mode <> 'past' then 'waived'
-              when v_turn_state = 'pending' and v_should_consume then 'consumed'
-              else v_turn_state
-            end;
-            v_expected_candidate_position := case
-              when v_expected_promotion
-                and v_cutoff_mode = 'past'
-                and v_turn_state = 'pending'
-                and v_should_consume then 3
-              else 1
-            end;
-            v_expected_withdrawn_status := case
-              when v_expected_promotion then 'not_applicable'
-              else v_withdrawn_status
-            end;
-
-            select participant.convocation_status::text,
-              participant.waitlist_turn_should_consume,
-              participant.waitlist_turn_state::text,
-              waitlist.position
-            into v_observed_candidate_status,
-              v_observed_candidate_should,
-              v_observed_candidate_turn,
-              v_observed_candidate_position
-            from public.match_sport_participants participant
-            join public.sport_waitlist_entries waitlist
-              on waitlist.season_player_id = participant.season_player_id
-            where participant.id = current_setting('test.waitlist_space_candidate')::uuid;
-
-            select participant.convocation_status::text
-            into v_observed_withdrawn_status
-            from public.match_sport_participants participant
-            where participant.id = current_setting('test.waitlist_space_withdrawn')::uuid;
-
-            v_mismatch :=
-              v_sqlstate is not null
-              or (v_returned_player is not null) is distinct from v_expected_promotion
-              or (
-                v_expected_promotion
-                and v_returned_player is distinct from
-                  'a5400000-0000-0000-0000-000000000002'::uuid
-              )
-              or v_observed_candidate_status is distinct from v_expected_candidate_status
-              or v_observed_candidate_should is distinct from v_expected_candidate_should
-              or v_observed_candidate_turn is distinct from v_expected_candidate_turn
-              or v_observed_candidate_position is distinct from v_expected_candidate_position
-              or v_observed_withdrawn_status is distinct from v_expected_withdrawn_status
-              or (
-                v_expected_promotion
-                and not exists (
-                  select 1
-                  from public.match_sport_participants participant
-                  where participant.id = current_setting('test.waitlist_space_candidate')::uuid
-                    and participant.convocation_manual_override
-                    and participant.promoted_after_withdrawal_at is not null
-                    and participant.promoted_from_participant_id =
-                      current_setting('test.waitlist_space_withdrawn')::uuid
-                )
-              );
-
-            insert into pg_temp.waitlist_withdrawal_state_space values (
-              v_case,
-              v_cutoff_mode,
-              v_convocation_state,
-              v_withdrawn_status,
-              v_should_consume,
-              v_turn_state,
-              v_expected_promotion,
-              v_returned_player is not null,
-              v_expected_candidate_status,
-              v_observed_candidate_status,
-              v_expected_candidate_should,
-              v_observed_candidate_should,
-              v_expected_candidate_turn,
-              v_observed_candidate_turn,
-              v_expected_candidate_position,
-              v_observed_candidate_position,
-              v_expected_withdrawn_status,
-              v_observed_withdrawn_status,
-              v_sqlstate,
-              v_message,
-              v_mismatch
-            );
+            end loop;
           end loop;
         end loop;
       end loop;
@@ -343,131 +252,50 @@ begin
 end;
 $state_space$;
 
-select diag(format(
-  'STATE_SPACE waitlist_withdrawal case=%s cutoff=%s workflow=%s withdrawn=%s should=%s turn=%s expected_promotion=%s observed_promotion=%s expected_candidate=%s/%s/%s/pos%s observed_candidate=%s/%s/%s/pos%s expected_withdrawn=%s observed_withdrawn=%s sqlstate=%s message=%s',
-  case_number,
-  cutoff_mode,
-  convocation_state,
-  withdrawn_status,
-  initial_should_consume,
-  initial_turn_state,
-  expected_promotion,
-  observed_promotion,
-  expected_candidate_status,
-  expected_candidate_should_consume,
-  expected_candidate_turn_state,
-  expected_candidate_position,
-  observed_candidate_status,
-  observed_candidate_should_consume,
-  observed_candidate_turn_state,
-  observed_candidate_position,
-  expected_withdrawn_status,
-  observed_withdrawn_status,
-  coalesce(observed_sqlstate, '-'),
-  coalesce(observed_message, '-')
-))
-from pg_temp.waitlist_withdrawal_state_space
-order by case_number;
-
 select is(
-  (select count(*) from pg_temp.waitlist_withdrawal_state_space),
+  (select count(*) from pg_temp.waitlist_three_rules_state_space),
   216::bigint,
-  '216 retraits combinatoires sont exécutés'
+  '216 désistements combinatoires sont exécutés'
 );
+select diag(format(
+  'cas=%s cutoff=%s initial=%s disponibilité=%s manuel=%s quota=%s tour=%s attendu=%s/%s obtenu=%s/%s sqlstate=%s',
+  case_number, cutoff_mode, previous_status, candidate_availability,
+  manual_override, quota, old_turn_state,
+  expected_candidate, expected_convoked,
+  actual_candidate, actual_convoked, coalesce(sqlstate,'-')
+))
+from pg_temp.waitlist_three_rules_state_space where mismatch
+order by case_number;
 select is(
-  (
-    select count(*)
-    from pg_temp.waitlist_withdrawal_state_space
-    where expected_promotion
-  ),
-  24::bigint,
-  '24 scénarios publient et promeuvent un remplaçant'
-);
-select is(
-  (
-    select count(*)
-    from pg_temp.waitlist_withdrawal_state_space
-    where expected_candidate_turn_state = 'consumed'
-      and initial_turn_state = 'pending'
-  ),
-  1::bigint,
-  'un seul scénario consomme immédiatement le tour pendant un retrait tardif'
-);
-select is(
-  (
-    select count(*)
-    from pg_temp.waitlist_withdrawal_state_space
-    where mismatch
-  ),
+  (select count(*) from pg_temp.waitlist_three_rules_state_space where mismatch),
   0::bigint,
-  'tous les retraits suivent le contrat de promotion et de rotation'
+  'les 216 combinaisons respectent le calcul unique et ignorent les overrides'
 );
 select is(
   (
-    select count(*)
-    from public.match_sport_participant_events event
-    where event.match_id = current_setting('test.waitlist_space_match')::uuid
-      and event.event_type = 'convoked_player_withdrew'
-  ),
-  24::bigint,
-  'chaque promotion journalise le retrait du convoqué'
-);
-select is(
-  (
-    select count(*)
-    from public.match_sport_participant_events event
-    where event.match_id = current_setting('test.waitlist_space_match')::uuid
-      and event.event_type = 'waitlisted_player_promoted'
-  ),
-  24::bigint,
-  'chaque promotion journalise le remplaçant choisi'
-);
-select is(
-  (
-    select count(*)
-    from public.match_sport_participant_events event
-    where event.match_id = current_setting('test.waitlist_space_match')::uuid
-      and event.event_type = 'waitlist_turn_consumed'
-  ),
-  1::bigint,
-  'seul le tour tardif pending et consommable est déplacé en fin de liste'
+    select count(*)::integer
+    from public.match_sport_participant_events ev
+    where ev.match_id = current_setting('test.waitlist_space_match')::uuid
+      and ev.event_type = 'waitlist_turn_consumed'
+  ), 0,
+  'aucun +1 n est comptabilisé avant le coup d envoi'
 );
 
--- Sans remplaçant disponible, le désistement reste enregistré mais aucune
--- promotion artificielle n'est créée.
-update public.match_sport_workflows
-set convocation_state = 'published',
-    late_withdrawal_cutoff_at = now() + interval '1 hour'
+-- Quand tous les joueurs se désistent, personne ne reçoit une place.
+update public.match_sport_participants
+set availability_status = 'absent'
 where match_id = current_setting('test.waitlist_space_match')::uuid;
-update public.match_sport_participants
-set availability_status = 'available',
-    convocation_status = 'convoked'
-where id = current_setting('test.waitlist_space_withdrawn')::uuid;
-update public.match_sport_participants
-set availability_status = 'absent',
-    convocation_status = 'not_applicable'
-where id in (
-  current_setting('test.waitlist_space_candidate')::uuid,
-  current_setting('test.waitlist_space_witness')::uuid
-);
-select is(
-  private.handle_convoked_withdrawal(
-    current_setting('test.waitlist_space_match')::uuid,
-    current_setting('test.waitlist_space_withdrawn')::uuid,
-    'a5100000-0000-0000-0000-000000000001',
-    'staff'
-  ),
-  null::uuid,
-  'un désistement sans remplaçant ne retourne aucune promotion'
+select private.recompute_match_convocations_internal(
+  current_setting('test.waitlist_space_match')::uuid, false
 );
 select is(
   (
-    select convocation_status::text
-    from public.match_sport_participants
-    where id = current_setting('test.waitlist_space_withdrawn')::uuid
-  ),
-  'not_applicable',
-  'le convoqué désisté est retiré même sans remplaçant disponible'
+    select count(*)::integer
+    from public.match_sport_participants p
+    where p.match_id = current_setting('test.waitlist_space_match')::uuid
+      and p.convocation_status = 'convoked'
+  ), 0,
+  'aucune convocation lorsque personne ne se déclare présent'
 );
 
 select * from finish();
