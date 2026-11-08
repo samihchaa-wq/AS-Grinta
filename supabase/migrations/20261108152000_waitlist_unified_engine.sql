@@ -89,17 +89,15 @@ declare
   v_actor uuid := (select auth.uid());
   v_season_id uuid;
   v_limit integer;
-  v_match_type text;
   v_kickoff timestamptz;
   v_status text;
-  v_slots integer;
   v_available integer;
   v_convoked integer;
   v_waiting integer;
 begin
   perform private.require_sports_management_enabled();
-  select m.season_id, w.squad_size_limit, m.match_type, m.kickoff_at, m.status
-    into v_season_id, v_limit, v_match_type, v_kickoff, v_status
+  select m.season_id, w.squad_size_limit, m.kickoff_at, m.status
+    into v_season_id, v_limit, v_kickoff, v_status
   from public.matches m
   join public.match_sport_workflows w on w.match_id = m.id
   where m.id = p_match_id for update of w;
@@ -114,9 +112,6 @@ begin
     perform private.ensure_sport_waitlist(v_season_id, v_actor);
     perform private.rebuild_sport_waitlist_order(v_season_id, v_actor);
 
-    v_slots := case when v_match_type = 'entre_nous'
-      then 2147483647 else v_limit end;
-
     -- Seuls les présents de l'effectif permanent entrent dans ce classement.
     with ranked as (
       select p.id, e.position,
@@ -130,17 +125,17 @@ begin
         and p.availability_status = 'available'
     )
     update public.match_sport_participants p
-    set convocation_status = case when r.priority <= v_slots
+    set convocation_status = case when r.priority <= v_limit
           then 'convoked'::public.sport_convocation_status
           else 'not_convoked'::public.sport_convocation_status end,
         convocation_manual_override = false,
         waitlist_position_snapshot = r.position,
-        waitlist_recommended_not_convoked = r.priority > v_slots,
-        waitlist_turn_should_consume = r.priority > v_slots,
+        waitlist_recommended_not_convoked = r.priority > v_limit,
+        waitlist_turn_should_consume = r.priority > v_limit,
         waitlist_turn_state = case
           when p.waitlist_turn_state = 'consumed'
             then 'consumed'::public.sport_waitlist_turn_state
-          when r.priority > v_slots
+          when r.priority > v_limit
             then 'pending'::public.sport_waitlist_turn_state
           else 'waived'::public.sport_waitlist_turn_state end,
         waitlist_turn_updated_at = now(),
