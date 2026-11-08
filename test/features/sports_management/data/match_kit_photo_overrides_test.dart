@@ -48,6 +48,68 @@ void main() {
     expect(result.single.photoUrl, 'france.png');
   });
 
+  test('coach France keeps the existing photo when no variant is selected', () {
+    expect(
+      coachPhotoForMatchKit(
+        seasonPlayerId: 'coach-1',
+        francePhotoUrl: 'coach-france.png',
+        photoOverrides: const {},
+      ),
+      'coach-france.png',
+    );
+  });
+
+  test('coach follows the Brazil and Netherlands variants by season player ID',
+      () {
+    const variants = {
+      'coach-1': 'kits/coach-1/brazil.png',
+      'coach-2': 'kits/coach-2/netherlands.png',
+    };
+    expect(
+      coachPhotoForMatchKit(
+        seasonPlayerId: 'coach-1',
+        francePhotoUrl: 'coach-france.png',
+        photoOverrides: variants,
+      ),
+      'kits/coach-1/brazil.png',
+    );
+    expect(
+      coachPhotoForMatchKit(
+        seasonPlayerId: 'coach-2',
+        francePhotoUrl: 'coach-france-2.png',
+        photoOverrides: variants,
+      ),
+      'kits/coach-2/netherlands.png',
+    );
+  });
+
+  test('missing coach variant and absent season ID fall back to France', () {
+    expect(
+      coachPhotoForMatchKit(
+        seasonPlayerId: 'coach-1',
+        francePhotoUrl: 'coach-france.png',
+        photoOverrides: const {'another-coach': 'other.png'},
+      ),
+      'coach-france.png',
+    );
+    expect(
+      coachPhotoForMatchKit(
+        seasonPlayerId: null,
+        francePhotoUrl: 'coach-france.png',
+        photoOverrides: const {'': 'wrong.png'},
+      ),
+      'coach-france.png',
+    );
+    expect(
+      coachPhotoForMatchKit(
+        seasonPlayerId: 'coach-1',
+        francePhotoUrl: null,
+        photoOverrides: const {'coach-1': '  '},
+      ),
+      isNull,
+    );
+  });
+
   test('a guest is not overridden by a season player photo', () {
     final original = entry(isGuest: true);
     final result = withMatchKitPhotos(
