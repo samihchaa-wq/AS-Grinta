@@ -696,9 +696,9 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         : ref.watch(matchKitPhotoOverridesProvider(matchId)).valueOrNull ??
             const <String, String>{};
     final field = withMatchKitPhotos(
-      composition.entriesFor(MatchCompositionZone.field), kitPhotos);
+        composition.entriesFor(MatchCompositionZone.field), kitPhotos);
     final bench = withMatchKitPhotos(
-      composition.entriesFor(MatchCompositionZone.bench), kitPhotos)
+        composition.entriesFor(MatchCompositionZone.bench), kitPhotos)
       ..removeWhere(
         (entry) =>
             _desiredEffectifStatuses[entry.participantId] !=
