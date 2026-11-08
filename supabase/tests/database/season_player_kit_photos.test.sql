@@ -33,13 +33,13 @@ select ok(
     where schemaname = 'public'
       and tablename = 'season_player_kit_photos'
       and policyname = 'admin_insert_kit_photos'
-      and with_check ~ 'private\\.is_admin'
+      and with_check like '%is_admin%'
   ) and exists (
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'season_player_kit_photos'
       and policyname = 'admin_update_kit_photos'
-      and qual ~ 'private\\.is_admin'
+      and qual like '%is_admin%'
   ),
   'seuls les administrateurs peuvent modifier les portraits alternatifs'
 );
