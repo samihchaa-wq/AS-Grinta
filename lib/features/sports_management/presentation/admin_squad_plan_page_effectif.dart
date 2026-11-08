@@ -89,48 +89,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 
-  Future<void> _setEffectifStatus(
-    ConvocationPlayer player,
-    ConvocationStatus status,
-  ) async {
-    // Le coach suit sa seule réponse : il n'y a aucune décision d'effectif à
-    // prendre pour lui, et le serveur refuserait celle-ci.
-    if (_busy || _locked || player.isGuest || player.isCoach) return;
-    final current = _desiredEffectifStatus(player);
-    if (current == status) return;
-    // Sortir un joueur de la liste d'attente le prévient aussitôt, et la
-    // notification ne peut pas être rappelée : c'est le seul geste de cet
-    // écran qui mérite une confirmation.
-    if (convocationPushWillFire(
-      wasWaitlisted: player.convocationStatus == ConvocationStatus.notConvoked,
-      becomesConvoked: status == ConvocationStatus.convoked,
-      effectifWritten: _effectifWritten,
-      postMatch: _postMatch,
-    )) {
-      final confirmed = await _confirmAction(
-        title: 'Prévenir ${player.displayName} ?',
-        actionLabel: 'Confirmer',
-        actionIcon: Icons.notifications_active_outlined,
-        content: Text(
-          '${player.displayName} entre dans l’effectif : il reçoit tout de '
-          'suite la notification « Tu es convoqué », s’il a activé les notifications. '
-          'Elle ne peut pas être rattrapée.',
-        ),
-      );
-      if (!confirmed || !mounted) return;
-      if (_busy || _locked || _desiredEffectifStatus(player) != current) return;
-    }
-    _updateState(() {
-      if (status == ConvocationStatus.notApplicable) {
-        _desiredEffectifStatuses.remove(player.participantId);
-      } else {
-        _desiredEffectifStatuses[player.participantId] = status;
-      }
-      _effectifRevision += 1;
-    });
-    _scheduleEffectifSave();
-  }
-
   /// Fait basculer un joueur dans la colonne « Absents ».
   ///
   /// Deux cas se cachent derrière le même geste. Un joueur qui s'est déjà
@@ -142,10 +100,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   Future<void> _markAbsent(ConvocationPlayer player) async {
     final matchId = _selectedMatchId;
     if (matchId == null || _busy || _locked || player.isGuest) return;
-    if (player.isAbsent) {
-      await _setEffectifStatus(player, ConvocationStatus.notApplicable);
-      return;
-    }
+    if (player.isAbsent) return;
     if (player.seasonPlayerId.isEmpty) return;
 
     final wasConvoked =
@@ -161,7 +116,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text(
         '${player.displayName} n’a pas déclaré son absence : elle sera '
         'enregistrée à sa place et il sortira de l’effectif.'
-        '${mayPromote ? ' Le premier joueur de la liste d’attente prend '
+        '${mayPromote ? ' Le joueur présent le plus bas de la liste d’attente prend '
             'sa place et reçoit tout de suite la notification '
             '« Tu es convoqué ».' : ''}',
       ),
@@ -192,11 +147,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!mounted || _selectedMatchId != matchId) return;
     await _loadWorkspace(matchId);
     if (!mounted || _selectedMatchId != matchId) return;
-    // Le serveur ne retire la convocation que d'un joueur déjà convoqué sur un
-    // effectif publié. Dans les autres cas la décision d'avant survit à
-    // l'absence : on la retire ici pour que le joueur apparaisse bien parmi
-    // les absents.
-    await _setEffectifStatus(player, ConvocationStatus.notApplicable);
+
   }
 
   /// Programme l'écriture de l'effectif juste après le geste de l'admin.
@@ -691,10 +642,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               color: _effectifConvokedColor,
               icon: Icons.check_circle_outline,
               players: _convokedPlayers,
-              acceptsDrops: true,
-              draggable: true,
-              onAccept: (player) =>
-                  _setEffectifStatus(player, ConvocationStatus.convoked),
+              acceptsDrops: false,
+              draggable: true, // glissement vers « Absents » conservé
               onRemoveGuest: _removeGuestFromMatch,
               onShowInfo: _showPlayerInfo,
               locked: _locked || _busy,
@@ -705,10 +654,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 color: _effectifWaitlistColor,
                 icon: Icons.hourglass_top_rounded,
                 players: _waitlistedPlayers,
-                acceptsDrops: true,
-                draggable: true,
-                onAccept: (player) =>
-                    _setEffectifStatus(player, ConvocationStatus.notConvoked),
+                acceptsDrops: false,
+                draggable: true, // glissement vers « Absents » conservé
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
@@ -733,8 +680,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               acceptsPlayer: (player) =>
                   player.availabilityStatus == 'no_response',
               draggable: true,
-              onAccept: (player) =>
-                  _setEffectifStatus(player, ConvocationStatus.notApplicable),
+              onAccept: (player) {},
               locked: _busy || _locked,
               onShowInfo: _showPlayerInfo,
               onRelanceAll: (_reminders?.canRemind ?? false)
