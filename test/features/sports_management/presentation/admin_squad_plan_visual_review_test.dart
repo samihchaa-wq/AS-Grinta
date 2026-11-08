@@ -290,7 +290,7 @@ void main() {
     expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
     // Recopier le calcul du serveur n'est pas une décision de l'admin : rien
     // n'est figé, la liste d'attente reste automatique.
-    expect(repository.lastDecisions, isNull);
+    expect(repository.lastChangedPlayerIds, isEmpty);
   });
 
   testWidgets('la liste d’attente ne permet pas une convocation imposée', (
