@@ -12,6 +12,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
     required this.players,
     required this.locked,
     this.acceptsDrops = false,
+    this.acceptsPlayer,
     this.draggable = false,
     this.onAccept,
     this.onRemoveGuest,
@@ -27,6 +28,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
   final List<ConvocationPlayer> players;
   final bool locked;
   final bool acceptsDrops;
+  final bool Function(ConvocationPlayer)? acceptsPlayer;
   final bool draggable;
   final ValueChanged<ConvocationPlayer>? onAccept;
   final ValueChanged<ConvocationPlayer>? onRemoveGuest;
@@ -40,7 +42,10 @@ class _EffectifAvatarColumn extends StatelessWidget {
   final bool countCoachApart;
 
   bool _canAccept(ConvocationPlayer player) =>
-      acceptsDrops && !locked && !player.isGuest;
+      acceptsDrops &&
+      !locked &&
+      !player.isGuest &&
+      (acceptsPlayer?.call(player) ?? true);
 
   @override
   Widget build(BuildContext context) {

@@ -33,8 +33,9 @@ abstract interface class SportWaitlistRepository {
 
   /// Écrit l'effectif du match.
   ///
-  /// Seul le quota peut être modifié. Les anciennes décisions individuelles
-  /// restent dans la signature pour compatibilité, mais le serveur les ignore.
+  /// [changedPlayerIds] désigne les joueurs que l'admin a réellement déplacés
+  /// depuis la dernière lecture. Seules ces décisions sont figées ; les autres
+  /// restent automatiques et suivent l'ordre de la liste d'attente.
   Future<MatchConvocations> publishEffectif({
     required String matchId,
     required int squadSizeLimit,

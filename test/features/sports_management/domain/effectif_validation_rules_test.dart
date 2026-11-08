@@ -167,11 +167,7 @@ void main() {
     expect(state, contains('=> canSaveEffectifNow('));
     expect(state, contains('needsInitialEffectifWrite('));
     expect(effectif, contains('_scheduleEffectifSave();'));
-    // La décision individuelle a disparu : les notifications sont désormais
-    // produites par les changements réels de statut calculés côté serveur.
-    expect(effectif, isNot(contains('_setEffectifStatus(')));
-    expect(
-        effectif, contains('decisions: const <String, ConvocationStatus>{}'));
+    expect(effectif, contains('convocationPushWillFire('));
     expect(effectif, isNot(contains("label: const Text('Enregistrer')")));
   });
 

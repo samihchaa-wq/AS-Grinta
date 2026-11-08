@@ -134,8 +134,34 @@ $$;
 revoke all on function private.ensure_sport_waitlist(uuid, uuid)
   from public, anon, authenticated;
 
--- Règle 1 : le même calcul décide chaque convocation. Aucune exception
--- convocation_manual_override, aucune promotion/rétrogradation spéciale.
+-- Un changement de disponibilité (le joueur répond, se désiste, revient,
+-- ou l'admin le déclare absent) efface le choix manuel de l'admin pour ce
+-- match : le joueur repasse sous la règle automatique.
+create or replace function private.clear_manual_override_on_availability()
+returns trigger language plpgsql security definer set search_path to ''
+as $$
+begin
+  if new.availability_status is distinct from old.availability_status
+     and new.season_player_id is not null then
+    new.convocation_manual_override := false;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.clear_manual_override_on_availability()
+  from public, anon, authenticated;
+
+drop trigger if exists trg_clear_manual_override_on_availability
+  on public.match_sport_participants;
+create trigger trg_clear_manual_override_on_availability
+before update of availability_status on public.match_sport_participants
+for each row execute function private.clear_manual_override_on_availability();
+
+-- Règle 1 : le même calcul décide chaque convocation automatique.
+-- Exception voulue : dans « Effectif », l'admin peut forcer un joueur
+-- disponible en « convoqué » ou « en attente » pour ce match. Ce choix est
+-- conservé ; un joueur forcé convoqué prend une place, un joueur forcé en
+-- attente en libère une. Les autres joueurs suivent la liste d'attente.
 create or replace function private.recompute_match_convocations_internal(
   p_match_id uuid, p_reset_overrides boolean default false
 )
@@ -151,6 +177,7 @@ declare
   v_available integer;
   v_convoked integer;
   v_waiting integer;
+  v_auto_slots integer;
 begin
   perform private.require_sports_management_enabled();
   select m.season_id, w.squad_size_limit, m.kickoff_at, m.status
@@ -172,8 +199,32 @@ begin
     -- annulation) ou lorsque l'administrateur clique sur « Recalculer ».
     perform private.ensure_sport_waitlist(v_season_id, v_actor);
 
+    -- Un choix manuel de l'admin est conservé (comme avant la refonte, il
+    -- peut même convoquer un joueur déclaré absent). Il disparaît sur
+    -- demande explicite, pour un joueur inéligible, ou dès que la
+    -- disponibilité du joueur change (voir clear_manual_override_on_availability).
+    update public.match_sport_participants p
+       set convocation_manual_override = false,
+           updated_at = now()
+     where p.match_id = p_match_id
+       and p.season_player_id is not null
+       and p.convocation_manual_override
+       and (
+         p_reset_overrides
+         or not p.is_eligible
+         or p.convocation_status not in ('convoked', 'not_convoked')
+       );
+
+    select greatest(0, v_limit - count(*)::integer) into v_auto_slots
+    from public.match_sport_participants p
+    join public.season_players sp on sp.id = p.season_player_id
+    where p.match_id = p_match_id
+      and p.convocation_manual_override
+      and p.convocation_status = 'convoked'
+      and not sp.is_coach;
+
     -- Un seul passage fixe l'état de TOUS les membres du match :
-    -- le rang ne concerne que les joueurs présents et éligibles.
+    -- le rang ne concerne que les joueurs présents, éligibles et non forcés.
     with ranked as (
       select p.id, row_number() over (
         order by e.position desc, p.id
@@ -185,14 +236,20 @@ begin
       where p.match_id = p_match_id
         and p.is_eligible
         and p.availability_status = 'available'
+        and not p.convocation_manual_override
     ), decision as (
       select p.id, e.position, sp.is_coach, r.priority,
+        p.convocation_manual_override and not sp.is_coach as manual,
         case
           when sp.is_coach and p.availability_status = 'available'
             then 'convoked'::public.sport_convocation_status
-          when r.priority <= v_limit
+          when sp.is_coach
+            then 'not_applicable'::public.sport_convocation_status
+          when p.convocation_manual_override
+            then p.convocation_status
+          when r.priority <= v_auto_slots
             then 'convoked'::public.sport_convocation_status
-          when r.priority > v_limit
+          when r.priority > v_auto_slots
             then 'not_convoked'::public.sport_convocation_status
           else 'not_applicable'::public.sport_convocation_status
         end as status
@@ -206,7 +263,7 @@ begin
     )
     update public.match_sport_participants p
        set convocation_status = d.status,
-           convocation_manual_override = false,
+           convocation_manual_override = d.manual,
            -- Compatibilité avec le Live : un joueur qui figurait en attente
            -- dans la dernière composition publiée rejoint le banc s'il est
            -- ensuite convoqué. Cette trace ne modifie jamais sa priorité.
@@ -234,18 +291,17 @@ begin
            waitlist_position_snapshot =
              case when d.is_coach then null else d.position end,
            waitlist_recommended_not_convoked =
-             coalesce(d.priority > v_limit, false),
-           waitlist_turn_should_consume =
-             coalesce(d.priority > v_limit, false),
+             not d.manual and coalesce(d.priority > v_auto_slots, false),
+           waitlist_turn_should_consume = d.status = 'not_convoked',
            waitlist_turn_state = case
              when d.is_coach then 'not_applicable'::public.sport_waitlist_turn_state
              when p.waitlist_turn_state = 'consumed'
                then 'consumed'::public.sport_waitlist_turn_state
-             when d.priority is null
-               then 'not_applicable'::public.sport_waitlist_turn_state
-             when d.priority > v_limit
+             when d.status = 'not_convoked'
                then 'pending'::public.sport_waitlist_turn_state
-             else 'waived'::public.sport_waitlist_turn_state
+             when d.status = 'convoked'
+               then 'waived'::public.sport_waitlist_turn_state
+             else 'not_applicable'::public.sport_waitlist_turn_state
            end,
            waitlist_turn_updated_at = now(),
            updated_at = now()
@@ -345,74 +401,329 @@ begin
 end;
 $$;
 
--- L'admin peut régler le quota, pas décider qui remplace le classement.
+-- Effectif : l'admin règle le quota et peut forcer des joueurs disponibles
+-- en « convoqué » ou « en attente ». Seuls les joueurs réellement déplacés
+-- sont figés ; tous les autres restent automatiques (liste d'attente).
 create or replace function private.publish_match_effectif(
-  p_match_id uuid, p_squad_size_limit integer, p_decisions jsonb,
+  p_match_id uuid,
+  p_squad_size_limit integer,
+  p_decisions jsonb,
   p_reason text default null
 )
-returns jsonb language plpgsql security definer set search_path to ''
-as $$
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
 declare
   v_actor uuid := (select auth.uid());
-  v_kickoff timestamptz;
-  v_status text;
+  v_reason text := nullif(btrim(p_reason), '');
+  v_kickoff_at timestamptz;
+  v_match_status text;
+  v_payload_count integer;
+  v_input_count integer;
+  v_missing_count integer;
+  v_invalid_count integer;
+  v_result jsonb;
 begin
   perform private.require_sports_management_enabled();
   if not private.is_admin() then
     raise exception 'Active administrator role required' using errcode = '42501';
   end if;
-  if p_squad_size_limit is null or p_squad_size_limit < 1
+  if p_squad_size_limit is null
+     or p_squad_size_limit < 1
      or p_squad_size_limit > 30 then
-    raise exception 'Invalid squad size' using errcode = '22023';
+    raise exception 'Squad size limit must be between 1 and 30'
+      using errcode = '22023';
   end if;
   if p_decisions is null or jsonb_typeof(p_decisions) <> 'array' then
-    raise exception 'Invalid effectif payload' using errcode = '22023';
+    raise exception 'Effectif decisions must be a JSON array'
+      using errcode = '22023';
   end if;
-  select m.kickoff_at, m.status into v_kickoff, v_status
-  from public.matches m
-  join public.match_sport_workflows w on w.match_id = m.id
-  where m.id = p_match_id for update of m, w;
+  if v_reason is not null and char_length(v_reason) > 500 then
+    raise exception 'Reason cannot exceed 500 characters' using errcode = '22023';
+  end if;
+
+  select match.kickoff_at, match.status
+  into v_kickoff_at, v_match_status
+  from public.matches match
+  join public.match_sport_workflows workflow on workflow.match_id = match.id
+  where match.id = p_match_id
+  for update of match, workflow;
+
   if not found then
-    raise exception 'Match not found' using errcode = 'P0002';
+    raise exception 'Sport workflow not found' using errcode = 'P0002';
   end if;
-  if v_status <> 'a_venir' or now() >= v_kickoff - interval '15 minutes' then
+  -- L'effectif est verrouillé à l'ouverture du Live (T-15).
+  if v_match_status <> 'a_venir'
+     or now() >= v_kickoff_at - interval '15 minutes' then
     raise exception 'Effectif already locked' using errcode = '22023';
+  end if;
+
+  create temporary table if not exists pg_temp.effectif_input (
+    season_player_id uuid primary key,
+    status public.sport_convocation_status not null,
+    changed boolean
+  ) on commit drop;
+  truncate table pg_temp.effectif_input;
+
+  begin
+    insert into pg_temp.effectif_input(season_player_id, status, changed)
+    select
+      (item ->> 'season_player_id')::uuid,
+      (item ->> 'status')::public.sport_convocation_status,
+      case jsonb_typeof(item -> 'changed')
+        when 'boolean' then (item ->> 'changed')::boolean
+        else null
+      end
+    from jsonb_array_elements(p_decisions) item
+    where item ->> 'status' in ('convoked', 'not_convoked');
+  exception
+    when unique_violation then
+      raise exception 'A player can appear only once in effectif decisions'
+        using errcode = '22023';
+    when invalid_text_representation or not_null_violation then
+      raise exception 'Invalid effectif decision' using errcode = '22023';
+  end;
+
+  v_payload_count := jsonb_array_length(p_decisions);
+  select count(*)::integer into v_input_count
+  from pg_temp.effectif_input;
+
+  if v_input_count <> v_payload_count then
+    raise exception 'Invalid effectif decision' using errcode = '22023';
+  end if;
+
+  select count(*)::integer into v_missing_count
+  from public.match_sport_participants participant
+  left join pg_temp.effectif_input input
+    on input.season_player_id = participant.season_player_id
+  where participant.match_id = p_match_id
+    and participant.is_eligible
+    and participant.season_player_id is not null
+    and participant.availability_status = 'available'
+    and input.season_player_id is null;
+
+  if v_missing_count > 0 then
+    raise exception 'Every available permanent player needs one effectif decision'
+      using errcode = '22023';
+  end if;
+
+  select count(*)::integer into v_invalid_count
+  from pg_temp.effectif_input input
+  left join public.match_sport_participants participant
+    on participant.match_id = p_match_id
+   and participant.season_player_id = input.season_player_id
+   and participant.is_eligible
+   and participant.availability_status in (
+     'available', 'absent', 'no_response'
+   )
+  where participant.id is null;
+
+  if v_invalid_count > 0 then
+    raise exception 'Effectif contains an ineligible player'
+      using errcode = '22023';
   end if;
 
   update public.match_sport_workflows
   set squad_size_limit = p_squad_size_limit,
-      updated_by = v_actor, updated_at = now()
+      updated_by = v_actor,
+      updated_at = now()
   where match_id = p_match_id;
 
-  -- Les décisions manuelles reçues des anciens clients ne sont jamais
-  -- appliquées : elles ne doivent pas pouvoir contourner la règle n°1.
-  perform private.publish_match_convocations(p_match_id, p_reason);
+  -- Seules les décisions de l'admin sont figées. Les autres restent
+  -- automatiques : le recalcul qui suit les place selon la liste d'attente.
+  update public.match_sport_participants participant
+  set convocation_status = input.status,
+      convocation_manual_override = true,
+      waitlist_recommended_not_convoked = false,
+      waitlist_turn_should_consume =
+        input.status = 'not_convoked'
+        and participant.availability_status = 'available',
+      waitlist_turn_state = case
+        when participant.waitlist_turn_state = 'consumed'
+          then 'consumed'::public.sport_waitlist_turn_state
+        when input.status = 'not_convoked'
+             and participant.availability_status = 'available'
+          then 'pending'::public.sport_waitlist_turn_state
+        when input.status = 'convoked'
+          then 'waived'::public.sport_waitlist_turn_state
+        else 'not_applicable'::public.sport_waitlist_turn_state
+      end,
+      waitlist_turn_updated_at = now(),
+      updated_at = now()
+  from pg_temp.effectif_input input
+  where participant.match_id = p_match_id
+    and participant.season_player_id = input.season_player_id
+    and participant.is_eligible
+    and (
+      participant.convocation_manual_override
+      or coalesce(
+        input.changed,
+        participant.convocation_status is distinct from input.status
+      )
+    );
 
-  -- Préserver l'audit de chaque enregistrement de quota : ce journal est
-  -- distinct du calcul des convocations et utile aux administrateurs.
+  update public.match_sport_participants participant
+  set convocation_status = 'not_applicable',
+      convocation_manual_override = false,
+      waitlist_recommended_not_convoked = false,
+      waitlist_turn_should_consume = false,
+      waitlist_turn_state = case
+        when participant.waitlist_turn_state = 'consumed'
+          then 'consumed'::public.sport_waitlist_turn_state
+        else 'not_applicable'::public.sport_waitlist_turn_state
+      end,
+      waitlist_turn_updated_at = now(),
+      updated_at = now()
+  where participant.match_id = p_match_id
+    and participant.is_eligible
+    and participant.season_player_id is not null
+    and participant.availability_status <> 'available'
+    and not exists (
+      select 1
+      from pg_temp.effectif_input input
+      where input.season_player_id = participant.season_player_id
+    );
+
+  update public.match_sport_participants participant
+  set convocation_status = 'convoked',
+      convocation_manual_override = true,
+      waitlist_recommended_not_convoked = false,
+      waitlist_turn_should_consume = false,
+      waitlist_turn_state = 'waived',
+      waitlist_turn_updated_at = now(),
+      updated_at = now()
+  where participant.match_id = p_match_id
+    and participant.is_eligible
+    and participant.guest_player_id is not null;
+
+  v_result := private.publish_match_convocations(
+    p_match_id,
+    coalesce(v_reason, 'Mise à jour immédiate de l’effectif')
+  );
+
+  insert into private.sport_admin_audit_log(
+    match_id, action, actor_profile_id, reason, metadata
+  ) values (
+    p_match_id,
+    'update_match_effectif',
+    v_actor,
+    v_reason,
+    jsonb_build_object(
+      'squad_size_limit', p_squad_size_limit,
+      'convocation_version', v_result -> 'convocation_version'
+    )
+  );
+
+  return private.get_match_convocations(p_match_id);
+end;
+$function$;
+
+-- Forcer un seul joueur pour ce match, puis recalculer les autres.
+create or replace function private.set_match_convocation(
+  p_match_id uuid,
+  p_season_player_id uuid,
+  p_status text,
+  p_turn_should_consume boolean,
+  p_reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_actor uuid := (select auth.uid());
+  v_participant_id uuid;
+  v_old_status public.sport_convocation_status;
+  v_old_consume boolean;
+  v_new_status public.sport_convocation_status;
+  v_reason text := nullif(btrim(p_reason), '');
+begin
+  perform private.require_sports_management_enabled();
+  if not private.is_admin() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+  if p_status not in ('convoked', 'not_convoked') then
+    raise exception 'Invalid convocation status' using errcode = '22023';
+  end if;
+  if v_reason is not null and char_length(v_reason) > 500 then
+    raise exception 'Reason cannot exceed 500 characters' using errcode = '22023';
+  end if;
+  v_new_status := p_status::public.sport_convocation_status;
+
+  select participant.id, participant.convocation_status,
+    participant.waitlist_turn_should_consume
+  into v_participant_id, v_old_status, v_old_consume
+  from public.match_sport_participants participant
+  where participant.match_id = p_match_id
+    and participant.season_player_id = p_season_player_id
+    and participant.is_eligible
+    and participant.availability_status = 'available'
+  for update;
+
+  if not found then
+    raise exception 'Available participant not found' using errcode = 'P0002';
+  end if;
+
+  update public.match_sport_participants
+  set convocation_status = v_new_status,
+      convocation_manual_override = true,
+      waitlist_recommended_not_convoked = false,
+      waitlist_turn_should_consume = p_turn_should_consume,
+      waitlist_turn_state = case
+        when p_turn_should_consume then
+          case
+            when waitlist_turn_state = 'consumed'
+              then 'consumed'::public.sport_waitlist_turn_state
+            else 'pending'::public.sport_waitlist_turn_state
+          end
+        else 'waived'::public.sport_waitlist_turn_state
+      end,
+      waitlist_turn_updated_at = now(),
+      updated_at = now()
+  where id = v_participant_id;
+
+  update public.match_sport_workflows
+  set convocation_version = convocation_version + 1,
+      updated_by = v_actor,
+      updated_at = now()
+  where match_id = p_match_id;
+
+  insert into public.match_sport_participant_events (
+    participant_id, match_id, event_type, old_value, new_value,
+    actor_profile_id, actor_kind
+  ) values (
+    v_participant_id, p_match_id, 'convocation_overridden',
+    jsonb_build_object(
+      'status', v_old_status,
+      'turn_should_consume', v_old_consume
+    ),
+    jsonb_build_object(
+      'status', v_new_status,
+      'turn_should_consume', p_turn_should_consume
+    ),
+    v_actor, 'staff'
+  );
+
   insert into private.sport_admin_audit_log (
     match_id, action, actor_profile_id, reason, metadata
   ) values (
-    p_match_id, 'update_match_effectif', v_actor,
-    nullif(btrim(p_reason), ''),
-    jsonb_build_object('squad_size_limit', p_squad_size_limit)
+    p_match_id, 'override_convocation', v_actor, v_reason,
+    jsonb_build_object(
+      'season_player_id', p_season_player_id,
+      'old_status', v_old_status,
+      'new_status', v_new_status,
+      'old_turn_should_consume', v_old_consume,
+      'new_turn_should_consume', p_turn_should_consume
+    )
   );
+
+  perform private.recompute_match_convocations_internal(p_match_id, false);
   return private.get_match_convocations(p_match_id);
 end;
-$$;
-
--- Ce RPC n'a plus de sens : garder la signature, mais refuser explicitement.
-create or replace function private.set_match_convocation(
-  p_match_id uuid, p_season_player_id uuid, p_status text,
-  p_turn_should_consume boolean, p_reason text default null
-)
-returns jsonb language plpgsql security definer set search_path to ''
-as $$
-begin
-  raise exception 'Convocations automatiques : modifier les disponibilités ou le quota.'
-    using errcode = '22023';
-end;
-$$;
+$function$;
 
 -- L'administrateur garde la main sur l'ordre : il peut placer un joueur
 -- où il le souhaite. Les convocations suivent immédiatement ce nouvel ordre

@@ -89,6 +89,48 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 
+  Future<void> _setEffectifStatus(
+    ConvocationPlayer player,
+    ConvocationStatus status,
+  ) async {
+    // Le coach suit sa seule réponse : il n'y a aucune décision d'effectif à
+    // prendre pour lui, et le serveur refuserait celle-ci.
+    if (_busy || _locked || player.isGuest || player.isCoach) return;
+    final current = _desiredEffectifStatus(player);
+    if (current == status) return;
+    // Sortir un joueur de la liste d'attente le prévient aussitôt, et la
+    // notification ne peut pas être rappelée : c'est le seul geste de cet
+    // écran qui mérite une confirmation.
+    if (convocationPushWillFire(
+      wasWaitlisted: player.convocationStatus == ConvocationStatus.notConvoked,
+      becomesConvoked: status == ConvocationStatus.convoked,
+      effectifWritten: _effectifWritten,
+      postMatch: _postMatch,
+    )) {
+      final confirmed = await _confirmAction(
+        title: 'Prévenir ${player.displayName} ?',
+        actionLabel: 'Confirmer',
+        actionIcon: Icons.notifications_active_outlined,
+        content: Text(
+          '${player.displayName} entre dans l’effectif : il reçoit tout de '
+          'suite la notification « Tu es convoqué », s’il a activé les notifications. '
+          'Elle ne peut pas être rattrapée.',
+        ),
+      );
+      if (!confirmed || !mounted) return;
+      if (_busy || _locked || _desiredEffectifStatus(player) != current) return;
+    }
+    _updateState(() {
+      if (status == ConvocationStatus.notApplicable) {
+        _desiredEffectifStatuses.remove(player.participantId);
+      } else {
+        _desiredEffectifStatuses[player.participantId] = status;
+      }
+      _effectifRevision += 1;
+    });
+    _scheduleEffectifSave();
+  }
+
   /// Fait basculer un joueur dans la colonne « Absents ».
   ///
   /// Deux cas se cachent derrière le même geste. Un joueur qui s'est déjà
@@ -100,7 +142,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   Future<void> _markAbsent(ConvocationPlayer player) async {
     final matchId = _selectedMatchId;
     if (matchId == null || _busy || _locked || player.isGuest) return;
-    if (player.isAbsent) return;
+    if (player.isAbsent) {
+      await _setEffectifStatus(player, ConvocationStatus.notApplicable);
+      return;
+    }
     if (player.seasonPlayerId.isEmpty) return;
 
     final wasConvoked =
@@ -116,7 +161,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text(
         '${player.displayName} n’a pas déclaré son absence : elle sera '
         'enregistrée à sa place et il sortira de l’effectif.'
-        '${mayPromote ? ' Le joueur présent le plus bas de la liste d’attente prend '
+        '${mayPromote ? ' Le premier joueur de la liste d’attente prend '
             'sa place et reçoit tout de suite la notification '
             '« Tu es convoqué ».' : ''}',
       ),
@@ -147,11 +192,17 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!mounted || _selectedMatchId != matchId) return;
     await _loadWorkspace(matchId);
     if (!mounted || _selectedMatchId != matchId) return;
+    // Le serveur ne retire la convocation que d'un joueur déjà convoqué sur un
+    // effectif publié. Dans les autres cas la décision d'avant survit à
+    // l'absence : on la retire ici pour que le joueur apparaisse bien parmi
+    // les absents.
+    await _setEffectifStatus(player, ConvocationStatus.notApplicable);
   }
 
   /// Programme l'écriture de l'effectif juste après le geste de l'admin.
   ///
-  /// Le court délai regroupe les modifications successives du quota.
+  /// Le court délai évite d'écrire une fois par doigt qui glisse : plusieurs
+  /// décisions enchaînées partent en une seule écriture.
   void _scheduleEffectifSave() {
     _effectifAutosave?.cancel();
     _effectifAutosave = Timer(
@@ -171,7 +222,50 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     return limit;
   }
 
-  /// Enregistre le quota ; le serveur déduit seul les convocations des règles.
+  Map<String, ConvocationStatus> _effectifDecisions(
+    MatchConvocations convocations,
+  ) {
+    // Le coach n'entre dans aucune décision : sa propre réponse suffit à le
+    // poser dans l'effectif, et le serveur refuse une décision à son nom.
+    return {
+      for (final player in convocations.players)
+        if (!player.isGuest &&
+            !player.isCoach &&
+            player.seasonPlayerId.isNotEmpty &&
+            _desiredEffectifStatus(player) != ConvocationStatus.notApplicable)
+          player.seasonPlayerId: _desiredEffectifStatus(player),
+    };
+  }
+
+  /// Joueurs que l'admin a déplacés depuis la dernière réponse du serveur.
+  ///
+  /// Les autres décisions envoyées ne font que recopier ce que le serveur a
+  /// calculé : les figer bloquerait des places et empêcherait la liste
+  /// d'attente de s'appliquer aux joueurs qui répondent plus tard. Un joueur
+  /// disponible encore sans décision côté serveur arrive en attente par
+  /// défaut à l'écran, ce qui n'est pas non plus un choix de l'admin.
+  Set<String> _effectifChangedPlayerIds(MatchConvocations convocations) {
+    return {
+      for (final player in convocations.players)
+        if (!player.isGuest &&
+            !player.isCoach &&
+            player.seasonPlayerId.isNotEmpty &&
+            _desiredEffectifStatus(player) != ConvocationStatus.notApplicable &&
+            _desiredEffectifStatus(player) != player.convocationStatus &&
+            !(player.isAvailable &&
+                player.convocationStatus == ConvocationStatus.notApplicable &&
+                _desiredEffectifStatus(player) ==
+                    ConvocationStatus.notConvoked))
+          player.seasonPlayerId,
+    };
+  }
+
+  /// Écrit l'effectif tel qu'il est à l'écran.
+  ///
+  /// Rien n'est rechargé : la réponse du serveur suffit à remettre l'écran à
+  /// jour, et la composition en cours de préparation n'est pas perdue. Elle est
+  /// simplement réajustée — un joueur qui rejoint arrive sur le banc, un joueur
+  /// qui s'en va laisse son emplacement vide.
   Future<void> _persistEffectif({bool recoverOnError = true}) async {
     final convocations = _convocations;
     if (convocations == null) return;
@@ -190,19 +284,21 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         _validatedSquadLimit(showError: false) ?? convocations.squadSizeLimit;
 
     _effectifAutosave?.cancel();
+    final revision = _effectifRevision;
     _updateState(() => _effectifSaving = true);
     try {
       final updated =
           await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
                 matchId: convocations.matchId,
                 squadSizeLimit: limit,
-                // Aucun choix individuel ne peut modifier les convocations.
-                decisions: const <String, ConvocationStatus>{},
+                decisions: _effectifDecisions(convocations),
+                changedPlayerIds: _effectifChangedPlayerIds(convocations),
                 reason: 'Effectif enregistré depuis le match',
               );
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
       if (!mounted || _selectedMatchId != convocations.matchId) return;
-      _applyConvocations(updated, adoptDecisions: true);
+      _applyConvocations(updated,
+          adoptDecisions: revision == _effectifRevision);
     } catch (error) {
       if (!mounted) return;
       _showMessage(humanizeError(error));
@@ -595,8 +691,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               color: _effectifConvokedColor,
               icon: Icons.check_circle_outline,
               players: _convokedPlayers,
-              acceptsDrops: false,
-              draggable: true, // glissement vers « Absents » conservé
+              acceptsDrops: true,
+              draggable: true,
+              onAccept: (player) =>
+                  _setEffectifStatus(player, ConvocationStatus.convoked),
               onRemoveGuest: _removeGuestFromMatch,
               onShowInfo: _showPlayerInfo,
               locked: _locked || _busy,
@@ -607,8 +705,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 color: _effectifWaitlistColor,
                 icon: Icons.hourglass_top_rounded,
                 players: _waitlistedPlayers,
-                acceptsDrops: false,
-                draggable: true, // glissement vers « Absents » conservé
+                acceptsDrops: true,
+                draggable: true,
+                onAccept: (player) =>
+                    _setEffectifStatus(player, ConvocationStatus.notConvoked),
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
@@ -629,8 +729,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               color: _effectifNoResponseColor,
               icon: Icons.schedule_outlined,
               players: _unansweredPlayers,
-              acceptsDrops: false,
-              draggable: true, // autorise le déplacement vers « Absents »
+              acceptsDrops: true,
+              acceptsPlayer: (player) =>
+                  player.availabilityStatus == 'no_response',
+              draggable: true,
+              onAccept: (player) =>
+                  _setEffectifStatus(player, ConvocationStatus.notApplicable),
               locked: _busy || _locked,
               onShowInfo: _showPlayerInfo,
               onRelanceAll: (_reminders?.canRemind ?? false)

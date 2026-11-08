@@ -243,7 +243,7 @@ void main() {
   });
 
   testWidgets(
-    'les transferts directs entre convoqués et attente sont impossibles',
+    'moves absent and unanswered players through avatar tiles',
     (tester) async {
       await _setWideViewport(tester);
       final convocations = _convocations();
@@ -260,15 +260,34 @@ void main() {
       expect(find.text('Absents (1)'), findsOneWidget);
       expect(find.text('Sans réponse (1)'), findsOneWidget);
       expect(
-          find.byType(LongPressDraggable<ConvocationPlayer>), findsNWidgets(5));
+        find.byType(LongPressDraggable<ConvocationPlayer>),
+        findsNWidgets(5),
+      );
 
-      // Les colonnes ne doivent pas permettre de contourner le classement.
       await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
-      expect(find.text('Convoqués (3)'), findsOneWidget);
-      expect(repository.lastDecisions, isNull);
+      expect(find.text('Convoqués (4)'), findsOneWidget);
+      expect(find.text('Absents (0)'), findsOneWidget);
+      expect(find.text('Diego'), findsOneWidget);
+
       await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
-      expect(find.text('Liste d’attente (0)'), findsOneWidget);
-      expect(find.text('Sans réponse (1)'), findsOneWidget);
+      expect(find.text('Liste d’attente (1)'), findsOneWidget);
+      expect(find.text('Sans réponse (0)'), findsOneWidget);
+      expect(find.text('Emma'), findsOneWidget);
+
+      // Le retour vers la colonne de disponibilité d'origine doit rester
+      // possible, puis le joueur peut être replacé parmi les convoqués.
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 2);
+      expect(find.text('Convoqués (3)'), findsOneWidget);
+      expect(find.text('Absents (1)'), findsOneWidget);
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
+
+      // Aucun bouton à presser : les décisions partent d'elles-mêmes, une
+      // fois le geste terminé.
+      expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
+      await _pumpFrames(tester, count: 20);
+
+      expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
+      expect(repository.lastDecisions?['sp5'], ConvocationStatus.notConvoked);
     },
   );
 
@@ -287,22 +306,13 @@ void main() {
     );
 
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
-
-    // Le chargement initialise l'effectif de manière asynchrone.
-    // Attendre explicitement la publication plutôt que supposer qu'elle
-    // est terminée après un nombre fixe de frames.
-    for (var attempt = 0;
-        attempt < 40 && repository.lastDecisions == null;
-        attempt++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-    expect(repository.lastDecisions, isEmpty);
-    // Aucun choix individuel n'est envoyé : le quota suffit au serveur
-    // pour recalculer les convocations selon la liste d'attente.
+    expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
+    // Recopier le calcul du serveur n'est pas une décision de l'admin : rien
+    // n'est figé, la liste d'attente reste automatique.
     expect(repository.lastChangedPlayerIds, isEmpty);
   });
 
-  testWidgets('la liste d’attente ne permet pas une convocation imposée', (
+  testWidgets('convoquer depuis la liste d’attente demande confirmation', (
     tester,
   ) async {
     await _setWideViewport(tester);
@@ -315,13 +325,28 @@ void main() {
       waitlistRepository: repository,
     );
 
+    expect(find.text('Liste d’attente (1)'), findsOneWidget);
+
+    // Annuler laisse le joueur où il est, et n'écrit rien.
     await _dragPlayerToColumn(tester, playerName: 'Clara', columnIndex: 0);
-    expect(find.text('Prévenir Clara ?'), findsNothing);
+    expect(find.text('Prévenir Clara ?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Annuler'));
+    await _pumpFrames(tester, count: 20);
     expect(find.text('Liste d’attente (1)'), findsOneWidget);
     expect(repository.lastDecisions, isNull);
+
+    // Confirmer déplace le joueur et déclenche l'écriture.
+    await _dragPlayerToColumn(tester, playerName: 'Clara', columnIndex: 0);
+    expect(find.text('Prévenir Clara ?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Confirmer'));
+    await _pumpFrames(tester, count: 20);
+    expect(find.text('Liste d’attente (0)'), findsOneWidget);
+    expect(repository.lastDecisions?['sp3'], ConvocationStatus.convoked);
+    // Seul le joueur déplacé par l'admin est signalé comme décision figée.
+    expect(repository.lastChangedPlayerIds, {'sp3'});
   });
 
-  testWidgets('un absent ne peut pas être convoqué manuellement', (
+  testWidgets('un joueur absent convoqué ne demande aucune confirmation', (
     tester,
   ) async {
     await _setWideViewport(tester);
@@ -336,8 +361,8 @@ void main() {
 
     await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
     expect(find.textContaining('Prévenir'), findsNothing);
-    expect(find.text('Absents (1)'), findsOneWidget);
-    expect(repository.lastDecisions, isNull);
+    await _pumpFrames(tester, count: 20);
+    expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
   });
 
   testWidgets('un convoqué peut passer chez les absents', (tester) async {

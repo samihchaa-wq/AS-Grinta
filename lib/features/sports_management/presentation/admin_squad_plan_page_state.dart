@@ -21,6 +21,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Timer? _effectifAutosave;
   bool _effectifSaving = false;
 
+  /// Compteur des décisions prises à l'écran.
+  ///
+  /// Il distingue une réponse du serveur encore d'actualité d'une réponse
+  /// doublée par un nouveau geste pendant l'aller-retour : dans ce cas les
+  /// décisions affichées restent celles de l'admin, et c'est l'écriture
+  /// suivante qui les portera.
+  int _effectifRevision = 0;
   bool _compositionDirty = false;
   bool _editingPublishedComposition = false;
 

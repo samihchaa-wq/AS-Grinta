@@ -132,7 +132,7 @@ select is(
   1,'Les recalculs répétés ne dupliquent pas le droit au +1'
 );
 
--- Une décision manuelle ne peut pas contourner les trois règles.
+-- Dans « Effectif », un choix manuel de l'admin est conservé par le recalcul.
 update public.match_sport_participants p
 set convocation_status='convoked',convocation_manual_override=true
 where p.match_id=current_setting('test.waitlist_three_match')::uuid
@@ -144,7 +144,38 @@ select is(
   (select p.convocation_status::text from public.match_sport_participants p
    where p.match_id=current_setting('test.waitlist_three_match')::uuid
      and p.season_player_id='b5400000-0000-0000-0000-000000000001'),
-  'not_convoked','Le recalcul ignore une convocation imposée'
+  'convoked','Le recalcul conserve la convocation choisie par l admin'
+);
+select is(
+  (select count(*)::integer from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.convocation_status='convoked'),
+  2,'Le choix manuel prend une place : le quota reste respecté'
+);
+
+-- Un changement de disponibilité efface le choix manuel.
+update public.match_sport_participants p
+set availability_status='absent',updated_at=now()
+where p.match_id=current_setting('test.waitlist_three_match')::uuid
+  and p.season_player_id='b5400000-0000-0000-0000-000000000001';
+select is(
+  (select p.convocation_manual_override from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  false,'Une nouvelle réponse du joueur efface le choix de l admin'
+);
+update public.match_sport_participants p
+set availability_status='available',updated_at=now()
+where p.match_id=current_setting('test.waitlist_three_match')::uuid
+  and p.season_player_id='b5400000-0000-0000-0000-000000000001';
+select private.recompute_match_convocations_internal(
+  current_setting('test.waitlist_three_match')::uuid,false
+);
+select is(
+  (select p.convocation_status::text from public.match_sport_participants p
+   where p.match_id=current_setting('test.waitlist_three_match')::uuid
+     and p.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  'not_convoked','Sans choix manuel, Alice suit de nouveau la liste'
 );
 
 -- Les compteurs déterminent l'ordre et les futures convocations.
