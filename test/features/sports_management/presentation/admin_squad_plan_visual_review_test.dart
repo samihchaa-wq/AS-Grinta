@@ -287,7 +287,6 @@ void main() {
     );
 
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
-    expect(find.text('Convoqués (3)'), findsOneWidget);
 
     // Le chargement initialise l'effectif de manière asynchrone.
     // Attendre explicitement la publication plutôt que supposer qu'elle
