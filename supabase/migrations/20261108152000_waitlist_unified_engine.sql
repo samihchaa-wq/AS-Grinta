@@ -2,6 +2,10 @@
 -- À valider sur base de test AVANT toute fusion en production.
 begin;
 
+-- Les crédits annulés restent dans l'audit, mais ne comptent plus.
+alter table private.sport_waitlist_passage_ledger
+  add column if not exists voided_at timestamptz;
+
 -- Ancien déclencheur : il décidait qu'un désistement effaçait le passage
 -- en attente selon une coupure distincte. Le journal d'événements v2
 -- remplace entièrement cette règle, sans exception par statut final.
@@ -72,8 +76,9 @@ returns trigger language plpgsql security definer
 set search_path to ''
 as $$
 begin
-  if old.kickoff_at is not null
-     and new.kickoff_at is distinct from old.kickoff_at then
+  if (old.kickoff_at is not null
+      and new.kickoff_at is distinct from old.kickoff_at)
+     or (old.status is distinct from 'annule' and new.status = 'annule') then
     update public.match_sport_workflows
       set waitlist_passages_exempt = true
     where match_id = new.id;
@@ -85,7 +90,7 @@ revoke all on function private.exempt_waitlist_on_reschedule()
   from public, anon, authenticated;
 drop trigger if exists trg_exempt_waitlist_on_reschedule on public.matches;
 create trigger trg_exempt_waitlist_on_reschedule
-after update of kickoff_at on public.matches
+after update of kickoff_at, status on public.matches
 for each row execute function private.exempt_waitlist_on_reschedule();
 
 -- Règle 1 : le même calcul décide chaque convocation. Aucune exception
@@ -412,6 +417,66 @@ begin
 end;
 $$;
 
+-- Annulation, report ou quota élargi : les +1 déjà crédités doivent
+-- également disparaître. On ne supprime jamais le journal historique.
+create or replace function private.void_match_waitlist_credits(p_match_id uuid)
+returns integer language plpgsql security definer set search_path to ''
+as $
+declare
+  v_season_id uuid;
+  v_count integer := 0;
+begin
+  select m.season_id into v_season_id
+  from public.matches m where m.id = p_match_id;
+  if v_season_id is null then return 0; end if;
+
+  with voided as (
+    update private.sport_waitlist_passage_ledger l
+    set voided_at = now()
+    where l.match_id = p_match_id and l.voided_at is null
+    returning l.season_player_id, l.credited_at
+  ), counts as (
+    select season_player_id, count(*)::integer as removed
+    from voided where credited_at is not null
+    group by season_player_id
+  )
+  update public.sport_waitlist_entries e
+     set manual_waitlist_count =
+           greatest(0, e.manual_waitlist_count - c.removed),
+         updated_at = now()
+    from counts c
+   where e.season_id = v_season_id
+     and e.season_player_id = c.season_player_id;
+  get diagnostics v_count = row_count;
+
+  if v_count > 0 then
+    perform private.rebuild_sport_waitlist_order(v_season_id, null);
+    perform private.rebalance_upcoming_waitlist_matches(v_season_id);
+  end if;
+  return v_count;
+end;
+$;
+revoke all on function private.void_match_waitlist_credits(uuid)
+  from public, anon, authenticated;
+
+create or replace function private.void_waitlist_on_exemption()
+returns trigger language plpgsql security definer set search_path to ''
+as $
+begin
+  perform private.void_match_waitlist_credits(new.match_id);
+  return new;
+end;
+$;
+revoke all on function private.void_waitlist_on_exemption()
+  from public, anon, authenticated;
+
+drop trigger if exists trg_void_waitlist_on_exemption
+  on public.match_sport_workflows;
+create trigger trg_void_waitlist_on_exemption
+after update of waitlist_passages_exempt on public.match_sport_workflows
+for each row when (new.waitlist_passages_exempt and not old.waitlist_passages_exempt)
+execute function private.void_waitlist_on_exemption();
+
 -- Règle 2 : comptabilisation EXACTEMENT au coup d'envoi, au plus une fois.
 -- Les entrées dans le journal survivent aux promotions et aux absences.
 create or replace function private.finalize_match_waitlist_turns_internal(
@@ -470,7 +535,7 @@ begin
     update private.sport_waitlist_passage_ledger l
     set credited_at = now()
     where l.match_id = p_match_id
-      and l.credited_at is null
+      and l.credited_at is null and l.voided_at is null
     returning l.season_player_id
   ), grouped as (
     select season_player_id, count(*)::integer as increment
@@ -549,7 +614,8 @@ begin
       and not w.waitlist_passages_exempt
       and (
         exists (select 1 from private.sport_waitlist_passage_ledger l
-                where l.match_id = m.id and l.credited_at is null)
+                where l.match_id = m.id
+                  and l.credited_at is null and l.voided_at is null)
         or exists (
           select 1 from public.match_sport_participants p
           where p.match_id = m.id and p.is_eligible
