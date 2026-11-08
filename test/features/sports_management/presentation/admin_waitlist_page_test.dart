@@ -42,7 +42,7 @@ void main() {
   );
 
   testWidgets(
-    'dragging the first table row onto the second reorders and saves the list',
+    'manual reordering is no longer available',
     (tester) async {
       final repository = _FakeSportWaitlistRepository();
       await tester.pumpWidget(
@@ -55,20 +55,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final aliceDrag = find.byKey(const ValueKey('waitlist-drag-alice'));
-      final gesture = await tester.startGesture(tester.getCenter(aliceDrag));
-      await tester.pump(const Duration(milliseconds: 600));
-      await gesture.moveTo(tester.getCenter(find.text('Bruno')));
-      await tester.pump();
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
-      await tester.pumpAndSettle();
-
-      expect(repository.savedOrder, ['bruno', 'alice']);
-      expect(find.text('Liste d’attente enregistrée.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('waitlist-drag-alice')), findsNothing);
+      expect(find.text('Enregistrer l’ordre'), findsNothing);
+      expect(find.text('Recalculer'), findsOneWidget);
+      expect(repository.savedOrder, isNull);
     },
   );
 
@@ -140,7 +130,7 @@ void main() {
       await tester.tap(find.widgetWithText(OutlinedButton, 'Recalculer'));
       await tester.pumpAndSettle();
 
-      expect(repository.savedOrder, ['bruno', 'alice']);
+      expect(repository.returnedOrder, ['bruno', 'alice']);
     },
   );
 }
@@ -149,8 +139,10 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   List<String>? savedOrder;
   String? lastManualCountSeasonPlayerId;
   int? lastManualCount;
+  int brunoCount = 1;
+  List<String>? returnedOrder;
 
-  SportWaitlist get _waitlist => const SportWaitlist(
+  SportWaitlist get _waitlist => SportWaitlist(
         seasonId: 'season',
         seasonName: '2026-2027',
         entries: [
@@ -171,7 +163,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
             position: 2,
             previousSeasonAttendanceCount: 4,
             previousSeasonMatchCount: 10,
-            currentSeasonWaitlistCount: 1,
+            currentSeasonWaitlistCount: brunoCount,
             source: 'previous_season_attendance',
           ),
         ],
@@ -191,25 +183,38 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
     String? reason,
   }) async {
     savedOrder = List.of(orderedPlayerIds);
-    final byId = {
-      for (final entry in _waitlist.entries) entry.seasonPlayerId: entry,
-    };
+    // Le faux serveur ignore l'ordre envoyé et applique les règles 3.
+    final entries = List<SportWaitlistEntry>.of(_waitlist.entries)
+      ..sort((a, b) {
+        final byCount = a.currentSeasonWaitlistCount.compareTo(
+          b.currentSeasonWaitlistCount,
+        );
+        if (byCount != 0) return byCount;
+        final byPrevious = a.previousSeasonAttendanceCount.compareTo(
+          b.previousSeasonAttendanceCount,
+        );
+        if (byPrevious != 0) return byPrevious;
+        return a.displayName.toLowerCase().compareTo(
+          b.displayName.toLowerCase(),
+        );
+      });
+    returnedOrder = entries.map((e) => e.seasonPlayerId).toList();
     return SportWaitlist(
       seasonId: seasonId,
       seasonName: _waitlist.seasonName,
       entries: [
-        for (var index = 0; index < orderedPlayerIds.length; index++)
+        for (var index = 0; index < entries.length; index++)
           SportWaitlistEntry(
-            seasonPlayerId: orderedPlayerIds[index],
-            firstName: byId[orderedPlayerIds[index]]!.firstName,
-            lastName: byId[orderedPlayerIds[index]]!.lastName,
+            seasonPlayerId: entries[index].seasonPlayerId,
+            firstName: entries[index].firstName,
+            lastName: entries[index].lastName,
             position: index + 1,
             previousSeasonAttendanceCount:
-                byId[orderedPlayerIds[index]]!.previousSeasonAttendanceCount,
+                entries[index].previousSeasonAttendanceCount,
             previousSeasonMatchCount:
-                byId[orderedPlayerIds[index]]!.previousSeasonMatchCount,
+                entries[index].previousSeasonMatchCount,
             currentSeasonWaitlistCount:
-                byId[orderedPlayerIds[index]]!.currentSeasonWaitlistCount,
+                entries[index].currentSeasonWaitlistCount,
             source: 'manual',
           ),
       ],
@@ -223,6 +228,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }) async {
     lastManualCountSeasonPlayerId = seasonPlayerId;
     lastManualCount = count;
+    if (seasonPlayerId == 'bruno') brunoCount = count;
   }
 
   @override
