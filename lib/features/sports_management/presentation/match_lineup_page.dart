@@ -358,8 +358,9 @@ class PublishedLineupPreview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lineup = ref.watch(publishedMatchCompositionProvider(matchId));
-    final kitPhotos = ref.watch(matchKitPhotoOverridesProvider(matchId)).valueOrNull ??
-        const <String, String>{};
+    final kitPhotos =
+        ref.watch(matchKitPhotoOverridesProvider(matchId)).valueOrNull ??
+            const <String, String>{};
     return Padding(
       padding: EdgeInsets.only(top: topSpacing, bottom: bottomSpacing),
       child: lineup.when(
