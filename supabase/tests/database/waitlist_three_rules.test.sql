@@ -178,5 +178,50 @@ select is(
   0,'Aucun +1 n est crédité avant le coup d envoi'
 );
 
+-- Même un +1 déjà attribué est révoqué si le match est annulé.
+-- L'essai simule le crédit sans attendre l'horloge du coup d'envoi.
+select set_config(
+  'test.waitlist_count_before_annulation',
+  (select e.manual_waitlist_count::text
+   from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  true
+);
+update public.match_sport_workflows
+set waitlist_passages_exempt=false
+where match_id=current_setting('test.waitlist_three_match')::uuid;
+update private.sport_waitlist_passage_ledger
+set credited_at=now(), voided_at=null
+where match_id=current_setting('test.waitlist_three_match')::uuid
+  and season_player_id='b5400000-0000-0000-0000-000000000001';
+update public.sport_waitlist_entries
+set manual_waitlist_count=manual_waitlist_count+1
+where season_player_id='b5400000-0000-0000-0000-000000000001';
+
+update public.matches
+set status='annule'
+where id=current_setting('test.waitlist_three_match')::uuid;
+
+select ok(
+  (select w.waitlist_passages_exempt
+   from public.match_sport_workflows w
+   where w.match_id=current_setting('test.waitlist_three_match')::uuid),
+  'annuler le match le rend définitivement exempt'
+);
+select ok(
+  (select l.voided_at is not null
+   from private.sport_waitlist_passage_ledger l
+   where l.match_id=current_setting('test.waitlist_three_match')::uuid
+     and l.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  'le journal conserve la trace de la révocation'
+);
+select is(
+  (select e.manual_waitlist_count
+   from public.sport_waitlist_entries e
+   where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
+  current_setting('test.waitlist_count_before_annulation')::integer,
+  'un +1 déjà crédité est retiré du classement après annulation'
+);
+
 select * from finish();
 rollback;
