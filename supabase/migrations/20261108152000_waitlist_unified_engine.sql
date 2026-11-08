@@ -579,6 +579,37 @@ begin
 end;
 $$;
 
+-- Réconciliation non destructive de l'historique déjà enregistré.
+-- Avant cette refonte, le +1 déplaçait un joueur sans toujours augmenter
+-- le compteur. On récupère les passages des matchs réellement joués,
+-- sans doublonner un même match, tout en conservant toute correction manuelle
+-- existante qui serait supérieure à l'historique reconstitué.
+with historic_passages as (
+  select p.season_player_id, count(distinct p.match_id)::integer as turns
+  from public.match_sport_participants p
+  join public.matches m on m.id = p.match_id
+  where m.status in ('termine', 'archive')
+    and p.season_player_id is not null
+    and (
+      p.waitlist_turn_state = 'consumed'
+      or exists (
+        select 1
+        from public.match_sport_participant_events ev
+        where ev.participant_id = p.id
+          and ev.event_type = 'waitlist_turn_consumed'
+      )
+    )
+  group by p.season_player_id
+)
+update public.sport_waitlist_entries e
+set manual_waitlist_count = h.turns,
+    updated_at = now()
+from historic_passages h, public.seasons s
+where e.season_player_id = h.season_player_id
+  and e.season_id = s.id
+  and s.status = 'open'
+  and h.turns > e.manual_waitlist_count;
+
 -- À l'installation, l'ordre existant est rétabli selon les trois critères
 -- puis répercuté sur les seuls matchs non verrouillés.
 do $$
