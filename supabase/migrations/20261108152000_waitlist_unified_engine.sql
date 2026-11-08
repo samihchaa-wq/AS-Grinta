@@ -13,6 +13,11 @@ drop trigger if exists normalize_waitlisted_withdrawal_before_update
   on public.match_sport_participants;
 drop function if exists private.normalize_waitlisted_withdrawal();
 
+-- L'ancienne remise en ordre conservait un classement arbitraire et créait
+-- une table temporaire. Aucun appel actif n'en dépend : la règle 3 et son
+-- unique fonction de classement prennent désormais entièrement le relais.
+drop function if exists private.resequence_sport_waitlist(uuid, uuid);
+
 -- Évite de créditer les anciens matchs lors de l'installation initiale.
 create table if not exists private.sport_waitlist_engine_activation (
   singleton boolean primary key default true check (singleton),
