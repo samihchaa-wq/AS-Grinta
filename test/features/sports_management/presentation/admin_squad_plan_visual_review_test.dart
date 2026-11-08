@@ -287,9 +287,9 @@ void main() {
     );
 
     expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsNothing);
-    expect(repository.lastDecisions?['sp1'], ConvocationStatus.convoked);
-    // Recopier le calcul du serveur n'est pas une décision de l'admin : rien
-    // n'est figé, la liste d'attente reste automatique.
+    expect(repository.lastDecisions, isEmpty);
+    // Aucun choix individuel n'est envoyé : le quota suffit au serveur
+    // pour recalculer les convocations selon la liste d'attente.
     expect(repository.lastChangedPlayerIds, isEmpty);
   });
 
