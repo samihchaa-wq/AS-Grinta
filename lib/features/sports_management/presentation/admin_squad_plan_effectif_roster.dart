@@ -40,9 +40,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
   final bool countCoachApart;
 
   bool _canAccept(ConvocationPlayer player) =>
-      acceptsDrops &&
-      !locked &&
-      !player.isGuest;
+      acceptsDrops && !locked && !player.isGuest;
 
   @override
   Widget build(BuildContext context) {
