@@ -3,6 +3,7 @@ import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/photo_crop_preview.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -278,27 +279,32 @@ Future<void> _pickAndUploadRosterPhoto(
   required RosterPlayer player,
   required String kitId,
 }) async {
-  // Ne pas recadrer ni convertir en JPEG : les silhouettes PNG transparentes
-  // doivent garder leur transparence et leur cadrage d'origine.
+  // Pas de compression au moment du choix : elle convertirait un PNG en JPEG
+  // et ferait perdre la transparence avant meme le recadrage.
   final file = await ImagePicker().pickImage(source: ImageSource.gallery);
   if (file == null) return;
   final bytes = await file.readAsBytes();
   if (!context.mounted) return;
-  final extension = file.name.split('.').last.toLowerCase();
+  // Meme editeur que les photos de profil (deplacer, zoomer, dezoomer).
+  // Il exporte en PNG si l'image a des zones transparentes, sinon en JPEG ;
+  // le format reel est relu depuis le contenu au moment de l'envoi.
+  final cropped = await cropProfilePhoto(context, bytes);
+  if (cropped == null || !context.mounted) return;
+  const extension = 'jpg';
   try {
     final repository = ref.read(rosterRepositoryProvider);
     if (kitId == 'france') {
       await repository.uploadPlayerPhoto(
         seasonPlayerId: player.id,
         linkedProfileId: player.linkedProfileId,
-        bytes: bytes,
+        bytes: cropped,
         fileExt: extension,
       );
     } else {
       await repository.uploadPlayerKitPhoto(
         seasonPlayerId: player.id,
         kitId: kitId,
-        bytes: bytes,
+        bytes: cropped,
         fileExt: extension,
       );
     }
