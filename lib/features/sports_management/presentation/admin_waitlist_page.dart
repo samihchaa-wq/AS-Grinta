@@ -110,11 +110,13 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     if (waitlist == null || _saving) return;
     setState(() => _saving = true);
     try {
-      final saved = await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
-        seasonId: waitlist.seasonId,
-        orderedPlayerIds: _entries.map((e) => e.seasonPlayerId).toList(),
-        reason: 'Recalcul automatique selon les trois critères',
-      );
+      final saved = await ref
+          .read(sportWaitlistRepositoryProvider)
+          .reorderWaitlist(
+            seasonId: waitlist.seasonId,
+            orderedPlayerIds: _entries.map((e) => e.seasonPlayerId).toList(),
+            reason: 'Recalcul automatique selon les trois critères',
+          );
       if (!mounted) return;
       setState(() {
         _waitlist = saved;
@@ -161,7 +163,6 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         ],
       ),
       body: _body(context),
-
     );
   }
 
