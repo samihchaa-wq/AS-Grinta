@@ -611,6 +611,15 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final limit = int.tryParse(_limitController.text) ?? 14;
     final countedConvoked = _convokedPlayersAgainstLimit.length;
     final over = countedConvoked > limit;
+    final matchId = _selectedMatchId;
+    final kitPhotosAsync = matchId == null
+        ? null
+        : ref.watch(matchKitPhotoOverridesProvider(matchId));
+    // null tant que le maillot du match n'est pas connu : aucun portrait
+    // France n'est peint en attendant. En cas d'erreur, repli sur France.
+    final kitPhotos = (kitPhotosAsync?.isLoading ?? false)
+        ? null
+        : kitPhotosAsync?.valueOrNull ?? const <String, String>{};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -687,6 +696,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         EffectifColumnsLayout(
           columns: [
             _EffectifAvatarColumn(
+              kitPhotos: kitPhotos,
               title: 'Convoqués',
               color: _effectifConvokedColor,
               icon: Icons.check_circle_outline,
@@ -701,6 +711,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             ),
             if (!_isInternalMatch)
               _EffectifAvatarColumn(
+                kitPhotos: kitPhotos,
                 title: 'Liste d’attente',
                 color: _effectifWaitlistColor,
                 icon: Icons.hourglass_top_rounded,
@@ -713,6 +724,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 locked: _locked || _busy,
               ),
             _EffectifAvatarColumn(
+              kitPhotos: kitPhotos,
               title: 'Absents',
               color: _effectifAbsentColor,
               icon: Icons.cancel_outlined,
@@ -724,6 +736,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               locked: _busy || _locked,
             ),
             _EffectifAvatarColumn(
+              kitPhotos: kitPhotos,
               title: 'Sans réponse',
               countCoachApart: false,
               color: _effectifNoResponseColor,

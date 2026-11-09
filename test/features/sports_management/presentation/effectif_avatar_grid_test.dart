@@ -42,7 +42,16 @@ void main() {
     expect(shared, contains('PlayerAvatar('));
     expect(roster, contains('EffectifAvatarGrid('));
     expect(roster, contains('EffectifPlayerTile('));
-    expect(roster, contains('photoUrl: player.photoUrl'));
+    // L'effectif admin suit aussi le maillot du match (coach compris).
+    expect(
+      roster,
+      contains('kitPhotos[player.seasonPlayerId] ?? player.photoUrl'),
+    );
+    expect(effectif, contains('matchKitPhotoOverridesProvider(matchId)'));
+    expect(
+      RegExp(r'kitPhotos: kitPhotos,').allMatches(effectif).length,
+      greaterThanOrEqualTo(4),
+    );
     // La vue des joueurs utilise les mêmes briques que celle des admins.
     expect(playerBoard, contains('EffectifAvatarGrid('));
     expect(playerBoard, contains('EffectifPlayerTile('));
