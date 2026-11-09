@@ -46,7 +46,12 @@ void main() {
     // La vue des joueurs utilise les mêmes briques que celle des admins.
     expect(playerBoard, contains('EffectifAvatarGrid('));
     expect(playerBoard, contains('EffectifPlayerTile('));
-    expect(playerBoard, contains('photoUrl: player.photoUrl'));
+    // Player-facing roster applies the kit-specific photo when available.
+    expect(
+      playerBoard,
+      contains('kitPhotos[player.seasonPlayerId] ?? player.photoUrl'),
+    );
+    expect(playerBoard, contains('matchKitPhotoOverridesProvider(matchId)'));
     expect(playerBoard, contains('EffectifColumnsLayout('));
     expect(effectif, contains('EffectifColumnsLayout('));
     expect(effectif, contains("title: 'Liste d’attente'"));
