@@ -71,9 +71,12 @@ String? coachPhotoForMatchKit({
 /// A missing variant is intentionally absent so France remains the fallback.
 final internalTeamKitPhotosProvider =
     FutureProvider.autoDispose<Map<String, Map<String, String>>>((ref) async {
-  final rows = await ref.watch(supabaseClientProvider).from(
-    'season_player_kit_photos',
-  ).select('season_player_id,brazil_url,netherlands_url');
+  final rows = await ref
+      .watch(supabaseClientProvider)
+      .from(
+        'season_player_kit_photos',
+      )
+      .select('season_player_id,brazil_url,netherlands_url');
   return {
     for (final row in rows)
       row['season_player_id'].toString(): {
