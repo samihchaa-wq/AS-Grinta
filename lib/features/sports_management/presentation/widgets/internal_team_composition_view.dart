@@ -549,8 +549,8 @@ class _InternalTeamCompositionViewState
     if (kitPhotosAsync.isLoading) {
       return const Center(child: GrintaProgressIndicator());
     }
-    final kitPhotos = kitPhotosAsync.valueOrNull ??
-        const <String, Map<String, String>>{};
+    final kitPhotos =
+        kitPhotosAsync.valueOrNull ?? const <String, Map<String, String>>{};
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
@@ -582,12 +582,14 @@ class _InternalTeamCompositionViewState
         // The persisted composition always retains the original France photo.
         final entries = [
           for (final entry in _entries!)
-            if (!entry.isGuest && entry.teamNo != null &&
+            if (!entry.isGuest &&
+                entry.teamNo != null &&
                 entry.seasonPlayerId != null)
               entry.copyWith(
                 photoUrl: kitPhotos[entry.seasonPlayerId]?[kitPhotoColumn(
-                  entry.teamNo == 1 ? _team1Jersey.id : _team2Jersey.id,
-                )] ?? entry.photoUrl,
+                      entry.teamNo == 1 ? _team1Jersey.id : _team2Jersey.id,
+                    )] ??
+                    entry.photoUrl,
               )
             else
               entry,
