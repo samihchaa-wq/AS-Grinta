@@ -363,9 +363,7 @@ class _CompositionPresentationPageState
 
   void _tick(Duration elapsed) {
     // Play every phase at half speed, including intro and final camera move.
-    final t = elapsed.inMicroseconds /
-        Duration.microsecondsPerSecond /
-        2;
+    final t = elapsed.inMicroseconds / Duration.microsecondsPerSecond / 2;
     // La page dessous peut encore bouger (chargement, défilement) : la
     // vidéo suit la place réelle de son terrain.
     if (_onPage) _measurePitch();
