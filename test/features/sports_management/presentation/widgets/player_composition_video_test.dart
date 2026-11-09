@@ -109,7 +109,9 @@ void main() {
       store: _MemoryStore(),
       board: _boardWithCoach(),
       photoLookup: (_) async => 'https://photos.test/coach-france.jpg',
-      kitPhotos: const {'un-autre-coach': 'https://photos.test/other-coach.jpg'},
+      kitPhotos: const {
+        'un-autre-coach': 'https://photos.test/other-coach.jpg'
+      },
     );
     final page = tester.widget<CompositionPresentationPage>(
       find.byType(CompositionPresentationPage),
