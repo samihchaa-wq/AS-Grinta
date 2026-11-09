@@ -12,6 +12,7 @@ import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -69,6 +70,7 @@ class MatchDetailsPage extends ConsumerWidget {
       void keepAlive(Object? _, Object? __) {}
       ref
         ..listen(publishedMatchCompositionProvider(matchId), keepAlive)
+        ..listen(matchKitPhotoOverridesProvider(matchId), keepAlive)
         ..listen(matchGoalActionsProvider(matchId), keepAlive);
     }
 
@@ -81,6 +83,7 @@ class MatchDetailsPage extends ConsumerWidget {
             ref
               ..invalidate(matchDetailsProvider(matchId))
               ..invalidate(publishedMatchCompositionProvider(matchId))
+              ..invalidate(matchKitPhotoOverridesProvider(matchId))
               ..invalidate(matchGoalActionsProvider(matchId))
               ..invalidate(sportMotmVoteProvider(matchId));
             await ref.read(matchDetailsProvider(matchId).future);
@@ -589,11 +592,22 @@ class _CompletedCompositionCard extends ConsumerWidget {
         ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
     if (composition == null) return const SizedBox.shrink();
 
+    // L'après-match utilise le maillot choisi dans Infos, comme l'avant-match.
+    // Attendre les variantes évite un bref affichage du maillot France.
+    final kitPhotosAsync = ref.watch(matchKitPhotoOverridesProvider(matchId));
+    if (kitPhotosAsync.isLoading) return const SizedBox.shrink();
+    final kitPhotos = kitPhotosAsync.valueOrNull ?? const <String, String>{};
+    final displayedComposition = kitPhotos.isEmpty
+        ? composition
+        : composition.copyWith(
+            entries: withMatchKitPhotos(composition.entries, kitPhotos),
+          );
+
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: CompletedCompositionCard(
-        composition: composition,
-        fallbackPlayers: _playersFromMatchDetails(composition),
+        composition: displayedComposition,
+        fallbackPlayers: _playersFromMatchDetails(displayedComposition),
       ),
     );
   }
