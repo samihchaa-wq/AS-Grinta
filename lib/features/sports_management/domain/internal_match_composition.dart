@@ -49,6 +49,7 @@ class InternalCompositionEntry {
 
   InternalCompositionEntry copyWith({
     int? teamNo,
+    String? photoUrl,
     String? zone,
     double? x,
     double? y,
@@ -69,7 +70,7 @@ class InternalCompositionEntry {
       guestPlayerId: guestPlayerId,
       displayName: displayName,
       lastInitial: lastInitial,
-      photoUrl: photoUrl,
+      photoUrl: photoUrl ?? this.photoUrl,
       isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
       teamNo: nextTeam,
