@@ -47,7 +47,10 @@ void main() {
     expect(playerBoard, contains('EffectifAvatarGrid('));
     expect(playerBoard, contains('EffectifPlayerTile('));
     // Player-facing roster applies the kit-specific photo when available.
-    expect(playerBoard, contains('kitPhotos[player.seasonPlayerId] ?? player.photoUrl'));
+    expect(
+      playerBoard,
+      contains('kitPhotos[player.seasonPlayerId] ?? player.photoUrl'),
+    );
     expect(playerBoard, contains('matchKitPhotoOverridesProvider(matchId)'));
     expect(playerBoard, contains('EffectifColumnsLayout('));
     expect(effectif, contains('EffectifColumnsLayout('));
