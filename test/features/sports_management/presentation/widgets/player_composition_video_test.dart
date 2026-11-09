@@ -92,13 +92,13 @@ void main() {
       tester,
       store: _MemoryStore(),
       board: _boardWithCoach(),
-      photoLookup: (_) async => 'coach-france.png',
-      kitPhotos: const {'sp-coach': 'kits/sp-coach/brazil.png'},
+      photoLookup: (_) async => 'https://photos.test/coach-france.jpg',
+      kitPhotos: const {'sp-coach': 'https://photos.test/coach-brazil.jpg'},
     );
     final page = tester.widget<CompositionPresentationPage>(
       find.byType(CompositionPresentationPage),
     );
-    expect(page.data.coach?.photoUrl, 'kits/sp-coach/brazil.png');
+    expect(page.data.coach?.photoUrl, 'https://photos.test/coach-brazil.jpg');
     expect(page.data.coach?.name, 'Philippe');
   });
 
@@ -108,13 +108,13 @@ void main() {
       tester,
       store: _MemoryStore(),
       board: _boardWithCoach(),
-      photoLookup: (_) async => 'coach-france.png',
-      kitPhotos: const {'un-autre-coach': 'kits/autre/netherlands.png'},
+      photoLookup: (_) async => 'https://photos.test/coach-france.jpg',
+      kitPhotos: const {'un-autre-coach': 'https://photos.test/other-coach.jpg'},
     );
     final page = tester.widget<CompositionPresentationPage>(
       find.byType(CompositionPresentationPage),
     );
-    expect(page.data.coach?.photoUrl, 'coach-france.png');
+    expect(page.data.coach?.photoUrl, 'https://photos.test/coach-france.jpg');
   });
 
   testWidgets('photo du coach introuvable : silhouette, la vidéo part',
