@@ -162,7 +162,7 @@ void main() {
 
   testWidgets('jusqu’au bout sans « Passer », même fin', (tester) async {
     await _pump(tester, store: _MemoryStore(), withPitch: true);
-    for (var i = 0; i < 200; i++) {
+    for (var i = 0; i < 400; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
     expect(find.byType(CompositionPresentationPage), findsNothing);

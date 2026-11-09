@@ -97,7 +97,8 @@ Future<void> _pumpPage(
 
 /// Avance l'horloge de la vidéo jusqu'à [seconds] secondes.
 Future<void> _playUntil(WidgetTester tester, double seconds) async {
-  final steps = (seconds * 10).round();
+  // The presentation now plays at half speed; input times are plan seconds.
+  final steps = (seconds * 20).round();
   for (var index = 0; index < steps; index++) {
     await tester.pump(const Duration(milliseconds: 100));
   }

@@ -84,7 +84,7 @@ void main() {
     expect(page.landing, isNull, reason: 'l’éditeur n’a pas la même forme');
 
     // Jusqu'au bout, sans « Passer » : ni copie ni « Revoir » à la fin.
-    for (var index = 0; index < 250; index += 1) {
+    for (var index = 0; index < 500; index += 1) {
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Revoir'), findsNothing);
     }
