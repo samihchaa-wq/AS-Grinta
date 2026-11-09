@@ -243,7 +243,8 @@ class _BoardGroup extends StatelessWidget {
                     excludeSemantics: true,
                     child: EffectifPlayerTile(
                       key: ValueKey('board-player-${player.participantId}'),
-                      photoUrl: kitPhotos[player.seasonPlayerId] ?? player.photoUrl,
+                      photoUrl:
+                          kitPhotos[player.seasonPlayerId] ?? player.photoUrl,
                       name: player.firstNameOnly,
                       lastName: player.lastName,
                       isGoalkeeper: player.isGoalkeeper,
