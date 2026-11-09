@@ -6,6 +6,7 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/features/sports_management/data/match_sport_report_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -66,6 +67,7 @@ Future<void> _pump(
   WidgetTester tester,
   SportMotmVote vote, {
   MatchComposition? composition,
+  Map<String, String> kitPhotos = const {},
   void Function()? onCompositionFetch,
   MatchDetailsData? details,
 }) async {
@@ -84,6 +86,8 @@ Future<void> _pump(
           onCompositionFetch?.call();
           return composition;
         }),
+        matchKitPhotoOverridesProvider(_matchId)
+            .overrideWith((ref) async => kitPhotos),
         matchGoalActionsProvider(_matchId).overrideWith((ref) async => []),
       ],
       child: const MaterialApp(home: MatchDetailsPage(matchId: _matchId)),
@@ -93,6 +97,59 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets(
+      'post-match composition displays Netherlands portraits selected in Infos '
+      'and retains France when no alternative exists', (tester) async {
+    final composition = MatchComposition.tryFromRpc({
+      'match_id': _matchId,
+      'status': 'published',
+      'entries': [
+        {
+          'participant_id': 'p1',
+          'season_player_id': 'season-1',
+          'display_name': 'Alex',
+          'zone': 'field',
+          'x': 0.35,
+          'y': 0.45,
+          'photo_url': 'https://example.invalid/france-alex.png',
+        },
+        {
+          'participant_id': 'p2',
+          'season_player_id': 'season-2',
+          'display_name': 'Bruno',
+          'zone': 'field',
+          'x': 0.65,
+          'y': 0.45,
+          'photo_url': 'https://example.invalid/france-bruno.png',
+        },
+      ],
+    });
+
+    await _pump(
+      tester,
+      _vote('open', []),
+      composition: composition,
+      kitPhotos: const {
+        'season-1': 'https://example.invalid/netherlands-alex.png',
+      },
+    );
+
+    final pitch = tester.widget<CompositionPitch>(find.byType(CompositionPitch));
+    final photos = {
+      for (final entry in pitch.entries) entry.seasonPlayerId: entry.photoUrl,
+    };
+    expect(
+      photos['season-1'],
+      'https://example.invalid/netherlands-alex.png',
+    );
+    expect(photos['season-2'], 'https://example.invalid/france-bruno.png');
+    // The published composition must not be rewritten by its display.
+    expect(
+      composition!.entries.first.photoUrl,
+      'https://example.invalid/france-alex.png',
+    );
+  });
+
   testWidgets('Votes HDM lists ranked vote counts once the vote is closed',
       (tester) async {
     await _pump(
