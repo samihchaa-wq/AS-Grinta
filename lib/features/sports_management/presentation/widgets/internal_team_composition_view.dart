@@ -4,6 +4,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/features/sports_management/data/player_identity_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/composition_publication_rules.dart';
@@ -544,6 +545,12 @@ class _InternalTeamCompositionViewState
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(internalMatchCompositionProvider(widget.matchId));
+    final kitPhotosAsync = ref.watch(internalTeamKitPhotosProvider);
+    if (kitPhotosAsync.isLoading) {
+      return const Center(child: GrintaProgressIndicator());
+    }
+    final kitPhotos = kitPhotosAsync.valueOrNull ??
+        const <String, Map<String, String>>{};
     final benchCountsAsync = ref.watch(
       _internalBenchCountsProvider(widget.matchId),
     );
@@ -571,7 +578,20 @@ class _InternalTeamCompositionViewState
         _entries ??= List.of(composition.entries);
         if (!_dirty && _team1Controller.text.isEmpty) _initFrom(composition);
 
-        final entries = _entries!;
+        // Display-only photos: team changes and jersey changes update instantly.
+        // The persisted composition always retains the original France photo.
+        final entries = [
+          for (final entry in _entries!)
+            if (!entry.isGuest && entry.teamNo != null &&
+                entry.seasonPlayerId != null)
+              entry.copyWith(
+                photoUrl: kitPhotos[entry.seasonPlayerId]?[kitPhotoColumn(
+                  entry.teamNo == 1 ? _team1Jersey.id : _team2Jersey.id,
+                )] ?? entry.photoUrl,
+              )
+            else
+              entry,
+        ];
         final unassigned =
             entries.where((entry) => entry.teamNo == null).toList();
         final profilesByName = <String, PlayerPositionProfile>{
