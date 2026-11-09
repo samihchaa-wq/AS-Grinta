@@ -665,6 +665,19 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final coach = convocations?.players
         .where((player) => player.isCoach && player.isAvailable)
         .firstOrNull;
+    // Comme les joueurs, il porte la tenue choisie dans Infos pour ce match.
+    // En cas d'absence de variante ou d'erreur réseau : portrait France.
+    var kitPhotos = const <String, String>{};
+    if (coach != null) {
+      try {
+        kitPhotos = await ref
+            .read(matchKitPhotoOverridesProvider(matchId).future)
+            .timeout(const Duration(seconds: 4));
+      } catch (_) {
+        // Ne jamais empêcher l'aperçu de démarrer pour une photo manquante.
+      }
+    }
+    if (!mounted) return;
     await showCompositionPresentation(
       context,
       preview: preview,
@@ -682,7 +695,11 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             : CompositionPresentationCoach(
                 id: coach.participantId,
                 name: coach.shortName,
-                photoUrl: coach.photoUrl,
+                photoUrl: coachPhotoForMatchKit(
+                  seasonPlayerId: coach.seasonPlayerId,
+                  francePhotoUrl: coach.photoUrl,
+                  photoOverrides: kitPhotos,
+                ),
               ),
       ),
     );

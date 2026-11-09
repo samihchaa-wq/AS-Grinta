@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
@@ -83,6 +84,39 @@ void main() {
     expect(asked, ['sp-coach']);
     expect(page.data.coach?.name, 'Philippe');
     expect(page.data.coach?.photoUrl, 'https://photos.test/coach.jpg');
+  });
+
+  testWidgets('le coach porte la tenue Brésil choisie dans Infos',
+      (tester) async {
+    await _pump(
+      tester,
+      store: _MemoryStore(),
+      board: _boardWithCoach(),
+      photoLookup: (_) async => 'https://photos.test/coach-france.jpg',
+      kitPhotos: const {'sp-coach': 'https://photos.test/coach-brazil.jpg'},
+    );
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(page.data.coach?.photoUrl, 'https://photos.test/coach-brazil.jpg');
+    expect(page.data.coach?.name, 'Philippe');
+  });
+
+  testWidgets('le coach garde France si sa photo Pays-Bas est absente',
+      (tester) async {
+    await _pump(
+      tester,
+      store: _MemoryStore(),
+      board: _boardWithCoach(),
+      photoLookup: (_) async => 'https://photos.test/coach-france.jpg',
+      kitPhotos: const {
+        'un-autre-coach': 'https://photos.test/other-coach.jpg'
+      },
+    );
+    final page = tester.widget<CompositionPresentationPage>(
+      find.byType(CompositionPresentationPage),
+    );
+    expect(page.data.coach?.photoUrl, 'https://photos.test/coach-france.jpg');
   });
 
   testWidgets('photo du coach introuvable : silhouette, la vidéo part',
@@ -198,6 +232,7 @@ Future<GoRouter> _pump(
   bool fromNotification = false,
   MatchAvailabilityBoard? board,
   SeasonPlayerPhotoLookup? photoLookup,
+  Map<String, String>? kitPhotos,
   bool withPitch = false,
 }) async {
   tester.view
@@ -266,6 +301,10 @@ Future<GoRouter> _pump(
         ),
         if (photoLookup != null)
           seasonPlayerPhotoLookupProvider.overrideWithValue(photoLookup),
+        if (kitPhotos != null)
+          matchKitPhotoOverridesProvider('match-1').overrideWith(
+            (ref) async => kitPhotos,
+          ),
       ],
       child: MaterialApp.router(routerConfig: router),
     ),
