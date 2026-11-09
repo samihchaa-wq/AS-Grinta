@@ -20,7 +20,13 @@ class _EffectifAvatarColumn extends StatelessWidget {
     this.onRelanceAll,
     this.onRelance,
     this.countCoachApart = true,
+    this.kitPhotos = const <String, String>{},
   });
+
+  /// Portraits du maillot choisi pour ce match, coach compris. Un joueur sans
+  /// variante garde sa photo France. `null` pendant le chargement : les
+  /// portraits attendent alors au lieu d'afficher brièvement France.
+  final Map<String, String>? kitPhotos;
 
   final String title;
   final Color color;
@@ -94,15 +100,18 @@ class _EffectifAvatarColumn extends StatelessWidget {
                   : null,
               child: players.isEmpty
                   ? const EffectifEmptyLabel()
-                  : _EffectifAvatarGrid(
-                      players: players,
-                      color: color,
-                      locked: locked,
-                      draggable: !locked && draggable,
-                      onRemoveGuest: onRemoveGuest,
-                      onShowInfo: onShowInfo,
-                      onRelance: onRelance,
-                    ),
+                  : kitPhotos == null
+                      ? const SizedBox.shrink()
+                      : _EffectifAvatarGrid(
+                          players: players,
+                          kitPhotos: kitPhotos!,
+                          color: color,
+                          locked: locked,
+                          draggable: !locked && draggable,
+                          onRemoveGuest: onRemoveGuest,
+                          onShowInfo: onShowInfo,
+                          onRelance: onRelance,
+                        ),
             );
 
             if (!canTapTarget) return section;
@@ -133,6 +142,7 @@ class _EffectifAvatarColumn extends StatelessWidget {
 class _EffectifAvatarGrid extends StatelessWidget {
   const _EffectifAvatarGrid({
     required this.players,
+    required this.kitPhotos,
     required this.color,
     required this.locked,
     required this.draggable,
@@ -142,6 +152,7 @@ class _EffectifAvatarGrid extends StatelessWidget {
   });
 
   final List<ConvocationPlayer> players;
+  final Map<String, String> kitPhotos;
   final Color color;
   final bool locked;
   final bool draggable;
@@ -197,6 +208,9 @@ class _EffectifAvatarGrid extends StatelessWidget {
         final tile = _EffectifAvatarPlayerTile(
           key: ValueKey('effectif-player-${player.participantId}'),
           player: player,
+          photoUrl: player.isGuest
+              ? player.photoUrl
+              : kitPhotos[player.seasonPlayerId] ?? player.photoUrl,
           color: playerColor,
           selected: selected,
           onTap: onTap,
@@ -242,6 +256,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
   const _EffectifAvatarPlayerTile({
     super.key,
     required this.player,
+    required this.photoUrl,
     required this.color,
     required this.selected,
     this.onTap,
@@ -250,6 +265,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
   });
 
   final ConvocationPlayer player;
+  final String? photoUrl;
   final Color color;
   final bool selected;
   final VoidCallback? onTap;
@@ -262,7 +278,7 @@ class _EffectifAvatarPlayerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EffectifPlayerTile(
-      photoUrl: player.photoUrl,
+      photoUrl: photoUrl,
       name: player.shortName,
       lastName: player.lastName,
       isGoalkeeper: player.isGoalkeeper,
