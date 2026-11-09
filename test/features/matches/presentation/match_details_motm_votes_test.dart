@@ -134,7 +134,8 @@ void main() {
       },
     );
 
-    final pitch = tester.widget<CompositionPitch>(find.byType(CompositionPitch));
+    final pitch =
+        tester.widget<CompositionPitch>(find.byType(CompositionPitch));
     final photos = {
       for (final entry in pitch.entries) entry.seasonPlayerId: entry.photoUrl,
     };
