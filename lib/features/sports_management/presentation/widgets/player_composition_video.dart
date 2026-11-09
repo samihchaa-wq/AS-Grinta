@@ -345,9 +345,9 @@ class _PlayerCompositionTabState extends ConsumerState<PlayerCompositionTab> {
     // La vidéo et le terrain utilisent les mêmes photos du maillot choisi.
     var kitPhotos = const <String, String>{};
     try {
-      kitPhotos = await ref
-          .read(matchKitPhotoOverridesProvider(matchId).future)
-          .timeout(const Duration(seconds: 4));
+      // Wait for the actual match kit instead of briefly showing France
+      // when a slow connection exceeds the old four-second timeout.
+      kitPhotos = await ref.read(matchKitPhotoOverridesProvider(matchId).future);
     } catch (_) {
       // Les portraits France restent toujours disponibles en repli.
     }
