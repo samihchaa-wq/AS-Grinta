@@ -27,7 +27,8 @@ Future<void> expectLandsOnPage(WidgetTester tester) async {
   expect(started, isTrue, reason: 'la vidéo doit démarrer');
   // « Passer » disparaît à moveStart + 1,0 s ; le terrain est posé à
   // flatAt = moveStart + 1,6 s, et la vidéo s'efface jusqu'à flatAt + 0,5 s.
-  for (var step = 0; step < 32; step++) {
+  // The landing transition takes twice the wall-clock time now.
+  for (var step = 0; step < 64; step++) {
     await tester.pump(const Duration(milliseconds: 20));
   }
   expect(find.byType(CompositionPresentationPage), findsOneWidget,

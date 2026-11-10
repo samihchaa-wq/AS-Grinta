@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_kit_photo_overrides.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability_board.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/effectif_avatar_grid.dart';
@@ -29,6 +30,10 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
     }
 
     final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
+    final kitPhotosAsync = ref.watch(matchKitPhotoOverridesProvider(matchId));
+    // Never paint France portraits before the match-specific kit is resolved.
+    if (kitPhotosAsync.isLoading) return const SizedBox.shrink();
+    final kitPhotos = kitPhotosAsync.valueOrNull ?? const <String, String>{};
     final isInternal =
         ref.watch(matchInfoProvider(matchId)).valueOrNull?.isInternal ?? false;
     return boardAsync.when(
@@ -60,6 +65,7 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
           child: MatchAvailabilityBoardContent(
             board: board,
             isInternal: isInternal,
+            kitPhotos: kitPhotos,
             headerMargin: compact ? EdgeInsets.zero : null,
           ),
         );
@@ -73,10 +79,12 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
     super.key,
     required this.board,
     this.isInternal = false,
+    this.kitPhotos = const <String, String>{},
     this.headerMargin,
   });
 
   final MatchAvailabilityBoard board;
+  final Map<String, String> kitPhotos;
 
   /// Marge de l'encadré d'en-tête (celle d'une carte par défaut).
   final EdgeInsetsGeometry? headerMargin;
@@ -157,6 +165,7 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
                 coaches: coaches,
               ),
               players: convoked,
+              kitPhotos: kitPhotos,
               color: AppTheme.availabilityIn,
               icon: Icons.check_circle_outline,
             ),
@@ -164,18 +173,21 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
               _BoardGroup(
                 title: 'Liste d’attente',
                 players: board.waitlisted,
+                kitPhotos: kitPhotos,
                 color: AppTheme.availabilityWaiting,
                 icon: Icons.hourglass_top_rounded,
               ),
             _BoardGroup(
               title: 'Absents',
               players: absent,
+              kitPhotos: kitPhotos,
               color: AppTheme.availabilityOut,
               icon: Icons.cancel_outlined,
             ),
             _BoardGroup(
               title: 'Sans réponse',
               players: noResponse,
+              kitPhotos: kitPhotos,
               color: AppTheme.availabilityUnknown,
               icon: Icons.schedule_outlined,
             ),
@@ -190,6 +202,7 @@ class _BoardGroup extends StatelessWidget {
   const _BoardGroup({
     required this.title,
     required this.players,
+    required this.kitPhotos,
     required this.color,
     required this.icon,
     this.countLabel,
@@ -197,6 +210,7 @@ class _BoardGroup extends StatelessWidget {
 
   final String title;
   final List<MatchAvailabilityBoardPlayer> players;
+  final Map<String, String> kitPhotos;
   final Color color;
   final IconData icon;
 
@@ -229,7 +243,8 @@ class _BoardGroup extends StatelessWidget {
                     excludeSemantics: true,
                     child: EffectifPlayerTile(
                       key: ValueKey('board-player-${player.participantId}'),
-                      photoUrl: player.photoUrl,
+                      photoUrl:
+                          kitPhotos[player.seasonPlayerId] ?? player.photoUrl,
                       name: player.firstNameOnly,
                       lastName: player.lastName,
                       isGoalkeeper: player.isGoalkeeper,

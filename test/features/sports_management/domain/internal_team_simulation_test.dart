@@ -22,6 +22,25 @@ InternalCompositionEntry fieldPlayer(
     );
 
 void main() {
+  test('internal kit photo is display-only and preserves team assignment', () {
+    const original = InternalCompositionEntry(
+      participantId: 'p1',
+      seasonPlayerId: 's1',
+      displayName: 'Joueur',
+      isGuest: false,
+      isGoalkeeper: false,
+      photoUrl: 'france.png',
+      teamNo: 1,
+      zone: 'bench',
+    );
+    final displayed = original.copyWith(photoUrl: 'brazil.png');
+    expect(displayed.photoUrl, 'brazil.png');
+    expect(displayed.teamNo, 1);
+    expect(displayed.zone, 'bench');
+    expect(original.photoUrl, 'france.png');
+    expect(displayed.toRpcJson(), original.toRpcJson());
+  });
+
   group('formations entre nous', () {
     const expectedCodes = <int, String>{
       1: 'GB',
