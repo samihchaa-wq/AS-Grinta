@@ -251,20 +251,15 @@ select is(
   'seul Bruno est prévenu de sa convocation'
 );
 
-select is(
+select ok(
   (
-    select participant.promoted_from_participant_id
+    select participant.promoted_from_participant_id is null
+       and not participant.convocation_manual_override
     from public.match_sport_participants participant
     where participant.match_id = current_setting('test.match')::uuid
       and participant.season_player_id = 'f5740000-0000-0000-0000-000000000002'
   ),
-  (
-    select participant.id
-    from public.match_sport_participants participant
-    where participant.match_id = current_setting('test.match')::uuid
-      and participant.season_player_id = 'f5740000-0000-0000-0000-000000000004'
-  ),
-  'Bruno est noté comme remplaçant de Damien'
+  'Bruno est convoqué par le calcul unique, sans lien arbitraire de remplacement'
 );
 
 -- Le désistement suit le même ordre que le recalcul de l'effectif : un

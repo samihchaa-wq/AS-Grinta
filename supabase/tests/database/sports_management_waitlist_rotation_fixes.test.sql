@@ -3,20 +3,20 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
+-- Plus de règle spéciale de retrait : les +1 appartiennent au journal.
 select ok(
-  to_regprocedure('private.normalize_waitlisted_withdrawal()') is not null,
-  'la normalisation des désistements de non-convoqués existe'
+  to_regprocedure('private.normalize_waitlisted_withdrawal()') is null,
+  'le traitement historique de désistement est supprimé'
 );
 select is(
   (
     select count(*)::integer
-    from pg_trigger trigger
-    where trigger.tgrelid = 'public.match_sport_participants'::regclass
-      and trigger.tgname = 'normalize_waitlisted_withdrawal_before_update'
-      and not trigger.tgisinternal
-  ),
-  1,
-  'le trigger de normalisation est installé une seule fois'
+    from pg_trigger t
+    where t.tgrelid = 'public.match_sport_participants'::regclass
+      and t.tgname = 'normalize_waitlisted_withdrawal_before_update'
+      and not t.tgisinternal
+  ), 0,
+  'aucun déclencheur historique ne peut effacer un +1 acquis'
 );
 
 insert into auth.users (id, email, raw_user_meta_data)
@@ -136,36 +136,37 @@ values
     'available', 'not_convoked', true, 'pending'
   );
 
-update public.match_sport_participants
-set availability_status = 'absent',
-    availability_comment_private = 'Indisponible'
-where id = '86000000-0000-0000-0000-000000000001';
+-- Avant J-1 midi, une mise en attente ne génère pas encore de +1.
+select is(
+  (select count(*)::integer from private.sport_waitlist_passage_ledger
+    where match_id = '85000000-0000-0000-0000-000000000001'),
+  0, 'aucun +1 avant l ouverture de la période'
+);
 
-select ok(
-  (
-    select convocation_status = 'not_applicable'
-      and waitlist_turn_state = 'waived'
-      and not waitlist_turn_should_consume
-    from public.match_sport_participants
-    where id = '86000000-0000-0000-0000-000000000001'
-  ),
-  'avant la coupure, le non-convoqué devenu absent conserve son tour'
+-- Après J-1 midi, une mise en attente entre dans le journal.
+select is(
+  (select count(*)::integer from private.sport_waitlist_passage_ledger
+    where match_id = '85000000-0000-0000-0000-000000000002'),
+  1, 'un passage après J-1 midi est enregistré définitivement'
 );
 
 update public.match_sport_participants
 set availability_status = 'absent',
-    availability_comment_private = 'Indisponible tardivement'
-where id = '86000000-0000-0000-0000-000000000002';
+    availability_comment_private = 'Indisponible'
+where match_id in (
+  '85000000-0000-0000-0000-000000000001',
+  '85000000-0000-0000-0000-000000000002'
+);
 
-select ok(
-  (
-    select convocation_status = 'not_applicable'
-      and waitlist_turn_state = 'pending'
-      and waitlist_turn_should_consume
-    from public.match_sport_participants
-    where id = '86000000-0000-0000-0000-000000000002'
-  ),
-  'après la coupure, un tour déjà dû reste à consommer'
+select is(
+  (select count(*)::integer from private.sport_waitlist_passage_ledger
+    where match_id = '85000000-0000-0000-0000-000000000001'),
+  0, 'le désistement avant la période ne crée aucun passage'
+);
+select is(
+  (select count(*)::integer from private.sport_waitlist_passage_ledger
+    where match_id = '85000000-0000-0000-0000-000000000002'),
+  1, 'le désistement ne supprime jamais un passage acquis'
 );
 
 select * from finish();

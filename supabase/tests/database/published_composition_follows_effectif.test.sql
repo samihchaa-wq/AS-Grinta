@@ -117,6 +117,21 @@ set availability_status = 'available',
     updated_at = now()
 where match_id = current_setting('test.compo_suit_match')::uuid;
 
+-- Les trois règles doivent placer Remplaçant en haut de la liste
+-- (moins de matchs joués la saison précédente), et les trois autres en bas.
+-- Aucun statut de convocation n'est imposé manuellement.
+select private.ensure_sport_waitlist(
+  'c9200000-0000-0000-0000-000000000001', null
+);
+update public.sport_waitlist_entries
+set previous_season_attendance_count = case
+  when season_player_id = 'c9400000-0000-0000-0000-000000000003'
+    then 0 else 1 end
+where season_id = 'c9200000-0000-0000-0000-000000000001';
+select private.rebuild_sport_waitlist_order(
+  'c9200000-0000-0000-0000-000000000001', null
+);
+
 create or replace function pg_temp.compo_suit_participant(p_season_player uuid)
 returns uuid
 language sql
@@ -128,8 +143,8 @@ as $function$
     and participant.season_player_id = p_season_player;
 $function$;
 
--- Trois convoqués, un laissé en réserve : c'est lui que la liste d'attente
--- promeut automatiquement quand un convoqué se désiste.
+-- L'écran recopie le calcul du serveur sans rien déplacer (« changed »
+-- à faux) : rien n'est figé, la liste d'attente décide des trois convoqués.
 create or replace function pg_temp.compo_suit_decisions()
 returns jsonb
 language sql
@@ -142,7 +157,8 @@ as $function$
         when player.id = 'c9400000-0000-0000-0000-000000000003'::uuid
           then 'not_convoked'
         else 'convoked'
-      end
+      end,
+      'changed', false
     ) order by player.position
   )
   from public.season_players player
@@ -204,7 +220,7 @@ set local role authenticated;
 select is(
   public.admin_publish_match_effectif(
     current_setting('test.compo_suit_match')::uuid,
-    4,
+    3,
     pg_temp.compo_suit_decisions(),
     'Effectif de départ'
   ) #>> '{convocation_state}',
@@ -232,17 +248,29 @@ select is(
   'la feuille publiée part avec deux titulaires'
 );
 
--- Un convoqué se désiste : la liste d'attente promeut le réserviste.
-select isnt(
-  public.admin_override_match_availability(
-    current_setting('test.compo_suit_match')::uuid,
-    'c9400000-0000-0000-0000-000000000002',
-    'absent',
-    null,
-    'Désistement de dernière minute'
-  ) #>> '{promoted_season_player_id}',
-  null,
-  'le désistement d’un convoqué promeut le premier réserviste disponible'
+-- Le joueur ayant le moins de matchs précédents est en attente.
+select is(
+  (select convocation_status::text
+   from public.match_sport_participants
+   where match_id = current_setting('test.compo_suit_match')::uuid
+     and season_player_id='c9400000-0000-0000-0000-000000000003'),
+  'not_convoked',
+  'Remplaçant est initialement en attente, par application du classement'
+);
+
+-- Un désistement libère une place : le moteur promeut Remplaçant.
+select public.admin_override_match_availability(
+  current_setting('test.compo_suit_match')::uuid,
+  'c9400000-0000-0000-0000-000000000002',
+  'absent', null, 'Désistement de dernière minute'
+);
+select is(
+  (select convocation_status::text
+   from public.match_sport_participants
+   where match_id = current_setting('test.compo_suit_match')::uuid
+     and season_player_id='c9400000-0000-0000-0000-000000000003'),
+  'convoked',
+  'le désistement promeut automatiquement le premier joueur en attente'
 );
 
 select is(

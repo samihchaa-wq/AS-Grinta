@@ -147,7 +147,10 @@ as $function$
         when p_version = 1 and player.position <= 2 then 'convoked'
         when p_version = 2 and player.position >= 2 then 'convoked'
         else 'not_convoked'
-      end
+      end,
+      -- Version 1 : l'admin glisse lui-même Bruno (absent) chez les
+      -- convoqués et Chloé (sans réponse) en attente.
+      'changed', p_version = 1 and player.position in (2, 3)
     ) order by player.position
   )
   from public.season_players player

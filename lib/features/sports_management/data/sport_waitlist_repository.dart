@@ -12,12 +12,8 @@ abstract interface class SportWaitlistRepository {
   /// retard) et sans possibilité de modification.
   Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId});
 
-  Future<SportWaitlist> reorderWaitlist({
-    required String seasonId,
-    required List<String> orderedPlayerIds,
-    String? reason,
-  });
-
+  /// Corrige le compteur de passages en attente d'un joueur. Le serveur
+  /// recalcule aussitôt le classement ; l'écran le montre au rafraîchissement.
   Future<void> setWaitlistManualCount({
     required String seasonPlayerId,
     required int count,
@@ -81,23 +77,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
     final response = await _client.rpc(
       'get_sport_waitlist',
       params: {'p_season_id': seasonId},
-    );
-    return SportWaitlist.fromRpc(response);
-  }
-
-  @override
-  Future<SportWaitlist> reorderWaitlist({
-    required String seasonId,
-    required List<String> orderedPlayerIds,
-    String? reason,
-  }) async {
-    final response = await _client.rpc(
-      'admin_reorder_sport_waitlist',
-      params: {
-        'p_season_id': seasonId,
-        'p_ordered_player_ids': orderedPlayerIds,
-        'p_reason': _clean(reason),
-      },
     );
     return SportWaitlist.fromRpc(response);
   }
