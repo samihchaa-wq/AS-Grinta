@@ -148,7 +148,7 @@ void main() {
     await tester.tap(find.text('Samih'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Toi'), findsOneWidget);
+    expect(find.textContaining('Toi'), findsNothing);
     expect(find.text('Archiver'), findsNothing);
     expect(find.text('Supprimer'), findsNothing);
   });
@@ -200,25 +200,35 @@ void main() {
     );
   });
 
-  testWidgets('une ligne validée reste compacte et se déplie sur place',
+  testWidgets('une ligne repliée ne montre que le nom et se déplie au toucher',
       (tester) async {
     repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
     roster.seasonId = 's-1';
 
     await pumpAdmin(tester);
 
-    expect(find.text('Modifier'), findsOneWidget);
-    expect(find.textContaining('Utilisateur'), findsOneWidget);
+    expect(find.text('Karim'), findsOneWidget);
+    expect(find.text('Modifier'), findsNothing);
+    expect(find.text('Fermer'), findsNothing);
+    expect(find.textContaining('karim'), findsNothing);
+    expect(find.textContaining('Utilisateur'), findsNothing);
+    expect(find.textContaining('Hors effectif'), findsNothing);
     expect(find.text('Rôle :'), findsNothing);
 
     await tester.tap(find.text('Karim'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Fermer'), findsOneWidget);
+    expect(find.text('Modifier'), findsNWidgets(2));
+    expect(find.text('Fermer'), findsNothing);
+    expect(find.text('Identifiant : karim'), findsOneWidget);
     expect(find.text('Rôle :'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Oui'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Non'), findsOneWidget);
-    expect(find.byIcon(Icons.photo_camera_outlined), findsNothing);
+
+    await tester.tap(find.text('Karim'));
+    await tester.pumpAndSettle();
+    expect(find.text('Modifier'), findsNothing);
+    expect(find.text('Identifiant : karim'), findsNothing);
   });
 
   testWidgets('un compte hors effectif peut y être ajouté', (tester) async {
@@ -226,7 +236,7 @@ void main() {
     roster.seasonId = 's-1';
 
     await pumpAdmin(tester);
-    expect(find.textContaining('Hors effectif'), findsOneWidget);
+    expect(find.textContaining('Hors effectif'), findsNothing);
 
     await tester.tap(find.text('Roman'));
     await tester.pumpAndSettle();
@@ -253,7 +263,11 @@ void main() {
     await confirmDialog(tester);
 
     expect(roster.activeChanges, [('sp-1', false)]);
-    expect(find.textContaining('Hors effectif'), findsOneWidget);
+    expect(find.textContaining('Hors effectif'), findsNothing);
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Non')).selected,
+      isTrue,
+    );
   });
 
   testWidgets('une fiche retirée est réactivée plutôt que recréée',
