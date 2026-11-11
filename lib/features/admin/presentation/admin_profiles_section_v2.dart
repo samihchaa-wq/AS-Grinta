@@ -11,51 +11,35 @@ class _RoleChoice extends StatelessWidget {
   final String current;
   final ValueChanged<String> onSelected;
 
-  static const _roles = <({String value, String label, String hint})>[
-    (
-      value: 'pronostiqueur',
-      label: 'Utilisateur',
-      hint: 'Utilise l’application sans droit d’administration.',
-    ),
-    (
-      value: 'admin',
-      label: 'Admin',
-      hint: 'Accès à tous les outils de gestion du club.',
-    ),
+  static const _roles = <({String value, String label})>[
+    (value: 'pronostiqueur', label: 'Utilisateur'),
+    (value: 'admin', label: 'Admin'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final selected = _roles.firstWhere(
-      (role) => role.value == current,
-      orElse: () => _roles.first,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 4,
       children: [
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final role in _roles)
-              ChoiceChip(
-                label: Text(role.label),
-                selected: role.value == selected.value,
-                onSelected: (_) {
-                  if (role.value == selected.value) return;
-                  onSelected(role.value);
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(selected.hint, style: Theme.of(context).textTheme.bodySmall),
+        const Text('Rôle :'),
+        for (final role in _roles)
+          ChoiceChip(
+            visualDensity: VisualDensity.compact,
+            showCheckmark: false,
+            label: Text(role.label),
+            selected: role.value == current,
+            onSelected: (_) {
+              if (role.value != current) onSelected(role.value);
+            },
+          ),
       ],
     );
   }
 }
 
-class _ProfileCard extends ConsumerWidget {
+class _ProfileCard extends ConsumerStatefulWidget {
   const _ProfileCard({
     required this.profile,
     this.effectif,
@@ -71,7 +55,18 @@ class _ProfileCard extends ConsumerWidget {
   final RosterPlayer? rosterPlayer;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ProfileCard> createState() => _ProfileCardState();
+}
+
+class _ProfileCardState extends ConsumerState<_ProfileCard> {
+  bool _expanded = false;
+
+  AdminProfileItem get profile => widget.profile;
+  _EffectifContext? get effectif => widget.effectif;
+  RosterPlayer? get rosterPlayer => widget.rosterPlayer;
+
+  @override
+  Widget build(BuildContext context) {
     final repository = ref.read(adminRepositoryProvider);
     final currentUserId = ref.watch(authControllerProvider).profile?.id;
     final policy = adminProfileActionPolicy(
@@ -150,59 +145,60 @@ class _ProfileCard extends ConsumerWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(height: 20),
-          Text(
-            inRoster
-                ? [
-                    'Effectif : oui',
-                    if (player!.isCoach) 'Coach',
-                    if (player.isGoalkeeper) 'Gardien',
-                  ].join(' · ')
-                : 'Effectif : non',
-          ),
-          const SizedBox(height: 4),
+          const Divider(height: 16),
           Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             runSpacing: 4,
             children: [
-              if (inRoster) ...[
-                TextButton.icon(
+              const Text('Effectif :'),
+              ChoiceChip(
+                visualDensity: VisualDensity.compact,
+                showCheckmark: false,
+                label: const Text('Oui'),
+                selected: inRoster,
+                onSelected: (_) {
+                  if (!inRoster && !policy.isArchived) {
+                    toggleRoster(effectif);
+                  }
+                },
+              ),
+              ChoiceChip(
+                visualDensity: VisualDensity.compact,
+                showCheckmark: false,
+                label: const Text('Non'),
+                selected: !inRoster,
+                onSelected: (_) {
+                  if (inRoster) toggleRoster(effectif);
+                },
+              ),
+              if (inRoster && player!.isCoach) const Text('Coach'),
+              if (inRoster && player!.isGoalkeeper) const Text('Gardien'),
+            ],
+          ),
+          if (inRoster)
+            Row(
+              children: [
+                TextButton(
                   onPressed: () => showRosterPlayerDialog(
                     context,
                     ref,
                     seasonId: effectif.seasonId,
                     existing: player,
                   ),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Poste'),
+                  child: const Text('Poste'),
                 ),
-                TextButton.icon(
+                TextButton(
                   onPressed: () => chooseRosterPhoto(
                     context,
                     ref,
                     seasonId: effectif.seasonId,
                     player: player!,
                   ),
-                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                  label: const Text('Photos'),
+                  child: const Text('Photos'),
                 ),
               ],
-              // Un compte archivé ne peut pas être relié à une fiche joueur.
-              if (inRoster || !policy.isArchived)
-                TextButton.icon(
-                  onPressed: () => toggleRoster(effectif),
-                  icon: Icon(
-                    inRoster
-                        ? Icons.person_remove_outlined
-                        : Icons.person_add_alt_1,
-                    size: 18,
-                  ),
-                  label: Text(
-                    inRoster ? 'Retirer de l’effectif' : 'Ajouter à l’effectif',
-                  ),
-                ),
-            ],
-          ),
+            ),
         ],
       );
     }
@@ -222,7 +218,7 @@ class _ProfileCard extends ConsumerWidget {
                     : 'Rattachement : ${historicalPlayer.name}',
           ),
           if (!policy.isSelf) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             _RoleChoice(
               current: profile.role,
               onSelected: (role) => run(
@@ -234,16 +230,11 @@ class _ProfileCard extends ConsumerWidget {
           if (!profile.passwordSet)
             const Padding(
               padding: EdgeInsets.only(top: 6),
-              child: Chip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(Icons.hourglass_top, size: 16),
-                label: Text('En attente de 1re connexion'),
-              ),
+              child: Text('Première connexion en attente'),
             ),
           if (currentEffectif != null) effectifDetails(currentEffectif),
           if (!policy.isSelf) ...[
-            const Divider(height: 20),
-            const SizedBox(height: 8),
+            const Divider(height: 16),
             _ValidatedProfileActions(
               profile: profile,
               archived: policy.isArchived,
@@ -368,8 +359,10 @@ class _ProfileCard extends ConsumerWidget {
           : ExpansionTile(
               key: PageStorageKey<String>('validated-profile-${profile.id}'),
               initiallyExpanded: false,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-              childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+              childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              onExpansionChanged: (expanded) =>
+                  setState(() => _expanded = expanded),
               leading: rosterPlayer == null
                   ? null
                   : PlayerAvatar(
@@ -383,44 +376,26 @@ class _ProfileCard extends ConsumerWidget {
                 profile.displayName,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              subtitle: effectif == null
-                  ? null
-                  : Text(inRoster ? 'Effectif' : 'Hors effectif'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (policy.isSelf)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: _StatusChip(label: 'Toi'),
-                    )
-                  else if (policy.isArchived)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: _StatusChip(label: 'Archivé'),
+              subtitle: Text(
+                [
+                  if (profile.username.trim().isNotEmpty) profile.username,
+                  profile.role == 'admin' ? 'Admin' : 'Utilisateur',
+                  if (policy.isSelf) 'Toi',
+                  if (policy.isArchived) 'Archivé',
+                  if (effectif != null && !inRoster && !policy.isArchived)
+                    'Hors effectif',
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: Text(
+                _expanded ? 'Fermer' : 'Modifier',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                  const Icon(Icons.expand_more),
-                ],
               ),
               children: [validatedDetails()],
             ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: label,
-      container: true,
-      child: ExcludeSemantics(
-        child: Chip(visualDensity: VisualDensity.compact, label: Text(label)),
-      ),
     );
   }
 }

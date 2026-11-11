@@ -16,21 +16,16 @@ class _PendingProfileActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FilledButton.icon(
+        FilledButton(
           onPressed: onValidate,
-          icon: const Icon(Icons.check_circle_outline, size: 18),
-          label: const Text('Valider ce compte'),
+          child: const Text('Valider ce compte'),
         ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
-            onPressed: onReject,
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Refuser et supprimer'),
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.error,
           ),
+          onPressed: onReject,
+          child: const Text('Refuser et supprimer'),
         ),
       ],
     );
@@ -56,37 +51,62 @@ class _ValidatedProfileActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
+    return Column(
       children: [
-        TextButton.icon(
-          onPressed: onResetPassword,
-          icon: const Icon(Icons.lock_reset, size: 18),
-          label: const Text('Mot de passe'),
+        _AccountActionRow(
+          label: 'Mot de passe',
+          onTap: onResetPassword,
         ),
-        TextButton.icon(
-          onPressed: onHistory,
-          icon: const Icon(Icons.history, size: 18),
-          label: const Text('Historique'),
+        _AccountActionRow(
+          label: 'Historique',
+          onTap: onHistory,
         ),
-        TextButton.icon(
-          onPressed: onArchiveToggle,
-          icon: Icon(
-            archived ? Icons.unarchive_outlined : Icons.archive_outlined,
-            size: 18,
-          ),
-          label: Text(archived ? 'Réactiver' : 'Archiver'),
-        ),
-        TextButton.icon(
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
-          ),
-          onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline, size: 18),
-          label: const Text('Supprimer'),
+        const Divider(height: 16),
+        Row(
+          children: [
+            TextButton(
+              onPressed: onArchiveToggle,
+              child: Text(archived ? 'Réactiver' : 'Archiver'),
+            ),
+            const Spacer(),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: onDelete,
+              child: const Text('Supprimer'),
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _AccountActionRow extends StatelessWidget {
+  const _AccountActionRow({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            Text(
+              'Modifier',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

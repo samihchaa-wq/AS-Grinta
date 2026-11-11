@@ -134,16 +134,25 @@ class RosterPlayerMenu extends ConsumerWidget {
     required this.seasonId,
     required this.player,
     required this.roster,
+    this.showTextLabel = false,
   });
 
   final String seasonId;
   final RosterPlayer player;
   final List<RosterPlayer> roster;
+  final bool showTextLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final players = roster;
     return PopupMenuButton<String>(
+      tooltip: 'Modifier le joueur',
+      child: showTextLabel
+          ? const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Text('Modifier'),
+            )
+          : null,
       onSelected: (action) async {
         final repo = ref.read(rosterRepositoryProvider);
         try {

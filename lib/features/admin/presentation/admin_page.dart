@@ -146,11 +146,11 @@ class _UsersAdminSection extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 20),
         children: [
           SizedBox(
             width: double.infinity,
-            child: FilledButton.tonalIcon(
+            child: FilledButton.tonal(
               onPressed: () async {
                 await Clipboard.setData(
                   const ClipboardData(text: _registerLink),
@@ -165,11 +165,10 @@ class _UsersAdminSection extends ConsumerWidget {
                   );
                 }
               },
-              icon: const Icon(Icons.link, size: 18),
-              label: const Text('Lien d’inscription'),
+              child: const Text('Lien d’inscription'),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           _SegmentedBar<_UsersSection>(
             selected: selected,
             onSelected: onSelected,
@@ -178,7 +177,7 @@ class _UsersAdminSection extends ConsumerWidget {
               (_UsersSection.pending, 'En attente'),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           if (selected == _UsersSection.validated && rosterState != null)
             if (rosterState.hasError)
               Padding(
@@ -192,13 +191,7 @@ class _UsersAdminSection extends ConsumerWidget {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle_outline, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(emptyMessage)),
-                  ],
-                ),
+                child: Text(emptyMessage),
               ),
             )
           else ...[
@@ -228,14 +221,13 @@ class _UsersAdminSection extends ConsumerWidget {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton.icon(
+              child: TextButton(
                 onPressed: () => showRosterPlayerDialog(
                   context,
                   ref,
                   seasonId: effectif.seasonId,
                 ),
-                icon: const Icon(Icons.person_add_alt_1, size: 18),
-                label: const Text('Ajouter un joueur sans compte'),
+                child: const Text('Ajouter un joueur sans compte'),
               ),
             ),
           ],
@@ -285,6 +277,7 @@ class _RosterOnlyCard extends StatelessWidget {
           seasonId: effectif.seasonId,
           player: player,
           roster: effectif.roster,
+          showTextLabel: true,
         ),
       ),
     );
