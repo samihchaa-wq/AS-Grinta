@@ -205,15 +205,14 @@ class _ClubSeasonTile extends ConsumerWidget {
 
   Future<void> _createSeason(BuildContext context, WidgetRef ref) async {
     final now = DateTime.now();
-    final controller = TextEditingController(
-      text: '${now.year}-${now.year + 1}',
-    );
+    var enteredName = '${now.year}-${now.year + 1}';
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Nouvelle saison'),
-        content: TextField(
-          controller: controller,
+        content: TextFormField(
+          initialValue: enteredName,
+          onChanged: (value) => enteredName = value,
           decoration: const InputDecoration(hintText: '2026-2027'),
         ),
         actions: [
@@ -222,13 +221,12 @@ class _ClubSeasonTile extends ConsumerWidget {
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            onPressed: () => Navigator.pop(dialogContext, enteredName),
             child: const Text('Créer'),
           ),
         ],
       ),
     );
-    controller.dispose();
     if (name == null || name.trim().isEmpty || !context.mounted) return;
     try {
       await ref.read(adminRepositoryProvider).createSeason(name);
