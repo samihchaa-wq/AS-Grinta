@@ -39,7 +39,7 @@ class _RoleChoice extends StatelessWidget {
   }
 }
 
-class _ProfileCard extends ConsumerStatefulWidget {
+class _ProfileCard extends ConsumerWidget {
   const _ProfileCard({
     required this.profile,
     this.effectif,
@@ -55,18 +55,7 @@ class _ProfileCard extends ConsumerStatefulWidget {
   final RosterPlayer? rosterPlayer;
 
   @override
-  ConsumerState<_ProfileCard> createState() => _ProfileCardState();
-}
-
-class _ProfileCardState extends ConsumerState<_ProfileCard> {
-  bool _expanded = false;
-
-  AdminProfileItem get profile => widget.profile;
-  _EffectifContext? get effectif => widget.effectif;
-  RosterPlayer? get rosterPlayer => widget.rosterPlayer;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(adminRepositoryProvider);
     final currentUserId = ref.watch(authControllerProvider).profile?.id;
     final policy = adminProfileActionPolicy(
@@ -361,8 +350,6 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               initiallyExpanded: false,
               tilePadding: const EdgeInsets.symmetric(horizontal: 12),
               childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              onExpansionChanged: (expanded) =>
-                  setState(() => _expanded = expanded),
               leading: rosterPlayer == null
                   ? null
                   : PlayerAvatar(
@@ -376,24 +363,9 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                 profile.displayName,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              subtitle: Text(
-                [
-                  if (profile.username.trim().isNotEmpty) profile.username,
-                  profile.role == 'admin' ? 'Admin' : 'Utilisateur',
-                  if (policy.isSelf) 'Toi',
-                  if (policy.isArchived) 'Archivé',
-                  if (effectif != null && !inRoster && !policy.isArchived)
-                    'Hors effectif',
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: Text(
-                _expanded ? 'Fermer' : 'Modifier',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-              ),
+              // La ligne repliée ne montre que le portrait et le nom.
+              // Toute la ligne reste tactile pour ouvrir les options.
+              trailing: const SizedBox.shrink(),
               children: [validatedDetails()],
             ),
     );
