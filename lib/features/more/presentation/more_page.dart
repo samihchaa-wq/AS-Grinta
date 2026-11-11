@@ -1,12 +1,10 @@
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/sign_out_confirmation.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
-import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,11 +16,7 @@ class MorePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    final isRealAdmin = ref.watch(isRealAdminProvider);
-    // En « Voir l'app comme un joueur », la page est celle d'un joueur : seul
-    // l'interrupteur pour revenir reste en plus.
     final isAdminView = ref.watch(isAdminViewProvider);
-    final previewActive = ref.watch(isPlayerPreviewActiveProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
@@ -56,52 +50,19 @@ class MorePage extends ConsumerWidget {
               ],
             ),
           ],
-          if (isRealAdmin) ...[
-            const _SectionLabel('Aperçu'),
-            _SettingsGroup(
-              children: [
-                SwitchListTile.adaptive(
-                  key: const ValueKey('player-preview-switch'),
-                  secondary: const Icon(
-                    Icons.visibility_outlined,
-                    color: AppTheme.primaryBright,
-                  ),
-                  title: const Text('Voir l’app comme un joueur'),
-                  subtitle: const Text(
-                    'Masque tes outils d’admin pour voir exactement les écrans '
-                    'des joueurs.',
-                  ),
-                  value: previewActive,
-                  onChanged: (value) =>
-                      ref.read(playerPreviewProvider.notifier).state = value,
-                ),
-              ],
-            ),
-          ],
           if (isAdminView) ...[
             const _SectionLabel('Club · admin'),
             _SettingsGroup(
               children: [
                 _SettingsTile(
-                  icon: Icons.stadium_outlined,
-                  title: 'Équipes & stades',
-                  onTap: () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const OpponentStadiumLibraryPage(),
-                      ),
-                    );
-                    if (!context.mounted) return;
-                    await ref.read(matchesControllerProvider.notifier).load(
-                          allSeasons: true,
-                          forceRefresh: true,
-                        );
-                  },
+                  icon: Icons.groups_outlined,
+                  title: 'Effectif',
+                  onTap: () => context.push('/admin'),
                 ),
                 _SettingsTile(
-                  icon: Icons.admin_panel_settings_outlined,
-                  title: 'Administration',
-                  onTap: () => context.push('/admin'),
+                  icon: Icons.tune_rounded,
+                  title: 'Réglages',
+                  onTap: () => context.push('/admin/settings'),
                 ),
               ],
             ),

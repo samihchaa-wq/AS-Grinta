@@ -37,6 +37,28 @@ class AdminProfileItem {
   }
 }
 
+/// Valeurs par défaut du club, proposées à la création d'un match.
+class AdminClubDefaults {
+  const AdminClubDefaults({
+    required this.usualSquadSize,
+    required this.homeAddress,
+  });
+
+  factory AdminClubDefaults.fromRpc(Object? raw) {
+    final map = raw is Map ? Map<String, dynamic>.from(raw) : const {};
+    return AdminClubDefaults(
+      usualSquadSize: (map['usual_squad_size'] as num?)?.toInt() ?? 14,
+      homeAddress: (map['home_address'] ?? '').toString().trim(),
+    );
+  }
+
+  /// Nombre de joueurs convoqués par défaut (1 à 30).
+  final int usualSquadSize;
+
+  /// Adresse du terrain à domicile ; vide si aucune n'est mémorisée.
+  final String homeAddress;
+}
+
 class AdminHistoricalPlayer {
   const AdminHistoricalPlayer({
     required this.id,
@@ -324,7 +346,30 @@ class AdminRepository {
     );
     return (result as num?)?.toInt() ?? 0;
   }
+
+  Future<AdminClubDefaults> fetchClubDefaults() async {
+    final result = await _client.rpc('admin_get_club_defaults');
+    return AdminClubDefaults.fromRpc(result);
+  }
+
+  Future<AdminClubDefaults> saveClubDefaults({
+    required int usualSquadSize,
+    required String homeAddress,
+  }) async {
+    final result = await _client.rpc(
+      'admin_set_club_defaults',
+      params: {
+        'p_usual_squad_size': usualSquadSize,
+        'p_home_address': homeAddress.trim(),
+      },
+    );
+    return AdminClubDefaults.fromRpc(result);
+  }
 }
+
+final adminClubDefaultsProvider = FutureProvider<AdminClubDefaults>((ref) {
+  return ref.watch(adminRepositoryProvider).fetchClubDefaults();
+});
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {
   return AdminRepository(ref.watch(supabaseClientProvider));

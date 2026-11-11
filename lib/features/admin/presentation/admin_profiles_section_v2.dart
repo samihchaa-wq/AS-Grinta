@@ -56,9 +56,19 @@ class _RoleChoice extends StatelessWidget {
 }
 
 class _ProfileCard extends ConsumerWidget {
-  const _ProfileCard({required this.profile});
+  const _ProfileCard({
+    required this.profile,
+    this.effectif,
+    this.rosterPlayer,
+  });
 
   final AdminProfileItem profile;
+
+  /// Null tant que l'effectif charge, ou s'il n'y a pas de saison ouverte.
+  final _EffectifContext? effectif;
+
+  /// Fiche de l'effectif reliée à ce compte, s'il en a une.
+  final RosterPlayer? rosterPlayer;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -96,7 +106,109 @@ class _ProfileCard extends ConsumerWidget {
       }
     }
 
+    final inRoster = rosterPlayer?.isActive ?? false;
+
+    Future<void> toggleRoster(_EffectifContext effectif) async {
+      final rosterRepository = ref.read(rosterRepositoryProvider);
+      if (inRoster) {
+        final confirmed = await _confirm(
+          context,
+          'Retirer de l’effectif ?',
+          '${profile.displayName} ne fera plus partie de l’effectif de la '
+              'saison. Son compte, ses statistiques et son historique sont '
+              'conservés.',
+        );
+        if (!confirmed) return;
+      }
+      await run(
+        () async {
+          if (inRoster) {
+            await rosterRepository.setActive(
+              id: rosterPlayer!.id,
+              active: false,
+            );
+          } else {
+            await rosterRepository.addProfileToRoster(
+              seasonId: effectif.seasonId,
+              profileId: profile.id,
+              firstName: profile.firstName.trim().isNotEmpty
+                  ? profile.firstName
+                  : profile.displayName,
+              existingSeasonPlayerId: rosterPlayer?.id,
+            );
+          }
+          ref.invalidate(rosterProvider(effectif.seasonId));
+        },
+        success: inRoster
+            ? '${profile.displayName} est retiré de l’effectif.'
+            : '${profile.displayName} est ajouté à l’effectif.',
+      );
+    }
+
+    Widget effectifDetails(_EffectifContext effectif) {
+      final player = rosterPlayer;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 20),
+          Text(
+            inRoster
+                ? [
+                    'Effectif : oui',
+                    if (player!.isCoach) 'Coach',
+                    if (player.isGoalkeeper) 'Gardien',
+                  ].join(' · ')
+                : 'Effectif : non',
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (inRoster) ...[
+                TextButton.icon(
+                  onPressed: () => showRosterPlayerDialog(
+                    context,
+                    ref,
+                    seasonId: effectif.seasonId,
+                    existing: player,
+                  ),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Poste'),
+                ),
+                TextButton.icon(
+                  onPressed: () => chooseRosterPhoto(
+                    context,
+                    ref,
+                    seasonId: effectif.seasonId,
+                    player: player!,
+                  ),
+                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                  label: const Text('Photos'),
+                ),
+              ],
+              // Un compte archivé ne peut pas être relié à une fiche joueur.
+              if (inRoster || !policy.isArchived)
+                TextButton.icon(
+                  onPressed: () => toggleRoster(effectif),
+                  icon: Icon(
+                    inRoster
+                        ? Icons.person_remove_outlined
+                        : Icons.person_add_alt_1,
+                    size: 18,
+                  ),
+                  label: Text(
+                    inRoster ? 'Retirer de l’effectif' : 'Ajouter à l’effectif',
+                  ),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
+
     Widget validatedDetails() {
+      final currentEffectif = effectif;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -128,7 +240,9 @@ class _ProfileCard extends ConsumerWidget {
                 label: Text('En attente de 1re connexion'),
               ),
             ),
+          if (currentEffectif != null) effectifDetails(currentEffectif),
           if (!policy.isSelf) ...[
+            const Divider(height: 20),
             const SizedBox(height: 8),
             _ValidatedProfileActions(
               profile: profile,
@@ -256,10 +370,22 @@ class _ProfileCard extends ConsumerWidget {
               initiallyExpanded: false,
               tilePadding: const EdgeInsets.symmetric(horizontal: 14),
               childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              leading: rosterPlayer == null
+                  ? null
+                  : PlayerAvatar(
+                      photoUrl: rosterPlayer!.photoUrl,
+                      name: rosterPlayer!.displayName,
+                      lastName: rosterPlayer!.lastName,
+                      isGoalkeeper: rosterPlayer!.isGoalkeeper,
+                      size: 40,
+                    ),
               title: Text(
                 profile.displayName,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
+              subtitle: effectif == null
+                  ? null
+                  : Text(inRoster ? 'Effectif' : 'Hors effectif'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

@@ -43,6 +43,7 @@ const _destinations = [
   '/waitlist',
   '/admin/waitlist',
   '/admin',
+  '/admin/settings',
 ];
 
 Future<_FakeAuthRepository> _pumpMorePage(
@@ -83,8 +84,8 @@ void main() {
   testWidgets('an admin sees the account card and both setting groups', (
     tester,
   ) async {
-    // Écran de téléphone : avec le groupe « Aperçu », la page dépasse la
-    // petite fenêtre de test par défaut.
+    // Écran de téléphone : la page dépasse la petite fenêtre de test par
+    // défaut.
     tester.view
       ..physicalSize = const Size(1170, 2532)
       ..devicePixelRatio = 3;
@@ -103,8 +104,8 @@ void main() {
     for (final title in [
       'Indisponibilité',
       'Liste d’attente',
-      'Équipes & stades',
-      'Administration',
+      'Effectif',
+      'Réglages',
       'Se déconnecter',
     ]) {
       expect(find.text(title), findsOneWidget, reason: title);
@@ -128,36 +129,22 @@ void main() {
     );
   });
 
-  testWidgets('an admin can look at the app as a player', (tester) async {
+  testWidgets('an admin opens the squad and the club settings', (
+    tester,
+  ) async {
     tester.view
       ..physicalSize = const Size(1170, 2532)
       ..devicePixelRatio = 3;
     addTearDown(tester.view.reset);
     await _pumpMorePage(tester, profile: _admin, sportsEnabled: true);
 
-    expect(find.text('APERÇU'), findsOneWidget);
-    final toggle = find.byKey(const ValueKey('player-preview-switch'));
-    expect(toggle, findsOneWidget);
-
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
-
-    // La page devient celle d'un joueur ; seul l'interrupteur reste en plus.
-    expect(find.text('CLUB · ADMIN'), findsNothing);
-    expect(find.text('Administration'), findsNothing);
-    expect(find.text('Équipes & stades'), findsNothing);
-    expect(toggle, findsOneWidget);
-
-    await tester.tap(find.text('Liste d’attente'));
-    await tester.pumpAndSettle();
-    expect(find.text('page /waitlist'), findsOneWidget);
-  });
-
-  testWidgets('a player never sees the preview switch', (tester) async {
-    await _pumpMorePage(tester, profile: _player, sportsEnabled: true);
-
+    // Le mode « Voir l'app comme un joueur » a été retiré.
     expect(find.text('APERÇU'), findsNothing);
-    expect(find.byKey(const ValueKey('player-preview-switch')), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+
+    await tester.tap(find.text('Réglages'));
+    await tester.pumpAndSettle();
+    expect(find.text('page /admin/settings'), findsOneWidget);
   });
 
   testWidgets('a player without sports management only sees their account', (
@@ -174,8 +161,8 @@ void main() {
     expect(find.text('Se déconnecter'), findsOneWidget);
 
     expect(find.text('CLUB · ADMIN'), findsNothing);
-    expect(find.text('Équipes & stades'), findsNothing);
-    expect(find.text('Administration'), findsNothing);
+    expect(find.text('Effectif'), findsNothing);
+    expect(find.text('Réglages'), findsNothing);
     expect(find.text('Indisponibilité'), findsNothing);
     expect(find.text('Liste d’attente'), findsNothing);
   });

@@ -200,7 +200,8 @@ class RosterRepository {
     }
   }
 
-  Future<void> addPlayer({
+  /// Ajoute un joueur à l'effectif et renvoie l'identifiant de sa fiche.
+  Future<String> addPlayer({
     required String seasonId,
     required String firstName,
     required bool isGoalkeeper,
@@ -219,15 +220,46 @@ class RosterRepository {
     final maxPos = (maxRows as List).isEmpty
         ? 0
         : ((maxRows.first['position'] as num?)?.toInt() ?? 0);
-    await _client.from('season_players').insert({
-      'season_id': seasonId,
-      'first_name': f,
-      'last_name': '',
-      'is_goalkeeper': isGoalkeeper,
-      'is_coach': isCoach,
-      'is_active': true,
-      'position': maxPos + 1,
-    });
+    final inserted = await _client
+        .from('season_players')
+        .insert({
+          'season_id': seasonId,
+          'first_name': f,
+          'last_name': '',
+          'is_goalkeeper': isGoalkeeper,
+          'is_coach': isCoach,
+          'is_active': true,
+          'position': maxPos + 1,
+        })
+        .select('id')
+        .single();
+    return inserted['id'].toString();
+  }
+
+  /// Fait entrer un compte dans l'effectif de la saison : réactive sa fiche
+  /// si elle existe déjà, sinon crée une fiche et la relie au compte.
+  Future<void> addProfileToRoster({
+    required String seasonId,
+    required String profileId,
+    required String firstName,
+    String? existingSeasonPlayerId,
+  }) async {
+    if (existingSeasonPlayerId != null) {
+      await setActive(id: existingSeasonPlayerId, active: true);
+      return;
+    }
+    final id = await addPlayer(
+      seasonId: seasonId,
+      firstName: firstName,
+      isGoalkeeper: false,
+    );
+    try {
+      await setProfileLink(seasonPlayerId: id, profileId: profileId);
+    } catch (_) {
+      // Pas de fiche orpheline si la liaison échoue.
+      await deletePlayer(id);
+      rethrow;
+    }
   }
 
   Future<void> updatePlayer({

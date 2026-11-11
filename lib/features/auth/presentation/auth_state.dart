@@ -471,28 +471,7 @@ final isRealAdminProvider = Provider<bool>((ref) {
   return ref.watch(authControllerProvider).profile?.role.isAdmin == true;
 });
 
-/// « Voir l'app comme un joueur » : un admin regarde les écrans des joueurs
-/// sans ses outils de gestion, pour vérifier ce qu'ils reçoivent vraiment.
-///
-/// Gardé en mémoire seulement : recharger l'application, se déconnecter ou
-/// changer de compte ramène toujours à la vue admin, pour qu'un admin ne
-/// reste jamais coincé sans ses outils.
-///
-/// Ce mode ne change que l'affichage. Le serveur continue de traiter l'admin
-/// comme un admin ; il envoie les mêmes données aux deux sur les écrans des
-/// joueurs, ce qui rend l'aperçu fidèle.
-final playerPreviewProvider = StateProvider<bool>((ref) {
-  ref.watch(authControllerProvider.select((state) => state.profile?.id));
-  return false;
-});
-
-/// Vrai quand l'écran doit montrer les outils d'admin : un vrai admin, hors
-/// du mode « Voir l'app comme un joueur ».
+/// Vrai quand l'écran doit montrer les outils d'admin.
 final isAdminViewProvider = Provider<bool>((ref) {
-  return ref.watch(isRealAdminProvider) && !ref.watch(playerPreviewProvider);
-});
-
-/// Vrai pendant qu'un admin regarde l'application comme un joueur.
-final isPlayerPreviewActiveProvider = Provider<bool>((ref) {
-  return ref.watch(isRealAdminProvider) && ref.watch(playerPreviewProvider);
+  return ref.watch(isRealAdminProvider);
 });
