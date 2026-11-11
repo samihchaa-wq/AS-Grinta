@@ -47,7 +47,6 @@ du club.
   liste d’attente, rappels, vote de l’Homme du match.
 - Comptes validés par un administrateur ; deux niveaux d’accès (Utilisateur et
   Admin), le coach pilotant le Live de sa saison.
-- Mode « Voir l’app comme un joueur » pour les administrateurs.
 
 Le fonctionnement détaillé de chaque module est décrit dans
 `docs/regles-metier.md`.

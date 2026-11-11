@@ -21,10 +21,9 @@ part 'admin_profile_dialogs.dart';
 const _registerLink =
     'https://samihchaa-wq.github.io/AS-Grinta/#/auth/register';
 
-enum _AdminSection { members, season }
-
 enum _UsersSection { validated, pending }
 
+/// Effectif du club : les comptes et les fiches joueurs de la saison.
 class AdminPage extends ConsumerStatefulWidget {
   const AdminPage({super.key});
 
@@ -33,29 +32,46 @@ class AdminPage extends ConsumerStatefulWidget {
 }
 
 class _AdminPageState extends ConsumerState<AdminPage> {
-  _AdminSection _section = _AdminSection.members;
   _UsersSection _usersSection = _UsersSection.validated;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Administration')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: _AdminSegmentedBar(
-              selected: _section,
-              onSelected: (value) => setState(() => _section = value),
-            ),
-          ),
-          Expanded(child: _buildSelectedSection()),
-        ],
+      appBar: GrintaAppBar(title: const Text('Effectif')),
+      body: _AdminDashboardBody(
+        builder: (dashboard) => _UsersAdminSection(
+          dashboard: dashboard,
+          selected: _usersSection,
+          onSelected: (value) => setState(() => _usersSection = value),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildSelectedSection() {
+/// Réglages du club, ouverts depuis les Paramètres : la saison en cours.
+class AdminSettingsPage extends StatelessWidget {
+  const AdminSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: GrintaAppBar(title: const Text('Réglages')),
+      body: _AdminDashboardBody(
+        builder: (dashboard) => _SeasonSection(dashboard: dashboard),
+      ),
+    );
+  }
+}
+
+/// Charge le tableau d'administration, avec attente et nouvel essai.
+class _AdminDashboardBody extends ConsumerWidget {
+  const _AdminDashboardBody({required this.builder});
+
+  final Widget Function(AdminDashboardData dashboard) builder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(adminDashboardProvider);
     return dashboardAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -63,7 +79,8 @@ class _AdminPageState extends ConsumerState<AdminPage> {
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-              'Impossible de charger l’administration. ${humanizeError(error)}'),
+            'Impossible de charger l’administration. ${humanizeError(error)}',
+          ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: () => ref.invalidate(adminDashboardProvider),
@@ -71,40 +88,7 @@ class _AdminPageState extends ConsumerState<AdminPage> {
           ),
         ],
       ),
-      data: (dashboard) {
-        if (_section == _AdminSection.season) {
-          return _SeasonSection(
-            dashboard: dashboard,
-            onSeasonCreated: () {
-              setState(() => _section = _AdminSection.members);
-            },
-          );
-        }
-        return _UsersAdminSection(
-          dashboard: dashboard,
-          selected: _usersSection,
-          onSelected: (value) => setState(() => _usersSection = value),
-        );
-      },
-    );
-  }
-}
-
-class _AdminSegmentedBar extends StatelessWidget {
-  const _AdminSegmentedBar({required this.selected, required this.onSelected});
-
-  final _AdminSection selected;
-  final ValueChanged<_AdminSection> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SegmentedBar<_AdminSection>(
-      selected: selected,
-      onSelected: onSelected,
-      items: const [
-        (_AdminSection.members, 'Membres'),
-        (_AdminSection.season, 'Saison'),
-      ],
+      data: builder,
     );
   }
 }
@@ -304,13 +288,9 @@ class _RosterOnlyCard extends StatelessWidget {
 }
 
 class _SeasonSection extends ConsumerWidget {
-  const _SeasonSection({
-    required this.dashboard,
-    required this.onSeasonCreated,
-  });
+  const _SeasonSection({required this.dashboard});
 
   final AdminDashboardData dashboard;
-  final VoidCallback onSeasonCreated;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -321,9 +301,9 @@ class _SeasonSection extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         children: [
-          _SeasonCard(dashboard: dashboard, onSeasonCreated: onSeasonCreated),
+          _SeasonCard(dashboard: dashboard),
         ],
       ),
     );

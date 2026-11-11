@@ -1,13 +1,9 @@
 part of 'admin_page.dart';
 
 class _SeasonCard extends ConsumerWidget {
-  const _SeasonCard({
-    required this.dashboard,
-    required this.onSeasonCreated,
-  });
+  const _SeasonCard({required this.dashboard});
 
   final AdminDashboardData dashboard;
-  final VoidCallback onSeasonCreated;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -151,11 +147,10 @@ class _SeasonCard extends ConsumerWidget {
           SnackBar(
             content: Text(
               'Saison « ${name.trim()} » ouverte. Ajoute maintenant ton '
-              'effectif.',
+              'effectif dans Paramètres › Effectif.',
             ),
           ),
         );
-        onSeasonCreated();
       }
     } catch (error) {
       if (context.mounted) {

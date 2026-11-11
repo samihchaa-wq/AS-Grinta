@@ -18,11 +18,7 @@ class MorePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
-    final isRealAdmin = ref.watch(isRealAdminProvider);
-    // En « Voir l'app comme un joueur », la page est celle d'un joueur : seul
-    // l'interrupteur pour revenir reste en plus.
     final isAdminView = ref.watch(isAdminViewProvider);
-    final previewActive = ref.watch(isPlayerPreviewActiveProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
@@ -56,28 +52,6 @@ class MorePage extends ConsumerWidget {
               ],
             ),
           ],
-          if (isRealAdmin) ...[
-            const _SectionLabel('Aperçu'),
-            _SettingsGroup(
-              children: [
-                SwitchListTile.adaptive(
-                  key: const ValueKey('player-preview-switch'),
-                  secondary: const Icon(
-                    Icons.visibility_outlined,
-                    color: AppTheme.primaryBright,
-                  ),
-                  title: const Text('Voir l’app comme un joueur'),
-                  subtitle: const Text(
-                    'Masque tes outils d’admin pour voir exactement les écrans '
-                    'des joueurs.',
-                  ),
-                  value: previewActive,
-                  onChanged: (value) =>
-                      ref.read(playerPreviewProvider.notifier).state = value,
-                ),
-              ],
-            ),
-          ],
           if (isAdminView) ...[
             const _SectionLabel('Club · admin'),
             _SettingsGroup(
@@ -99,9 +73,14 @@ class MorePage extends ConsumerWidget {
                   },
                 ),
                 _SettingsTile(
-                  icon: Icons.admin_panel_settings_outlined,
-                  title: 'Administration',
+                  icon: Icons.groups_outlined,
+                  title: 'Effectif',
                   onTap: () => context.push('/admin'),
+                ),
+                _SettingsTile(
+                  icon: Icons.tune_rounded,
+                  title: 'Réglages',
+                  onTap: () => context.push('/admin/settings'),
                 ),
               ],
             ),

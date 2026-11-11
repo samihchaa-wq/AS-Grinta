@@ -191,6 +191,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ),
               GoRoute(
+                path: '/admin/settings',
+                builder: (_, __) => DeferredRoutePage(
+                  load: admin_administration.loadLibrary,
+                  builder: (_) => admin_administration.AdminSettingsPage(),
+                ),
+              ),
+              GoRoute(
                 path: '/admin/administration',
                 builder: (_, __) => DeferredRoutePage(
                   load: admin_administration.loadLibrary,

@@ -12,7 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
-/// Écran Administration, avec un faux dépôt : les comptes rangés par statut,
+/// Écrans Effectif et Réglages, avec un faux dépôt : les comptes rangés par statut,
 /// les actions sur un compte et leur confirmation, la saison ouverte.
 void main() {
   late _FakeAdminRepository repository;
@@ -23,7 +23,10 @@ void main() {
     roster = _FakeRosterRepository();
   });
 
-  Future<void> pumpAdmin(WidgetTester tester) async {
+  Future<void> pumpAdmin(
+    WidgetTester tester, {
+    Widget home = const AdminPage(),
+  }) async {
     await tester.binding.setSurfaceSize(const Size(900, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
@@ -35,7 +38,7 @@ void main() {
           adminRepositoryProvider.overrideWithValue(repository),
           rosterRepositoryProvider.overrideWithValue(roster),
         ],
-        child: const MaterialApp(home: AdminPage()),
+        child: MaterialApp(home: home),
       ),
     );
     await tester.pumpAndSettle();
@@ -211,7 +214,7 @@ void main() {
 
     expect(roster.added, [('s-1', 'p-1', 'Roman', null)]);
     expect(find.text('Roman est ajouté à l’effectif.'), findsOneWidget);
-    expect(find.text('Effectif'), findsOneWidget);
+    expect(find.text('Hors effectif'), findsNothing);
   });
 
   testWidgets('retirer de l’effectif demande confirmation et garde la fiche',
@@ -260,30 +263,26 @@ void main() {
     expect(find.text('Yanis'), findsOneWidget);
   });
 
-  testWidgets('l’onglet Saison montre la saison ouverte', (tester) async {
+  testWidgets('les Réglages montrent la saison ouverte', (tester) async {
     repository.seasons = const [
       AdminSeasonItem(id: 's-1', name: '2025-2026', status: 'archived'),
       AdminSeasonItem(id: 's-2', name: '2026-2027', status: 'open'),
     ];
 
-    await pumpAdmin(tester);
-    await tester.tap(find.text('Saison'));
-    await tester.pumpAndSettle();
+    await pumpAdmin(tester, home: const AdminSettingsPage());
 
     expect(find.text('Saison 2026-2027'), findsOneWidget);
     expect(find.text('Finir la saison'), findsOneWidget);
     expect(find.text('Créer une saison'), findsNothing);
   });
 
-  testWidgets('sans saison ouverte, l’onglet Saison propose d’en créer une',
+  testWidgets('sans saison ouverte, les Réglages proposent d’en créer une',
       (tester) async {
     repository.seasons = const [
       AdminSeasonItem(id: 's-1', name: '2025-2026', status: 'archived'),
     ];
 
-    await pumpAdmin(tester);
-    await tester.tap(find.text('Saison'));
-    await tester.pumpAndSettle();
+    await pumpAdmin(tester, home: const AdminSettingsPage());
 
     expect(find.text('Créer une saison'), findsOneWidget);
     expect(find.text('Finir la saison'), findsNothing);

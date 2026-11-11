@@ -30,7 +30,7 @@ class PlayersRegistryPage extends ConsumerWidget {
               child: GrintaEmptyState(
                 icon: Icons.calendar_month_rounded,
                 title: 'Aucune saison ouverte',
-                message: 'Crée une saison dans Administration pour définir '
+                message: 'Crée une saison dans Réglages pour définir '
                     'ton effectif.',
               ),
             );
