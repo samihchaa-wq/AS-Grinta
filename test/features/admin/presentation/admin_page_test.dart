@@ -262,9 +262,11 @@ void main() {
       tester.getTopLeft(find.text('Prénom')).dy,
       closeTo(tester.getTopLeft(find.text('Identifiant')).dy, 1),
     );
-    final firstRole = tester.getTopLeft(
-      find.byKey(const ValueKey('role-effectif')),
-    ).dy;
+    final firstRole = tester
+        .getTopLeft(
+          find.byKey(const ValueKey('role-effectif')),
+        )
+        .dy;
     for (final role in ['role-admin', 'role-gardien', 'role-coach']) {
       expect(
         tester.getTopLeft(find.byKey(ValueKey(role))).dy,
@@ -386,8 +388,6 @@ void main() {
     expect(find.text('Dans l’effectif, sans compte'), findsOneWidget);
     expect(find.text('Yanis'), findsOneWidget);
   });
-
-
 }
 
 AdminProfileItem _profile(
