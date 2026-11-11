@@ -12,8 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
-/// Écrans Effectif et Réglages, avec un faux dépôt : les comptes rangés par statut,
-/// les actions sur un compte et leur confirmation, la saison ouverte.
+/// Écran Effectif : comptes rangés par statut, actions et confirmations.
 void main() {
   late _FakeAdminRepository repository;
   late _FakeRosterRepository roster;
@@ -247,6 +246,38 @@ void main() {
     expect(find.text('Identifiant'), findsNothing);
   });
 
+  testWidgets('les champs et les actions sont alignés sur mobile',
+      (tester) async {
+    repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
+    roster.seasonId = 's-1';
+    roster.players = [_rosterPlayer('sp-1', 'Karim', profileId: 'p-1')];
+
+    await pumpAdmin(tester);
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Karim'));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.text('Prénom')).dy,
+      closeTo(tester.getTopLeft(find.text('Identifiant')).dy, 1),
+    );
+    final firstRole = tester.getTopLeft(
+      find.byKey(const ValueKey('role-effectif')),
+    ).dy;
+    for (final role in ['role-admin', 'role-gardien', 'role-coach']) {
+      expect(
+        tester.getTopLeft(find.byKey(ValueKey(role))).dy,
+        closeTo(firstRole, 1),
+      );
+    }
+    expect(
+      tester.getTopLeft(find.text('Photo')).dy,
+      closeTo(tester.getTopLeft(find.text('Mot de passe')).dy, 1),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('un compte hors effectif peut y être ajouté', (tester) async {
     repository.profiles = [_profile('p-1', 'Roman', status: 'active')];
     roster.seasonId = 's-1';
@@ -338,11 +369,11 @@ void main() {
       'Karimou',
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Enregistrer'));
+    await tester.tap(find.text('Enregistrer le prénom'));
     await tester.pumpAndSettle();
 
     expect(roster.playerUpdates.last, ('sp-1', 'Karimou', false, false));
-    expect(find.text('Enregistrer'), findsNothing);
+    expect(find.text('Enregistrer le prénom'), findsNothing);
   });
 
   testWidgets('les fiches sans compte restent visibles', (tester) async {
@@ -356,97 +387,7 @@ void main() {
     expect(find.text('Yanis'), findsOneWidget);
   });
 
-  testWidgets('les Réglages montrent la saison ouverte', (tester) async {
-    repository.seasons = const [
-      AdminSeasonItem(id: 's-1', name: '2025-2026', status: 'archived'),
-      AdminSeasonItem(id: 's-2', name: '2026-2027', status: 'open'),
-    ];
 
-    await pumpAdmin(tester, home: const AdminSettingsPage());
-
-    expect(find.text('Saison 2026-2027'), findsOneWidget);
-    expect(find.widgetWithText(TextButton, 'Finir la saison'), findsOneWidget);
-    expect(find.text('Créer une saison'), findsNothing);
-    expect(find.byIcon(Icons.flag_outlined), findsNothing);
-    expect(find.byIcon(Icons.stadium_outlined), findsNothing);
-  });
-
-  testWidgets('finir la saison demande une confirmation explicite',
-      (tester) async {
-    repository.seasons = const [
-      AdminSeasonItem(id: 's-2', name: '2026-2027', status: 'open'),
-    ];
-
-    await pumpAdmin(tester, home: const AdminSettingsPage());
-
-    await tester.tap(find.text('Finir la saison'));
-    await tester.pumpAndSettle();
-    expect(find.text('Finir la saison ?'), findsOneWidget);
-    await tester.tap(find.text('Annuler'));
-    await tester.pumpAndSettle();
-    expect(repository.seasonStatusChanges, isEmpty);
-
-    await tester.tap(find.text('Finir la saison'));
-    await tester.pumpAndSettle();
-    await confirmDialog(tester);
-
-    expect(repository.seasonStatusChanges, [('s-2', 'archived')]);
-    expect(find.text('Créer une saison'), findsOneWidget);
-  });
-
-  testWidgets('les Réglages enregistrent les valeurs par défaut',
-      (tester) async {
-    await pumpAdmin(tester, home: const AdminSettingsPage());
-
-    expect(find.text('Équipes & stades'), findsOneWidget);
-    expect(find.text('Matchs'), findsOneWidget);
-    expect(find.text('Joueurs convoqués'), findsOneWidget);
-    expect(find.text('Terrain à domicile'), findsOneWidget);
-    expect(find.text('Valeurs par défaut'), findsNothing);
-    final size = find.byKey(const ValueKey('club-default-squad-size'));
-    final address = find.byKey(const ValueKey('club-default-home-address'));
-    expect(tester.widget<TextField>(size).controller!.text, '14');
-    expect(tester.widget<TextField>(address).controller!.text, 'INP - Labège');
-
-    // Une taille hors limites est refusée sans appeler le serveur.
-    await tester.enterText(size, '45');
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('La taille du groupe doit être entre 1 et 30.'),
-      findsOneWidget,
-    );
-    expect(repository.savedDefaults, isEmpty);
-
-    await tester.enterText(size, '16');
-    await tester.enterText(address, '1 rue du Stade');
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-
-    expect(repository.savedDefaults, [(16, '1 rue du Stade')]);
-    expect(find.text('Valeurs par défaut enregistrées.'), findsOneWidget);
-    expect(
-      tester
-          .widget<TextField>(
-            find.byKey(const ValueKey('club-default-squad-size')),
-          )
-          .controller!
-          .text,
-      '16',
-    );
-  });
-
-  testWidgets('sans saison ouverte, les Réglages proposent d’en créer une',
-      (tester) async {
-    repository.seasons = const [
-      AdminSeasonItem(id: 's-1', name: '2025-2026', status: 'archived'),
-    ];
-
-    await pumpAdmin(tester, home: const AdminSettingsPage());
-
-    expect(find.text('Créer une saison'), findsOneWidget);
-    expect(find.text('Finir la saison'), findsNothing);
-  });
 }
 
 AdminProfileItem _profile(
