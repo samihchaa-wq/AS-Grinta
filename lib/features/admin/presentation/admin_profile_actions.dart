@@ -31,4 +31,3 @@ class _PendingProfileActions extends StatelessWidget {
     );
   }
 }
-
