@@ -155,15 +155,19 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                 visualDensity: VisualDensity.compact,
                 label: const Text('Oui'),
                 selected: inRoster,
-                onSelected: !inRoster && !policy.isArchived
-                    ? (_) => toggleRoster(effectif)
-                    : null,
+                onSelected: (_) {
+                  if (!inRoster && !policy.isArchived) {
+                    toggleRoster(effectif);
+                  }
+                },
               ),
               ChoiceChip(
                 visualDensity: VisualDensity.compact,
                 label: const Text('Non'),
                 selected: !inRoster,
-                onSelected: inRoster ? (_) => toggleRoster(effectif) : null,
+                onSelected: (_) {
+                  if (inRoster) toggleRoster(effectif);
+                },
               ),
               if (inRoster && player!.isCoach) const Text('Coach'),
               if (inRoster && player!.isGoalkeeper) const Text('Gardien'),
