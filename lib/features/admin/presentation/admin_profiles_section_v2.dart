@@ -17,7 +17,8 @@ class _MemberEditButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: const Color(0xFF1464EF),
         foregroundColor: Colors.white,
-        disabledBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        disabledBackgroundColor:
+            Theme.of(context).colorScheme.surfaceContainerHighest,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         minimumSize: const Size(0, 38),
         visualDensity: VisualDensity.compact,
@@ -107,7 +108,8 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
   @override
   void didUpdateWidget(covariant _ProfileCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final previous = oldWidget.rosterPlayer?.firstName ?? oldWidget.profile.firstName;
+    final previous =
+        oldWidget.rosterPlayer?.firstName ?? oldWidget.profile.firstName;
     if (previous != _rosterFirstName) {
       _firstNameController.text = _rosterFirstName;
     }
@@ -213,15 +215,16 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
       setState(() => _savingFirstName = true);
       try {
         await ref.read(rosterRepositoryProvider).updatePlayer(
-          id: player.id,
-          firstName: name,
-          isGoalkeeper: player.isGoalkeeper,
-          isCoach: player.isCoach,
-        );
+              id: player.id,
+              firstName: name,
+              isGoalkeeper: player.isGoalkeeper,
+              isCoach: player.isCoach,
+            );
         ref.invalidate(rosterProvider(currentEffectif.seasonId));
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prénom de la fiche joueur enregistré.')),
+            const SnackBar(
+                content: Text('Prénom de la fiche joueur enregistré.')),
           );
         }
       } catch (error) {
@@ -241,14 +244,15 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
     }) async {
       final player = rosterPlayer;
       final currentEffectif = effectif;
-      if (player == null || currentEffectif == null || policy.isArchived) return;
+      if (player == null || currentEffectif == null || policy.isArchived)
+        return;
       await run(() async {
         await ref.read(rosterRepositoryProvider).updatePlayer(
-          id: player.id,
-          firstName: player.firstName,
-          isGoalkeeper: isGoalkeeper,
-          isCoach: isCoach,
-        );
+              id: player.id,
+              firstName: player.firstName,
+              isGoalkeeper: isGoalkeeper,
+              isCoach: isCoach,
+            );
         ref.invalidate(rosterProvider(currentEffectif.seasonId));
       });
     }
@@ -306,11 +310,13 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
     Widget validatedDetails() {
       final player = rosterPlayer;
       final currentEffectif = effectif;
-      final canEditRoster = player != null && currentEffectif != null &&
-          !policy.isArchived && !_savingFirstName;
+      final canEditRoster = player != null &&
+          currentEffectif != null &&
+          !policy.isArchived &&
+          !_savingFirstName;
       final editedName = _firstNameController.text.trim();
-      final nameChanged = player != null &&
-          editedName != player.firstName.trim();
+      final nameChanged =
+          player != null && editedName != player.firstName.trim();
 
       return Padding(
         padding: const EdgeInsets.only(top: 6),
@@ -325,7 +331,8 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         TextField(
-                          key: ValueKey<String>('effectif-first-name-${profile.id}'),
+                          key: ValueKey<String>(
+                              'effectif-first-name-${profile.id}'),
                           controller: _firstNameController,
                           enabled: canEditRoster,
                           textCapitalization: TextCapitalization.words,
@@ -335,7 +342,8 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                           decoration: const InputDecoration(
                             isDense: true,
                             contentPadding: EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 12,
+                              horizontal: 10,
+                              vertical: 12,
                             ),
                             border: OutlineInputBorder(),
                           ),
@@ -352,7 +360,8 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               label: 'Identifiant',
               // L'identifiant est celui de connexion : il ne doit pas être
               // modifié comme un simple libellé sans migrer l'adresse Auth.
-              child: _MemberValue(profile.username.isEmpty ? '—' : profile.username),
+              child: _MemberValue(
+                  profile.username.isEmpty ? '—' : profile.username),
             ),
             const Divider(height: 16),
             _MemberDetailRow(
@@ -407,7 +416,8 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                                   ? 'pronostiqueur'
                                   : 'admin',
                             ),
-                            success: 'Accès de ${profile.displayName} mis à jour.',
+                            success:
+                                'Accès de ${profile.displayName} mis à jour.',
                           ),
                 ),
                 FilterChip(
@@ -474,7 +484,10 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                   onPressed: policy.isSelf || policy.isArchived
                       ? null
                       : () => _resetPassword(
-                            context, ref, repository, profile,
+                            context,
+                            ref,
+                            repository,
+                            profile,
                           ),
                 ),
               ),
