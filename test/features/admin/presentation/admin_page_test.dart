@@ -265,7 +265,9 @@ void main() {
     expect(roster.activeChanges, [('sp-1', false)]);
     expect(find.textContaining('Hors effectif'), findsNothing);
     expect(
-      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Non')).selected,
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Non'))
+          .selected,
       isTrue,
     );
   });
