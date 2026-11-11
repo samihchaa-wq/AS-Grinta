@@ -396,4 +396,3 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
     );
   }
 }
-
