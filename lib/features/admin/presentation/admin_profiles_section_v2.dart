@@ -244,8 +244,9 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
     }) async {
       final player = rosterPlayer;
       final currentEffectif = effectif;
-      if (player == null || currentEffectif == null || policy.isArchived)
+      if (player == null || currentEffectif == null || policy.isArchived) {
         return;
+      }
       await run(() async {
         await ref.read(rosterRepositoryProvider).updatePlayer(
               id: player.id,
@@ -428,7 +429,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                   onSelected: !canEditRoster
                       ? null
                       : (_) => updatePlayerRole(
-                            isGoalkeeper: !player!.isGoalkeeper,
+                            isGoalkeeper: !player.isGoalkeeper,
                             isCoach: false,
                           ),
                 ),
@@ -441,7 +442,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                       ? null
                       : (_) => updatePlayerRole(
                             isGoalkeeper: false,
-                            isCoach: !player!.isCoach,
+                            isCoach: !player.isCoach,
                           ),
                 ),
               ],
