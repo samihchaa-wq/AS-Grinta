@@ -212,9 +212,9 @@ select ok(
 );
 
 -- ---------------------------------------------------------------------------
--- 3. Sortir de l'effectif retire immédiatement le membre de la rotation
---    et des listes des rencontres à venir, sans effacer la réponse ni les
---    preuves de notifications déjà enregistrées.
+-- 3. Sortir de l'effectif masque le membre des listes et des relances,
+--    mais conserve son éligibilité dans l'instantané pour finaliser le match
+--    même s'il est devenu inactif avant la validation du compte rendu.
 -- ---------------------------------------------------------------------------
 
 update public.match_sport_participants
@@ -233,8 +233,8 @@ select is(
     where participant.match_id = current_setting('test.late_match')::uuid
       and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
   ),
-  false,
-  'la désactivation retire le membre de la rotation du match futur'
+  true,
+  'la désactivation conserve l’éligibilité historique du match déjà préparé'
 );
 
 select is(
