@@ -12,17 +12,29 @@ class _SeasonCard extends ConsumerWidget {
     );
     final openSeason = openSeasons.isEmpty ? null : openSeasons.first;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (openSeason != null) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              openSeason == null
+                  ? 'Aucune saison en cours'
+                  : 'Saison ${openSeason.name}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            if (openSeason == null)
+              FilledButton(
+                onPressed: () => _createSeason(context, ref),
+                child: const Text('Créer une saison'),
+              )
+            else
+              TextButton(
+                style: TextButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.error,
-                  textStyle: Theme.of(context).textTheme.titleLarge,
+                  padding: const EdgeInsets.symmetric(horizontal: 0),
                 ),
                 onPressed: () => _changeStatus(
                   context,
@@ -35,39 +47,11 @@ class _SeasonCard extends ConsumerWidget {
                       'C’est définitif. Tu pourras ensuite créer une '
                       'nouvelle saison.',
                 ),
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Finir la saison'),
+                child: const Text('Finir la saison'),
               ),
-            ),
-          ),
-          const SizedBox(height: 14),
-        ],
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: openSeason == null
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Saison',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: () => _createSeason(context, ref),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Créer une saison'),
-                      ),
-                    ],
-                  )
-                : Text(
-                    'Saison ${openSeason.name}',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
