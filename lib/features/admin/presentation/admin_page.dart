@@ -299,19 +299,19 @@ class _SeasonSection extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
         children: [
           _SeasonCard(dashboard: dashboard),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           const _ClubDefaultsCard(),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Card(
             clipBehavior: Clip.antiAlias,
             child: ListTile(
-              leading: const Icon(Icons.stadium_outlined),
-              title: const Text('Équipes & stades'),
-              subtitle: const Text('Adversaires et adresse de leur terrain.'),
-              trailing: const Icon(Icons.chevron_right),
+              title: Text(
+                'Équipes & stades',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               onTap: () async {
                 await Navigator.of(context).push(
                   MaterialPageRoute<void>(

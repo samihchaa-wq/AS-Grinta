@@ -309,8 +309,33 @@ void main() {
     await pumpAdmin(tester, home: const AdminSettingsPage());
 
     expect(find.text('Saison 2026-2027'), findsOneWidget);
-    expect(find.text('Finir la saison'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Finir la saison'), findsOneWidget);
     expect(find.text('Créer une saison'), findsNothing);
+    expect(find.byIcon(Icons.flag_outlined), findsNothing);
+    expect(find.byIcon(Icons.stadium_outlined), findsNothing);
+  });
+
+  testWidgets('finir la saison demande une confirmation explicite',
+      (tester) async {
+    repository.seasons = const [
+      AdminSeasonItem(id: 's-2', name: '2026-2027', status: 'open'),
+    ];
+
+    await pumpAdmin(tester, home: const AdminSettingsPage());
+
+    await tester.tap(find.text('Finir la saison'));
+    await tester.pumpAndSettle();
+    expect(find.text('Finir la saison ?'), findsOneWidget);
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+    expect(repository.seasonStatusChanges, isEmpty);
+
+    await tester.tap(find.text('Finir la saison'));
+    await tester.pumpAndSettle();
+    await confirmDialog(tester);
+
+    expect(repository.seasonStatusChanges, [('s-2', 'archived')]);
+    expect(find.text('Créer une saison'), findsOneWidget);
   });
 
   testWidgets('les Réglages enregistrent les valeurs par défaut',
@@ -318,6 +343,10 @@ void main() {
     await pumpAdmin(tester, home: const AdminSettingsPage());
 
     expect(find.text('Équipes & stades'), findsOneWidget);
+    expect(find.text('Matchs'), findsOneWidget);
+    expect(find.text('Joueurs convoqués'), findsOneWidget);
+    expect(find.text('Terrain à domicile'), findsOneWidget);
+    expect(find.text('Valeurs par défaut'), findsNothing);
     final size = find.byKey(const ValueKey('club-default-squad-size'));
     final address = find.byKey(const ValueKey('club-default-home-address'));
     expect(tester.widget<TextField>(size).controller!.text, '14');
@@ -457,7 +486,19 @@ class _FakeAdminRepository implements AdminRepository {
   bool failStatusChange = false;
   int dashboardLoads = 0;
   final statusChanges = <(String, String)>[];
+  final seasonStatusChanges = <(String, String)>[];
   final deletedAccounts = <String>[];
+
+  @override
+  Future<void> setSeasonStatus(String id, String status) async {
+    seasonStatusChanges.add((id, status));
+    seasons = [
+      for (final season in seasons)
+        season.id == id
+            ? AdminSeasonItem(id: season.id, name: season.name, status: status)
+            : season,
+    ];
+  }
 
   @override
   Future<AdminDashboardData> fetchDashboard() async {

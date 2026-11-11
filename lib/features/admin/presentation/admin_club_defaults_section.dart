@@ -15,16 +15,15 @@ class _ClubDefaultsCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Valeurs par défaut',
+              'Matchs',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 4),
             Text(
-              'Proposées à la création d’un match. Les matchs déjà créés ne '
-              'changent pas.',
+              'Réglages utilisés pour les nouveaux matchs.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             defaultsAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
@@ -132,11 +131,11 @@ class _ClubDefaultsFormState extends ConsumerState<_ClubDefaultsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: const InputDecoration(
-            labelText: 'Taille habituelle du groupe',
-            helperText: 'Nombre de joueurs convoqués (1 à 30).',
+            labelText: 'Joueurs convoqués',
+            isDense: true,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         TextField(
           key: const ValueKey('club-default-home-address'),
           controller: _homeAddress,
@@ -145,8 +144,8 @@ class _ClubDefaultsFormState extends ConsumerState<_ClubDefaultsForm> {
           maxLines: 2,
           minLines: 1,
           decoration: const InputDecoration(
-            labelText: 'Adresse du terrain à domicile',
-            helperText: 'Sert aussi à la météo des matchs à domicile.',
+            labelText: 'Terrain à domicile',
+            isDense: true,
           ),
         ),
         if (_error != null) ...[
@@ -156,7 +155,7 @@ class _ClubDefaultsFormState extends ConsumerState<_ClubDefaultsForm> {
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         FilledButton(
           onPressed: _saving ? null : _save,
           child: _saving
