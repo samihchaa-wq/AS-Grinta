@@ -27,6 +27,7 @@ class _RoleChoice extends StatelessWidget {
         for (final role in _roles)
           ChoiceChip(
             visualDensity: VisualDensity.compact,
+            showCheckmark: false,
             label: Text(role.label),
             selected: role.value == current,
             onSelected: (_) {
@@ -153,6 +154,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               const Text('Effectif :'),
               ChoiceChip(
                 visualDensity: VisualDensity.compact,
+                showCheckmark: false,
                 label: const Text('Oui'),
                 selected: inRoster,
                 onSelected: (_) {
@@ -163,6 +165,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               ),
               ChoiceChip(
                 visualDensity: VisualDensity.compact,
+                showCheckmark: false,
                 label: const Text('Non'),
                 selected: !inRoster,
                 onSelected: (_) {
