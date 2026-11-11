@@ -180,7 +180,8 @@ void main() {
     expect(find.text('Créer une saison'), findsOneWidget);
   });
 
-  testWidgets('après avoir fini la saison, on peut en créer une depuis Paramètres',
+  testWidgets(
+      'après avoir fini la saison, on peut en créer une depuis Paramètres',
       (tester) async {
     final club = _FakeClubAdminRepository()..seasons = const [];
     await _pumpMorePage(
@@ -394,6 +395,5 @@ class _FakeClubAdminRepository implements AdminRepository {
   }
 
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
