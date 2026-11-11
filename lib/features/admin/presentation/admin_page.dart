@@ -6,6 +6,7 @@ import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart'
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,7 +21,7 @@ part 'admin_profile_dialogs.dart';
 const _registerLink =
     'https://samihchaa-wq.github.io/AS-Grinta/#/auth/register';
 
-enum _AdminSection { users, roster, season }
+enum _AdminSection { members, season }
 
 enum _UsersSection { validated, pending }
 
@@ -32,7 +33,7 @@ class AdminPage extends ConsumerStatefulWidget {
 }
 
 class _AdminPageState extends ConsumerState<AdminPage> {
-  _AdminSection _section = _AdminSection.users;
+  _AdminSection _section = _AdminSection.members;
   _UsersSection _usersSection = _UsersSection.validated;
 
   @override
@@ -55,10 +56,6 @@ class _AdminPageState extends ConsumerState<AdminPage> {
   }
 
   Widget _buildSelectedSection() {
-    if (_section == _AdminSection.roster) {
-      return const _EmbeddedPlayersRegistry();
-    }
-
     final dashboardAsync = ref.watch(adminDashboardProvider);
     return dashboardAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -79,7 +76,7 @@ class _AdminPageState extends ConsumerState<AdminPage> {
           return _SeasonSection(
             dashboard: dashboard,
             onSeasonCreated: () {
-              setState(() => _section = _AdminSection.roster);
+              setState(() => _section = _AdminSection.members);
             },
           );
         }
@@ -105,8 +102,7 @@ class _AdminSegmentedBar extends StatelessWidget {
       selected: selected,
       onSelected: onSelected,
       items: const [
-        (_AdminSection.users, 'Utilisateurs'),
-        (_AdminSection.roster, 'Effectif'),
+        (_AdminSection.members, 'Membres'),
         (_AdminSection.season, 'Saison'),
       ],
     );
@@ -133,9 +129,31 @@ class _UsersAdminSection extends ConsumerWidget {
         ? 'Aucun compte validé.'
         : 'Aucun compte en attente.';
 
+    // L'effectif de la saison ouverte est croisé avec les comptes : chaque
+    // compte affiche sa fiche joueur, et les fiches sans compte restent
+    // visibles à la suite.
+    final seasonId = ref.watch(openSeasonIdProvider).asData?.value;
+    final rosterState =
+        seasonId == null ? null : ref.watch(rosterProvider(seasonId));
+    final roster = rosterState?.asData?.value;
+    final rosterByProfileId = <String, RosterPlayer>{
+      for (final player in roster ?? const <RosterPlayer>[])
+        if (player.linkedProfileId != null) player.linkedProfileId!: player,
+    };
+    final effectif = seasonId == null || roster == null
+        ? null
+        : _EffectifContext(seasonId: seasonId, roster: roster);
+    final playersWithoutAccount = selected == _UsersSection.validated
+        ? (roster ?? const <RosterPlayer>[])
+            .where((player) => player.linkedProfileId == null)
+            .toList()
+        : const <RosterPlayer>[];
+
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(adminDashboardProvider);
+        ref.invalidate(openSeasonIdProvider);
+        if (seasonId != null) ref.invalidate(rosterProvider(seasonId));
         await ref.read(adminDashboardProvider.future);
       },
       child: ListView(
@@ -173,7 +191,16 @@ class _UsersAdminSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
-          if (profiles.isEmpty)
+          if (selected == _UsersSection.validated && rosterState != null)
+            if (rosterState.hasError)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Effectif indisponible : '
+                  '${humanizeError(rosterState.error!)}',
+                ),
+              ),
+          if (profiles.isEmpty && playersWithoutAccount.isEmpty)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -186,9 +213,91 @@ class _UsersAdminSection extends ConsumerWidget {
                 ),
               ),
             )
-          else
-            ...profiles.map((profile) => _ProfileCard(profile: profile)),
+          else ...[
+            ...profiles.map(
+              (profile) => _ProfileCard(
+                profile: profile,
+                effectif: effectif,
+                rosterPlayer: rosterByProfileId[profile.id],
+              ),
+            ),
+            if (playersWithoutAccount.isNotEmpty && effectif != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Dans l’effectif, sans compte',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              ...playersWithoutAccount.map(
+                (player) => _RosterOnlyCard(
+                  player: player,
+                  effectif: effectif,
+                ),
+              ),
+            ],
+          ],
+          if (selected == _UsersSection.validated && effectif != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => showRosterPlayerDialog(
+                  context,
+                  ref,
+                  seasonId: effectif.seasonId,
+                ),
+                icon: const Icon(Icons.person_add_alt_1, size: 18),
+                label: const Text('Ajouter un joueur sans compte'),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// Saison ouverte et son effectif, nécessaires aux actions « effectif ».
+class _EffectifContext {
+  const _EffectifContext({required this.seasonId, required this.roster});
+
+  final String seasonId;
+  final List<RosterPlayer> roster;
+}
+
+/// Fiche de l'effectif qui n'est reliée à aucun compte.
+class _RosterOnlyCard extends StatelessWidget {
+  const _RosterOnlyCard({required this.player, required this.effectif});
+
+  final RosterPlayer player;
+  final _EffectifContext effectif;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: PlayerAvatar(
+          photoUrl: player.photoUrl,
+          name: player.displayName,
+          lastName: player.lastName,
+          isGoalkeeper: player.isGoalkeeper,
+          size: 40,
+        ),
+        title: Text(player.displayName),
+        subtitle: Text(
+          [
+            if (player.isCoach) 'Coach',
+            if (player.isGoalkeeper) 'Gardien',
+            'Aucun compte lié',
+            if (!player.isActive) 'Hors effectif',
+          ].join(' · '),
+        ),
+        trailing: RosterPlayerMenu(
+          seasonId: effectif.seasonId,
+          player: player,
+          roster: effectif.roster,
+        ),
       ),
     );
   }
@@ -279,41 +388,6 @@ class _SegmentedBar<T> extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-/// Réutilise la page Effectif existante sans modifier ses actions ni son rendu.
-/// Le scaffold interne est simplement décalé pour masquer son app bar, puisque
-/// l'administration possède désormais sa propre barre de modules persistante.
-class _EmbeddedPlayersRegistry extends StatelessWidget {
-  const _EmbeddedPlayersRegistry();
-
-  static const _innerAppBarHeight = 60.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return ClipRect(
-          child: OverflowBox(
-            alignment: Alignment.topCenter,
-            minHeight: constraints.maxHeight + _innerAppBarHeight,
-            maxHeight: constraints.maxHeight + _innerAppBarHeight,
-            child: Transform.translate(
-              offset: const Offset(0, -_innerAppBarHeight),
-              child: SizedBox(
-                height: constraints.maxHeight + _innerAppBarHeight,
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeTop: true,
-                  child: const PlayersRegistryPage(),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

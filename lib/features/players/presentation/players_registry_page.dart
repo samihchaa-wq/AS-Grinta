@@ -67,7 +67,7 @@ class _RosterList extends ConsumerWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () =>
-                    _showPlayerDialog(context, ref, seasonId: seasonId),
+                    showRosterPlayerDialog(context, ref, seasonId: seasonId),
                 icon: const Icon(Icons.person_add_alt_1),
                 label: const Text('Ajouter un joueur à l’effectif'),
               ),
@@ -111,108 +111,10 @@ class _RosterList extends ConsumerWidget {
                         if (!player.isActive) 'Archivé',
                       ].join(' · '),
                     ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (action) async {
-                        final repo = ref.read(rosterRepositoryProvider);
-                        try {
-                          if (action == 'edit') {
-                            await _showPlayerDialog(
-                              context,
-                              ref,
-                              seasonId: seasonId,
-                              existing: player,
-                            );
-                            return;
-                          }
-                          if (action == 'photo') {
-                            await _chooseRosterPhoto(
-                              context,
-                              ref,
-                              seasonId: seasonId,
-                              player: player,
-                            );
-                            return;
-                          }
-                          if (action == 'link') {
-                            await _showProfileLinkDialog(
-                              context,
-                              ref,
-                              seasonId: seasonId,
-                              player: player,
-                              roster: players,
-                            );
-                            return;
-                          }
-                          if (action == 'unlink') {
-                            final confirmed = await _confirmUnlink(
-                              context,
-                              player,
-                            );
-                            if (!confirmed) return;
-                            await repo.setProfileLink(
-                              seasonPlayerId: player.id,
-                            );
-                            ref.invalidate(rosterProvider(seasonId));
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Liaison supprimée.'),
-                                ),
-                              );
-                            }
-                            return;
-                          }
-                          if (action == 'delete') {
-                            final confirmed =
-                                await _confirmDelete(context, player);
-                            if (!confirmed) return;
-                            await repo.deletePlayer(player.id);
-                          } else if (action == 'archive') {
-                            await repo.setActive(id: player.id, active: false);
-                          } else if (action == 'restore') {
-                            await repo.setActive(id: player.id, active: true);
-                          }
-                          ref.invalidate(rosterProvider(seasonId));
-                        } catch (error) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(humanizeError(error))),
-                            );
-                          }
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Text('Modifier le joueur'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'photo',
-                          child: Text('Changer photos'),
-                        ),
-                        PopupMenuItem(
-                          value: 'link',
-                          child: Text(
-                            player.linkedProfileId == null
-                                ? 'Relier à un compte'
-                                : 'Modifier la liaison',
-                          ),
-                        ),
-                        if (player.linkedProfileId != null)
-                          const PopupMenuItem(
-                            value: 'unlink',
-                            child: Text('Supprimer la liaison'),
-                          ),
-                        PopupMenuItem(
-                          value: player.isActive ? 'archive' : 'restore',
-                          child:
-                              Text(player.isActive ? 'Archiver' : 'Réactiver'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Text('Supprimer'),
-                        ),
-                      ],
+                    trailing: RosterPlayerMenu(
+                      seasonId: seasonId,
+                      player: player,
+                      roster: players,
                     ),
                   ),
                 ),
@@ -224,8 +126,133 @@ class _RosterList extends ConsumerWidget {
   }
 }
 
+/// Actions d'administration d'une fiche de l'effectif. Réutilisé par l'onglet
+/// Membres de l'administration.
+class RosterPlayerMenu extends ConsumerWidget {
+  const RosterPlayerMenu({
+    super.key,
+    required this.seasonId,
+    required this.player,
+    required this.roster,
+  });
+
+  final String seasonId;
+  final RosterPlayer player;
+  final List<RosterPlayer> roster;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final players = roster;
+    return PopupMenuButton<String>(
+      onSelected: (action) async {
+        final repo = ref.read(rosterRepositoryProvider);
+        try {
+          if (action == 'edit') {
+            await showRosterPlayerDialog(
+              context,
+              ref,
+              seasonId: seasonId,
+              existing: player,
+            );
+            return;
+          }
+          if (action == 'photo') {
+            await chooseRosterPhoto(
+              context,
+              ref,
+              seasonId: seasonId,
+              player: player,
+            );
+            return;
+          }
+          if (action == 'link') {
+            await _showProfileLinkDialog(
+              context,
+              ref,
+              seasonId: seasonId,
+              player: player,
+              roster: players,
+            );
+            return;
+          }
+          if (action == 'unlink') {
+            final confirmed = await _confirmUnlink(
+              context,
+              player,
+            );
+            if (!confirmed) return;
+            await repo.setProfileLink(
+              seasonPlayerId: player.id,
+            );
+            ref.invalidate(rosterProvider(seasonId));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Liaison supprimée.'),
+                ),
+              );
+            }
+            return;
+          }
+          if (action == 'delete') {
+            final confirmed = await _confirmDelete(context, player);
+            if (!confirmed) return;
+            await repo.deletePlayer(player.id);
+          } else if (action == 'archive') {
+            await repo.setActive(id: player.id, active: false);
+          } else if (action == 'restore') {
+            await repo.setActive(id: player.id, active: true);
+          }
+          ref.invalidate(rosterProvider(seasonId));
+        } catch (error) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(humanizeError(error))),
+            );
+          }
+        }
+      },
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'edit',
+          child: Text('Modifier le joueur'),
+        ),
+        const PopupMenuItem(
+          value: 'photo',
+          child: Text('Changer photos'),
+        ),
+        PopupMenuItem(
+          value: 'link',
+          child: Text(
+            player.linkedProfileId == null
+                ? 'Relier à un compte'
+                : 'Modifier la liaison',
+          ),
+        ),
+        if (player.linkedProfileId != null)
+          const PopupMenuItem(
+            value: 'unlink',
+            child: Text('Supprimer la liaison'),
+          ),
+        PopupMenuItem(
+          value: player.isActive ? 'archive' : 'restore',
+          child: Text(
+            player.isActive
+                ? 'Retirer de l’effectif'
+                : 'Remettre dans l’effectif',
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Text('Supprimer'),
+        ),
+      ],
+    );
+  }
+}
+
 /// Trois emplacements distincts. La France reprend la photo qui existait deja.
-Future<void> _chooseRosterPhoto(
+Future<void> chooseRosterPhoto(
   BuildContext context,
   WidgetRef ref, {
   required String seasonId,
@@ -515,7 +542,7 @@ Future<bool> _confirmDelete(BuildContext context, RosterPlayer player) async {
             'Le joueur est retiré définitivement de l’effectif. Ses buts, '
             'clean sheets et les pronostics de saison le concernant sont '
             'également supprimés. Pour simplement le sortir sans rien effacer, '
-            'utilise plutôt « Archiver ».',
+            'utilise plutôt « Retirer de l’effectif ».',
           ),
           actions: [
             TextButton(
@@ -535,7 +562,7 @@ Future<bool> _confirmDelete(BuildContext context, RosterPlayer player) async {
       false;
 }
 
-Future<void> _showPlayerDialog(
+Future<void> showRosterPlayerDialog(
   BuildContext context,
   WidgetRef ref, {
   required String seasonId,

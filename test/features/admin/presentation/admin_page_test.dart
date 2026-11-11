@@ -5,6 +5,7 @@ import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,8 +16,12 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 /// les actions sur un compte et leur confirmation, la saison ouverte.
 void main() {
   late _FakeAdminRepository repository;
+  late _FakeRosterRepository roster;
 
-  setUp(() => repository = _FakeAdminRepository());
+  setUp(() {
+    repository = _FakeAdminRepository();
+    roster = _FakeRosterRepository();
+  });
 
   Future<void> pumpAdmin(WidgetTester tester) async {
     await tester.binding.setSurfaceSize(const Size(900, 1400));
@@ -28,6 +33,7 @@ void main() {
             (ref) => _SignedInAdminController(_FakeAuthRepository()),
           ),
           adminRepositoryProvider.overrideWithValue(repository),
+          rosterRepositoryProvider.overrideWithValue(roster),
         ],
         child: const MaterialApp(home: AdminPage()),
       ),
@@ -191,6 +197,69 @@ void main() {
     );
   });
 
+  testWidgets('un compte hors effectif peut y être ajouté', (tester) async {
+    repository.profiles = [_profile('p-1', 'Roman', status: 'active')];
+    roster.seasonId = 's-1';
+
+    await pumpAdmin(tester);
+    expect(find.text('Hors effectif'), findsOneWidget);
+
+    await tester.tap(find.text('Roman'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajouter à l’effectif'));
+    await tester.pumpAndSettle();
+
+    expect(roster.added, [('s-1', 'p-1', 'Roman', null)]);
+    expect(find.text('Roman est ajouté à l’effectif.'), findsOneWidget);
+    expect(find.text('Effectif'), findsOneWidget);
+  });
+
+  testWidgets('retirer de l’effectif demande confirmation et garde la fiche',
+      (tester) async {
+    repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
+    roster.seasonId = 's-1';
+    roster.players = [_rosterPlayer('sp-1', 'Karim', profileId: 'p-1')];
+
+    await pumpAdmin(tester);
+    await tester.tap(find.text('Karim'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retirer de l’effectif'));
+    await tester.pumpAndSettle();
+    expect(find.text('Retirer de l’effectif ?'), findsOneWidget);
+    await confirmDialog(tester);
+
+    expect(roster.activeChanges, [('sp-1', false)]);
+    expect(find.text('Hors effectif'), findsOneWidget);
+  });
+
+  testWidgets('une fiche retirée est réactivée plutôt que recréée',
+      (tester) async {
+    repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
+    roster.seasonId = 's-1';
+    roster.players = [
+      _rosterPlayer('sp-1', 'Karim', profileId: 'p-1', active: false),
+    ];
+
+    await pumpAdmin(tester);
+    await tester.tap(find.text('Karim'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ajouter à l’effectif'));
+    await tester.pumpAndSettle();
+
+    expect(roster.added, [('s-1', 'p-1', 'Karim', 'sp-1')]);
+  });
+
+  testWidgets('les fiches sans compte restent visibles', (tester) async {
+    repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
+    roster.seasonId = 's-1';
+    roster.players = [_rosterPlayer('sp-2', 'Yanis')];
+
+    await pumpAdmin(tester);
+
+    expect(find.text('Dans l’effectif, sans compte'), findsOneWidget);
+    expect(find.text('Yanis'), findsOneWidget);
+  });
+
   testWidgets('l’onglet Saison montre la saison ouverte', (tester) async {
     repository.seasons = const [
       AdminSeasonItem(id: 's-1', name: '2025-2026', status: 'archived'),
@@ -237,6 +306,75 @@ AdminProfileItem _profile(
       role: role,
       status: status,
     );
+
+RosterPlayer _rosterPlayer(
+  String id,
+  String firstName, {
+  String? profileId,
+  bool active = true,
+}) =>
+    RosterPlayer(
+      id: id,
+      firstName: firstName,
+      lastName: '',
+      isGoalkeeper: false,
+      isCoach: false,
+      isActive: active,
+      linkedProfileId: profileId,
+      linkedProfileName: profileId == null ? null : firstName,
+      linkedProfileUsername: null,
+    );
+
+class _FakeRosterRepository implements RosterRepository {
+  String? seasonId;
+  List<RosterPlayer> players = const [];
+  final added = <(String, String, String, String?)>[];
+  final activeChanges = <(String, bool)>[];
+
+  @override
+  Future<String?> openSeasonId() async => seasonId;
+
+  @override
+  Future<List<RosterPlayer>> fetchRoster(String seasonId) async => players;
+
+  @override
+  Future<void> addProfileToRoster({
+    required String seasonId,
+    required String profileId,
+    required String firstName,
+    String? existingSeasonPlayerId,
+  }) async {
+    added.add((seasonId, profileId, firstName, existingSeasonPlayerId));
+    players = [
+      for (final player in players)
+        if (player.id != existingSeasonPlayerId) player,
+      _rosterPlayer(
+        existingSeasonPlayerId ?? 'sp-new',
+        firstName,
+        profileId: profileId,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> setActive({required String id, required bool active}) async {
+    activeChanges.add((id, active));
+    players = [
+      for (final player in players)
+        player.id == id
+            ? _rosterPlayer(
+                player.id,
+                player.firstName,
+                profileId: player.linkedProfileId,
+                active: active,
+              )
+            : player,
+    ];
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 class _FakeAdminRepository implements AdminRepository {
   List<AdminProfileItem> profiles = const [];

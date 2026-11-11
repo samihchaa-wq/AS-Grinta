@@ -6,6 +6,13 @@ Toutes les évolutions notables d’AS Grinta sont documentées ici.
 
 ### Produit
 
+- admin : les onglets « Utilisateurs » et « Effectif » de l'administration
+  sont fusionnés en un seul onglet « Membres ». Chaque compte indique s'il
+  fait partie de l'effectif de la saison, avec « Ajouter à l'effectif » ou
+  « Retirer de l'effectif » (le retrait garde la fiche, les statistiques et
+  l'historique ; un nouvel ajout réactive la même fiche). Le poste
+  (gardien/coach) et les photos se règlent depuis la même fiche. Les
+  joueurs sans compte restent listés à la suite ;
 - maillots : les trois maillots proposés pour un match (France, Orange,
   Bleu) sont désormais des dessins aux couleurs du club, sans logo ni
   écusson. Ils reprenaient jusqu'ici des photos de maillots de sélections

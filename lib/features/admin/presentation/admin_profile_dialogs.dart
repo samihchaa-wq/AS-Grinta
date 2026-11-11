@@ -51,7 +51,7 @@ Future<_ProfileValidationChoice?> _askPlayerLink(
           children: [
             const Text(
               'Tu peux associer ce compte à sa fiche joueur maintenant ou '
-              'le faire plus tard dans Effectif.',
+              'le faire plus tard dans Membres.',
             ),
             const SizedBox(height: 16),
             if (loadingError != null)
