@@ -3,8 +3,6 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
-import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart';
-import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
@@ -14,8 +12,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
-part 'admin_season_section.dart';
-part 'admin_club_defaults_section.dart';
 part 'admin_profiles_section_v2.dart';
 part 'admin_profile_actions.dart';
 part 'admin_profile_dialogs.dart';
@@ -47,22 +43,6 @@ class _AdminPageState extends ConsumerState<AdminPage> {
           selected: _usersSection,
           onSelected: (value) => setState(() => _usersSection = value),
         ),
-      ),
-    );
-  }
-}
-
-/// Réglages du club, ouverts depuis les Paramètres : la saison en cours, les
-/// valeurs par défaut des matchs, les équipes et les stades.
-class AdminSettingsPage extends StatelessWidget {
-  const AdminSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Réglages')),
-      body: _AdminDashboardBody(
-        builder: (dashboard) => _SeasonSection(dashboard: dashboard),
       ),
     );
   }
@@ -279,55 +259,6 @@ class _RosterOnlyCard extends StatelessWidget {
           roster: effectif.roster,
           showTextLabel: true,
         ),
-      ),
-    );
-  }
-}
-
-class _SeasonSection extends ConsumerWidget {
-  const _SeasonSection({required this.dashboard});
-
-  final AdminDashboardData dashboard;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(adminDashboardProvider);
-        ref.invalidate(adminClubDefaultsProvider);
-        await ref.read(adminDashboardProvider.future);
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-        children: [
-          _SeasonCard(dashboard: dashboard),
-          const SizedBox(height: 10),
-          const _ClubDefaultsCard(),
-          const SizedBox(height: 10),
-          Card(
-            clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              title: Text(
-                'Équipes & stades',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              onTap: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const OpponentStadiumLibraryPage(),
-                  ),
-                );
-                if (!context.mounted) return;
-                // Les matchs affichent le nom et le stade des adversaires.
-                await ref.read(matchesControllerProvider.notifier).load(
-                      allSeasons: true,
-                      forceRefresh: true,
-                    );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,4 +1,8 @@
 import 'package:as_grinta/core/config/app_config.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/admin/data/admin_repository.dart';
+import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
@@ -60,10 +64,26 @@ class MorePage extends ConsumerWidget {
                   onTap: () => context.push('/admin'),
                 ),
                 _SettingsTile(
-                  icon: Icons.tune_rounded,
-                  title: 'Réglages',
-                  onTap: () => context.push('/admin/settings'),
+                  icon: Icons.stadium_outlined,
+                  title: 'Équipes & stades',
+                  onTap: () async {
+                    await context.push('/admin/stadiums');
+                    if (!context.mounted) return;
+                    // Rafraîchir les cartes de matchs après une modification.
+                    try {
+                      await ref.read(matchesControllerProvider.notifier).load(
+                            allSeasons: true,
+                            forceRefresh: true,
+                          );
+                    } catch (error) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(humanizeError(error))),
+                      );
+                    }
+                  },
                 ),
+                const _ClubSeasonTile(),
               ],
             ),
           ],
@@ -89,6 +109,139 @@ class MorePage extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Action de saison directement dans Paramètres, sans écran Réglages.
+class _ClubSeasonTile extends ConsumerWidget {
+  const _ClubSeasonTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dashboard = ref.watch(adminDashboardProvider);
+    return dashboard.when(
+      loading: () => const ListTile(
+        leading: Icon(Icons.flag_outlined),
+        title: Text('Saison'),
+        subtitle: Text('Chargement…'),
+      ),
+      error: (_, __) => ListTile(
+        leading: const Icon(Icons.refresh),
+        title: const Text('Saison indisponible'),
+        subtitle: const Text('Appuyer pour réessayer'),
+        onTap: () => ref.invalidate(adminDashboardProvider),
+      ),
+      data: (data) {
+        AdminSeasonItem? current;
+        for (final season in data.seasons) {
+          if (season.status == 'open') {
+            current = season;
+            break;
+          }
+        }
+        final openSeason = current;
+        if (openSeason == null) {
+          return ListTile(
+            leading: const Icon(Icons.add_circle_outline),
+            title: const Text('Créer une saison'),
+            onTap: () => _createSeason(context, ref),
+          );
+        }
+        return ListTile(
+          leading: Icon(Icons.flag_outlined, color: AppTheme.error),
+          title: Text(
+            'Finir la saison',
+            style: TextStyle(color: AppTheme.error),
+          ),
+          subtitle: Text('Saison ${openSeason.name}'),
+          onTap: () => _finishSeason(context, ref, openSeason),
+        );
+      },
+    );
+  }
+
+  Future<void> _finishSeason(
+    BuildContext context,
+    WidgetRef ref,
+    AdminSeasonItem season,
+  ) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Finir la saison ?'),
+            content: Text(
+              'La saison « ${season.name} » sera archivée immédiatement '
+              'et le classement final figé. C’est définitif. '
+              'Tu pourras ensuite créer une nouvelle saison.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Confirmer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+    try {
+      await ref.read(adminRepositoryProvider).setSeasonStatus(
+            season.id,
+            'archived',
+          );
+      ref.invalidate(adminDashboardProvider);
+      ref.invalidate(openSeasonIdProvider);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
+    }
+  }
+
+  Future<void> _createSeason(BuildContext context, WidgetRef ref) async {
+    final now = DateTime.now();
+    var enteredName = '${now.year}-${now.year + 1}';
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nouvelle saison'),
+        content: TextFormField(
+          initialValue: enteredName,
+          onChanged: (value) => enteredName = value,
+          decoration: const InputDecoration(hintText: '2026-2027'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, enteredName),
+            child: const Text('Créer'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty || !context.mounted) return;
+    try {
+      await ref.read(adminRepositoryProvider).createSeason(name);
+      ref.invalidate(adminDashboardProvider);
+      ref.invalidate(openSeasonIdProvider);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saison « ${name.trim()} » ouverte.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
+    }
   }
 }
 

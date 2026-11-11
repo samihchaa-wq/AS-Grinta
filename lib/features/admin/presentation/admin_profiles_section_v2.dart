@@ -324,13 +324,18 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _MemberDetailRow(
-              label: 'Prénom',
-              child: player == null
-                  ? _MemberValue(profile.firstName)
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Prénom'),
+                      const SizedBox(height: 6),
+                      if (player == null)
+                        _MemberValue(profile.firstName)
+                      else
                         TextField(
                           key: ValueKey<String>(
                               'effectif-first-name-${profile.id}'),
@@ -349,21 +354,32 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                             border: OutlineInputBorder(),
                           ),
                         ),
-                        if (nameChanged && canEditRoster)
-                          TextButton(
-                            onPressed: saveFirstName,
-                            child: const Text('Enregistrer'),
-                          ),
-                      ],
-                    ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Identifiant'),
+                      const SizedBox(height: 6),
+                      _MemberValue(
+                        profile.username.isEmpty ? '—' : profile.username,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            _MemberDetailRow(
-              label: 'Identifiant',
-              // L'identifiant est celui de connexion : il ne doit pas être
-              // modifié comme un simple libellé sans migrer l'adresse Auth.
-              child: _MemberValue(
-                  profile.username.isEmpty ? '—' : profile.username),
-            ),
+            if (nameChanged && canEditRoster)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: saveFirstName,
+                  child: const Text('Enregistrer le prénom'),
+                ),
+              ),
             const Divider(height: 16),
             _MemberDetailRow(
               label: 'Rattachement',
@@ -389,109 +405,132 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               padding: EdgeInsets.symmetric(vertical: 6),
               child: Text('Rôle'),
             ),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
+            Row(
               children: [
-                FilterChip(
-                  key: const ValueKey('role-effectif'),
-                  label: const Text('Effectif'),
-                  showCheckmark: true,
-                  selected: inRoster,
-                  onSelected: currentEffectif == null ||
-                          (policy.isArchived && !inRoster)
-                      ? null
-                      : (_) => toggleRoster(currentEffectif),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-effectif'),
+                      label: const Text('Effectif'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: inRoster,
+                      onSelected: currentEffectif == null ||
+                              (policy.isArchived && !inRoster)
+                          ? null
+                          : (_) => toggleRoster(currentEffectif),
+                    ),
+                  ),
                 ),
-                FilterChip(
-                  key: const ValueKey('role-admin'),
-                  label: const Text('Admin'),
-                  showCheckmark: true,
-                  selected: profile.role == 'admin',
-                  onSelected: policy.isSelf || policy.isArchived
-                      ? null
-                      : (_) => run(
-                            () => repository.updateProfileRole(
-                              profile.id,
-                              profile.role == 'admin'
-                                  ? 'pronostiqueur'
-                                  : 'admin',
-                            ),
-                            success:
-                                'Accès de ${profile.displayName} mis à jour.',
-                          ),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-admin'),
+                      label: const Text('Admin'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: profile.role == 'admin',
+                      onSelected: policy.isSelf || policy.isArchived
+                          ? null
+                          : (_) => run(
+                                () => repository.updateProfileRole(
+                                  profile.id,
+                                  profile.role == 'admin'
+                                      ? 'pronostiqueur'
+                                      : 'admin',
+                                ),
+                                success:
+                                    'Accès de ${profile.displayName} mis à jour.',
+                              ),
+                    ),
+                  ),
                 ),
-                FilterChip(
-                  key: const ValueKey('role-gardien'),
-                  label: const Text('Gardien'),
-                  showCheckmark: true,
-                  selected: player?.isGoalkeeper ?? false,
-                  onSelected: !canEditRoster
-                      ? null
-                      : (_) => updatePlayerRole(
-                            isGoalkeeper: !player.isGoalkeeper,
-                            isCoach: false,
-                          ),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-gardien'),
+                      label: const Text('Gardien'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: player?.isGoalkeeper ?? false,
+                      onSelected: !canEditRoster
+                          ? null
+                          : (_) => updatePlayerRole(
+                                isGoalkeeper: !player.isGoalkeeper,
+                                isCoach: false,
+                              ),
+                    ),
+                  ),
                 ),
-                FilterChip(
-                  key: const ValueKey('role-coach'),
-                  label: const Text('Coach'),
-                  showCheckmark: true,
-                  selected: player?.isCoach ?? false,
-                  onSelected: !canEditRoster
-                      ? null
-                      : (_) => updatePlayerRole(
-                            isGoalkeeper: false,
-                            isCoach: !player.isCoach,
-                          ),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-coach'),
+                      label: const Text('Coach'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: player?.isCoach ?? false,
+                      onSelected: !canEditRoster
+                          ? null
+                          : (_) => updatePlayerRole(
+                                isGoalkeeper: false,
+                                isCoach: !player.isCoach,
+                              ),
+                    ),
+                  ),
                 ),
               ],
             ),
             const Divider(height: 20),
-            _MemberDetailRow(
-              label: 'Photo',
-              child: Row(
-                children: [
-                  if (player != null)
-                    PlayerAvatar(
-                      photoUrl: player.photoUrl,
-                      name: player.displayName,
-                      lastName: player.lastName,
-                      isGoalkeeper: player.isGoalkeeper,
-                      size: 45,
-                    )
-                  else
-                    const Expanded(child: Text('Aucune photo')),
-                  if (player != null) const Spacer(),
-                  _MemberEditButton(
-                    onPressed: player == null || currentEffectif == null
-                        ? null
-                        : () => chooseRosterPhoto(
-                              context,
-                              ref,
-                              seasonId: currentEffectif.seasonId,
-                              player: player,
-                            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text('Photo'),
+                      const SizedBox(height: 8),
+                      _MemberEditButton(
+                        onPressed: player == null || currentEffectif == null
+                            ? null
+                            : () => chooseRosterPhoto(
+                                  context,
+                                  ref,
+                                  seasonId: currentEffectif.seasonId,
+                                  player: player,
+                                ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const Divider(height: 16),
-            _MemberDetailRow(
-              label: 'Mot de passe',
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: _MemberEditButton(
-                  onPressed: policy.isSelf || policy.isArchived
-                      ? null
-                      : () => _resetPassword(
-                            context,
-                            ref,
-                            repository,
-                            profile,
-                          ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text('Mot de passe'),
+                      const SizedBox(height: 8),
+                      _MemberEditButton(
+                        onPressed: policy.isSelf || policy.isArchived
+                            ? null
+                            : () => _resetPassword(
+                                  context,
+                                  ref,
+                                  repository,
+                                  profile,
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             if (!profile.passwordSet)
               const Text('Première connexion en attente'),
