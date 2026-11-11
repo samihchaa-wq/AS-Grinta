@@ -212,11 +212,9 @@ select ok(
 );
 
 -- ---------------------------------------------------------------------------
--- 3. Sortir de l'effectif ne touche à aucune ligne existante.
---
--- Un membre désactivé reste dans l'instantané des matchs où il figurait déjà :
--- sa réponse et sa place y appartiennent. Le retirer de la rotation reste le
--- geste explicite d'un administrateur qui resynchronise le match.
+-- 3. Sortir de l'effectif retire immédiatement le membre de la rotation
+--    et des listes des rencontres à venir, sans effacer la réponse ni les
+--    preuves de notifications déjà enregistrées.
 -- ---------------------------------------------------------------------------
 
 update public.match_sport_participants
@@ -235,8 +233,8 @@ select is(
     where participant.match_id = current_setting('test.late_match')::uuid
       and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
   ),
-  true,
-  'la désactivation ne retire pas le membre de la rotation du match en cours'
+  false,
+  'la désactivation retire le membre de la rotation du match futur'
 );
 
 select is(
@@ -248,6 +246,58 @@ select is(
   ),
   'available',
   'sa réponse déjà donnée est conservée telle quelle'
+);
+
+-- L'effectif partagé, la liste admin et les relances excluent le joueur.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"9a000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select set_config(
+  'test.late_convocations_inactive',
+  public.admin_get_match_convocations(current_setting('test.late_match')::uuid)::text,
+  true
+);
+select set_config(
+  'test.late_board_inactive',
+  public.get_match_availability_board(current_setting('test.late_match')::uuid)::text,
+  true
+);
+select set_config(
+  'test.late_reminders_inactive',
+  public.admin_get_match_availability_reminders(current_setting('test.late_match')::uuid)::text,
+  true
+);
+reset role;
+
+select ok(
+  not exists (
+    select 1
+    from jsonb_array_elements(current_setting('test.late_convocations_inactive')::jsonb -> 'players') p
+    where p ->> 'season_player_id' = '9d000000-0000-0000-0000-000000000002'
+  ),
+  'un joueur désactivé disparaît de l’effectif du match à venir'
+);
+
+select ok(
+  not exists (
+    select 1
+    from jsonb_array_elements(current_setting('test.late_board_inactive')::jsonb -> 'players') p
+    where p ->> 'season_player_id' = '9d000000-0000-0000-0000-000000000002'
+  ),
+  'un joueur désactivé disparaît du tableau des disponibilités'
+);
+
+select ok(
+  not exists (
+    select 1
+    from jsonb_array_elements(current_setting('test.late_reminders_inactive')::jsonb -> 'players') p
+    where p ->> 'season_player_id' = '9d000000-0000-0000-0000-000000000002'
+  ),
+  'un joueur désactivé ne peut plus être relancé'
 );
 
 -- ---------------------------------------------------------------------------
@@ -300,6 +350,17 @@ select is(
   ),
   true,
   'son retour dans l’effectif le rattache au match programmé sans lui'
+);
+
+select is(
+  (
+    select participant.is_eligible
+    from public.match_sport_participants participant
+    where participant.match_id = current_setting('test.late_match')::uuid
+      and participant.season_player_id = '9d000000-0000-0000-0000-000000000002'
+  ),
+  true,
+  'la réactivation restaure aussi le match déjà connu sans effacer la disponibilité'
 );
 
 select is(
