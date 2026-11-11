@@ -10,6 +10,8 @@ import 'package:as_grinta/features/admin/presentation/admin_notification_page.da
     deferred as admin_notification;
 import 'package:as_grinta/features/admin/presentation/admin_page.dart'
     deferred as admin_administration;
+import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart'
+    deferred as admin_stadiums;
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
@@ -190,11 +192,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   builder: (_) => admin_menu.AdminMenuPage(),
                 ),
               ),
+              // Ancien lien conservé pour ne pas casser les favoris.
               GoRoute(
                 path: '/admin/settings',
+                redirect: (_, __) => '/more',
+              ),
+              GoRoute(
+                path: '/admin/stadiums',
                 builder: (_, __) => DeferredRoutePage(
-                  load: admin_administration.loadLibrary,
-                  builder: (_) => admin_administration.AdminSettingsPage(),
+                  load: admin_stadiums.loadLibrary,
+                  builder: (_) => admin_stadiums.OpponentStadiumLibraryPage(),
                 ),
               ),
               GoRoute(
