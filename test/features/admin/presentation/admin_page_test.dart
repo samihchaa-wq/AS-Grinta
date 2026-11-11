@@ -218,24 +218,34 @@ void main() {
     await tester.tap(find.text('Karim'));
     await tester.pumpAndSettle();
 
-      expect(find.text('Modifier'), findsNWidgets(3));
+    expect(find.text('Modifier'), findsNWidgets(3));
     expect(find.text('Fermer'), findsNothing);
     for (final label in [
-      'Prénom', 'Identifiant', 'Rattachement', 'Rôle',
-      'Photo', 'Mot de passe', 'Archiver', 'Supprimer',
+      'Prénom',
+      'Identifiant',
+      'Rattachement',
+      'Rôle',
+      'Photo',
+      'Mot de passe',
+      'Archiver',
+      'Supprimer',
     ]) {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.text('karim'), findsOneWidget);
     for (final role in [
-      'role-effectif', 'role-admin', 'role-gardien', 'role-coach',
+      'role-effectif',
+      'role-admin',
+      'role-gardien',
+      'role-coach',
     ]) {
       expect(find.byKey(ValueKey(role)), findsOneWidget);
     }
     await tester.tap(find.text('Karim').first);
     await tester.pumpAndSettle();
     expect(find.text('Modifier'), findsNothing);
-    expect(find.text('Identifiant'), findsNothing); });
+    expect(find.text('Identifiant'), findsNothing);
+  });
 
   testWidgets('un compte hors effectif peut y être ajouté', (tester) async {
     repository.profiles = [_profile('p-1', 'Roman', status: 'active')];
@@ -314,8 +324,7 @@ void main() {
     expect(roster.playerUpdates.last, ('sp-1', 'Karim', false, true));
   });
 
-  testWidgets('modifier le prénom dans la fiche sans popup',
-      (tester) async {
+  testWidgets('modifier le prénom dans la fiche sans popup', (tester) async {
     repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
     roster.seasonId = 's-1';
     roster.players = [_rosterPlayer('sp-1', 'Karim', profileId: 'p-1')];
