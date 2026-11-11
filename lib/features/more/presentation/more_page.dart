@@ -1,12 +1,10 @@
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/sign_out_confirmation.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
-import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,22 +54,6 @@ class MorePage extends ConsumerWidget {
             const _SectionLabel('Club · admin'),
             _SettingsGroup(
               children: [
-                _SettingsTile(
-                  icon: Icons.stadium_outlined,
-                  title: 'Équipes & stades',
-                  onTap: () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const OpponentStadiumLibraryPage(),
-                      ),
-                    );
-                    if (!context.mounted) return;
-                    await ref.read(matchesControllerProvider.notifier).load(
-                          allSeasons: true,
-                          forceRefresh: true,
-                        );
-                  },
-                ),
                 _SettingsTile(
                   icon: Icons.groups_outlined,
                   title: 'Effectif',

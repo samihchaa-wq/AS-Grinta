@@ -276,6 +276,44 @@ void main() {
     expect(find.text('Créer une saison'), findsNothing);
   });
 
+  testWidgets('les Réglages enregistrent les valeurs par défaut',
+      (tester) async {
+    await pumpAdmin(tester, home: const AdminSettingsPage());
+
+    expect(find.text('Équipes & stades'), findsOneWidget);
+    final size = find.byKey(const ValueKey('club-default-squad-size'));
+    final address = find.byKey(const ValueKey('club-default-home-address'));
+    expect(tester.widget<TextField>(size).controller!.text, '14');
+    expect(tester.widget<TextField>(address).controller!.text, 'INP - Labège');
+
+    // Une taille hors limites est refusée sans appeler le serveur.
+    await tester.enterText(size, '45');
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('La taille du groupe doit être entre 1 et 30.'),
+      findsOneWidget,
+    );
+    expect(repository.savedDefaults, isEmpty);
+
+    await tester.enterText(size, '16');
+    await tester.enterText(address, '1 rue du Stade');
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+
+    expect(repository.savedDefaults, [(16, '1 rue du Stade')]);
+    expect(find.text('Valeurs par défaut enregistrées.'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('club-default-squad-size')),
+          )
+          .controller!
+          .text,
+      '16',
+    );
+  });
+
   testWidgets('sans saison ouverte, les Réglages proposent d’en créer une',
       (tester) async {
     repository.seasons = const [
@@ -399,6 +437,27 @@ class _FakeAdminRepository implements AdminRepository {
   @override
   Future<List<AdminHistoricalPlayer>> fetchHistoricalPlayers() async =>
       const [];
+
+  AdminClubDefaults clubDefaults = const AdminClubDefaults(
+    usualSquadSize: 14,
+    homeAddress: 'INP - Labège',
+  );
+  final savedDefaults = <(int, String)>[];
+
+  @override
+  Future<AdminClubDefaults> fetchClubDefaults() async => clubDefaults;
+
+  @override
+  Future<AdminClubDefaults> saveClubDefaults({
+    required int usualSquadSize,
+    required String homeAddress,
+  }) async {
+    savedDefaults.add((usualSquadSize, homeAddress));
+    return clubDefaults = AdminClubDefaults(
+      usualSquadSize: usualSquadSize,
+      homeAddress: homeAddress,
+    );
+  }
 
   @override
   Future<void> updateProfileStatus(String profileId, String status) async {

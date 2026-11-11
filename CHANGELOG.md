@@ -13,8 +13,12 @@ Toutes les évolutions notables d’AS Grinta sont documentées ici.
   retrait garde la fiche, les statistiques et l'historique ; un nouvel ajout
   réactive la même fiche). Le poste (gardien/coach) et les photos se règlent
   depuis la même fiche. Les joueurs sans compte restent listés à la suite ;
-- admin : nouvelle entrée « Réglages » dans les Paramètres. Elle reprend
-  l'ancien onglet « Saison » (créer ou finir la saison) ;
+- admin : nouvelle entrée « Réglages » dans les Paramètres. Elle réunit
+  l'ancien onglet « Saison » (créer ou finir la saison), « Équipes &
+  stades », et deux valeurs par défaut jusqu'ici modifiables seulement en
+  base : la taille habituelle du groupe et l'adresse du terrain à domicile.
+  Elles sont proposées à la création d'un match ; les matchs déjà créés ne
+  changent pas ;
 - admin : le mode « Voir l'app comme un joueur » est retiré ;
 - maillots : les trois maillots proposés pour un match (France, Orange,
   Bleu) sont désormais des dessins aux couleurs du club, sans logo ni

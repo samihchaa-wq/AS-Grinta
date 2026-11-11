@@ -104,7 +104,6 @@ void main() {
     for (final title in [
       'Indisponibilité',
       'Liste d’attente',
-      'Équipes & stades',
       'Effectif',
       'Réglages',
       'Se déconnecter',
@@ -162,7 +161,6 @@ void main() {
     expect(find.text('Se déconnecter'), findsOneWidget);
 
     expect(find.text('CLUB · ADMIN'), findsNothing);
-    expect(find.text('Équipes & stades'), findsNothing);
     expect(find.text('Effectif'), findsNothing);
     expect(find.text('Réglages'), findsNothing);
     expect(find.text('Indisponibilité'), findsNothing);

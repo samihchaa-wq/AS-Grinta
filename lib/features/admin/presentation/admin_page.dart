@@ -3,6 +3,8 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
+import 'package:as_grinta/features/admin/presentation/opponent_stadium_library_page.dart';
+import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
@@ -13,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 part 'admin_season_section.dart';
+part 'admin_club_defaults_section.dart';
 part 'admin_profiles_section_v2.dart';
 part 'admin_profile_actions.dart';
 part 'admin_profile_dialogs.dart';
@@ -49,7 +52,8 @@ class _AdminPageState extends ConsumerState<AdminPage> {
   }
 }
 
-/// Réglages du club, ouverts depuis les Paramètres : la saison en cours.
+/// Réglages du club, ouverts depuis les Paramètres : la saison en cours, les
+/// valeurs par défaut des matchs, les équipes et les stades.
 class AdminSettingsPage extends StatelessWidget {
   const AdminSettingsPage({super.key});
 
@@ -297,6 +301,7 @@ class _SeasonSection extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(adminDashboardProvider);
+        ref.invalidate(adminClubDefaultsProvider);
         await ref.read(adminDashboardProvider.future);
       },
       child: ListView(
@@ -304,6 +309,31 @@ class _SeasonSection extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
         children: [
           _SeasonCard(dashboard: dashboard),
+          const SizedBox(height: 14),
+          const _ClubDefaultsCard(),
+          const SizedBox(height: 14),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: const Icon(Icons.stadium_outlined),
+              title: const Text('Équipes & stades'),
+              subtitle: const Text('Adversaires et adresse de leur terrain.'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const OpponentStadiumLibraryPage(),
+                  ),
+                );
+                if (!context.mounted) return;
+                // Les matchs affichent le nom et le stade des adversaires.
+                await ref.read(matchesControllerProvider.notifier).load(
+                      allSeasons: true,
+                      forceRefresh: true,
+                    );
+              },
+            ),
+          ),
         ],
       ),
     );
