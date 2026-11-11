@@ -585,7 +585,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
               ),
             )
           : ExpansionTile(
-              key: PageStorageKey<String>('validated-profile-${profile.id}'),
+              key: ValueKey<String>('validated-profile-${profile.id}'),
               initiallyExpanded: false,
               tilePadding: const EdgeInsets.symmetric(horizontal: 12),
               childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
