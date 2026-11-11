@@ -418,7 +418,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                   onSelected: !canEditRoster
                       ? null
                       : (_) => updatePlayerRole(
-                            isGoalkeeper: !player.isGoalkeeper,
+                            isGoalkeeper: !player!.isGoalkeeper,
                             isCoach: false,
                           ),
                 ),
@@ -431,7 +431,7 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
                       ? null
                       : (_) => updatePlayerRole(
                             isGoalkeeper: false,
-                            isCoach: !player.isCoach,
+                            isCoach: !player!.isCoach,
                           ),
                 ),
               ],
