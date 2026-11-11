@@ -263,13 +263,13 @@ void main() {
       closeTo(tester.getTopLeft(find.text('Identifiant')).dy, 1),
     );
     final firstRole = tester
-        .getTopLeft(
+        .getCenter(
           find.byKey(const ValueKey('role-effectif')),
         )
         .dy;
     for (final role in ['role-admin', 'role-gardien', 'role-coach']) {
       expect(
-        tester.getTopLeft(find.byKey(ValueKey(role))).dy,
+        tester.getCenter(find.byKey(ValueKey(role))).dy,
         closeTo(firstRole, 1),
       );
     }
