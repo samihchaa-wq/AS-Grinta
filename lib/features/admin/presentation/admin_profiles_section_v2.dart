@@ -5,41 +5,75 @@ final _adminHistoricalPlayersProvider =
   return ref.watch(adminRepositoryProvider).fetchHistoricalPlayers();
 });
 
-class _RoleChoice extends StatelessWidget {
-  const _RoleChoice({required this.current, required this.onSelected});
+// Les trois actions « Modifier » ont un contraste lisible sur le fond nuit.
+class _MemberEditButton extends StatelessWidget {
+  const _MemberEditButton({required this.onPressed});
 
-  final String current;
-  final ValueChanged<String> onSelected;
-
-  static const _roles = <({String value, String label})>[
-    (value: 'pronostiqueur', label: 'Utilisateur'),
-    (value: 'admin', label: 'Admin'),
-  ];
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        const Text('Rôle :'),
-        for (final role in _roles)
-          ChoiceChip(
-            visualDensity: VisualDensity.compact,
-            showCheckmark: false,
-            label: Text(role.label),
-            selected: role.value == current,
-            onSelected: (_) {
-              if (role.value != current) onSelected(role.value);
-            },
-          ),
-      ],
+    return FilledButton(
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFF1464EF),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor:
+            Theme.of(context).colorScheme.surfaceContainerHighest,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        minimumSize: const Size(0, 38),
+        visualDensity: VisualDensity.compact,
+      ),
+      onPressed: onPressed,
+      child: const Text('Modifier'),
     );
   }
 }
 
-class _ProfileCard extends ConsumerWidget {
+class _MemberDetailRow extends StatelessWidget {
+  const _MemberDetailRow({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(width: 112, child: Text(label)),
+          const SizedBox(width: 6),
+          Expanded(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+class _MemberValue extends StatelessWidget {
+  const _MemberValue(this.value);
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 40),
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: scheme.outlineVariant),
+        color: scheme.surfaceContainerHighest.withValues(alpha: .46),
+      ),
+      child: Text(value, maxLines: 2, overflow: TextOverflow.ellipsis),
+    );
+  }
+}
+
+class _ProfileCard extends ConsumerStatefulWidget {
   const _ProfileCard({
     required this.profile,
     this.effectif,
@@ -55,7 +89,44 @@ class _ProfileCard extends ConsumerWidget {
   final RosterPlayer? rosterPlayer;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ProfileCard> createState() => _ProfileCardState();
+}
+
+class _ProfileCardState extends ConsumerState<_ProfileCard> {
+  late final TextEditingController _firstNameController;
+  bool _savingFirstName = false;
+
+  String get _rosterFirstName =>
+      widget.rosterPlayer?.firstName ?? widget.profile.firstName;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController(text: _rosterFirstName);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProfileCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previous =
+        oldWidget.rosterPlayer?.firstName ?? oldWidget.profile.firstName;
+    if (previous != _rosterFirstName) {
+      _firstNameController.text = _rosterFirstName;
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    super.dispose();
+  }
+
+  AdminProfileItem get profile => widget.profile;
+  _EffectifContext? get effectif => widget.effectif;
+  RosterPlayer? get rosterPlayer => widget.rosterPlayer;
+
+  @override
+  Widget build(BuildContext context) {
     final repository = ref.read(adminRepositoryProvider);
     final currentUserId = ref.watch(authControllerProvider).profile?.id;
     final policy = adminProfileActionPolicy(
@@ -129,159 +200,327 @@ class _ProfileCard extends ConsumerWidget {
       );
     }
 
-    Widget effectifDetails(_EffectifContext effectif) {
+    Future<void> saveFirstName() async {
       final player = rosterPlayer;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(height: 16),
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              const Text('Effectif :'),
-              ChoiceChip(
-                visualDensity: VisualDensity.compact,
-                showCheckmark: false,
-                label: const Text('Oui'),
-                selected: inRoster,
-                onSelected: (_) {
-                  if (!inRoster && !policy.isArchived) {
-                    toggleRoster(effectif);
-                  }
-                },
-              ),
-              ChoiceChip(
-                visualDensity: VisualDensity.compact,
-                showCheckmark: false,
-                label: const Text('Non'),
-                selected: !inRoster,
-                onSelected: (_) {
-                  if (inRoster) toggleRoster(effectif);
-                },
-              ),
-              if (inRoster && player!.isCoach) const Text('Coach'),
-              if (inRoster && player!.isGoalkeeper) const Text('Gardien'),
-            ],
-          ),
-          if (inRoster)
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () => showRosterPlayerDialog(
-                    context,
-                    ref,
-                    seasonId: effectif.seasonId,
-                    existing: player,
-                  ),
-                  child: const Text('Poste'),
-                ),
-                TextButton(
-                  onPressed: () => chooseRosterPhoto(
-                    context,
-                    ref,
-                    seasonId: effectif.seasonId,
-                    player: player!,
-                  ),
-                  child: const Text('Photos'),
-                ),
-              ],
-            ),
-        ],
+      final currentEffectif = effectif;
+      if (player == null || currentEffectif == null || _savingFirstName) return;
+      final name = _firstNameController.text.trim();
+      if (name.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Le prénom est obligatoire.')),
+        );
+        return;
+      }
+      if (name == player.firstName.trim()) return;
+      setState(() => _savingFirstName = true);
+      try {
+        await ref.read(rosterRepositoryProvider).updatePlayer(
+              id: player.id,
+              firstName: name,
+              isGoalkeeper: player.isGoalkeeper,
+              isCoach: player.isCoach,
+            );
+        ref.invalidate(rosterProvider(currentEffectif.seasonId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Prénom de la fiche joueur enregistré.')),
+          );
+        }
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(humanizeError(error))),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _savingFirstName = false);
+      }
+    }
+
+    Future<void> updatePlayerRole({
+      required bool isGoalkeeper,
+      required bool isCoach,
+    }) async {
+      final player = rosterPlayer;
+      final currentEffectif = effectif;
+      if (player == null || currentEffectif == null || policy.isArchived) {
+        return;
+      }
+      await run(() async {
+        await ref.read(rosterRepositoryProvider).updatePlayer(
+              id: player.id,
+              firstName: player.firstName,
+              isGoalkeeper: isGoalkeeper,
+              isCoach: isCoach,
+            );
+        ref.invalidate(rosterProvider(currentEffectif.seasonId));
+      });
+    }
+
+    Future<void> modifyHistoricalLink() async {
+      final choice = await _pickHistorical(
+        context,
+        repository,
+        profileId: profile.id,
+      );
+      if (choice == null) return;
+      await run(
+        () => repository.setHistoricalProfile(
+          profileId: profile.id,
+          historicalId: choice.historicalId,
+        ),
+        success: choice.historicalId == null
+            ? 'Historique détaché de ${profile.displayName}.'
+            : 'Historique rattaché à ${profile.displayName}.',
+      );
+      ref.invalidate(_adminHistoricalPlayersProvider);
+    }
+
+    Future<void> archiveAccount() async {
+      final nextStatus = policy.isArchived ? 'active' : 'archived';
+      if (!policy.isArchived) {
+        final confirmed = await _confirm(
+          context,
+          'Archiver ce compte ?',
+          '${profile.displayName} ne pourra plus se connecter. '
+              'Ses données seront conservées.',
+        );
+        if (!confirmed) return;
+      }
+      await run(
+        () => repository.updateProfileStatus(profile.id, nextStatus),
+        success: policy.isArchived ? 'Compte réactivé.' : 'Compte archivé.',
+      );
+    }
+
+    Future<void> deleteAccount() async {
+      final confirmed = await _confirm(
+        context,
+        'Supprimer ce compte ?',
+        '${profile.displayName} sera supprimé définitivement. '
+            'Pour bloquer uniquement la connexion, utilise « Archiver ».',
+      );
+      if (!confirmed) return;
+      await run(
+        () => repository.deleteAccount(profile.id),
+        success: 'Compte supprimé.',
       );
     }
 
     Widget validatedDetails() {
+      final player = rosterPlayer;
       final currentEffectif = effectif;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (profile.username.trim().isNotEmpty)
-            Text('Identifiant : ${profile.username}'),
-          Text(
-            historicalPlayers == null
-                ? 'Rattachement : …'
-                : historicalPlayer == null
-                    ? 'Rattachement : aucun'
-                    : 'Rattachement : ${historicalPlayer.name}',
-          ),
-          if (!policy.isSelf) ...[
-            const SizedBox(height: 6),
-            _RoleChoice(
-              current: profile.role,
-              onSelected: (role) => run(
-                () => repository.updateProfileRole(profile.id, role),
-                success: 'Accès de ${profile.displayName} mis à jour.',
+      final canEditRoster = player != null &&
+          currentEffectif != null &&
+          !policy.isArchived &&
+          !_savingFirstName;
+      final editedName = _firstNameController.text.trim();
+      final nameChanged =
+          player != null && editedName != player.firstName.trim();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _MemberDetailRow(
+              label: 'Prénom',
+              child: player == null
+                  ? _MemberValue(profile.firstName)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        TextField(
+                          key: ValueKey<String>(
+                              'effectif-first-name-${profile.id}'),
+                          controller: _firstNameController,
+                          enabled: canEditRoster,
+                          textCapitalization: TextCapitalization.words,
+                          textInputAction: TextInputAction.done,
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: (_) => saveFirstName(),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        if (nameChanged && canEditRoster)
+                          TextButton(
+                            onPressed: saveFirstName,
+                            child: const Text('Enregistrer'),
+                          ),
+                      ],
+                    ),
+            ),
+            _MemberDetailRow(
+              label: 'Identifiant',
+              // L'identifiant est celui de connexion : il ne doit pas être
+              // modifié comme un simple libellé sans migrer l'adresse Auth.
+              child: _MemberValue(
+                  profile.username.isEmpty ? '—' : profile.username),
+            ),
+            const Divider(height: 16),
+            _MemberDetailRow(
+              label: 'Rattachement',
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      historicalPlayers == null
+                          ? 'Chargement…'
+                          : historicalPlayer?.name ?? 'Aucun',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  if (!policy.isSelf)
+                    _MemberEditButton(onPressed: modifyHistoricalLink),
+                ],
               ),
             ),
-          ],
-          if (!profile.passwordSet)
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text('Première connexion en attente'),
-            ),
-          if (currentEffectif != null) effectifDetails(currentEffectif),
-          if (!policy.isSelf) ...[
             const Divider(height: 16),
-            _ValidatedProfileActions(
-              profile: profile,
-              archived: policy.isArchived,
-              onResetPassword: () =>
-                  _resetPassword(context, ref, repository, profile),
-              onHistory: () async {
-                final choice = await _pickHistorical(
-                  context,
-                  repository,
-                  profileId: profile.id,
-                );
-                if (choice == null) return;
-                await run(
-                  () => repository.setHistoricalProfile(
-                    profileId: profile.id,
-                    historicalId: choice.historicalId,
-                  ),
-                  success: choice.historicalId == null
-                      ? 'Historique détaché de ${profile.displayName}.'
-                      : 'Historique rattaché à ${profile.displayName}.',
-                );
-                ref.invalidate(_adminHistoricalPlayersProvider);
-              },
-              onArchiveToggle: () async {
-                final nextStatus = policy.isArchived ? 'active' : 'archived';
-                if (!policy.isArchived) {
-                  final confirmed = await _confirm(
-                    context,
-                    'Archiver ce compte ?',
-                    '${profile.displayName} ne pourra plus se connecter. '
-                        'Ses données seront conservées.',
-                  );
-                  if (!confirmed) return;
-                }
-                await run(
-                  () => repository.updateProfileStatus(profile.id, nextStatus),
-                  success: policy.isArchived
-                      ? 'Compte réactivé.'
-                      : 'Compte archivé.',
-                );
-              },
-              onDelete: () async {
-                final confirmed = await _confirm(
-                  context,
-                  'Supprimer ce compte ?',
-                  '${profile.displayName} sera supprimé définitivement. '
-                      'Pour bloquer uniquement la connexion, utilise '
-                      '« Archiver ».',
-                );
-                if (!confirmed) return;
-                await run(
-                  () => repository.deleteAccount(profile.id),
-                  success: 'Compte supprimé.',
-                );
-              },
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Text('Rôle'),
             ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                FilterChip(
+                  key: const ValueKey('role-effectif'),
+                  label: const Text('Effectif'),
+                  showCheckmark: true,
+                  selected: inRoster,
+                  onSelected: currentEffectif == null ||
+                          (policy.isArchived && !inRoster)
+                      ? null
+                      : (_) => toggleRoster(currentEffectif),
+                ),
+                FilterChip(
+                  key: const ValueKey('role-admin'),
+                  label: const Text('Admin'),
+                  showCheckmark: true,
+                  selected: profile.role == 'admin',
+                  onSelected: policy.isSelf || policy.isArchived
+                      ? null
+                      : (_) => run(
+                            () => repository.updateProfileRole(
+                              profile.id,
+                              profile.role == 'admin'
+                                  ? 'pronostiqueur'
+                                  : 'admin',
+                            ),
+                            success:
+                                'Accès de ${profile.displayName} mis à jour.',
+                          ),
+                ),
+                FilterChip(
+                  key: const ValueKey('role-gardien'),
+                  label: const Text('Gardien'),
+                  showCheckmark: true,
+                  selected: player?.isGoalkeeper ?? false,
+                  onSelected: !canEditRoster
+                      ? null
+                      : (_) => updatePlayerRole(
+                            isGoalkeeper: !player.isGoalkeeper,
+                            isCoach: false,
+                          ),
+                ),
+                FilterChip(
+                  key: const ValueKey('role-coach'),
+                  label: const Text('Coach'),
+                  showCheckmark: true,
+                  selected: player?.isCoach ?? false,
+                  onSelected: !canEditRoster
+                      ? null
+                      : (_) => updatePlayerRole(
+                            isGoalkeeper: false,
+                            isCoach: !player.isCoach,
+                          ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            _MemberDetailRow(
+              label: 'Photo',
+              child: Row(
+                children: [
+                  if (player != null)
+                    PlayerAvatar(
+                      photoUrl: player.photoUrl,
+                      name: player.displayName,
+                      lastName: player.lastName,
+                      isGoalkeeper: player.isGoalkeeper,
+                      size: 45,
+                    )
+                  else
+                    const Expanded(child: Text('Aucune photo')),
+                  if (player != null) const Spacer(),
+                  _MemberEditButton(
+                    onPressed: player == null || currentEffectif == null
+                        ? null
+                        : () => chooseRosterPhoto(
+                              context,
+                              ref,
+                              seasonId: currentEffectif.seasonId,
+                              player: player,
+                            ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 16),
+            _MemberDetailRow(
+              label: 'Mot de passe',
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _MemberEditButton(
+                  onPressed: policy.isSelf || policy.isArchived
+                      ? null
+                      : () => _resetPassword(
+                            context,
+                            ref,
+                            repository,
+                            profile,
+                          ),
+                ),
+              ),
+            ),
+            if (!profile.passwordSet)
+              const Text('Première connexion en attente'),
+            if (!policy.isSelf) ...[
+              const Divider(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: archiveAccount,
+                      child: Text(policy.isArchived ? 'Réactiver' : 'Archiver'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        foregroundColor: Theme.of(context).colorScheme.onError,
+                      ),
+                      onPressed: deleteAccount,
+                      child: const Text('Supprimer'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       );
     }
 
@@ -346,7 +585,7 @@ class _ProfileCard extends ConsumerWidget {
               ),
             )
           : ExpansionTile(
-              key: PageStorageKey<String>('validated-profile-${profile.id}'),
+              key: ValueKey<String>('validated-profile-${profile.id}'),
               initiallyExpanded: false,
               tilePadding: const EdgeInsets.symmetric(horizontal: 12),
               childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),

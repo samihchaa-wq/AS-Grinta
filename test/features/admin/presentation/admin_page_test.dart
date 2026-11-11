@@ -213,22 +213,38 @@ void main() {
     expect(find.textContaining('karim'), findsNothing);
     expect(find.textContaining('Utilisateur'), findsNothing);
     expect(find.textContaining('Hors effectif'), findsNothing);
-    expect(find.text('Rôle :'), findsNothing);
+    expect(find.text('Rôle'), findsNothing);
 
     await tester.tap(find.text('Karim'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Modifier'), findsNWidgets(2));
+    expect(find.text('Modifier'), findsNWidgets(3));
     expect(find.text('Fermer'), findsNothing);
-    expect(find.text('Identifiant : karim'), findsOneWidget);
-    expect(find.text('Rôle :'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, 'Oui'), findsOneWidget);
-    expect(find.widgetWithText(ChoiceChip, 'Non'), findsOneWidget);
-
-    await tester.tap(find.text('Karim'));
+    for (final label in [
+      'Prénom',
+      'Identifiant',
+      'Rattachement',
+      'Rôle',
+      'Photo',
+      'Mot de passe',
+      'Archiver',
+      'Supprimer',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('karim'), findsOneWidget);
+    for (final role in [
+      'role-effectif',
+      'role-admin',
+      'role-gardien',
+      'role-coach',
+    ]) {
+      expect(find.byKey(ValueKey(role)), findsOneWidget);
+    }
+    await tester.tap(find.text('Karim').first);
     await tester.pumpAndSettle();
     expect(find.text('Modifier'), findsNothing);
-    expect(find.text('Identifiant : karim'), findsNothing);
+    expect(find.text('Identifiant'), findsNothing);
   });
 
   testWidgets('un compte hors effectif peut y être ajouté', (tester) async {
@@ -240,7 +256,7 @@ void main() {
 
     await tester.tap(find.text('Roman'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Oui'));
+    await tester.tap(find.byKey(const ValueKey('role-effectif')));
     await tester.pumpAndSettle();
 
     expect(roster.added, [('s-1', 'p-1', 'Roman', null)]);
@@ -257,7 +273,7 @@ void main() {
     await pumpAdmin(tester);
     await tester.tap(find.text('Karim'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Non'));
+    await tester.tap(find.byKey(const ValueKey('role-effectif')));
     await tester.pumpAndSettle();
     expect(find.text('Retirer de l’effectif ?'), findsOneWidget);
     await confirmDialog(tester);
@@ -266,9 +282,9 @@ void main() {
     expect(find.textContaining('Hors effectif'), findsNothing);
     expect(
       tester
-          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Non'))
+          .widget<FilterChip>(find.byKey(const ValueKey('role-effectif')))
           .selected,
-      isTrue,
+      isFalse,
     );
   });
 
@@ -283,10 +299,50 @@ void main() {
     await pumpAdmin(tester);
     await tester.tap(find.text('Karim'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Oui'));
+    await tester.tap(find.byKey(const ValueKey('role-effectif')));
     await tester.pumpAndSettle();
 
     expect(roster.added, [('s-1', 'p-1', 'Karim', 'sp-1')]);
+  });
+
+  testWidgets('modifier Gardien et Coach directement dans la fiche',
+      (tester) async {
+    repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
+    roster.seasonId = 's-1';
+    roster.players = [_rosterPlayer('sp-1', 'Karim', profileId: 'p-1')];
+
+    await pumpAdmin(tester);
+    await tester.tap(find.text('Karim'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('role-gardien')));
+    await tester.pumpAndSettle();
+    expect(roster.playerUpdates.last, ('sp-1', 'Karim', true, false));
+
+    await tester.tap(find.byKey(const ValueKey('role-coach')));
+    await tester.pumpAndSettle();
+    expect(roster.playerUpdates.last, ('sp-1', 'Karim', false, true));
+  });
+
+  testWidgets('modifier le prénom dans la fiche sans popup', (tester) async {
+    repository.profiles = [_profile('p-1', 'Karim', status: 'active')];
+    roster.seasonId = 's-1';
+    roster.players = [_rosterPlayer('sp-1', 'Karim', profileId: 'p-1')];
+
+    await pumpAdmin(tester);
+    await tester.tap(find.text('Karim'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('effectif-first-name-p-1')),
+      'Karimou',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pumpAndSettle();
+
+    expect(roster.playerUpdates.last, ('sp-1', 'Karimou', false, false));
+    expect(find.text('Enregistrer'), findsNothing);
   });
 
   testWidgets('les fiches sans compte restent visibles', (tester) async {
@@ -415,13 +471,15 @@ RosterPlayer _rosterPlayer(
   String firstName, {
   String? profileId,
   bool active = true,
+  bool goalkeeper = false,
+  bool coach = false,
 }) =>
     RosterPlayer(
       id: id,
       firstName: firstName,
       lastName: '',
-      isGoalkeeper: false,
-      isCoach: false,
+      isGoalkeeper: goalkeeper,
+      isCoach: coach,
       isActive: active,
       linkedProfileId: profileId,
       linkedProfileName: profileId == null ? null : firstName,
@@ -433,6 +491,7 @@ class _FakeRosterRepository implements RosterRepository {
   List<RosterPlayer> players = const [];
   final added = <(String, String, String, String?)>[];
   final activeChanges = <(String, bool)>[];
+  final playerUpdates = <(String, String, bool, bool)>[];
 
   @override
   Future<String?> openSeasonId() async => seasonId;
@@ -456,6 +515,30 @@ class _FakeRosterRepository implements RosterRepository {
         firstName,
         profileId: profileId,
       ),
+    ];
+  }
+
+  @override
+  Future<void> updatePlayer({
+    required String id,
+    required String firstName,
+    required bool isGoalkeeper,
+    bool isCoach = false,
+  }) async {
+    playerUpdates.add((id, firstName, isGoalkeeper, isCoach));
+    players = [
+      for (final player in players)
+        if (player.id == id)
+          _rosterPlayer(
+            player.id,
+            firstName,
+            profileId: player.linkedProfileId,
+            active: player.isActive,
+            goalkeeper: isGoalkeeper,
+            coach: isCoach,
+          )
+        else
+          player,
     ];
   }
 
