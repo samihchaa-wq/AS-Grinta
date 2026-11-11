@@ -408,96 +408,82 @@ class _ProfileCardState extends ConsumerState<_ProfileCard> {
             Row(
               children: [
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: FilterChip(
-                  key: const ValueKey('role-effectif'),
-                  label: const Text('Effectif'),
-                  showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
-                  labelPadding: EdgeInsets.zero,
-                  selected: inRoster,
-                  onSelected: currentEffectif == null ||
-                          (policy.isArchived && !inRoster)
-                      ? null
-                      : (_) => toggleRoster(currentEffectif),
-                ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-effectif'),
+                      label: const Text('Effectif'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: inRoster,
+                      onSelected: currentEffectif == null ||
+                              (policy.isArchived && !inRoster)
+                          ? null
+                          : (_) => toggleRoster(currentEffectif),
                     ),
                   ),
                 ),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: FilterChip(
-                  key: const ValueKey('role-admin'),
-                  label: const Text('Admin'),
-                  showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
-                  labelPadding: EdgeInsets.zero,
-                  selected: profile.role == 'admin',
-                  onSelected: policy.isSelf || policy.isArchived
-                      ? null
-                      : (_) => run(
-                            () => repository.updateProfileRole(
-                              profile.id,
-                              profile.role == 'admin'
-                                  ? 'pronostiqueur'
-                                  : 'admin',
-                            ),
-                            success:
-                                'Accès de ${profile.displayName} mis à jour.',
-                          ),
-                ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-admin'),
+                      label: const Text('Admin'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: profile.role == 'admin',
+                      onSelected: policy.isSelf || policy.isArchived
+                          ? null
+                          : (_) => run(
+                                () => repository.updateProfileRole(
+                                  profile.id,
+                                  profile.role == 'admin'
+                                      ? 'pronostiqueur'
+                                      : 'admin',
+                                ),
+                                success:
+                                    'Accès de ${profile.displayName} mis à jour.',
+                              ),
                     ),
                   ),
                 ),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: FilterChip(
-                  key: const ValueKey('role-gardien'),
-                  label: const Text('Gardien'),
-                  showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
-                  labelPadding: EdgeInsets.zero,
-                  selected: player?.isGoalkeeper ?? false,
-                  onSelected: !canEditRoster
-                      ? null
-                      : (_) => updatePlayerRole(
-                            isGoalkeeper: !player.isGoalkeeper,
-                            isCoach: false,
-                          ),
-                ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-gardien'),
+                      label: const Text('Gardien'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: player?.isGoalkeeper ?? false,
+                      onSelected: !canEditRoster
+                          ? null
+                          : (_) => updatePlayerRole(
+                                isGoalkeeper: !player.isGoalkeeper,
+                                isCoach: false,
+                              ),
                     ),
                   ),
                 ),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: FilterChip(
-                  key: const ValueKey('role-coach'),
-                  label: const Text('Coach'),
-                  showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
-                  labelPadding: EdgeInsets.zero,
-                  selected: player?.isCoach ?? false,
-                  onSelected: !canEditRoster
-                      ? null
-                      : (_) => updatePlayerRole(
-                            isGoalkeeper: false,
-                            isCoach: !player.isCoach,
-                          ),
-                ),
-              ],
-            ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: FilterChip(
+                      key: const ValueKey('role-coach'),
+                      label: const Text('Coach'),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      labelPadding: EdgeInsets.zero,
+                      selected: player?.isCoach ?? false,
+                      onSelected: !canEditRoster
+                          ? null
+                          : (_) => updatePlayerRole(
+                                isGoalkeeper: false,
+                                isCoach: !player.isCoach,
+                              ),
                     ),
                   ),
                 ),
