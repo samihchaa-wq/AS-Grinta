@@ -41,7 +41,6 @@ String badgeImageDeliveryUrl(
   return uri.replace(path: path, queryParameters: params).toString();
 }
 
-
 /// URL à essayer dans l'ordre : image optimisée, puis objet public original.
 ///
 /// Le service de transformation peut refuser une image alors que l'objet
