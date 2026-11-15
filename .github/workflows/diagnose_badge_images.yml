@@ -56,7 +56,7 @@ jobs:
                 and exists (
                   select 1 from storage.objects s
                   where s.bucket_id = 'badge-images'
-                    and s.name = private.badge_image_storage_path(b.image_url)
+                    and s.name = split_part(split_part(coalesce(b.image_url, ''), '/badge-images/', 2), '?', 1)
                 )
             ) as linked_images_present_in_storage,
             (select count(*) from storage.objects s where s.bucket_id = 'badge-images')
@@ -78,7 +78,7 @@ jobs:
             case when exists (
               select 1 from storage.objects s
               where s.bucket_id = 'badge-images'
-                and s.name = private.badge_image_storage_path(b.image_url)
+                and s.name = split_part(split_part(coalesce(b.image_url, ''), '/badge-images/', 2), '?', 1)
             ) then 'FILE_PRESENT' else 'FILE_ABSENT' end as storage_file
           from public.badges b
           where b.kind = 'custom'
