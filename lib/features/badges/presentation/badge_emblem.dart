@@ -80,6 +80,23 @@ class BadgeEmblem extends StatelessWidget {
         .ceil()
         .clamp(1, kBadgeImageDeliveryWidth)
         .toInt();
+    // Réessayer le fichier public original si la transformation Supabase
+    // échoue : les badges conservent ainsi leur illustration personnalisée.
+    Widget remoteImage(String url, {Widget? onError}) {
+      return Image.network(
+        url,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        cacheWidth: decodedWidth,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => onError ?? fallback,
+      );
+    }
+
+    final remoteUrls = sourceUrl == null || sourceUrl.isEmpty
+        ? const <String>[]
+        : badgeImageDeliveryCandidates(sourceUrl);
     final illustration = localBytes != null && localBytes.isNotEmpty
         ? Image.memory(
             localBytes,
@@ -91,17 +108,14 @@ class BadgeEmblem extends StatelessWidget {
             gaplessPlayback: true,
             errorBuilder: (_, __, ___) => fallback,
           )
-        : sourceUrl == null || sourceUrl.isEmpty
+        : remoteUrls.isEmpty
             ? fallback
-            : Image.network(
-                badgeImageDeliveryUrl(sourceUrl),
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                cacheWidth: decodedWidth,
-                filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => fallback,
-              );
+            : remoteUrls.length == 1
+                ? remoteImage(remoteUrls.first)
+                : remoteImage(
+                    remoteUrls.first,
+                    onError: remoteImage(remoteUrls.last),
+                  );
 
     final body = BadgeEmblemBody(
       size: size,
