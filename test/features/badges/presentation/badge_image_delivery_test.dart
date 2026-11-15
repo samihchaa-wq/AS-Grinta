@@ -36,7 +36,7 @@ void main() {
           'badge-images/custom/badge.png';
       expect(badgeImageDeliveryCandidates(original), [
         'https://project.supabase.co/storage/v1/render/image/public/'
-            'badge-images/custom/badge.png?width=360&quality=75',
+        'badge-images/custom/badge.png?width=360&quality=75',
         original,
       ]);
     });
