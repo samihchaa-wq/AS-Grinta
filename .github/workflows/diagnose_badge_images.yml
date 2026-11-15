@@ -88,3 +88,48 @@ jobs:
           order by lower(b.name), b.code;
           SQL
           supabase db query --remote --read-only --file "$RUNNER_TEMP/badge_status.sql" --output table
+
+      - name: Compare HTTP delivery of four photographed badges
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/badge_http_urls.sql" <<'SQL'
+          select code, name, image_url from public.badges
+          where code in (
+            'custom_coup_du_chapeau_1790725592200',
+            'custom_entr_e_fracassante_1794287679545',
+            'custom_gardien_d_un_soir_1790198294777',
+            'custom_immanquable_1790244481714'
+          )
+          order by code;
+          SQL
+          supabase db query --remote --read-only --file "$RUNNER_TEMP/badge_http_urls.sql" --output csv > "$RUNNER_TEMP/badge_urls.csv"
+          python3 - <<'PY'
+          import csv, hashlib, os, urllib.parse, urllib.request, urllib.error
+          source = os.path.join(os.environ["RUNNER_TEMP"], "badge_urls.csv")
+          with open(source, newline="", encoding="utf-8") as stream:
+              records = list(csv.DictReader(stream))
+          print(f"Image HTTP diagnostic: {len(records)} selected badges")
+          for r in records:
+              original = (r.get("image_url") or "").strip()
+              parsed = urllib.parse.urlsplit(original)
+              transform = original.replace(
+                  "/storage/v1/object/public/badge-images/",
+                  "/storage/v1/render/image/public/badge-images/"
+              )
+              transform = transform + ("&" if "?" in transform else "?") + "width=360&quality=75"
+              print(f"{r.get('name')}: host={parsed.hostname or '(empty)'}")
+              for version, url in (("public-original", original), ("optimized-render", transform)):
+                  if not url.startswith("https://"):
+                      print(f"  {version}: INVALID_URL")
+                      continue
+                  try:
+                      request = urllib.request.Request(url, headers={"User-Agent": "ASGrintaBadgeRecoveryAudit/1.0"})
+                      with urllib.request.urlopen(request, timeout=20) as response:
+                          data = response.read()
+                          print(f"  {version}: HTTP={response.status}, type={response.headers.get('Content-Type')}, bytes={len(data)}, sha256={hashlib.sha256(data).hexdigest()[:16]}")
+                  except urllib.error.HTTPError as e:
+                      print(f"  {version}: HTTP={e.code}, type={e.headers.get('Content-Type')}")
+                  except Exception as e:
+                      print(f"  {version}: ERROR={type(e).__name__}")
+          PY
