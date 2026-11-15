@@ -40,3 +40,15 @@ String badgeImageDeliveryUrl(
 
   return uri.replace(path: path, queryParameters: params).toString();
 }
+
+
+/// URL à essayer dans l'ordre : image optimisée, puis objet public original.
+///
+/// Le service de transformation peut refuser une image alors que l'objet
+/// existe toujours. Dans ce cas, la version publique permet de retrouver
+/// l'illustration au lieu de retomber immédiatement sur l'emoji générique.
+List<String> badgeImageDeliveryCandidates(String source) {
+  final optimized = badgeImageDeliveryUrl(source);
+  if (optimized == source) return [source];
+  return [optimized, source];
+}
