@@ -393,5 +393,90 @@ select is(
   'la composition n’attend que les deux joueurs de rotation, jamais le coach'
 );
 
+-- ---------------------------------------------------------------------------
+-- 9. La sortie de l'effectif d'un coach doit aussi le retirer des prochaines
+--    convocations et relances, sans compromettre les matchs déjà joués.
+-- ---------------------------------------------------------------------------
+
+update public.season_players
+set is_active = false
+where id = '8d000000-0000-0000-0000-000000000001';
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"8a000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select set_config(
+  'test.coach_inactive_convocations',
+  public.admin_get_match_convocations(current_setting('test.coach_match')::uuid)::text,
+  true
+);
+select set_config(
+  'test.coach_inactive_board',
+  public.get_match_availability_board(current_setting('test.coach_match')::uuid)::text,
+  true
+);
+select set_config(
+  'test.coach_inactive_reminders',
+  public.admin_get_match_availability_reminders(current_setting('test.coach_match')::uuid)::text,
+  true
+);
+reset role;
+
+select ok(
+  not exists (
+    select 1 from jsonb_array_elements(
+      current_setting('test.coach_inactive_convocations')::jsonb -> 'players'
+    ) p where p ->> 'season_player_id' = '8d000000-0000-0000-0000-000000000001'
+  ),
+  'le coach désactivé n’apparaît plus dans l’effectif du prochain match'
+);
+select ok(
+  not exists (
+    select 1 from jsonb_array_elements(
+      current_setting('test.coach_inactive_board')::jsonb -> 'players'
+    ) p where p ->> 'season_player_id' = '8d000000-0000-0000-0000-000000000001'
+  ),
+  'le coach désactivé ne figure plus au tableau des disponibilités'
+);
+select ok(
+  not exists (
+    select 1 from jsonb_array_elements(
+      current_setting('test.coach_inactive_reminders')::jsonb -> 'players'
+    ) p where p ->> 'season_player_id' = '8d000000-0000-0000-0000-000000000001'
+  ),
+  'le coach désactivé n’est plus une cible de relance'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"8a000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select is(
+  public.get_my_match_availability(current_setting('test.coach_match')::uuid),
+  null::jsonb,
+  'un coach désactivé ne peut plus répondre à un match à venir'
+);
+reset role;
+
+update public.season_players
+set is_active = true
+where id = '8d000000-0000-0000-0000-000000000001';
+
+select is(
+  (
+    select participant.availability_status::text
+    from public.match_sport_participants participant
+    where participant.match_id = current_setting('test.coach_match')::uuid
+      and participant.season_player_id = '8d000000-0000-0000-0000-000000000001'
+  ),
+  'available',
+  'le retour du coach conserve sa dernière réponse'
+);
+
 select * from finish();
 rollback;
