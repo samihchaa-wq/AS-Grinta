@@ -31,12 +31,11 @@ void main() {
     });
 
     test('tries the public original if badge optimization fails', () {
-      const original =
-          'https://project.supabase.co/storage/v1/object/public/'
+      const original = 'https://project.supabase.co/storage/v1/object/public/'
           'badge-images/custom/badge.png';
       expect(badgeImageDeliveryCandidates(original), [
         'https://project.supabase.co/storage/v1/render/image/public/'
-        'badge-images/custom/badge.png?width=360&quality=75',
+            'badge-images/custom/badge.png?width=360&quality=75',
         original,
       ]);
     });
