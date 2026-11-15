@@ -94,7 +94,9 @@ class BadgeEmblem extends StatelessWidget {
         : sourceUrl == null || sourceUrl.isEmpty
             ? fallback
             : Image.network(
-                badgeImageDeliveryUrl(sourceUrl),
+                // Le service render/image renvoie 403 en production AS Grinta.
+                // L'URL publique de l'objet, elle, renvoie 200 : on la garde.
+                sourceUrl,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,
