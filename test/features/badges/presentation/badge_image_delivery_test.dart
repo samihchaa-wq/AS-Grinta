@@ -30,6 +30,22 @@ void main() {
       expect(badgeImageDeliveryUrl(url), url);
     });
 
+    test('tries the public original if badge optimization fails', () {
+      const original =
+          'https://project.supabase.co/storage/v1/object/public/'
+          'badge-images/custom/badge.png';
+      expect(badgeImageDeliveryCandidates(original), [
+        'https://project.supabase.co/storage/v1/render/image/public/'
+            'badge-images/custom/badge.png?width=360&quality=75',
+        original,
+      ]);
+    });
+
+    test('does not retry an external URL twice', () {
+      const original = 'https://images.example.com/badge.png';
+      expect(badgeImageDeliveryCandidates(original), [original]);
+    });
+
     test('supports an explicit delivery size for future callers', () {
       expect(
         badgeImageDeliveryUrl(
