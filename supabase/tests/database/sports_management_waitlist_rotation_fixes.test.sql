@@ -232,7 +232,8 @@ select set_config('test.manual_ledger_before',
 );
 
 update public.match_sport_participants
-set availability_status = 'available', convocation_status = 'not_convoked'
+set availability_status = 'available', availability_comment_private = null,
+    convocation_status = 'not_convoked'
 where match_id = '85000000-0000-0000-0000-000000000002';
 update public.matches
 set kickoff_at = now() - interval '1 hour',
