@@ -430,7 +430,7 @@ reset role;
 select ok(
   (
     select p.convocation_status = 'convoked'
-      and exists (
+      and not exists (
         select 1 from private.sport_waitlist_passage_ledger l
         where l.match_id = p.match_id
           and l.season_player_id = p.season_player_id
@@ -440,7 +440,7 @@ select ok(
     where p.match_id = current_setting('test.waitlist_match_late')::uuid
       and p.season_player_id = '74000000-0000-0000-0000-000000000021'
   ),
-  'après J−1 12h, Alice promue conserve son droit au +1'
+  'après J−1 12h, Alice est promue sans attribution automatique de +1'
 );
 
 reset role;

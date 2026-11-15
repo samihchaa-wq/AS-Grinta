@@ -6,6 +6,11 @@ Toutes les évolutions notables d’AS Grinta sont documentées ici.
 
 ### Produit
 
+- liste d'attente : les +1 deviennent exclusivement manuels, réservés aux
+  admins via les boutons +/−. Plus d'ajout automatique au coup d'envoi ni de
+  retrait sur annulation, report ou quota élargi. Les compteurs et historiques
+  existants sont conservés ; le classement continue de suivre les corrections
+  manuelles. Actif après déploiement de la nouvelle migration ;
 - admin : dans les Paramètres, « Administration » devient « Effectif ».
   Les anciens onglets « Utilisateurs » et « Effectif » y sont réunis en une
   seule liste : chaque compte indique s'il fait partie de l'effectif de la

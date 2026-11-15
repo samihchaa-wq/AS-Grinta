@@ -92,10 +92,10 @@ select is(
 select is(
   (select count(*)::integer from private.sport_waitlist_passage_ledger l
    where l.match_id=current_setting('test.waitlist_three_match')::uuid),
-  1,'Une seule trace pour le joueur en attente'
+  0,'La mise en attente ne crée plus de crédit automatique'
 );
 
--- A passe d'attente à convoqué après le créneau : son droit reste acquis.
+-- Une promotion ne crée pas non plus de crédit automatique.
 update public.match_sport_participants p
 set availability_status='absent',updated_at=now()
 where p.match_id=current_setting('test.waitlist_three_match')::uuid
@@ -114,7 +114,7 @@ select is(
   (select count(*)::integer from private.sport_waitlist_passage_ledger l
    where l.match_id=current_setting('test.waitlist_three_match')::uuid
      and l.season_player_id='b5400000-0000-0000-0000-000000000001'),
-  1,'Le passage acquis survit à la promotion'
+  0,'La promotion ne crée aucun droit automatique au +1'
 );
 
 update public.match_sport_participants p
@@ -129,7 +129,7 @@ select is(
   (select count(*)::integer from private.sport_waitlist_passage_ledger l
    where l.match_id=current_setting('test.waitlist_three_match')::uuid
      and l.season_player_id='b5400000-0000-0000-0000-000000000001'),
-  1,'Les recalculs répétés ne dupliquent pas le droit au +1'
+  0,'Les recalculs répétés ne créent aucun droit au +1'
 );
 
 -- Dans « Effectif », un choix manuel de l'admin est conservé par le recalcul.
@@ -303,23 +303,7 @@ select is(
   'not_convoked','après Recalculer, Bruno redevient le joueur en attente'
 );
 
--- L'augmentation du quota à tous les présents neutralise les +1 du match.
-update public.match_sport_workflows
-set squad_size_limit=3
-where match_id=current_setting('test.waitlist_three_match')::uuid;
-select is(
-  (select w.waitlist_passages_exempt from public.match_sport_workflows w
-   where w.match_id=current_setting('test.waitlist_three_match')::uuid),
-  true,'Le match devient exempt si le quota accueille tous les présents'
-);
-select is(
-  private.finalize_match_waitlist_turns_internal(
-    current_setting('test.waitlist_three_match')::uuid,false),
-  0,'Aucun +1 n est crédité avant le coup d envoi'
-);
-
--- Même un +1 déjà attribué est révoqué si le match est annulé.
--- L'essai simule le crédit sans attendre l'horloge du coup d'envoi.
+-- Quota et annulation ne peuvent plus retirer un compteur manuel.
 select set_config(
   'test.waitlist_count_before_annulation',
   (select e.manual_waitlist_count::text
@@ -328,39 +312,35 @@ select set_config(
   true
 );
 update public.match_sport_workflows
-set waitlist_passages_exempt=false
+set squad_size_limit=3
 where match_id=current_setting('test.waitlist_three_match')::uuid;
-update private.sport_waitlist_passage_ledger
-set credited_at=now(), voided_at=null
-where match_id=current_setting('test.waitlist_three_match')::uuid
-  and season_player_id='b5400000-0000-0000-0000-000000000001';
-update public.sport_waitlist_entries
-set manual_waitlist_count=manual_waitlist_count+1
-where season_player_id='b5400000-0000-0000-0000-000000000001';
+select is(
+  (select w.waitlist_passages_exempt from public.match_sport_workflows w
+   where w.match_id=current_setting('test.waitlist_three_match')::uuid),
+  false,'Le quota ne pilote plus les crédits manuels'
+);
+select is(
+  private.finalize_match_waitlist_turns_internal(
+    current_setting('test.waitlist_three_match')::uuid,false),
+  0,'La finalisation historique ne crédite plus de +1'
+);
 
 update public.matches
 set status='annule'
 where id=current_setting('test.waitlist_three_match')::uuid;
 
-select ok(
+select is(
   (select w.waitlist_passages_exempt
    from public.match_sport_workflows w
    where w.match_id=current_setting('test.waitlist_three_match')::uuid),
-  'annuler le match le rend définitivement exempt'
-);
-select ok(
-  (select l.voided_at is not null
-   from private.sport_waitlist_passage_ledger l
-   where l.match_id=current_setting('test.waitlist_three_match')::uuid
-     and l.season_player_id='b5400000-0000-0000-0000-000000000001'),
-  'le journal conserve la trace de la révocation'
+  false,'Annuler le match ne pilote plus les crédits manuels'
 );
 select is(
   (select e.manual_waitlist_count
    from public.sport_waitlist_entries e
    where e.season_player_id='b5400000-0000-0000-0000-000000000001'),
   current_setting('test.waitlist_count_before_annulation')::integer,
-  'un +1 déjà crédité est retiré du classement après annulation'
+  'Le compteur manuel reste identique après changement de quota et annulation'
 );
 
 -- Point de départ de la mise en ligne : l'ordre de départ prime, seuls les

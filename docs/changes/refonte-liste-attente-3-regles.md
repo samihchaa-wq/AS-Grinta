@@ -1,57 +1,66 @@
-# Refonte de la liste d'attente — contrat métier (novembre 2026)
+# Liste d'attente — contrat métier
 
-> Branche de travail. **Aucune migration sur la production ni activation du nouveau moteur sans tests.**
+## Évolution du 15 novembre 2026 : +1 exclusivement manuels
 
-## Les seules règles métier
+Décision du propriétaire : les +1 sont gérés à 100 % par l'administration.
+Ce contrat remplace la règle de crédit automatique introduite par la PR #1571.
+Il prend effet en production après application de la nouvelle migration
+`20261115125239_waitlist_credits_admin_only.sql`.
 
-1. **Priorité des convocations** — Pour un match et un quota X, les convoqués sont exactement les `min(X, présents)` joueurs déclarés présents ayant les positions les plus basses (numéros les plus élevés) dans la liste d'attente.
-2. **Passages en attente** — Chaque joueur ayant figuré au moins une fois en attente entre **J−1 à 12 h, heure de Paris**, et le coup d'envoi acquiert **un seul +1** pour ce match, même s'il redevient convoqué ou absent avant le coup d'envoi. Le +1 est comptabilisé au coup d'envoi. Aucun +1 en cas d'annulation, de report, ou lorsque le quota a été ajusté pour accueillir tous les présents.
-3. **Ordre de la liste** — Tri ascendant par (a) total des passages en attente, (b) matchs joués lors de la saison précédente, (c) ordre alphabétique du nom, puis prénom. Un identifiant stable départage une homonymie parfaite.
+### 1. Convocations et désistements
 
-## Contrôle de l'administrateur (décisions du 8 novembre 2026)
+- Pour un quota X, les joueurs présents ayant les numéros les plus élevés
+  dans la liste générale sont prioritaires, dans la limite des places libres.
+- Désistements et retours passent par le même calcul de convocation.
+- Les décisions manuelles par match sont conservées : un joueur forcé
+  convoqué prend une place, un joueur forcé en attente est exclu du calcul
+  automatique. Un joueur présent qui se désiste perd cette décision manuelle.
+- Le coach est hors quota. Les matchs « entre nous » conservent leur exception :
+  tous les présents sont convoqués.
+- L'effectif est verrouillé à l'ouverture du Live, à T−15.
+- Une notification de convocation ou de mise en attente correspond à un
+  changement réel du statut ; modifier un compteur ne notifie pas à lui seul.
 
-- **Liste d'attente — boutons +/−** : l'administrateur peut ajouter ou retirer un +1 à un joueur (inscrit au journal d'audit). Le classement est recalculé aussitôt selon la règle 3 et les convocations des prochains matchs suivent. L'écran montre le nouvel ordre quand on tire la liste vers le bas ou qu'on revient sur la page. Pas de glisser-déposer ni de bouton « Enregistrer », « Recalculer » ou « Actualiser ».
-- **Effectif — choix par match** : comme avant la refonte, l'administrateur peut glisser un joueur dans « Convoqués » ou « En attente » pour un match. Ce choix est conservé par les recalculs : un joueur forcé convoqué prend une place, un joueur forcé en attente en libère une ; les autres suivent la règle 1. Le choix s'efface si la disponibilité du joueur change (il répond, se désiste, revient, ou l'admin le déclare absent). Un joueur forcé en attente pendant le créneau de la règle 2 gagne son +1, comme tout joueur en attente.
-- **Retri automatique de la liste** : à chaque +1 attribué au coup d'envoi, annulé (match annulé, reporté, quota élargi) ou corrigé à la main.
-- **Mise en ligne sans effet rétroactif** : l'ordre actuel de la liste et les compteurs sont conservés tels quels. Ils servent de point de départ pour la saison en cours : le classement se fait d'abord sur les +1 gagnés depuis la mise en ligne, puis sur l'ordre de départ, puis sur les critères de la règle 3. Les compteurs affichés restent les totaux de la saison. Aucun +1 n'est crédité pour un match joué avant la mise en ligne.
-- Une liste toute neuve (nouvelle saison) est triée selon la règle 3, sans point de départ. Un joueur ajouté en cours de saison passe après les joueurs du point de départ à nombre de +1 égal.
-- **Matchs « entre nous »** : inchangés, tous les présents sont convoqués.
+### 2. Compteurs de passages en attente
 
-## Invariants techniques obligatoires
+- Seul un administrateur actif peut ajouter ou retirer un +1, depuis les
+  boutons +/− de la liste d'attente (`admin_set_waitlist_manual_count`).
+- Le compteur ne peut pas être négatif ; chaque modification reste auditée.
+- Aucun +1 n'est ajouté automatiquement, ni à J−1 midi, ni au coup d'envoi,
+  ni à la validation d'un match, ni à l'ouverture de la liste par l'admin.
+- Aucun +1 n'est retiré automatiquement : une annulation, un report, un
+  changement de quota ou de disponibilité ne modifie pas le compteur.
+- Les compteurs, l'ordre existant et les journaux historiques sont conservés
+  lors de la migration. Aucun ancien crédit en attente n'est rattrapé.
+- La tâche `as-grinta-waitlist-credit-v2` est désinscrite. Les anciennes
+  fonctions de finalisation et de révocation restent compatibles et renvoient
+  0 sans modifier les compteurs ni le journal des anciens crédits.
 
-- En amont du verrouillage, aucune dérogation individuelle ni ancien état de promotion ne peut déroger à la règle 1 ; l'administrateur agit uniquement sur l'ordre de la liste et les compteurs.
-- L'effectif déjà verrouillé à l'ouverture du Live (T−15) ne se recompose pas lorsque les +1 sont attribués au coup d'envoi.
-- Les transitions de l'état `not_convoked` sont enregistrées **en tant qu'événement**, indépendamment du statut final du joueur.
-- L'attribution d'un +1 est **transactionnelle et idempotente**, avec une unicité `(match_id, season_player_id)`.
-- Le compteur affiché et celui utilisé pour classer les joueurs doivent être la même donnée (pour la saison en cours, le classement en retire la valeur mémorisée à la mise en ligne).
-- Les notifications de promotion/rétrogradation conservent leur fonctionnement uniquement sur un changement réel du statut calculé.
-- Les données et statistiques de production sont conservées; aucun effacement sans migration justifiée et sauvegarde.
+### 3. Classement
 
-## Problèmes du moteur actuel observés
+- Chaque modification manuelle du compteur recalcule le classement et les
+  convocations des prochains matchs qui ne sont pas encore verrouillés.
+- Pour la saison déjà ouverte lors de la refonte, le tri conserve le point
+  de départ du 10 novembre : écart entre le compteur actuel et le compteur
+  initial, puis ordre initial, puis les critères ci-dessous.
+- Une nouvelle saison est classée par compteur croissant, nombre de matchs
+  joués la saison précédente croissant, puis nom et prénom alphabétiques.
+  Un identifiant stable départage les homonymes.
+- Un joueur ajouté en cours de saison passe après les joueurs du point de
+  départ à écart de compteur égal.
+- Le compteur affiché est celui utilisé par le calcul, après déduction du
+  compteur initial pour la saison ayant un point de départ.
+- La liste générale n'a plus de glisser-déposer ni de boutons Enregistrer,
+  Recalculer ou Actualiser. Après un +/−, l'écran affiche le nouvel ordre
+  lorsqu'on tire la liste vers le bas ou qu'on revient sur la page.
 
-- `private.finalize_match_waitlist_turns_internal` déplace les joueurs vers la dernière position, sans incrémenter `manual_waitlist_count`, pourtant utilisé par l'interface pour « Recalculer ».
-- `private.recompute_match_convocations_internal` sanctuarise `convocation_manual_override`, qui peut faire passer une décision arbitraire avant la priorité de la liste.
-- `private.handle_convoked_withdrawal` et `private.restore_returning_convoked_player` opèrent des promotions et des retours particuliers au lieu de s'appuyer systématiquement sur le même calcul.
-- Le RPC `private.get_sport_waitlist` ne renvoie pas le champ `current_season_waitlist_count`, alors que le modèle Dart attend ce champ.
-- Les opérations d'administration peuvent conserver des dérogations; elles devront être redéfinies pour modifier uniquement les entrées des règles, pas les résultats.
+## Validation avant déploiement
 
-## Points d'intégration à préserver
-
-- Comptes joueurs, saison, coach (hors quota comme actuellement), invités, composition, Live, disponibilités, notification des mouvements, historique.
-- Les signatures des RPC publiques jusqu'à migration du client; les anciennes API de dérogation devront retourner un refus explicite plutôt que créer des états incohérents.
-- Les règles 1 et 2 utilisent la période du match en heure locale `Europe/Paris`, même lors des changements d'heure d'été.
-
-## Plan d'exécution
-
-1. Construire le nouvel historique d'éligibilité aux +1, puis la comptabilisation au coup d'envoi.
-2. Remplacer le moteur de sélection par un seul recalcul déterministe et supprimer les dérogations manuelles.
-3. Remplacer le déplacement arbitraire de la liste par un tri à partir des compteurs.
-4. Adapter l'interface d'administration sans toucher aux autres écrans.
-5. Tester (changements de disponibilité, promotion puis retrait, T−15, J−1 midi, report, annulation, quota, double exécution, égalité, notifications), auditer les migrations et ne déployer qu'après validation.
-
-## Contrôles bloquants avant fusion
-
-- Exécuter les tests SQL et Flutter, y compris les anciens tests métier qui peuvent nécessiter une adaptation explicite.
-- Tester sur une base isolée copie de la structure de production, jamais sur la production.
-- Vérifier `EXPLAIN`, la concurrence, les index et les droits des fonctions `SECURITY DEFINER`.
-- Examiner les invités. Les matchs « entre nous » gardent volontairement leur exception : tous les présents sont convoqués.
+- Rejouer l'historique des migrations sur une base isolée et exécuter tous les
+  tests pgTAP/RLS et le lint des fonctions.
+- Vérifier les modifications admin et leur audit, le refus des comptes joueur,
+  le maintien des priorités de convocation et le verrou T−15.
+- Vérifier qu'aucun appel historique, crédit en attente, report, annulation
+  ou changement de quota ne modifie automatiquement les compteurs.
+- Inspecter l'état réel et les migrations de production avant déploiement.
+  Ne pas modifier le verrou de production pour masquer une dérive.
