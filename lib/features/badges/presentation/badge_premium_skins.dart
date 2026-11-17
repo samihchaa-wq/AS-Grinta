@@ -180,8 +180,8 @@ class BadgePremiumTexturePainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _line(Canvas c, double x1, double y1, double x2, double y2,
-      Color color, double stroke) {
+  void _line(Canvas c, double x1, double y1, double x2, double y2, Color color,
+      double stroke) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = stroke
@@ -192,8 +192,14 @@ class BadgePremiumTexturePainter extends CustomPainter {
   void _metal(Canvas c, Color accent) {
     for (var i = 0; i < 11; i++) {
       final shift = i * 12.0;
-      _line(c, -30 + shift, 100, 38 + shift, 0,
-          accent.withValues(alpha: i.isEven ? .19 : .10), i % 3 == 0 ? 4.2 : .7);
+      _line(
+          c,
+          -30 + shift,
+          100,
+          38 + shift,
+          0,
+          accent.withValues(alpha: i.isEven ? .19 : .10),
+          i % 3 == 0 ? 4.2 : .7);
     }
     final ribbon = Path()
       ..moveTo(-15, 61)
@@ -218,7 +224,11 @@ class BadgePremiumTexturePainter extends CustomPainter {
         for (var i = 0; i < 6; i++) {
           final t = math.pi * (i / 3 + 1 / 6);
           final point = Offset(x + 12 * math.cos(t), y + 12 * math.sin(t));
-          if (i == 0) { h.moveTo(point.dx, point.dy); } else { h.lineTo(point.dx, point.dy); }
+          if (i == 0) {
+            h.moveTo(point.dx, point.dy);
+          } else {
+            h.lineTo(point.dx, point.dy);
+          }
         }
         h.close();
         c.drawPath(h, p);
@@ -233,10 +243,12 @@ class BadgePremiumTexturePainter extends CustomPainter {
       final path = Path()
         ..moveTo(-15, shift + 10)
         ..cubicTo(29, shift - 15, 48, shift + 29, 110, shift - 6);
-      c.drawPath(path, Paint()
-        ..color = accent.withValues(alpha: .37)
-        ..strokeWidth = 3.2
-        ..style = PaintingStyle.stroke);
+      c.drawPath(
+          path,
+          Paint()
+            ..color = accent.withValues(alpha: .37)
+            ..strokeWidth = 3.2
+            ..style = PaintingStyle.stroke);
     }
   }
 
@@ -250,10 +262,12 @@ class BadgePremiumTexturePainter extends CustomPainter {
         ..lineTo(59, y - 4)
         ..lineTo(83, y + 8)
         ..lineTo(108, y - 13);
-      c.drawPath(crack, Paint()
-        ..color = accent.withValues(alpha: .67)
-        ..strokeWidth = i.isEven ? 1.1 : .48
-        ..style = PaintingStyle.stroke);
+      c.drawPath(
+          crack,
+          Paint()
+            ..color = accent.withValues(alpha: .67)
+            ..strokeWidth = i.isEven ? 1.1 : .48
+            ..style = PaintingStyle.stroke);
     }
   }
 
@@ -261,25 +275,37 @@ class BadgePremiumTexturePainter extends CustomPainter {
     // Filés de frappe + perspective d'un filet de but, pas de décoration florale.
     for (var i = 0; i < 8; i++) {
       final dy = i * 12.0;
-      _line(c, -8, dy + 25, 104, dy - 35,
-          accent.withValues(alpha: .35), i.isEven ? 1.4 : .65);
+      _line(c, -8, dy + 25, 104, dy - 35, accent.withValues(alpha: .35),
+          i.isEven ? 1.4 : .65);
     }
     for (var i = 0; i < 6; i++) {
       final x = 57 + i * 10.0;
-      _line(c, x, 12, 84 + (x - 57) * .27, 105,
-          accent.withValues(alpha: .18), .65);
+      _line(c, x, 12, 84 + (x - 57) * .27, 105, accent.withValues(alpha: .18),
+          .65);
     }
   }
 
   void _facets(Canvas c, Color accent) {
     const nodes = [
-      Offset(-8, -3), Offset(52, 0), Offset(109, -5),
-      Offset(11, 49), Offset(64, 39), Offset(105, 52),
-      Offset(-8, 108), Offset(43, 89), Offset(110, 106),
+      Offset(-8, -3),
+      Offset(52, 0),
+      Offset(109, -5),
+      Offset(11, 49),
+      Offset(64, 39),
+      Offset(105, 52),
+      Offset(-8, 108),
+      Offset(43, 89),
+      Offset(110, 106),
     ];
     const tris = [
-      [0, 1, 3], [1, 3, 4], [1, 2, 4], [2, 4, 5],
-      [3, 4, 7], [3, 6, 7], [4, 5, 8], [4, 7, 8],
+      [0, 1, 3],
+      [1, 3, 4],
+      [1, 2, 4],
+      [2, 4, 5],
+      [3, 4, 7],
+      [3, 6, 7],
+      [4, 5, 8],
+      [4, 7, 8],
     ];
     for (var i = 0; i < tris.length; i++) {
       final tri = Path()
@@ -287,11 +313,14 @@ class BadgePremiumTexturePainter extends CustomPainter {
         ..lineTo(nodes[tris[i][1]].dx, nodes[tris[i][1]].dy)
         ..lineTo(nodes[tris[i][2]].dx, nodes[tris[i][2]].dy)
         ..close();
-      c.drawPath(tri, Paint()..color = accent.withValues(alpha: i.isEven ? .17 : .33));
-      c.drawPath(tri, Paint()
-        ..color = accent.withValues(alpha: .37)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = .55);
+      c.drawPath(
+          tri, Paint()..color = accent.withValues(alpha: i.isEven ? .17 : .33));
+      c.drawPath(
+          tri,
+          Paint()
+            ..color = accent.withValues(alpha: .37)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = .55);
     }
   }
 
