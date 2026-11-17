@@ -83,7 +83,8 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     // Le titre est affiché via deux RichText superposés (contour + remplissage).
-    final labels = tester.widgetList<RichText>(find.byType(RichText))
+    final labels = tester
+        .widgetList<RichText>(find.byType(RichText))
         .where((w) => w.text.toPlainText() == 'AU FOUR ET AU MOULIN');
     expect(labels.length, 2);
   });
