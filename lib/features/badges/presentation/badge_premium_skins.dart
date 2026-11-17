@@ -146,25 +146,33 @@ class BadgePremiumTexturePainter extends CustomPainter {
       case BadgePremiumSkin.silver:
       case BadgePremiumSkin.gold:
         _metal(canvas, light);
+        break;
       case BadgePremiumSkin.cyan:
       case BadgePremiumSkin.navy:
         _hexes(canvas, light);
+        break;
       case BadgePremiumSkin.blue:
         _metal(canvas, light);
         _waves(canvas, light);
+        break;
       case BadgePremiumSkin.obsidian:
         _cracks(canvas, light);
+        break;
       case BadgePremiumSkin.orange:
         _goal(canvas, light);
+        break;
       case BadgePremiumSkin.ruby:
       case BadgePremiumSkin.diamond:
       case BadgePremiumSkin.emerald:
         _facets(canvas, light);
+        break;
       case BadgePremiumSkin.garnet:
         _metal(canvas, light);
         _line(canvas, 0, 90, 100, 10, light.withValues(alpha: .84), 1.4);
+        break;
       case BadgePremiumSkin.violet:
         _vortex(canvas, light);
+        break;
     }
     // Reflets lumineux aux coins. La transparence évite de masquer le joueur.
     _line(canvas, 0, 8, 57, -4, light.withValues(alpha: .52), 2);
@@ -174,8 +182,11 @@ class BadgePremiumTexturePainter extends CustomPainter {
 
   void _line(Canvas c, double x1, double y1, double x2, double y2,
       Color color, double stroke) {
-    c.drawLine(Offset(x1, y1), Offset(x2, y2),
-        Paint()..color = color..strokeWidth = stroke..strokeCap = StrokeCap.round);
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    c.drawLine(Offset(x1, y1), Offset(x2, y2), paint);
   }
 
   void _metal(Canvas c, Color accent) {
