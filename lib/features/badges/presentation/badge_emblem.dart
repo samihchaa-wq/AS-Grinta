@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_delivery.dart';
+import 'package:as_grinta/features/badges/presentation/badge_premium_skins.dart';
 import 'package:flutter/material.dart';
 
 export 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
@@ -108,6 +109,7 @@ class BadgeEmblem extends StatelessWidget {
     final body = BadgeEmblemBody(
       size: size,
       base: base,
+      skin: badgePremiumSkinFor(color),
       descriptor: _descriptor,
       value: baremeLabel,
       child: illustration,
