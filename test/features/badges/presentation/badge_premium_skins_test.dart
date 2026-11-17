@@ -60,7 +60,8 @@ void main() {
     expect(find.text('25'), findsNWidgets(2));
     expect(find.text('MATCHS'), findsNWidgets(2));
     expect(find.text('SAISON'), findsNWidgets(2));
-    expect(find.byType(BadgePremiumTexturePainter), findsNothing);
+    final painted = tester.widgetList<CustomPaint>(find.byType(CustomPaint));
+    expect(painted.any((w) => w.painter is BadgePremiumTexturePainter), isTrue);
     expect(tester.getSize(find.byType(BadgeEmblemBody)).height,
         closeTo(100 * badgeEmblemHeightRatio(), .01));
   });
@@ -81,7 +82,6 @@ void main() {
       ),
     );
     expect(tester.takeException(), isNull);
-    expect(find.text('AU FOUR ET AU MOULIN'), findsNothing);
     // Le titre est affiché via deux RichText superposés (contour + remplissage).
     final labels = tester.widgetList<RichText>(find.byType(RichText))
         .where((w) => w.text.toPlainText() == 'AU FOUR ET AU MOULIN');
