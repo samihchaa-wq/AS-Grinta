@@ -213,7 +213,8 @@ class _Band extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 CustomPaint(
-                  painter: BadgePremiumTexturePainter(skin: skin!, footer: true),
+                  painter:
+                      BadgePremiumTexturePainter(skin: skin!, footer: true),
                 ),
                 Center(child: child),
               ],
