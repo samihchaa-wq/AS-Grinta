@@ -154,6 +154,7 @@ class BadgeEmblemBody extends StatelessWidget {
           _Band(
             height: size * labelRatio,
             color: bandsTone,
+            skin: skin,
             child: hasValue
                 ? _BandText(
                     descriptor.label,
